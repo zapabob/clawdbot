@@ -35,7 +35,9 @@ This version of Moltbot (maintained by zapabob) includes several enhancements an
 - **AntiGravity Integration / AntiGravity 統合**: Full support for high-performance models via AntiGravity, including advanced thinking and reasoning capabilities. (AntiGravity による高性能モデルのフルサポート。高度な思考・推論機能を備えています)
 - **Extended Auth Plugins / 拡張認証プラグイン**: Includes custom authentication plugins for seamless integration with enterprise and personal AI providers. (企業向けおよび個人向け AI プロバイダーとのシームレスな連携を可能にするカスタム認証プラグインを同梱)
 - **LINE Channel Support / LINE チャンネルのサポート**: Adds support for LINE as a messaging channel, allowing you to interact with the assistant on Japan's most popular messaging app. (日本で最も普及しているメッセージングアプリである LINE をチャンネルとして追加)
-- **Advanced Memory / 高度なメモリ**: Enhanced memory retrieval using LanceDB for better long-term context and personal information recall. (LanceDB を使用したメモリ検索の強化により、長期的なコンテキストや個人情報の想起が向上)
+- **Episodic Memory via Ebbinghaus Algorithm / エピソード記憶（忘却曲線アルゴリズム）**: Advanced memory retention based on the Ebbinghaus forgetting curve, prioritizing important memories while gracefully pruning older, less relevant ones. (エビングハウスの忘却曲線に基づいた高度なメモリ保持メカニズム。重要な記憶を優先し、関連性の低い古い記憶を適切に整理します)
+- **AI Guardrails (3 Laws of Safety) / AI ガードレール（安全性の三原則）**: Built-in safety protocols inspired by the Three Laws of Robotics, ensuring ethical AI behavior and preventing harmful tool misuse. (ロボット工学三原則から着想を得た組み込み安全プロトコル。倫理的な AI の振る舞いを保証し、ツールの不正利用を防止します)
+- **Self-Improvement & Propagation / 自己改良と自己増殖**: Capability to analyze its own performance and spawn specialized sub-agents to handle complex, specialized tasks in parallel. (自身のパフォーマンスを分析し、複雑な専門タスクを並列処理するための特化型サブエージェントを生成・展開する能力)
 - **Japanese Documentation / 日本語ドキュメント**: Includes detailed Japanese implementation logs and guides in the `_docs/` directory for better accessibility for Japanese users. (`_docs/` ディレクトリ内に詳細な実装ログやガイドを日本語で整備)
 
 **Subscriptions (OAuth):**
