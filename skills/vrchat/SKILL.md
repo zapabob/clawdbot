@@ -4,63 +4,38 @@ description: Interact with VRChat via OSC (Chatbox, Avatar Parameters) and monit
 metadata: { "moltbot": { "emoji": "👓", "requires": { "os": ["win32"] } } }
 ---
 
-# VRChat Integration
+# VRChat Integration (Pro v1.2 - BoB-Nyan)
 
-Use this skill to interact with a running VRChat instance on the local machine.
+Advanced OSC Integration for high-fidelity control, safety, and cinematography in the Agent Era.
 
-## Features
+## Features (v1.2 Agent-Safe)
 
-- **OSC Chatbox**: Send text to the in-game chatbox.
-- **Avatar Parameters**: Control avatar expressions or animations.
-- **Log Monitoring**: Detect in-world events from VRChat log files.
+- **Permission Profiles**: `SAFE`, `PRO`, `DIRECTOR`. Commands are gated to prevent unauthorized agent actions.
+- **Capability Negotiation**: Automatically checks OSCQuery/JSON Config before sending to prevent updates to non-existent parameters.
+- **BoB-Nyan Protocol**: Bi-directional sync with Token Bucket rate limiting (5/5s) and 30s auto-jail.
+- **Loop Protection**: Built-in echo suppression to prevent parameter feedback loops.
+- **Camera Director**: Complete control over User Camera and Dolly (Zoom, Aperture, Focus, Dolly Pos).
+- **Concierge Flow**: Realistic typing delays and UTF-8 sanitized chat with SFX support.
 
-## OSC Control
+## Security Profiles
 
-Use the bundled helper script `scripts/vrc-osc.cjs` to send messages.
+- **SAFE**: (Current default) Chat and parameter updates only. No input/camera.
+- **PRO**: Grants access to controller inputs (`Jump`, `Move`, etc.).
+- **DIRECTOR**: Grants access to user camera and dolly commands.
 
-### Send to Chatbox
+To switch profiles: `/vrc_profile <PROFILE>`
 
-```bash
-node scripts/vrc-osc.cjs chat "Hello from Moltbot!"
-```
+## Moltbot Commands
 
-### Update Avatar Parameter (Float 0.0 - 1.0)
+- `/vrc <message>` : Simple chat relay (Safe).
+- `/vrc_speak <message>` : Concierge flow with typing delay and audio alert.
+- `/vrc_cam <cmd> <val>` : Control camera (zoom, mode, aperture, dolly pos) [DIRECTOR].
+- `/vrc_profile <profile>` : Switch security context.
+- `/vrc_status` : View current capabilities and security profile.
 
-```bash
-node scripts/vrc-osc.cjs param "FaceVibe" 0.8
-```
+## Security & Reliability
 
-## Log Monitoring
-
-VRChat logs are located in `~/AppData/LocalLow/VRChat/VRChat/`.
-The latest log matches `output_log_*.txt`.
-
-### Find Latest Log (PowerShell)
-
-```powershell
-$logDir = "$env:USERPROFILE\AppData\LocalLow\VRChat\VRChat"
-$latestLog = Get-ChildItem $logDir -Filter "output_log_*.txt" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-$latestLog.FullName
-```
-
-### Watch for Join/Leave Events
-
-You can use `Get-Content -Wait` to watch for specific patterns:
-
-- `[Behaviour] OnPlayerJoined` : A player joined the instance.
-- `[Behaviour] OnPlayerLeft` : A player left the instance.
-- `[Behaviour] Entering Room:` : You changed worlds.
-
-Example Pattern to look for:
-`[Behaviour] OnPlayerJoined <DisplayName> (<ID>)`
-
-## Example Usage
-
-1. **Auto-Greeting**: Watch the log for `OnPlayerJoined`, then use the `chat` command to say "Welcome, <DisplayName>!" in-world.
-2. **Status Updates**: Post system status or new notifications from other channels (Discord/LINE) into the VRChat Chatbox.
-3. **Sentiment Expression**: If the user sends a happy message in chat, set an avatar parameter like `Smile` to `1.0`.
-
-## Requirements
-
-- VRChat must have **OSC Enabled** in the Action Menu (Options > OSC > Enabled).
-- Default OSC Input Port: 9000.
+- **Rate Limit**: Token bucket allows bursts but strictly enforces average limits.
+- **Cap-Negotiation**: Only sends parameter updates that the current avatar supports.
+- **Echo Suppression**: Ignores self-echoes from VRChat within a 1s window.
+- **Permission Guard**: Strictly local (127.0.0.1) and profile-gated.

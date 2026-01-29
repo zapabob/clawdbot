@@ -1,73 +1,125 @@
-import type { MoltbotPluginApi } from "clawdbot/plugin-sdk";
-import dgram from "node:dgram";
+import type { MoltbotPluginApi, CommandContext } from "clawdbot/plugin-sdk";
+import { VRChatProtocol } from "./src/protocol/index.js";
+import { globalOscGuard } from "./src/core/guard.js";
+import { VRChatOSCQuery } from "./src/discovery/oscquery.js";
 
-/**
- * Encodes a string to OSC format (null-terminated, 4-byte padded).
- */
-function encodeString(s: string) {
-  const buf = Buffer.from(s + "\0");
-  const padding = (4 - (buf.length % 4)) % 4;
-  return Buffer.concat([buf, Buffer.alloc(padding)]);
-}
+export const VRChatRelayPlugin: any = {
+  name: "vrchat-relay",
+  setup: async (api: MoltbotPluginApi) => {
+    const baseDir = api.configDir;
+    const config = api.config || {};
+    const sendPort = config.sendPort || 9000;
+    const receivePort = config.receivePort || 9001;
+    const oscQueryPort = config.oscQueryPort || 9001;
 
-/**
- * Sends an OSC packet to VRChat.
- */
-function sendOSC(address: string, types: string, args: any[], port = 9000) {
-  const addrBuf = encodeString(address);
-  const typeBuf = encodeString("," + types);
-  const argBufs = args.map((arg, i) => {
-    const type = types[i];
-    if (type === "s") return encodeString(String(arg));
-    // For now we only need string and true (T) for chatbox input
-    return Buffer.alloc(0);
-  });
-
-  const packet = Buffer.concat([addrBuf, typeBuf, ...argBufs]);
-  const client = dgram.createSocket("udp4");
-
-  return new Promise<void>((resolve, reject) => {
-    client.send(packet, port, "127.0.0.1", (err) => {
-      client.close();
-      if (err) reject(err);
-      else resolve();
+    const vrc = new VRChatProtocol({
+      host: "127.0.0.1",
+      sendPort,
+      receivePort,
+      baseDir,
     });
-  });
-}
+    // Inject OSCQuery port if different
+    vrc.discovery = new VRChatOSCQuery("127.0.0.1", oscQueryPort);
 
-const plugin = {
-  id: "vrchat-relay",
-  name: "VRChat Relay",
-  description: "Relays messages to VRChat Chatbox via slash commands",
-  register(api: MoltbotPluginApi) {
+    await vrc.start();
+
     api.registerCommand({
       name: "vrc",
-      description: "Send text to VRChat Chatbox",
+      description: "Send text to VRChat Chatbox (v1.0 Basic)",
       acceptsArgs: true,
       requireAuth: true,
-      handler: async (ctx) => {
+      handler: async (ctx: CommandContext) => {
         const message = ctx.args?.trim();
-        if (!message) {
-          return { text: "Usage: /vrc <message>" };
-        }
-
+        if (!message) return { text: "Usage: /vrc <message>" };
         try {
-          // 'sT' means string followed by True (for immediate display)
-          await sendOSC("/chatbox/input", "sT", [message]);
-          api.logger.info(`Relayed to VRChat: ${message} (from ${ctx.channel}:${ctx.senderId})`);
-          return { text: `✅ Relayed to VRChat: ${message}` };
+          await vrc.chatbox.sendMessage(message);
+          return { text: `✅ Relayed: ${message}` };
         } catch (err) {
-          api.logger.error(`VRChat relay failed: ${String(err)}`);
-          return {
-            text: `❌ Failed to relay: ${err instanceof Error ? err.message : String(err)}`,
-          };
+          return { text: `❌ Error: ${String(err)}` };
         }
       },
     });
 
-    // Optional: Log when the plugin is loaded
-    api.logger.info("VRChat Relay plugin registered. Use /vrc <message> to relay.");
+    api.registerCommand({
+      name: "vrc_speak",
+      description: "Concierge Speak: Typing delay + SFX + Text",
+      acceptsArgs: true,
+      requireAuth: true,
+      handler: async (ctx: CommandContext) => {
+        const message = ctx.args?.trim();
+        if (!message) return { text: "Usage: /vrc_speak <message>" };
+        try {
+          await vrc.chatbox.sendWithTyping(message, 1200, true);
+          return { text: `💬 Spoken: ${message} (with typing delay)` };
+        } catch (err) {
+          return { text: `❌ Error: ${String(err)}` };
+        }
+      },
+    });
+
+    api.registerCommand({
+      name: "vrc_cam",
+      description: "Camera Director: Zoom/Mode/Dolly (e.g., zoom 0.5, mode 1, dolly position 0.3)",
+      acceptsArgs: true,
+      requireAuth: true,
+      handler: async (ctx: CommandContext) => {
+        const args = ctx.args?.split(" ") || [];
+        const cmd = args[0]?.toLowerCase();
+        const val = parseFloat(args[1] || "0");
+
+        try {
+          if (cmd === "zoom") await vrc.camera.setZoom(val);
+          else if (cmd === "mode") await vrc.camera.setMode(Math.floor(val));
+          else if (cmd === "aperture") await vrc.camera.setAperture(val);
+          else if (cmd === "dolly" && args[1] === "pos") await vrc.camera.dollyPosition(parseFloat(args[2] || "0"));
+          else return { text: "Usage: /vrc_cam <zoom|mode|aperture|dolly pos> <value>" };
+          
+          return { text: `📸 Camera set: ${cmd} = ${args[1]}` };
+        } catch (err) {
+          return { text: `❌ Camera Error: ${String(err)}` };
+        }
+      },
+    });
+
+    api.registerCommand({
+      name: "vrc_profile",
+      description: "Set VRChat security profile (SAFE|PRO|DIRECTOR|ADMIN)",
+      acceptsArgs: true,
+      requireAuth: true,
+      handler: async (ctx: CommandContext) => {
+        const profileStr = ctx.args?.trim().toUpperCase();
+        if (!profileStr) return { text: "Usage: /vrc_profile <SAFE|PRO|DIRECTOR|ADMIN>" };
+        
+        try {
+          const profile = profileStr as any;
+          globalOscGuard.setProfile(profile);
+          return { text: `🛡️ OSC Security Profile set to: ${profileStr}` };
+        } catch (err) {
+          return { text: `❌ Error setting profile: ${String(err)}` };
+        }
+      },
+    });
+
+    api.registerCommand({
+      name: "vrc_status",
+      description: "Check VRChat Pro v1.2 status and capabilities",
+      acceptsArgs: false,
+      requireAuth: true,
+      handler: async () => {
+        const caps = vrc.capabilities.size;
+        return {
+          text: `🥽 **VRChat Pro v1.2 (BoB-Nyan)**\n` +
+                `- Status: Online\n` +
+                `- Capabilities: ${caps} parameters discovered\n` +
+                `- Active Profile: ${globalOscGuard.getProfile()}\n` +
+                `- Audit: Logging enabled\n` +
+                `Use \`/vrc_cam\` or \`/vrc_speak\` for advanced features.`
+        };
+      },
+    });
+
+    api.logger.info("VRChat Relay v1.2 (Agent-Safe Agent) registered.");
   },
 };
 
-export default plugin;
+export default VRChatRelayPlugin;
