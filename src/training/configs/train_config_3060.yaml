@@ -1,0 +1,35 @@
+# RTX 3060 Training Config (DeepseekGRPO / SO8T)
+# Target Hardware: RTX 3060 12GB
+# Framework: Unsloth / Torchtune
+
+# DeepseekGRPO + GRAPE (Gradient-Residual Adaptive PE)
+# Optimized for Stability on RTX 3060 (12GB)
+
+grape:
+  enabled: true
+  adaptive_freeze_threshold: 0.05 # Freezes layers with low gradients
+  manifold_scaling_factor: 1.2 # Scaled learning rate for active manifolds
+
+training:
+  batch_size: 1 # Strict "Anti-Freeze" Limit
+  gradient_accumulation_steps: 32 # Higher accumulation for stability
+  learning_rate: 1e-5
+  optimizer: "paged_adamw_8bit" # Keeps 8-bit connection to RAM
+  max_grad_norm: 0.5 # Stricter clipping
+  warmup_steps: 100
+  max_steps: 1000
+
+data:
+  dataset_path: "data/safety_v1"
+  format: "chat_ml"
+  packing: true # Packs short sequences to max_seq_length
+
+checkpoints:
+  save_steps: 100
+  output_dir: "models/self-improved-v1"
+
+# Advanced Memory Optimizations
+memory:
+  gradient_checkpointing: true
+  flash_attention: true
+  compile: true # PyTorch 2.0+ compile

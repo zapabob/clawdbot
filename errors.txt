@@ -1,0 +1,8 @@
+﻿src/agents/tool-display.ts(1,10): error TS2305: Module '"../logging/redact.js"' has no exported member 'redactToolDetail'.
+src/canvas-host/server.ts(291,25): error TS7006: Parameter 'err' implicitly has an 'any' type.
+src/cli/update-cli.ts(505,34): error TS7006: Parameter 'opt' implicitly has an 'any' type.
+src/commands/configure.gateway.ts(24,18): error TS7006: Parameter 'value' implicitly has an 'any' type.
+src/commands/configure.gateway.ts(70,20): error TS7006: Parameter 'value' implicitly has an 'any' type.
+src/commands/configure.gateway.ts(76,26): error TS7006: Parameter 'part' implicitly has an 'any' type.
+src/commands/configure.gateway.ts(185,20): error TS7006: Parameter 'value' implicitly has an 'any' type.
+src/commands/configure.shared.ts(74,34): error TS7006: Parameter 'opt' implicitly has an 'any' type.
