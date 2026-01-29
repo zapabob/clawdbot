@@ -83,7 +83,11 @@ export async function loadGatewayTlsRuntime(
   if (!hasCert && !hasKey && autoGenerate) {
     try {
       await generateSelfSignedCert({ certPath, keyPath, log });
-    } catch (err) {
+    } catch (err: any) {
+      if (err?.code === "ENOENT") {
+        log?.warn?.("gateway tls: openssl not found, disabling TLS auto-generation");
+        return { enabled: false, required: false };
+      }
       return {
         enabled: false,
         required: true,

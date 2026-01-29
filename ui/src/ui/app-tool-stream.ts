@@ -207,9 +207,9 @@ export function handleAgentEvent(host: ToolStreamHost, payload?: AgentEventPaylo
   const args = phase === "start" ? data.args : undefined;
   const output =
     phase === "update"
-      ? formatToolOutput(data.partialResult)
+      ? formatToolOutput(data.partialResult) ?? undefined
       : phase === "result"
-        ? formatToolOutput(data.result)
+        ? formatToolOutput(data.result) ?? undefined
         : undefined;
 
   const now = Date.now();
@@ -221,7 +221,7 @@ export function handleAgentEvent(host: ToolStreamHost, payload?: AgentEventPaylo
       sessionKey,
       name,
       args,
-      output,
+      output: output ?? undefined,
       startedAt: typeof payload.ts === "number" ? payload.ts : now,
       updatedAt: now,
       message: {},
@@ -231,7 +231,7 @@ export function handleAgentEvent(host: ToolStreamHost, payload?: AgentEventPaylo
   } else {
     entry.name = name;
     if (args !== undefined) entry.args = args;
-    if (output !== undefined) entry.output = output;
+    if (output !== undefined) entry.output = output ?? undefined;
     entry.updatedAt = now;
   }
 

@@ -111,8 +111,8 @@ export const CommandsSchema = z
     config: z.boolean().optional(),
     debug: z.boolean().optional(),
     restart: z.boolean().optional(),
-    useAccessGroups: z.boolean().optional(),
-  })
-  .strict()
-  .optional()
+      useAccessGroups: z.boolean().optional(),
+    })
+    .passthrough()
+    .optional()
   .default({ native: "auto", nativeSkills: "auto" });

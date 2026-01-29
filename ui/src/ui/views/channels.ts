@@ -110,6 +110,7 @@ function resolveChannelOrder(snapshot: ChannelsStatusSnapshot | null): ChannelKe
     "signal",
     "imessage",
     "nostr",
+    "line",
   ];
 }
 
@@ -145,7 +146,7 @@ function renderChannel(
     case "googlechat":
       return renderGoogleChatCard({
         props,
-        googlechat: data.googlechat,
+        googleChat: data.googlechat,
         accountCountLabel,
       });
     case "slack":

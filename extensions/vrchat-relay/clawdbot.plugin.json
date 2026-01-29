@@ -1,0 +1,8 @@
+{
+  "id": "vrchat-relay",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

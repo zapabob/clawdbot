@@ -243,7 +243,7 @@ export const MoltbotSchema = z
         gmail: HooksGmailSchema,
         internal: InternalHooksSchema,
       })
-      .strict()
+      .passthrough()
       .optional(),
     web: z
       .object({
@@ -479,7 +479,7 @@ export const MoltbotSchema = z
           )
           .optional(),
       })
-      .strict()
+      .passthrough()
       .optional(),
     plugins: z
       .object({

@@ -21,6 +21,7 @@ const createHost = (tab: Tab): SettingsHost => ({
     navCollapsed: false,
     navGroupsCollapsed: {},
   },
+  password: "",
   theme: "system",
   themeResolved: "dark",
   applySessionKey: "main",

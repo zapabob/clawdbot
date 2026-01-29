@@ -20,6 +20,7 @@ import type { MoltbotApp } from "./app";
 
 type SettingsHost = {
   settings: UiSettings;
+  password: string;
   theme: ThemeMode;
   themeResolved: ResolvedTheme;
   applySessionKey: string;
@@ -78,7 +79,7 @@ export function applySettingsFromUrl(host: SettingsHost) {
   if (passwordRaw != null) {
     const password = passwordRaw.trim();
     if (password) {
-      (host as { password: string }).password = password;
+      host.password = password;
     }
     params.delete("password");
     shouldCleanUrl = true;

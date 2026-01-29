@@ -1,0 +1,11 @@
+{
+  "name": "@moltbot/vrchat-relay",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Relay LINE/Discord messages to VRChat Chatbox",
+  "moltbot": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

@@ -165,8 +165,8 @@ function resolveSessionOptions(
   const options: Array<{ key: string; displayName?: string }> = [];
 
   const resolvedMain =
-    mainSessionKey && sessions?.sessions?.find((s) => s.key === mainSessionKey);
-  const resolvedCurrent = sessions?.sessions?.find((s) => s.key === sessionKey);
+    (mainSessionKey && sessions?.sessions?.find((s) => s.key === mainSessionKey)) || undefined;
+  const resolvedCurrent = (sessionKey && sessions?.sessions?.find((s) => s.key === sessionKey)) || undefined;
 
   // Add main session key first
   if (mainSessionKey) {
