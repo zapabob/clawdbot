@@ -118,6 +118,21 @@ export const VRChatRelayPlugin: any = {
       },
     });
 
+    api.registerCommand({
+      name: "vrc_reload",
+      description: "Force reload VRChat avatar capabilities",
+      acceptsArgs: false,
+      requireAuth: true,
+      handler: async () => {
+        try {
+          await vrc.scanLocalConfig();
+          return { text: "🔄 Capabilities reloaded.\n(Hint: If parameters are still missing, use 'Reset OSC Config' in VRChat's Radial Menu)" };
+        } catch (err) {
+          return { text: `❌ Reload failed: ${String(err)}` };
+        }
+      },
+    });
+
     api.logger.info("VRChat Relay v1.2 (Agent-Safe Agent) registered.");
   },
 };

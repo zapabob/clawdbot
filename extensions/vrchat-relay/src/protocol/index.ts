@@ -86,6 +86,15 @@ export class VRChatProtocol {
     }
   }
 
+  /**
+   * Manually trigger a full capability scan.
+   */
+  async scanLocalConfig() {
+    if (!this.currentAvatarId) return;
+    this.audit.log("INFO", "Manual capability scan triggered", [this.currentAvatarId]);
+    await this.syncCapabilities(this.currentAvatarId);
+  }
+
   async start() {
     await this.client.start();
   }

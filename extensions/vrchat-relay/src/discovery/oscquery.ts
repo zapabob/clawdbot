@@ -1,7 +1,9 @@
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
-import os from "node:os";
+import os from "node:os"; // turbo
+// @ts-ignore
+import glob from "fast-glob";
 
 /**
  * Basic OSCQuery Discovery for VRChat.
@@ -82,6 +84,7 @@ export class VRChatOSCQuery {
 
   /**
    * Scans VRChat's local OSC config folder for the avatar.
+   * Uses glob to find the ID across all user folders.
    */
   private async readLocalConfig(avatarId: string): Promise<string[]> {
     const results: string[] = [];
@@ -97,22 +100,30 @@ export class VRChatOSCQuery {
     if (!fs.existsSync(oscRoot)) return [];
 
     try {
-      // The OSC folder contains subfolders which are User IDs (usr_...)
-      const userFolders = fs.readdirSync(oscRoot);
-      for (const userFolder of userFolders) {
-        const avatarConfigPath = path.join(oscRoot, userFolder, "Avatars", `${avatarId}.json`);
-        if (fs.existsSync(avatarConfigPath)) {
-          const content = fs.readFileSync(avatarConfigPath, "utf-8");
-          const config = JSON.parse(content);
-          if (config.parameters && Array.isArray(config.parameters)) {
-            for (const p of config.parameters) {
-              if (p.name) results.push(`/avatar/parameters/${p.name}`);
-            }
+      // Improved Glob pattern: oscRoot/usr_*/Avatars/<avatarId>.json
+      // Targeted scan: 
+      // 1. Look in direct subfolders (usr_*) of OSC root.
+      // 2. Look in Avatars folder inside those.
+      // 3. Match specific ID.
+      const pattern = `*/Avatars/${avatarId}.json`;
+      
+      const files = await glob(pattern, { 
+        cwd: oscRoot, 
+        absolute: true,
+        deep: 2 // Optimized depth: root -> usr -> Avatars -> file
+      });
+
+      for (const file of files) {
+        const content = fs.readFileSync(file, "utf-8");
+        const config = JSON.parse(content);
+        if (config.parameters && Array.isArray(config.parameters)) {
+          for (const p of config.parameters) {
+            if (p.name) results.push(`/avatar/parameters/${p.name}`);
           }
         }
       }
     } catch (err) {
-      // Silently fail if file system access issues
+      // Silently fail if file system access issues or invalid glob
     }
 
     return results;
