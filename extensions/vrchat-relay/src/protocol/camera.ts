@@ -44,10 +44,10 @@ export class CameraController {
 
   /**
    * Sets the exposure level (EV).
-   * VRChat Range: 0.0 - 5.0 (approx)
+   * VRChat Range: 0.0 - 10.0
    */
   async setExposure(value: number) {
-    const clamped = Math.min(5.0, Math.max(0.0, value));
+    const clamped = Math.min(10.0, Math.max(0.0, value));
     return this.client.sendRaw("/usercamera/Exposure", "f", [clamped]);
   }
 
@@ -94,10 +94,50 @@ export class CameraController {
 
   /**
    * Toggles Green Screen.
-   * Note: Color adjustment is handled via separate Hue/Sat/Light params (future).
+   * Note: Color adjustment is handled via separate Hue/Sat/Light params.
    */
   async setGreenScreen(enabled: boolean) {
     return this.client.sendRaw("/usercamera/GreenScreen", "T", [enabled]);
+  }
+
+  /**
+   * Sets Green Screen Hue (0-360).
+   */
+  async setGreenScreenHue(value: number) {
+    const clamped = Math.min(360.0, Math.max(0.0, value));
+    return this.client.sendRaw("/usercamera/Hue", "f", [clamped]);
+  }
+
+  /**
+   * Sets Green Screen Saturation (0-100).
+   */
+  async setGreenScreenSaturation(value: number) {
+    const clamped = Math.min(100.0, Math.max(0.0, value));
+    return this.client.sendRaw("/usercamera/Saturation", "f", [clamped]);
+  }
+
+  /**
+   * Sets Green Screen Lightness (0-50).
+   */
+  async setGreenScreenLightness(value: number) {
+    const clamped = Math.min(50.0, Math.max(0.0, value));
+    return this.client.sendRaw("/usercamera/Lightness", "f", [clamped]);
+  }
+
+  /**
+   * Sets Look-At-Me X Offset (-25 to 25).
+   */
+  async setLookAtMeX(value: number) {
+    const clamped = Math.min(25.0, Math.max(-25.0, value));
+    return this.client.sendRaw("/usercamera/LookAtMeXOffset", "f", [clamped]);
+  }
+
+  /**
+   * Sets Look-At-Me Y Offset (-25 to 25).
+   */
+  async setLookAtMeY(value: number) {
+    const clamped = Math.min(25.0, Math.max(-25.0, value));
+    return this.client.sendRaw("/usercamera/LookAtMeYOffset", "f", [clamped]);
   }
 
   /**
@@ -116,6 +156,40 @@ export class CameraController {
   async setTurnSpeed(value: number) {
     const clamped = Math.min(5.0, Math.max(0.1, value));
     return this.client.sendRaw("/usercamera/TurnSpeed", "f", [clamped]);
+  }
+
+  /**
+   * Helper: Sets Green Screen Key (Hue, Sat, Lit) safely.
+   * Order: Enable -> Set Values.
+   * Warns if Lightness > 50 (Official limit).
+   */
+  async setGreenScreenKey(hue: number, sat: number, lit: number) {
+    // 1. Validate & Clamp
+    let safeLit = lit;
+    if (lit > 50) {
+      console.warn(`[VRChat] WARN: GreenScreen Lightness > 50 clamped to 50 (Official Limit)`);
+      safeLit = 50;
+    }
+
+    // 2. Enable First (Best practice)
+    await this.setGreenScreen(true);
+
+    // 3. Send Values
+    await this.setGreenScreenHue(hue);
+    await this.setGreenScreenSaturation(sat);
+    await this.setGreenScreenLightness(safeLit);
+  }
+
+  /**
+   * Helper: Sets Look-At-Me Composition (Offsets).
+   * Optionally enables Look-At-Me if requested.
+   */
+  async setLookAtMeComposition(x: number, y: number, enable: boolean = false) {
+    if (enable) {
+        await this.setLookAtMe(true);
+    }
+    await this.setLookAtMeX(x);
+    await this.setLookAtMeY(y);
   }
 
   /**

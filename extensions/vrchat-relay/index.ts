@@ -71,8 +71,22 @@ export const VRChatRelayPlugin: any = {
           if (cmd === "zoom") await vrc.camera.setZoom(val);
           else if (cmd === "mode") await vrc.camera.setMode(Math.floor(val));
           else if (cmd === "aperture") await vrc.camera.setAperture(val);
+          else if (cmd === "exposure") await vrc.camera.setExposure(val);
+          else if (cmd === "focaldistance") await vrc.camera.setFocalDistance(val);
+          else if (cmd === "smoothing") await vrc.camera.setSmoothing(val);
+          else if (cmd === "flyspeed") await vrc.camera.setFlySpeed(val);
+          else if (cmd === "turnspeed") await vrc.camera.setTurnSpeed(val);
+          else if (cmd === "lookatme") await vrc.camera.setLookAtMe(val > 0.5); // Treat as bool toggle
+          else if (cmd === "lookatme_x") await vrc.camera.setLookAtMeX(val);
+          else if (cmd === "lookatme_y") await vrc.camera.setLookAtMeY(val);
+          else if (cmd === "greenscreen") await vrc.camera.setGreenScreen(val > 0.5); // Treat as bool toggle
+          else if (cmd === "greenscreen_hue") await vrc.camera.setGreenScreenHue(val);
+          else if (cmd === "greenscreen_sat") await vrc.camera.setGreenScreenSaturation(val);
+          else if (cmd === "greenscreen_lit") await vrc.camera.setGreenScreenLightness(val);
+          else if (cmd === "greenscreen_key") await vrc.camera.setGreenScreenKey(val, parseFloat(args[2] || "0"), parseFloat(args[3] || "0"));
+          else if (cmd === "lookatme_comp") await vrc.camera.setLookAtMeComposition(val, parseFloat(args[2] || "0"), args[3] === "true");
           else if (cmd === "dolly" && args[1] === "pos") await vrc.camera.dollyPosition(parseFloat(args[2] || "0"));
-          else return { text: "Usage: /vrc_cam <zoom|mode|aperture|dolly pos> <value>" };
+          else return { text: "Usage: /vrc_cam <command> <value>. Commands: zoom, aperture, exposure, focalDistance, smoothing, flySpeed, turnSpeed, lookAtMe, lookAtMe_x/y, greenScreen, greenScreen_hue/sat/lit, greenScreen_key, lookAtMe_comp, dolly pos" };
           
           return { text: `📸 Camera set: ${cmd} = ${args[1]}` };
         } catch (err) {
