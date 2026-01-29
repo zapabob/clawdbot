@@ -40,6 +40,31 @@ This version of Moltbot (maintained by zapabob) includes several enhancements an
 - **Self-Improvement & Propagation / 自己改良と自己増殖**: Capability to analyze its own performance and spawn specialized sub-agents to handle complex, specialized tasks in parallel. (自身のパフォーマンスを分析し、複雑な専門タスクを並列処理するための特化型サブエージェントを生成・展開する能力)
 - **Japanese Documentation / 日本語ドキュメント**: Includes detailed Japanese implementation logs and guides in the `_docs/` directory for better accessibility for Japanese users. (`_docs/` ディレクトリ内に詳細な実装ログやガイドを日本語で整備)
 
+## Deep-Dive: Codebase Enhancements / コード詳細：独自の実装と強化点
+
+### 1. Advanced Episodic Memory / 高度なエピソード記憶
+
+Unlike the standard vector-only memory in the official repository, this version implements an **Ebbinghaus Forgetting Curve** algorithm in `src/memory/retention.ts`.
+公式リポジトリの標準的なベクトル検索のみのメモリとは異なり、このバージョンでは `src/memory/retention.ts` にて**エビングハウスの忘却曲線**アルゴリズムを実装しています。
+
+- **Dynamic Stability / 動的な安定性**: Memories gain "stability" based on importance and repetition. (重要度と復習回数に基づいて、記憶の「安定性」が動的に計算されます)
+- **Automatic Pruning / 自動的な整理**: Low-retrievability memories are automatically pruned to maintain focus and efficiency. (想起可能性が低下した古い記憶は自動的に整理され、コンテキストの純度と効率を維持します)
+
+### 2. Specialized AntiGravity Infrastructure / AntiGravity 特化型インフラ
+
+The codebase includes dedicated modules for high-fidelity interaction with AntiGravity models.
+AntiGravity モデルとの高度な連携を実現するために、専用のモジュールを組み込んでいます。
+
+- **Usage Tracking / 使用状況トラッキング**: `src/infra/provider-usage.fetch.antigravity.ts` provides real-time monitoring of model quotas and credits. (モデルのクォータやクレジット残量をリアルタイムで監視する機能を備えています)
+- **Optimized Prompting / プロンプトの最適化**: `src/agents/system-prompt.ts` features a unified builder that natively supports AntiGravity’s advanced thinking and reasoning tags. (AntiGravity の思考・推論タグをネイティブにサポートする、効率化された統合プロンプトビルダーを採用しています)
+
+### 3. Safety-First Architecture / 安全重視の設計
+
+Safety is hardcoded at the core of the agent's identity.
+エージェントのアイデンティティの核として、安全性がハードコードされています。
+
+- **Three Laws of AI / AI安全の三原則**: The system prompt enforces strict ethical boundaries inspired by Asimov's laws directly in the core agent logic. (アシモフの三原則から着想を得た倫理的な境界線を、コアロジックのシステムプロンプトレベルで強制しています)
+
 **Subscriptions (OAuth):**
 
 - **[Anthropic](https://www.anthropic.com/)** (Claude Pro/Max)
