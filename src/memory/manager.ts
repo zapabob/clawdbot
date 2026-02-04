@@ -6,6 +6,16 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { ResolvedMemorySearchConfig } from "../agents/memory-search.js";
 import type { OpenClawConfig } from "../config/config.js";
+=======
+import type {
+  MemoryEmbeddingProbeResult,
+  MemoryProviderStatus,
+  MemorySearchManager,
+  MemorySearchResult,
+  MemorySource,
+  MemorySyncProgressUpdate,
+} from "./types.js";
+>>>>>>> upstream/main
 import { resolveAgentDir, resolveAgentWorkspaceDir } from "../agents/agent-scope.js";
 import { resolveMemorySearchConfig } from "../agents/memory-search.js";
 import { resolveSessionTranscriptsDirForAgent } from "../config/sessions/paths.js";
@@ -45,6 +55,7 @@ import { ensureMemoryIndexSchema } from "./memory-schema.js";
 import { loadSqliteVecExtension } from "./sqlite-vec.js";
 import { requireNodeSqlite } from "./sqlite.js";
 
+<<<<<<< HEAD
 type MemorySource = "memory" | "sessions";
 
 export type MemorySearchResult = {
@@ -55,7 +66,7 @@ export type MemorySearchResult = {
   snippet: string;
   source: MemorySource;
 };
-
+>>>>>>> upstream/main
 type MemoryIndexMeta = {
   model: string;
   provider: string;
@@ -74,12 +85,14 @@ type SessionFileEntry = {
   content: string;
 };
 
+<<<<<<< HEAD
 type MemorySyncProgressUpdate = {
   completed: number;
   total: number;
   label?: string;
 };
 
+=======
 type MemorySyncProgressState = {
   completed: number;
   total: number;
@@ -115,6 +128,7 @@ const vectorToBlob = (embedding: number[]): Buffer =>
   Buffer.from(new Float32Array(embedding).buffer);
 
 export class MemoryIndexManager {
+export class MemoryIndexManager implements MemorySearchManager {
   private readonly cacheKey: string;
   private readonly cfg: OpenClawConfig;
   private readonly agentId: string;
@@ -471,7 +485,7 @@ export class MemoryIndexManager {
     return { text: slice.join("\n"), path: relPath };
   }
 
-  status(): {
+status(): {
     files: number;
     chunks: number;
     dirty: boolean;
@@ -505,6 +519,7 @@ export class MemoryIndexManager {
       lastProvider?: string;
     };
   } {
+status(): MemoryProviderStatus {
     const sourceFilter = this.buildSourceFilter();
     const files = this.db
       .prepare(`SELECT COUNT(*) as c FROM files WHERE 1=1${sourceFilter.sql}`)
@@ -548,9 +563,13 @@ export class MemoryIndexManager {
       return sources.map((source) => Object.assign({ source }, bySource.get(source)!));
     })();
     return {
-      files: files?.c ?? 0,
+files: files?.c ?? 0,
       chunks: chunks?.c ?? 0,
       dirty: this.dirty,
+backend: "builtin",
+      files: files?.c ?? 0,
+      chunks: chunks?.c ?? 0,
+      dirty: this.dirty || this.sessionsDirty,
       workspaceDir: this.workspaceDir,
       dbPath: this.settings.store.path,
       provider: this.provider.id,
@@ -607,7 +626,8 @@ export class MemoryIndexManager {
     return this.ensureVectorReady();
   }
 
-  async probeEmbeddingAvailability(): Promise<{ ok: boolean; error?: string }> {
+async probeEmbeddingAvailability(): Promise<{ ok: boolean; error?: string }> {
+async probeEmbeddingAvailability(): Promise<MemoryEmbeddingProbeResult> {
     try {
       await this.embedBatchWithRetry(["ping"]);
       return { ok: true };

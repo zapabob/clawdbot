@@ -1,6 +1,9 @@
 import type { OAuthCredentials } from "@mariozechner/pi-ai";
 import { resolveOpenClawAgentDir } from "../agents/agent-paths.js";
 import { upsertAuthProfile } from "../agents/auth-profiles.js";
+=======
+export { CLOUDFLARE_AI_GATEWAY_DEFAULT_MODEL_REF } from "../agents/cloudflare-ai-gateway.js";
+>>>>>>> upstream/main
 
 const resolveAuthAgentDir = (agentDir?: string) => agentDir ?? resolveOpenClawAgentDir();
 
@@ -155,6 +158,30 @@ export async function setOpenrouterApiKey(key: string, agentDir?: string) {
   });
 }
 
+<<<<<<< HEAD
+export async function setCloudflareAiGatewayConfig(
+  accountId: string,
+  gatewayId: string,
+  apiKey: string,
+  agentDir?: string,
+) {
+  const normalizedAccountId = accountId.trim();
+  const normalizedGatewayId = gatewayId.trim();
+  const normalizedKey = apiKey.trim();
+  upsertAuthProfile({
+    profileId: "cloudflare-ai-gateway:default",
+    credential: {
+      type: "api_key",
+      provider: "cloudflare-ai-gateway",
+      key: normalizedKey,
+      metadata: {
+        accountId: normalizedAccountId,
+        gatewayId: normalizedGatewayId,
+      },
+    },
+    agentDir: resolveAuthAgentDir(agentDir),
+  });
+}
 export async function setVercelAiGatewayApiKey(key: string, agentDir?: string) {
   upsertAuthProfile({
     profileId: "vercel-ai-gateway:default",

@@ -134,7 +134,7 @@ export type OpenClawPackageManifest = {
   extensions?: string[];
   channel?: PluginPackageChannel;
   install?: PluginPackageInstall;
-  disabled?: boolean;
+disabled?: boolean;
   disabledReason?: string;
 };
 

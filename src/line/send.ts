@@ -635,7 +635,6 @@ export async function getUserDisplayName(
   const profile = await getUserProfile(userId, opts);
   return profile?.displayName ?? userId;
 }
-
 /**
  * Chat action types for LINE
  * LINE uses showLoadingAnimation as the equivalent of typing indicators

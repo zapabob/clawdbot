@@ -10,7 +10,7 @@
     ".": "./index.js",
     "./cli-entry": "./bin/moltbot.js"
   },
-  "scripts": {
+"scripts": {
     "postinstall": "node ./scripts/postinstall.js"
   },
   "dependencies": {

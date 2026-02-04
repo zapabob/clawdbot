@@ -5,10 +5,18 @@ export {
 export { VENICE_DEFAULT_MODEL_ID, VENICE_DEFAULT_MODEL_REF } from "../agents/venice-models.js";
 export {
   applyAuthProfileConfig,
-  applyKimiCodeConfig,
+applyKimiCodeConfig,
   applyKimiCodeProviderConfig,
   applyMoonshotConfig,
   applyMoonshotProviderConfig,
+applyCloudflareAiGatewayConfig,
+  applyCloudflareAiGatewayProviderConfig,
+  applyKimiCodeConfig,
+  applyKimiCodeProviderConfig,
+  applyMoonshotConfig,
+  applyMoonshotConfigCn,
+  applyMoonshotProviderConfig,
+  applyMoonshotProviderConfigCn,
   applyOpenrouterConfig,
   applyOpenrouterProviderConfig,
   applySyntheticConfig,
@@ -35,8 +43,12 @@ export {
   applyOpencodeZenProviderConfig,
 } from "./onboard-auth.config-opencode.js";
 export {
+OPENROUTER_DEFAULT_MODEL_REF,
+  setAnthropicApiKey,
+CLOUDFLARE_AI_GATEWAY_DEFAULT_MODEL_REF,
   OPENROUTER_DEFAULT_MODEL_REF,
   setAnthropicApiKey,
+  setCloudflareAiGatewayConfig,
   setGeminiApiKey,
   setKimiCodingApiKey,
   setMinimaxApiKey,
@@ -58,6 +70,10 @@ export {
   buildMinimaxModelDefinition,
   buildMoonshotModelDefinition,
   DEFAULT_MINIMAX_BASE_URL,
+<<<<<<< HEAD
+=======
+  MOONSHOT_CN_BASE_URL,
+>>>>>>> upstream/main
   KIMI_CODING_MODEL_ID,
   KIMI_CODING_MODEL_REF,
   MINIMAX_API_BASE_URL,

@@ -98,7 +98,8 @@ const _makeSessionStore = async (
 };
 
 describe("web auto-reply", () => {
-  let resolvePinnedHostnameSpy: ReturnType<typeof vi.spyOn> | undefined;
+let resolvePinnedHostnameSpy: ReturnType<typeof vi.spyOn> | undefined;
+let resolvePinnedHostnameSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     vi.clearAllMocks();

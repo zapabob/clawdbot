@@ -15,7 +15,8 @@ const resolveRequestUrl = (input: RequestInfo | URL) => {
 };
 
 describe("describeGeminiVideo", () => {
-  let resolvePinnedHostnameSpy: ReturnType<typeof vi.spyOn> | undefined;
+let resolvePinnedHostnameSpy: ReturnType<typeof vi.spyOn> | undefined;
+let resolvePinnedHostnameSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     resolvePinnedHostnameSpy = vi

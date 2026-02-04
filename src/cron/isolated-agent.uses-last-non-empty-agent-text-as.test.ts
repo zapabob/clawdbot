@@ -81,7 +81,8 @@ function makeJob(payload: CronJob["payload"]): CronJob {
     wakeMode: "now",
     payload,
     state: {},
-    isolation: { postToMainPrefix: "Cron" },
+isolation: { postToMainPrefix: "Cron" },
+>>>>>>> upstream/main
   };
 }
 
@@ -542,6 +543,7 @@ describe("runCronIsolatedAgentTurn", () => {
     });
   });
 
+<<<<<<< HEAD
   it("fails delivery without a WhatsApp recipient when bestEffortDeliver=false", async () => {
     await withTempHome(async (home) => {
       const storePath = await writeSessionStore(home);
@@ -582,6 +584,7 @@ describe("runCronIsolatedAgentTurn", () => {
     });
   });
 
+=======
   it("starts a fresh session id for each cron run", async () => {
     await withTempHome(async (home) => {
       const storePath = await writeSessionStore(home);

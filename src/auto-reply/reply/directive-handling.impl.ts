@@ -85,6 +85,9 @@ export async function handleDirectiveOnly(params: {
   currentVerboseLevel?: VerboseLevel;
   currentReasoningLevel?: ReasoningLevel;
   currentElevatedLevel?: ElevatedLevel;
+=======
+  surface?: string;
+>>>>>>> upstream/main
 }): Promise<ReplyPayload | undefined> {
   const {
     directives,
@@ -132,6 +135,8 @@ export async function handleDirectiveOnly(params: {
     aliasIndex,
     allowedModelCatalog,
     resetModelOverride,
+<<<<<<< HEAD
+surface: params.surface,
   });
   if (modelInfo) {
     return modelInfo;

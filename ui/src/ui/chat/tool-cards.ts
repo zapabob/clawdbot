@@ -6,6 +6,13 @@ import { TOOL_INLINE_THRESHOLD } from "./constants";
 import { extractTextCached } from "./message-extract";
 import { isToolResultMessage } from "./message-normalizer";
 import { formatToolOutputForSidebar, getTruncatedPreview } from "./tool-helpers";
+import type { ToolCard } from "../types/chat-types.ts";
+import { icons } from "../icons.ts";
+import { formatToolDetail, resolveToolDisplay } from "../tool-display.ts";
+import { TOOL_INLINE_THRESHOLD } from "./constants.ts";
+import { extractTextCached } from "./message-extract.ts";
+import { isToolResultMessage } from "./message-normalizer.ts";
+import { formatToolOutputForSidebar, getTruncatedPreview } from "./tool-helpers.ts";
 
 export function extractToolCards(message: unknown): ToolCard[] {
   const m = message as Record<string, unknown>;

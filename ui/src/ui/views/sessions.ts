@@ -3,6 +3,10 @@ import type { GatewaySessionRow, SessionsListResult } from "../types";
 import { formatAgo } from "../format";
 import { pathForTab } from "../navigation";
 import { formatSessionTokens } from "../presenter";
+import type { GatewaySessionRow, SessionsListResult } from "../types.ts";
+import { formatAgo } from "../format.ts";
+import { pathForTab } from "../navigation.ts";
+import { formatSessionTokens } from "../presenter.ts";
 
 export type SessionsProps = {
   loading: boolean;

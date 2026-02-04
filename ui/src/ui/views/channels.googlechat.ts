@@ -3,6 +3,10 @@ import type { GoogleChatStatus } from "../types";
 import type { ChannelsProps } from "./channels.types";
 import { formatAgo } from "../format";
 import { renderChannelConfigSection } from "./channels.config";
+import type { GoogleChatStatus } from "../types.ts";
+import type { ChannelsProps } from "./channels.types.ts";
+import { formatAgo } from "../format.ts";
+import { renderChannelConfigSection } from "./channels.config.ts";
 
 export function renderGoogleChatCard(params: {
   props: ChannelsProps;

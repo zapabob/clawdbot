@@ -302,7 +302,7 @@ export type ConfigSchemaResponse = {
 };
 
 export type PresenceEntry = {
-  instanceId?: string | null;
+instanceId?: string | null;
   host?: string | null;
   ip?: string | null;
   version?: string | null;
@@ -314,6 +314,20 @@ export type PresenceEntry = {
   reason?: string | null;
   text?: string | null;
   ts?: number | null;
+deviceFamily?: string | null;
+  host?: string | null;
+  instanceId?: string | null;
+  ip?: string | null;
+  lastInputSeconds?: number | null;
+  mode?: string | null;
+  modelIdentifier?: string | null;
+  platform?: string | null;
+  reason?: string | null;
+  roles?: Array<string | null> | null;
+  scopes?: Array<string | null> | null;
+  text?: string | null;
+  ts?: number | null;
+  version?: string | null;
 };
 
 export type GatewaySessionsDefaults = {
@@ -423,7 +437,8 @@ export type SessionsPatchResult = {
 };
 
 export type CronSchedule =
-  | { kind: "at"; atMs: number }
+| { kind: "at"; atMs: number }
+| { kind: "at"; at: string }
   | { kind: "every"; everyMs: number; anchorMs?: number }
   | { kind: "cron"; expr: string; tz?: string };
 
@@ -437,7 +452,7 @@ export type CronPayload =
       message: string;
       thinking?: string;
       timeoutSeconds?: number;
-      deliver?: boolean;
+deliver?: boolean;
       provider?:
         | "last"
         | "whatsapp"
@@ -453,6 +468,13 @@ export type CronPayload =
 
 export type CronIsolation = {
   postToMainPrefix?: string;
+};
+
+export type CronDelivery = {
+  mode: "none" | "announce";
+  channel?: string;
+  to?: string;
+  bestEffort?: boolean;
 };
 
 export type CronJobState = {
@@ -477,7 +499,8 @@ export type CronJob = {
   sessionTarget: CronSessionTarget;
   wakeMode: CronWakeMode;
   payload: CronPayload;
-  isolation?: CronIsolation;
+isolation?: CronIsolation;
+delivery?: CronDelivery;
   state?: CronJobState;
 };
 
@@ -513,6 +536,10 @@ export type SkillStatusEntry = {
   name: string;
   description: string;
   source: string;
+<<<<<<< HEAD
+=======
+  bundled?: boolean;
+>>>>>>> upstream/main
   filePath: string;
   baseDir: string;
   skillKey: string;

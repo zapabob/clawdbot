@@ -119,6 +119,17 @@ function resolveExecSecurity(value?: string): ExecSecurity {
   return value === "deny" || value === "allowlist" || value === "full" ? value : "allowlist";
 }
 
+=======
+function isCmdExeInvocation(argv: string[]): boolean {
+  const token = argv[0]?.trim();
+  if (!token) {
+    return false;
+  }
+  const base = path.win32.basename(token).toLowerCase();
+  return base === "cmd.exe" || base === "cmd";
+}
+
+>>>>>>> upstream/main
 function resolveExecAsk(value?: string): ExecAsk {
   return value === "off" || value === "on-miss" || value === "always" ? value : "on-miss";
 }
@@ -906,6 +917,8 @@ async function handleInvoke(
       env,
       skillBins: bins,
       autoAllowSkills,
+<<<<<<< HEAD
+platform: process.platform,
     });
     analysisOk = allowlistEval.analysisOk;
     allowlistMatches = allowlistEval.allowlistMatches;
@@ -928,6 +941,16 @@ async function handleInvoke(
       security === "allowlist" && analysisOk ? allowlistEval.allowlistSatisfied : false;
     segments = analysis.segments;
   }
+=======
+  const isWindows = process.platform === "win32";
+  const cmdInvocation = rawCommand
+    ? isCmdExeInvocation(segments[0]?.argv ?? [])
+    : isCmdExeInvocation(argv);
+  if (security === "allowlist" && isWindows && cmdInvocation) {
+    analysisOk = false;
+    allowlistSatisfied = false;
+  }
+>>>>>>> upstream/main
 
   const useMacAppExec = process.platform === "darwin";
   if (useMacAppExec) {
@@ -1127,8 +1150,26 @@ async function handleInvoke(
     return;
   }
 
+<<<<<<< HEAD
   const result = await runCommand(
     argv,
+let execArgv = argv;
+  if (
+    security === "allowlist" &&
+    isWindows &&
+    !approvedByAsk &&
+    rawCommand &&
+    analysisOk &&
+    allowlistSatisfied &&
+    segments.length === 1 &&
+    segments[0]?.argv.length > 0
+  ) {
+    // Avoid cmd.exe in allowlist mode on Windows; run the parsed argv directly.
+    execArgv = segments[0].argv;
+  }
+
+  const result = await runCommand(
+    execArgv,
     params.cwd?.trim() || undefined,
     env,
     params.timeoutMs ?? undefined,

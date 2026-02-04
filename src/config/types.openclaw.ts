@@ -12,6 +12,9 @@ import type {
   TalkConfig,
 } from "./types.gateway.js";
 import type { HooksConfig } from "./types.hooks.js";
+=======
+import type { MemoryConfig } from "./types.memory.js";
+>>>>>>> upstream/main
 import type {
   AudioConfig,
   BroadcastConfig,
@@ -95,6 +98,8 @@ export type OpenClawConfig = {
   canvasHost?: CanvasHostConfig;
   talk?: TalkConfig;
   gateway?: GatewayConfig;
+<<<<<<< HEAD
+memory?: MemoryConfig;
 };
 
 export type ConfigValidationIssue = {

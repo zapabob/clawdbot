@@ -216,7 +216,8 @@ export function validateConfigObjectWithPlugins(raw: unknown):
   }
 
   const memorySlot = normalizedPlugins.slots.memory;
-  if (typeof memorySlot === "string" && memorySlot.trim() && memorySlot !== "none" && !knownIds.has(memorySlot)) {
+if (typeof memorySlot === "string" && memorySlot.trim() && memorySlot !== "none" && !knownIds.has(memorySlot)) {
+if (typeof memorySlot === "string" && memorySlot.trim() && !knownIds.has(memorySlot)) {
     issues.push({
       path: "plugins.slots.memory",
       message: `plugin not found: ${memorySlot}`,

@@ -69,7 +69,7 @@ function resolvePackageDisableInfo(manifest: PackageManifest | null | undefined)
   const reason = typeof metadata.disabledReason === "string" ? metadata.disabledReason.trim() : "";
   return { disabled: true, reason: reason || undefined };
 }
-
+>>>>>>> upstream/main
 function deriveIdHint(params: {
   filePath: string;
   packageName?: string;
@@ -168,6 +168,7 @@ function discoverInDirectory(params: {
     }
 
     const manifest = readPackageManifest(fullPath);
+<<<<<<< HEAD
     const disabled = resolvePackageDisableInfo(manifest);
     if (disabled.disabled) {
       params.diagnostics.push({
@@ -177,6 +178,7 @@ function discoverInDirectory(params: {
       });
       continue;
     }
+=======
     const extensions = manifest ? resolvePackageExtensions(manifest) : [];
 
     if (extensions.length > 0) {
@@ -263,6 +265,7 @@ function discoverFromPath(params: {
 
   if (stat.isDirectory()) {
     const manifest = readPackageManifest(resolved);
+<<<<<<< HEAD
     const disabled = resolvePackageDisableInfo(manifest);
     if (disabled.disabled) {
       params.diagnostics.push({
@@ -272,6 +275,8 @@ function discoverFromPath(params: {
       });
       return;
     }
+=======
+>>>>>>> upstream/main
     const extensions = manifest ? resolvePackageExtensions(manifest) : [];
 
     if (extensions.length > 0) {

@@ -7,6 +7,8 @@ const resolvePinnedHostnameWithPolicy = ssrf.resolvePinnedHostnameWithPolicy;
 const lookupMock = vi.fn();
 let resolvePinnedHostnameSpy: ReturnType<typeof vi.spyOn> | null = null;
 let resolvePinnedHostnameWithPolicySpy: ReturnType<typeof vi.spyOn> | null = null;
+let resolvePinnedHostnameSpy: ReturnType<typeof vi.spyOn> = null;
+let resolvePinnedHostnameWithPolicySpy: ReturnType<typeof vi.spyOn> = null;
 
 const resolveRequestUrl = (input: RequestInfo | URL) => {
   if (typeof input === "string") {

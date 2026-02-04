@@ -7,6 +7,11 @@ import { Bot, webhookCallback } from "grammy";
 import type { OpenClawConfig, ReplyToMode } from "../config/config.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type { TelegramContext, TelegramMessage } from "./bot/types.js";
+import { type Message, ReactionTypeEmoji } from "@grammyjs/types";
+import { Bot, webhookCallback } from "grammy";
+import type { OpenClawConfig, ReplyToMode } from "../config/config.js";
+import type { RuntimeEnv } from "../runtime.js";
+import type { TelegramContext } from "./bot/types.js";
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { resolveTextChunkLimit } from "../auto-reply/chunk.js";
 import { isControlCommandMessage } from "../auto-reply/command-detection.js";
@@ -67,11 +72,16 @@ export type TelegramBotOptions = {
 
 export function getTelegramSequentialKey(ctx: {
   chat?: { id?: number };
-  message?: TelegramMessage;
+message?: TelegramMessage;
   update?: {
     message?: TelegramMessage;
     edited_message?: TelegramMessage;
     callback_query?: { message?: TelegramMessage };
+message?: Message;
+  update?: {
+    message?: Message;
+    edited_message?: Message;
+    callback_query?: { message?: Message };
     message_reaction?: { chat?: { id?: number } };
   };
 }): string {

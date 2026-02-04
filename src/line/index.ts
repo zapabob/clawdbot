@@ -21,7 +21,7 @@ export {
   createQuickReplyItems,
   createTextMessageWithQuickReplies,
   showLoadingAnimation,
-  sendChatLine,
+sendChatLine,
   type LineChatAction,
   type SendChatLineOptions,
   getUserProfile,

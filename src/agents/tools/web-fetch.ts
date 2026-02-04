@@ -95,6 +95,19 @@ function resolveFetchReadabilityEnabled(fetch?: WebFetchConfig): boolean {
   return true;
 }
 
+=======
+function resolveFetchMaxCharsCap(fetch?: WebFetchConfig): number {
+  const raw =
+    fetch && "maxCharsCap" in fetch && typeof fetch.maxCharsCap === "number"
+      ? fetch.maxCharsCap
+      : undefined;
+  if (typeof raw !== "number" || !Number.isFinite(raw)) {
+    return DEFAULT_FETCH_MAX_CHARS;
+  }
+  return Math.max(100, Math.floor(raw));
+}
+
+>>>>>>> upstream/main
 function resolveFirecrawlConfig(fetch?: WebFetchConfig): FirecrawlFetchConfig {
   if (!fetch || typeof fetch !== "object") {
     return undefined;
@@ -160,9 +173,14 @@ function resolveFirecrawlMaxAgeMsOrDefault(firecrawl?: FirecrawlFetchConfig): nu
   return DEFAULT_FIRECRAWL_MAX_AGE_MS;
 }
 
+<<<<<<< HEAD
 function resolveMaxChars(value: unknown, fallback: number): number {
   const parsed = typeof value === "number" && Number.isFinite(value) ? value : fallback;
   return Math.max(100, Math.floor(parsed));
+function resolveMaxChars(value: unknown, fallback: number, cap: number): number {
+  const parsed = typeof value === "number" && Number.isFinite(value) ? value : fallback;
+  const clamped = Math.max(100, Math.floor(parsed));
+  return Math.min(clamped, cap);
 }
 
 function resolveMaxRedirects(value: unknown, fallback: number): number {
@@ -647,10 +665,19 @@ export function createWebFetchTool(options?: {
       const url = readStringParam(params, "url", { required: true });
       const extractMode = readStringParam(params, "extractMode") === "text" ? "text" : "markdown";
       const maxChars = readNumberParam(params, "maxChars", { integer: true });
-      const result = await runWebFetch({
+const result = await runWebFetch({
         url,
         extractMode,
         maxChars: resolveMaxChars(maxChars ?? fetch?.maxChars, DEFAULT_FETCH_MAX_CHARS),
+const maxCharsCap = resolveFetchMaxCharsCap(fetch);
+      const result = await runWebFetch({
+        url,
+        extractMode,
+        maxChars: resolveMaxChars(
+          maxChars ?? fetch?.maxChars,
+          DEFAULT_FETCH_MAX_CHARS,
+          maxCharsCap,
+        ),
         maxRedirects: resolveMaxRedirects(fetch?.maxRedirects, DEFAULT_FETCH_MAX_REDIRECTS),
         timeoutSeconds: resolveTimeoutSeconds(fetch?.timeoutSeconds, DEFAULT_TIMEOUT_SECONDS),
         cacheTtlMs: resolveCacheTtlMs(fetch?.cacheTtlMinutes, DEFAULT_CACHE_TTL_MINUTES),

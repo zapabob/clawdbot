@@ -14,6 +14,10 @@ import { withTempHome as withTempHomeBase } from "../../test/helpers/temp-home.j
 import { setActivePluginRegistry } from "../plugins/runtime.js";
 import { createPluginRuntime } from "../plugins/runtime/index.js";
 import { createTestRegistry } from "../test-utils/channel-plugins.js";
+import { withTempHome as withTempHomeBase } from "../../test/helpers/temp-home.js";
+import { telegramOutbound } from "../channels/plugins/outbound/telegram.js";
+import { setActivePluginRegistry } from "../plugins/runtime.js";
+import { createOutboundTestPlugin, createTestRegistry } from "../test-utils/channel-plugins.js";
 
 vi.mock("../agents/pi-embedded.js", () => ({
   abortEmbeddedPiRun: vi.fn().mockReturnValue(false),
@@ -76,6 +80,9 @@ function makeJob(payload: CronJob["payload"]): CronJob {
   const now = Date.now();
   return {
     id: "job-1",
+=======
+    name: "job-1",
+>>>>>>> upstream/main
     enabled: true,
     createdAtMs: now,
     updatedAtMs: now,
@@ -84,7 +91,9 @@ function makeJob(payload: CronJob["payload"]): CronJob {
     wakeMode: "now",
     payload,
     state: {},
+<<<<<<< HEAD
     isolation: { postToMainPrefix: "Cron" },
+>>>>>>> upstream/main
   };
 }
 
@@ -92,6 +101,7 @@ describe("runCronIsolatedAgentTurn", () => {
   beforeEach(() => {
     vi.mocked(runEmbeddedPiAgent).mockReset();
     vi.mocked(loadModelCatalog).mockResolvedValue([]);
+<<<<<<< HEAD
     const runtime = createPluginRuntime();
     setDiscordRuntime(runtime);
     setTelegramRuntime(runtime);
@@ -101,11 +111,20 @@ describe("runCronIsolatedAgentTurn", () => {
         { pluginId: "whatsapp", plugin: whatsappPlugin, source: "test" },
         { pluginId: "telegram", plugin: telegramPlugin, source: "test" },
         { pluginId: "discord", plugin: discordPlugin, source: "test" },
+=======
+    setActivePluginRegistry(
+      createTestRegistry([
+        {
+          pluginId: "telegram",
+          plugin: createOutboundTestPlugin({ id: "telegram", outbound: telegramOutbound }),
+          source: "test",
+        },
       ]),
     );
   });
 
-  it("skips delivery without a WhatsApp recipient when bestEffortDeliver=true", async () => {
+it("skips delivery without a WhatsApp recipient when bestEffortDeliver=true", async () => {
+it("announces when delivery is requested", async () => {
     await withTempHome(async (home) => {
       const storePath = await writeSessionStore(home);
       const deps: CliDeps = {
@@ -116,7 +135,8 @@ describe("runCronIsolatedAgentTurn", () => {
         sendMessageIMessage: vi.fn(),
       };
       vi.mocked(runEmbeddedPiAgent).mockResolvedValue({
-        payloads: [{ text: "hello" }],
+payloads: [{ text: "hello" }],
+payloads: [{ text: "hello from cron" }],
         meta: {
           durationMs: 5,
           agentMeta: { sessionId: "s", provider: "p", model: "m" },
@@ -124,7 +144,7 @@ describe("runCronIsolatedAgentTurn", () => {
       });
 
       const res = await runCronIsolatedAgentTurn({
-        cfg: makeCfg(home, storePath),
+cfg: makeCfg(home, storePath),
         deps,
         job: makeJob({
           kind: "agentTurn",
@@ -133,23 +153,37 @@ describe("runCronIsolatedAgentTurn", () => {
           channel: "whatsapp",
           bestEffortDeliver: true,
         }),
+cfg: makeCfg(home, storePath, {
+          channels: { telegram: { botToken: "t-1" } },
+        }),
+        deps,
+        job: {
+          ...makeJob({ kind: "agentTurn", message: "do it" }),
+          delivery: { mode: "announce", channel: "telegram", to: "123" },
+        },
         message: "do it",
         sessionKey: "cron:job-1",
         lane: "cron",
       });
 
-      expect(res.status).toBe("skipped");
+expect(res.status).toBe("skipped");
       expect(String(res.summary ?? "")).toMatch(/delivery skipped/i);
       expect(deps.sendMessageWhatsApp).not.toHaveBeenCalled();
     });
   });
 
   it("delivers telegram via channel send", async () => {
+expect(res.status).toBe("ok");
+      expect(deps.sendMessageTelegram).toHaveBeenCalled();
+    });
+  });
+
+  it("skips announce when messaging tool already sent to target", async () => {
     await withTempHome(async (home) => {
       const storePath = await writeSessionStore(home);
       const deps: CliDeps = {
         sendMessageWhatsApp: vi.fn(),
-        sendMessageTelegram: vi.fn().mockResolvedValue({
+sendMessageTelegram: vi.fn().mockResolvedValue({
           messageId: "t1",
           chatId: "123",
         }),
@@ -266,6 +300,7 @@ describe("runCronIsolatedAgentTurn", () => {
           messageId: "t1",
           chatId: "123",
         }),
+sendMessageTelegram: vi.fn(),
         sendMessageDiscord: vi.fn(),
         sendMessageSignal: vi.fn(),
         sendMessageIMessage: vi.fn(),
@@ -280,7 +315,7 @@ describe("runCronIsolatedAgentTurn", () => {
         messagingToolSentTargets: [{ tool: "message", provider: "telegram", to: "123" }],
       });
 
-      const prevTelegramToken = process.env.TELEGRAM_BOT_TOKEN;
+const prevTelegramToken = process.env.TELEGRAM_BOT_TOKEN;
       process.env.TELEGRAM_BOT_TOKEN = "";
       try {
         const res = await runCronIsolatedAgentTurn({
@@ -342,13 +377,22 @@ describe("runCronIsolatedAgentTurn", () => {
           channel: "telegram",
           to: "telegram:group:-1001234567890:topic:321",
         }),
+const res = await runCronIsolatedAgentTurn({
+        cfg: makeCfg(home, storePath, {
+          channels: { telegram: { botToken: "t-1" } },
+        }),
+        deps,
+        job: {
+          ...makeJob({ kind: "agentTurn", message: "do it" }),
+          delivery: { mode: "announce", channel: "telegram", to: "123" },
+        },
         message: "do it",
         sessionKey: "cron:job-1",
         lane: "cron",
       });
 
       expect(res.status).toBe("ok");
-      expect(deps.sendMessageTelegram).toHaveBeenCalledWith(
+expect(deps.sendMessageTelegram).toHaveBeenCalledWith(
         "telegram:group:-1001234567890:topic:321",
         "hello from cron",
         expect.objectContaining({ verbose: false }),
@@ -402,12 +446,17 @@ describe("runCronIsolatedAgentTurn", () => {
   });
 
   it("delivers via discord when configured", async () => {
+expect(deps.sendMessageTelegram).not.toHaveBeenCalled();
+    });
+  });
+
+  it("skips announce for heartbeat-only output", async () => {
     await withTempHome(async (home) => {
       const storePath = await writeSessionStore(home);
       const deps: CliDeps = {
         sendMessageWhatsApp: vi.fn(),
         sendMessageTelegram: vi.fn(),
-        sendMessageDiscord: vi.fn().mockResolvedValue({
+sendMessageDiscord: vi.fn().mockResolvedValue({
           messageId: "d1",
           channelId: "chan",
         }),
@@ -455,6 +504,7 @@ describe("runCronIsolatedAgentTurn", () => {
           messageId: "t1",
           chatId: "123",
         }),
+>>>>>>> upstream/main
         sendMessageDiscord: vi.fn(),
         sendMessageSignal: vi.fn(),
         sendMessageIMessage: vi.fn(),
@@ -468,6 +518,7 @@ describe("runCronIsolatedAgentTurn", () => {
       });
 
       const res = await runCronIsolatedAgentTurn({
+<<<<<<< HEAD
         cfg: makeCfg(home, storePath),
         deps,
         job: makeJob({
@@ -477,19 +528,29 @@ describe("runCronIsolatedAgentTurn", () => {
           channel: "telegram",
           to: "123",
         }),
+=======
+        cfg: makeCfg(home, storePath, {
+          channels: { telegram: { botToken: "t-1" } },
+        }),
+        deps,
+        job: {
+          ...makeJob({ kind: "agentTurn", message: "do it" }),
+          delivery: { mode: "announce", channel: "telegram", to: "123" },
+        },
         message: "do it",
         sessionKey: "cron:job-1",
         lane: "cron",
       });
 
-      // Job still succeeds, but no delivery happens.
+// Job still succeeds, but no delivery happens.
       expect(res.status).toBe("ok");
       expect(res.summary).toBe("HEARTBEAT_OK");
+expect(res.status).toBe("ok");
       expect(deps.sendMessageTelegram).not.toHaveBeenCalled();
     });
   });
 
-  it("skips delivery when response has HEARTBEAT_OK with short padding", async () => {
+it("skips delivery when response has HEARTBEAT_OK with short padding", async () => {
     await withTempHome(async (home) => {
       const storePath = await writeSessionStore(home);
       const deps: CliDeps = {
@@ -498,20 +559,27 @@ describe("runCronIsolatedAgentTurn", () => {
           chatId: "+1234",
         }),
         sendMessageTelegram: vi.fn(),
+it("fails when announce delivery fails and best-effort is disabled", async () => {
+    await withTempHome(async (home) => {
+      const storePath = await writeSessionStore(home);
+      const deps: CliDeps = {
+        sendMessageWhatsApp: vi.fn(),
+        sendMessageTelegram: vi.fn().mockRejectedValue(new Error("boom")),
         sendMessageDiscord: vi.fn(),
         sendMessageSignal: vi.fn(),
         sendMessageIMessage: vi.fn(),
       };
-      // Short junk around HEARTBEAT_OK (<=30 chars) should still skip delivery.
+// Short junk around HEARTBEAT_OK (<=30 chars) should still skip delivery.
       vi.mocked(runEmbeddedPiAgent).mockResolvedValue({
         payloads: [{ text: "HEARTBEAT_OK 🦞" }],
+vi.mocked(runEmbeddedPiAgent).mockResolvedValue({
+        payloads: [{ text: "hello from cron" }],
         meta: {
           durationMs: 5,
           agentMeta: { sessionId: "s", provider: "p", model: "m" },
         },
       });
-
-      const res = await runCronIsolatedAgentTurn({
+const res = await runCronIsolatedAgentTurn({
         cfg: makeCfg(home, storePath, {
           channels: { whatsapp: { allowFrom: ["+1234"] } },
         }),
@@ -523,40 +591,57 @@ describe("runCronIsolatedAgentTurn", () => {
           channel: "whatsapp",
           to: "+1234",
         }),
+const res = await runCronIsolatedAgentTurn({
+        cfg: makeCfg(home, storePath, {
+          channels: { telegram: { botToken: "t-1" } },
+        }),
+        deps,
+        job: {
+          ...makeJob({ kind: "agentTurn", message: "do it" }),
+          delivery: { mode: "announce", channel: "telegram", to: "123" },
+        },
         message: "do it",
         sessionKey: "cron:job-1",
         lane: "cron",
       });
 
-      expect(res.status).toBe("ok");
+expect(res.status).toBe("ok");
       expect(deps.sendMessageWhatsApp).not.toHaveBeenCalled();
     });
   });
 
   it("delivers when response has HEARTBEAT_OK but also substantial content", async () => {
+expect(res.status).toBe("error");
+      expect(res.error).toBe("Error: boom");
+    });
+  });
+
+  it("ignores announce delivery failures when best-effort is enabled", async () => {
     await withTempHome(async (home) => {
       const storePath = await writeSessionStore(home);
       const deps: CliDeps = {
         sendMessageWhatsApp: vi.fn(),
-        sendMessageTelegram: vi.fn().mockResolvedValue({
+sendMessageTelegram: vi.fn().mockResolvedValue({
           messageId: "t1",
           chatId: "123",
         }),
+sendMessageTelegram: vi.fn().mockRejectedValue(new Error("boom")),
         sendMessageDiscord: vi.fn(),
         sendMessageSignal: vi.fn(),
         sendMessageIMessage: vi.fn(),
       };
-      // Long content after HEARTBEAT_OK should still be delivered.
+// Long content after HEARTBEAT_OK should still be delivered.
       const longContent = `Important alert: ${"a".repeat(500)}`;
       vi.mocked(runEmbeddedPiAgent).mockResolvedValue({
         payloads: [{ text: `HEARTBEAT_OK ${longContent}` }],
+vi.mocked(runEmbeddedPiAgent).mockResolvedValue({
+        payloads: [{ text: "hello from cron" }],
         meta: {
           durationMs: 5,
           agentMeta: { sessionId: "s", provider: "p", model: "m" },
         },
       });
-
-      const res = await runCronIsolatedAgentTurn({
+const res = await runCronIsolatedAgentTurn({
         cfg: makeCfg(home, storePath),
         deps,
         job: makeJob({
@@ -566,6 +651,20 @@ describe("runCronIsolatedAgentTurn", () => {
           channel: "telegram",
           to: "123",
         }),
+const res = await runCronIsolatedAgentTurn({
+        cfg: makeCfg(home, storePath, {
+          channels: { telegram: { botToken: "t-1" } },
+        }),
+        deps,
+        job: {
+          ...makeJob({ kind: "agentTurn", message: "do it" }),
+          delivery: {
+            mode: "announce",
+            channel: "telegram",
+            to: "123",
+            bestEffort: true,
+          },
+        },
         message: "do it",
         sessionKey: "cron:job-1",
         lane: "cron",

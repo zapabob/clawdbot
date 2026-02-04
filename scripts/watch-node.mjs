@@ -10,6 +10,9 @@ const compiler = compilerOverride === "tsc" ? "tsc" : "tsgo";
 const projectArgs = ["--project", "tsconfig.json"];
 
 const initialBuild = spawnSync("pnpm", ["exec", compiler, ...projectArgs], {
+const compiler = "tsdown";
+
+const initialBuild = spawnSync("pnpm", ["exec", compiler], {
   cwd,
   env,
   stdio: "inherit",
@@ -25,6 +28,7 @@ const watchArgs =
     : [...projectArgs, "--watch"];
 
 const compilerProcess = spawn("pnpm", ["exec", compiler, ...watchArgs], {
+const compilerProcess = spawn("pnpm", ["exec", compiler, "--watch"], {
   cwd,
   env,
   stdio: "inherit",

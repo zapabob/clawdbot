@@ -131,7 +131,7 @@ describe("discoverOpenClawPlugins", () => {
     expect(ids).toContain("voice-call");
   });
 
-  it("skips packages flagged as disabled", async () => {
+it("skips packages flagged as disabled", async () => {
     const stateDir = makeTempDir();
     const globalExt = path.join(stateDir, "extensions", "disabled-pack");
     fs.mkdirSync(globalExt, { recursive: true });
@@ -157,7 +157,6 @@ describe("discoverOpenClawPlugins", () => {
       diagnostics.some((entry) => entry.message.includes("plugin package disabled")),
     ).toBe(true);
   });
-
   it("treats configured directory paths as plugin packages", async () => {
     const stateDir = makeTempDir();
     const packDir = path.join(stateDir, "packs", "demo-plugin-dir");

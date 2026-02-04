@@ -12,6 +12,7 @@ import type { ModelApi, ModelDefinitionConfig } from "../config/types.js";
 
 export const OPENCODE_ZEN_API_BASE_URL = "https://opencode.ai/zen/v1";
 export const OPENCODE_ZEN_DEFAULT_MODEL = "kimi-k2.5";
+export const OPENCODE_ZEN_DEFAULT_MODEL = "claude-opus-4-5";
 export const OPENCODE_ZEN_DEFAULT_MODEL_REF = `opencode/${OPENCODE_ZEN_DEFAULT_MODEL}`;
 
 // Cache for fetched models (1 hour TTL)
@@ -70,14 +71,14 @@ export const OPENCODE_ZEN_MODEL_ALIASES: Record<string, string> = {
   // GLM (free)
   glm: "glm-4.7",
   "glm-free": "glm-4.7",
-
-  // Kimi (Free for limited time)
+// Kimi (Free for limited time)
   kimi: "kimi-k2.5",
   "kimi-k2.5": "kimi-k2.5",
   kimik2: "kimi-k2.5",
   kimik25: "kimi-k2.5",
   kimicode: "kimi-code",
   "kimi-code": "kimi-code",
+>>>>>>> upstream/main
 };
 
 /**
@@ -103,9 +104,11 @@ export function resolveOpencodeZenModelApi(modelId: string): ModelApi {
   if (lower.startsWith("gemini-")) {
     return "google-generative-ai";
   }
+<<<<<<< HEAD
   if (lower.startsWith("kimi-")) {
     return "openai-responses";
   }
+=======
   return "openai-completions";
 }
 
@@ -148,8 +151,9 @@ const MODEL_COSTS: Record<
     cacheWrite: 0,
   },
   "gpt-5.2": { input: 1.75, output: 14, cacheRead: 0.175, cacheWrite: 0 },
-  "kimi-k2.5": { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+"kimi-k2.5": { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
   "kimi-code": { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+>>>>>>> upstream/main
 };
 
 const DEFAULT_COST = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
@@ -164,8 +168,10 @@ const MODEL_CONTEXT_WINDOWS: Record<string, number> = {
   "gemini-3-flash": 1048576,
   "gpt-5.1-codex-max": 400000,
   "gpt-5.2": 400000,
+<<<<<<< HEAD
   "kimi-k2.5": 256000,
   "kimi-code": 128000,
+=======
 };
 
 function getDefaultContextWindow(modelId: string): number {
@@ -182,8 +188,9 @@ const MODEL_MAX_TOKENS: Record<string, number> = {
   "gemini-3-flash": 65536,
   "gpt-5.1-codex-max": 128000,
   "gpt-5.2": 128000,
-  "kimi-k2.5": 8192,
+"kimi-k2.5": 8192,
   "kimi-code": 8192,
+>>>>>>> upstream/main
 };
 
 function getDefaultMaxTokens(modelId: string): number {
@@ -220,8 +227,10 @@ const MODEL_NAMES: Record<string, string> = {
   "gemini-3-flash": "Gemini 3 Flash",
   "gpt-5.1-codex-max": "GPT-5.1 Codex Max",
   "gpt-5.2": "GPT-5.2",
+<<<<<<< HEAD
   "kimi-k2.5": "Kimi K2.5",
   "kimi-code": "KimiCode",
+=======
 };
 
 function formatModelName(modelId: string): string {
@@ -249,8 +258,11 @@ export function getOpencodeZenStaticFallbackModels(): ModelDefinitionConfig[] {
     "gemini-3-flash",
     "gpt-5.1-codex-max",
     "gpt-5.2",
+<<<<<<< HEAD
     "kimi-k2.5",
     "kimi-code",
+=======
+>>>>>>> upstream/main
   ];
 
   return modelIds.map(buildModelDefinition);

@@ -17,6 +17,7 @@ import {
   resolveDefaultModelForAgent,
   resolveModelRefFromString,
 } from "../../agents/model-selection.js";
+>>>>>>> upstream/main
 import { normalizeGroupActivation } from "../../auto-reply/group-activation.js";
 import { getFollowupQueueDepth, resolveQueueSettings } from "../../auto-reply/reply/queue.js";
 import { buildStatusMessage } from "../../auto-reply/status.js";
@@ -39,7 +40,26 @@ import {
   resolveAgentIdFromSessionKey,
 } from "../../routing/session-key.js";
 import { applyModelOverrideToSessionEntry } from "../../sessions/model-overrides.js";
+<<<<<<< HEAD
 import { formatUserTime, resolveUserTimeFormat, resolveUserTimezone } from "../date-time.js";
+=======
+import { resolveAgentDir } from "../agent-scope.js";
+import {
+  ensureAuthProfileStore,
+  resolveAuthProfileDisplayLabel,
+  resolveAuthProfileOrder,
+} from "../auth-profiles.js";
+import { formatUserTime, resolveUserTimeFormat, resolveUserTimezone } from "../date-time.js";
+import { getCustomProviderApiKey, resolveEnvApiKey } from "../model-auth.js";
+import { loadModelCatalog } from "../model-catalog.js";
+import {
+  buildAllowedModelSet,
+  buildModelAliasIndex,
+  modelKey,
+  normalizeProviderId,
+  resolveDefaultModelForAgent,
+  resolveModelRefFromString,
+} from "../model-selection.js";
 import { readStringParam } from "./common.js";
 import {
   shouldResolveSessionIdInput,
@@ -104,7 +124,8 @@ function resolveModelAuthLabel(params: {
     if (profile.type === "token") {
       return `token ${formatApiKeySnippet(profile.token)}${label ? ` (${label})` : ""}`;
     }
-    return `api-key ${formatApiKeySnippet(profile.key)}${label ? ` (${label})` : ""}`;
+return `api-key ${formatApiKeySnippet(profile.key)}${label ? ` (${label})` : ""}`;
+return `api-key ${formatApiKeySnippet(profile.key ?? "")}${label ? ` (${label})` : ""}`;
   }
 
   const envKey = resolveEnvApiKey(providerKey);

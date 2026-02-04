@@ -2,6 +2,11 @@ import type { CommandHandler } from "./commands-types.js";
 import { callGateway } from "../../gateway/call.js";
 import { logVerbose } from "../../globals.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../../utils/message-channel.js";
+import {
+  GATEWAY_CLIENT_MODES,
+  GATEWAY_CLIENT_NAMES,
+  isInternalMessageChannel,
+} from "../../utils/message-channel.js";
 
 const COMMAND = "/approve";
 
@@ -82,6 +87,23 @@ export const handleApproveCommand: CommandHandler = async (params, allowTextComm
     return { shouldContinue: false, reply: { text: parsed.error } };
   }
 
+<<<<<<< HEAD
+=======
+  if (isInternalMessageChannel(params.command.channel)) {
+    const scopes = params.ctx.GatewayClientScopes ?? [];
+    const hasApprovals = scopes.includes("operator.approvals") || scopes.includes("operator.admin");
+    if (!hasApprovals) {
+      logVerbose("Ignoring /approve from gateway client missing operator.approvals.");
+      return {
+        shouldContinue: false,
+        reply: {
+          text: "❌ /approve requires operator.approvals for gateway clients.",
+        },
+      };
+    }
+  }
+
+>>>>>>> upstream/main
   const resolvedBy = buildResolvedByLabel(params);
   try {
     await callGateway({

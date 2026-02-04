@@ -3,6 +3,7 @@
  */
 
 import type { NormalizedMessage, MessageContentItem } from "../types/chat-types";
+import type { NormalizedMessage, MessageContentItem } from "../types/chat-types.ts";
 
 /**
  * Normalize a raw message object into a consistent structure.

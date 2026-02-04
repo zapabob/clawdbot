@@ -21,6 +21,7 @@ import { createWebFetchTool, createWebSearchTool } from "./tools/web-tools.js";
 import { createCodexTool } from "./tools/codex-tool.js";
 import { createGeminiTool } from "./tools/gemini-tool.js";
 import { createOpenCodeTool } from "./tools/opencode-tool.js";
+>>>>>>> upstream/main
 
 export function createOpenClawTools(options?: {
   sandboxBrowserBridgeUrl?: string;
@@ -56,6 +57,12 @@ export function createOpenClawTools(options?: {
   modelHasVision?: boolean;
   /** Explicit agent ID override for cron/hook sessions. */
   requesterAgentIdOverride?: string;
+<<<<<<< HEAD
+=======
+  /** Require explicit message targets (no implicit last-route sends). */
+  requireExplicitMessageTarget?: boolean;
+  /** If true, omit the message tool from the tool list. */
+  disableMessageTool?: boolean;
 }): AnyAgentTool[] {
   const imageTool = options?.agentDir?.trim()
     ? createImageTool({
@@ -73,6 +80,22 @@ export function createOpenClawTools(options?: {
     config: options?.config,
     sandboxed: options?.sandboxed,
   });
+=======
+  const messageTool = options?.disableMessageTool
+    ? null
+    : createMessageTool({
+        agentAccountId: options?.agentAccountId,
+        agentSessionKey: options?.agentSessionKey,
+        config: options?.config,
+        currentChannelId: options?.currentChannelId,
+        currentChannelProvider: options?.agentChannel,
+        currentThreadTs: options?.currentThreadTs,
+        replyToMode: options?.replyToMode,
+        hasRepliedRef: options?.hasRepliedRef,
+        sandboxRoot: options?.sandboxRoot,
+        requireExplicitTarget: options?.requireExplicitMessageTarget,
+      });
+>>>>>>> upstream/main
   const tools: AnyAgentTool[] = [
     createBrowserTool({
       sandboxBridgeUrl: options?.sandboxBrowserBridgeUrl,
@@ -86,6 +109,7 @@ export function createOpenClawTools(options?: {
     createCronTool({
       agentSessionKey: options?.agentSessionKey,
     }),
+<<<<<<< HEAD
     createMessageTool({
       agentAccountId: options?.agentAccountId,
       agentSessionKey: options?.agentSessionKey,
@@ -97,6 +121,7 @@ export function createOpenClawTools(options?: {
       hasRepliedRef: options?.hasRepliedRef,
       sandboxRoot: options?.sandboxRoot,
     }),
+...(messageTool ? [messageTool] : []),
     createTtsTool({
       agentChannel: options?.agentChannel,
       config: options?.config,
@@ -141,9 +166,12 @@ export function createOpenClawTools(options?: {
     ...(webSearchTool ? [webSearchTool] : []),
     ...(webFetchTool ? [webFetchTool] : []),
     ...(imageTool ? [imageTool] : []),
+<<<<<<< HEAD
     createCodexTool(),
     createGeminiTool(),
     createOpenCodeTool(),
+=======
+>>>>>>> upstream/main
   ];
 
   const pluginTools = resolvePluginTools({

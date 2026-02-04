@@ -1,5 +1,7 @@
 import type { CronJob, GatewaySessionRow, PresenceEntry } from "./types";
 import { formatAgo, formatDurationMs, formatMs } from "./format";
+import type { CronJob, GatewaySessionRow, PresenceEntry } from "./types.ts";
+import { formatAgo, formatDurationMs, formatMs } from "./format.ts";
 
 export function formatPresenceSummary(entry: PresenceEntry): string {
   const host = entry.host ?? "unknown";
@@ -53,7 +55,9 @@ export function formatCronState(job: CronJob) {
 export function formatCronSchedule(job: CronJob) {
   const s = job.schedule;
   if (s.kind === "at") {
-    return `At ${formatMs(s.atMs)}`;
+return `At ${formatMs(s.atMs)}`;
+const atMs = Date.parse(s.at);
+    return Number.isFinite(atMs) ? `At ${formatMs(atMs)}` : `At ${s.at}`;
   }
   if (s.kind === "every") {
     return `Every ${formatDurationMs(s.everyMs)}`;
@@ -66,5 +70,15 @@ export function formatCronPayload(job: CronJob) {
   if (p.kind === "systemEvent") {
     return `System: ${p.text}`;
   }
-  return `Agent: ${p.message}`;
+return `Agent: ${p.message}`;
+const base = `Agent: ${p.message}`;
+  const delivery = job.delivery;
+  if (delivery && delivery.mode !== "none") {
+    const target =
+      delivery.channel || delivery.to
+        ? ` (${delivery.channel ?? "last"}${delivery.to ? ` -> ${delivery.to}` : ""})`
+        : "";
+    return `${base} · ${delivery.mode}${target}`;
+  }
+  return base;
 }

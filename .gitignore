@@ -71,7 +71,6 @@ USER.md
 
 # local tooling
 .serena/
-
 # logs and text files
 *.log
 *.txt

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { OpenClawApp } from "./app";
+import { OpenClawApp } from "./app.ts";
 import "../styles.css";
 
 // oxlint-disable-next-line typescript/unbound-method
@@ -116,7 +117,8 @@ describe("control UI routing", () => {
     const app = mountApp("/chat");
     await app.updateComplete;
 
-    const initialContainer = app.querySelector(".chat-thread");
+const initialContainer = app.querySelector(".chat-thread");
+const initialContainer: HTMLElement | null = app.querySelector(".chat-thread");
     expect(initialContainer).not.toBeNull();
     if (!initialContainer) {
       return;

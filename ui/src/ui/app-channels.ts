@@ -1,5 +1,7 @@
 import type { OpenClawApp } from "./app";
 import type { NostrProfile } from "./types";
+import type { OpenClawApp } from "./app.ts";
+import type { NostrProfile } from "./types.ts";
 import {
   loadChannels,
   logoutWhatsApp,
@@ -8,6 +10,9 @@ import {
 } from "./controllers/channels";
 import { loadConfig, saveConfig } from "./controllers/config";
 import { createNostrProfileFormState } from "./views/channels.nostr-profile-form";
+} from "./controllers/channels.ts";
+import { loadConfig, saveConfig } from "./controllers/config.ts";
+import { createNostrProfileFormState } from "./views/channels.nostr-profile-form.ts";
 
 export async function handleWhatsAppStart(host: OpenClawApp, force: boolean) {
   await startWhatsAppLogin(host, force);
