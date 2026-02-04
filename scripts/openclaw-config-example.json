@@ -1,0 +1,56 @@
+# ============================================
+# 🦞 OpenClaw 設定ファイル
+# ~/.openclaw/openclaw.json
+# ============================================
+
+{
+  "channels": {
+    "line": {
+      "enabled": true,
+      "channelAccessToken": "${env:LINE_CHANNEL_ACCESS_TOKEN}",
+      "channelSecret": "${env:LINE_CHANNEL_SECRET}",
+      "dmPolicy": "pairing",
+      "groupPolicy": "allowlist",
+      "webhookPath": "/line/webhook"
+    }
+  },
+  "skills": {
+    "entries": {
+      "codex": {
+        "enabled": true,
+        "env": {
+          "OPENAI_API_KEY": "${env:OPENAI_API_KEY}"
+        }
+      },
+      "gemini": {
+        "enabled": true,
+        "env": {
+          "GEMINI_CLI_AUTH": "${env:GEMINI_CLI_AUTH}"
+        }
+      },
+      "opencode": {
+        "enabled": true
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": "openai/gpt-5.2",
+      "thinking": "high",
+      "sandbox": {
+        "mode": "non-main"
+      }
+    }
+  },
+  "gateway": {
+    "tailscale": {
+      "mode": "serve"
+    },
+    "port": 18789,
+    "bind": "0.0.0.0"
+  },
+  "logging": {
+    "level": "info",
+    "auto_improve": true
+  }
+}
