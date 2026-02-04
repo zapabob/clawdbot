@@ -48,10 +48,8 @@ export type CronServiceState = {
   running: boolean;
   op: Promise<unknown>;
   warnedDisabled: boolean;
-=======
   storeLoadedAtMs: number | null;
   storeFileMtimeMs: number | null;
->>>>>>> upstream/main
 };
 
 export function createCronServiceState(deps: CronServiceDeps): CronServiceState {
@@ -62,8 +60,7 @@ export function createCronServiceState(deps: CronServiceDeps): CronServiceState 
     running: false,
     op: Promise.resolve(),
     warnedDisabled: false,
-<<<<<<< HEAD
-storeLoadedAtMs: null,
+    storeLoadedAtMs: null,
     storeFileMtimeMs: null,
   };
 }

@@ -306,9 +306,7 @@ export {
   normalizeTelegramMessagingTarget,
 } from "../channels/plugins/normalize/telegram.js";
 export { collectTelegramStatusIssues } from "../channels/plugins/status-issues/telegram.js";
-=======
 export { type TelegramProbe } from "../telegram/probe.js";
->>>>>>> upstream/main
 
 // Channel: Signal
 export {
@@ -372,7 +370,6 @@ export {
 } from "../line/markdown-to-line.js";
 export type { ProcessedLineMessage } from "../line/markdown-to-line.js";
 
-<<<<<<< HEAD
 // Channel: Feishu
 export {
   listFeishuAccountIds,
@@ -389,5 +386,6 @@ export { feishuOutbound } from "../channels/plugins/outbound/feishu.js";
 export { normalizeFeishuTarget } from "../channels/plugins/normalize/feishu.js";
 export { probeFeishu, type FeishuProbe } from "../feishu/probe.js";
 export { monitorFeishuProvider } from "../feishu/monitor.js";
+
 // Media utilities
 export { loadWebMedia, type WebMediaResult } from "../web/media.js";

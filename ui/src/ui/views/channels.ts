@@ -12,19 +12,6 @@ import type {
   SlackStatus,
   TelegramStatus,
   WhatsAppStatus,
-} from "../types";
-import type { ChannelKey, ChannelsChannelData, ChannelsProps } from "./channels.types";
-import { formatAgo } from "../format";
-import { renderChannelConfigSection } from "./channels.config";
-import { renderDiscordCard } from "./channels.discord";
-import { renderGoogleChatCard } from "./channels.googlechat";
-import { renderIMessageCard } from "./channels.imessage";
-import { renderNostrCard } from "./channels.nostr";
-import { channelEnabled, renderChannelAccountCount } from "./channels.shared";
-import { renderSignalCard } from "./channels.signal";
-import { renderSlackCard } from "./channels.slack";
-import { renderTelegramCard } from "./channels.telegram";
-import { renderWhatsAppCard } from "./channels.whatsapp";
 } from "../types.ts";
 import type { ChannelKey, ChannelsChannelData, ChannelsProps } from "./channels.types.ts";
 import { formatAgo } from "../format.ts";
@@ -137,8 +124,7 @@ function renderChannel(key: ChannelKey, props: ChannelsProps, data: ChannelsChan
     case "googlechat":
       return renderGoogleChatCard({
         props,
-googlechat: data.googlechat,
-googleChat: data.googlechat,
+        googleChat: data.googlechat,
         accountCountLabel,
       });
     case "slack":

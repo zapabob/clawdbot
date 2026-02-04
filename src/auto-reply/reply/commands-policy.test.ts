@@ -153,8 +153,7 @@ describe("/models command", () => {
     agents: { defaults: { model: { primary: "anthropic/claude-opus-4-5" } } },
   } as unknown as OpenClawConfig;
 
-it.each(["telegram", "discord", "whatsapp"])("lists providers on %s", async (surface) => {
-it.each(["discord", "whatsapp"])("lists providers on %s (text)", async (surface) => {
+  it.each(["discord", "whatsapp"])("lists providers on %s (text)", async (surface) => {
     const params = buildParams("/models", cfg, { Provider: surface, Surface: surface });
     const result = await handleCommands(params);
     expect(result.shouldContinue).toBe(false);
@@ -163,9 +162,7 @@ it.each(["discord", "whatsapp"])("lists providers on %s (text)", async (surface)
     expect(result.reply?.text).toContain("Use: /models <provider>");
   });
 
-it("lists provider models with pagination hints", async () => {
-    const params = buildParams("/models anthropic", cfg);
-it("lists providers on telegram (buttons)", async () => {
+  it("lists providers on telegram (buttons)", async () => {
     const params = buildParams("/models", cfg, { Provider: "telegram", Surface: "telegram" });
     const result = await handleCommands(params);
     expect(result.shouldContinue).toBe(false);
@@ -189,8 +186,7 @@ it("lists providers on telegram (buttons)", async () => {
   });
 
   it("ignores page argument when all flag is present", async () => {
-const params = buildParams("/models anthropic 3 all", cfg);
-// Use discord surface for text-based output tests
+    // Use discord surface for text-based output tests
     const params = buildParams("/models anthropic 3 all", cfg, { Surface: "discord" });
     const result = await handleCommands(params);
     expect(result.shouldContinue).toBe(false);
@@ -201,8 +197,7 @@ const params = buildParams("/models anthropic 3 all", cfg);
   });
 
   it("errors on out-of-range pages", async () => {
-const params = buildParams("/models anthropic 4", cfg);
-// Use discord surface for text-based output tests
+    // Use discord surface for text-based output tests
     const params = buildParams("/models anthropic 4", cfg, { Surface: "discord" });
     const result = await handleCommands(params);
     expect(result.shouldContinue).toBe(false);
@@ -232,12 +227,7 @@ const params = buildParams("/models anthropic 4", cfg);
       },
     } as unknown as OpenClawConfig;
 
-const providerList = await handleCommands(buildParams("/models", customCfg));
-    expect(providerList.reply?.text).toContain("localai");
-    expect(providerList.reply?.text).toContain("visionpro");
-
-    const result = await handleCommands(buildParams("/models localai", customCfg));
-// Use discord surface for text-based output tests
+    // Use discord surface for text-based output tests
     const providerList = await handleCommands(
       buildParams("/models", customCfg, { Surface: "discord" }),
     );

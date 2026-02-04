@@ -1,16 +1,4 @@
 import { html, nothing } from "lit";
-import type { AppViewState } from "./app-view-state";
-import { parseAgentSessionKey } from "../../../src/routing/session-key.js";
-import { refreshChatAvatar } from "./app-chat";
-import { renderChatControls, renderTab, renderThemeToggle } from "./app-render.helpers";
-import { loadAgentFileContent, loadAgentFiles, saveAgentFile } from "./controllers/agent-files";
-import { loadAgentIdentities, loadAgentIdentity } from "./controllers/agent-identity";
-import { loadAgentSkills } from "./controllers/agent-skills";
-import { loadAgents } from "./controllers/agents";
-import { loadChannels } from "./controllers/channels";
-import { loadChatHistory } from "./controllers/chat";
-import {
-  applyConfig,
 import type { AppViewState } from "./app-view-state.ts";
 import { parseAgentSessionKey } from "../../../src/routing/session-key.js";
 import { ChatHost, refreshChatAvatar } from "./app-chat.ts";
@@ -30,7 +18,6 @@ import {
   saveConfig,
   updateConfigFormValue,
   removeConfigFormValue,
-} from "./controllers/config";
 } from "./controllers/config.ts";
 import {
   loadCronRuns,
@@ -38,8 +25,6 @@ import {
   runCronJob,
   removeCronJob,
   addCronJob,
-} from "./controllers/cron";
-import { loadDebug, callDebugMethod } from "./controllers/debug";
 } from "./controllers/cron.ts";
 import { loadDebug, callDebugMethod } from "./controllers/debug.ts";
 import {
@@ -48,18 +33,12 @@ import {
   rejectDevicePairing,
   revokeDeviceToken,
   rotateDeviceToken,
-} from "./controllers/devices";
 } from "./controllers/devices.ts";
 import {
   loadExecApprovals,
   removeExecApprovalsFormValue,
   saveExecApprovals,
   updateExecApprovalsFormValue,
-} from "./controllers/exec-approvals";
-import { loadLogs } from "./controllers/logs";
-import { loadNodes } from "./controllers/nodes";
-import { loadPresence } from "./controllers/presence";
-import { deleteSession, loadSessions, patchSession } from "./controllers/sessions";
 } from "./controllers/exec-approvals.ts";
 import { loadLogs, LogsState } from "./controllers/logs.ts";
 import { loadNodes } from "./controllers/nodes.ts";
@@ -71,23 +50,6 @@ import {
   saveSkillApiKey,
   updateSkillEdit,
   updateSkillEnabled,
-} from "./controllers/skills";
-import { icons } from "./icons";
-import { TAB_GROUPS, subtitleForTab, titleForTab } from "./navigation";
-import { renderAgents } from "./views/agents";
-import { renderChannels } from "./views/channels";
-import { renderChat } from "./views/chat";
-import { renderConfig } from "./views/config";
-import { renderCron } from "./views/cron";
-import { renderDebug } from "./views/debug";
-import { renderExecApprovalPrompt } from "./views/exec-approval";
-import { renderGatewayUrlConfirmation } from "./views/gateway-url-confirmation";
-import { renderInstances } from "./views/instances";
-import { renderLogs } from "./views/logs";
-import { renderNodes } from "./views/nodes";
-import { renderOverview } from "./views/overview";
-import { renderSessions } from "./views/sessions";
-import { renderSkills } from "./views/skills";
 } from "./controllers/skills.ts";
 import { icons } from "./icons.ts";
 import { normalizeBasePath, TAB_GROUPS, subtitleForTab, titleForTab } from "./navigation.ts";
@@ -136,10 +98,8 @@ export function renderApp(state: AppViewState) {
   const showThinking = state.onboarding ? false : state.settings.chatShowThinking;
   const assistantAvatarUrl = resolveAssistantAvatarUrl(state);
   const chatAvatarUrl = state.chatAvatarUrl ?? assistantAvatarUrl ?? null;
-=======
   const logoBase = normalizeBasePath(state.basePath);
   const logoHref = logoBase ? `${logoBase}/favicon.svg` : "/favicon.svg";
->>>>>>> upstream/main
   const configValue =
     state.configForm ?? (state.configSnapshot?.config as Record<string, unknown> | null);
   const resolvedAgentId =
@@ -147,8 +107,7 @@ export function renderApp(state: AppViewState) {
     state.agentsList?.defaultId ??
     state.agentsList?.agents?.[0]?.id ??
     null;
-<<<<<<< HEAD
-const ensureAgentListEntry = (agentId: string) => {
+  const ensureAgentListEntry = (agentId: string) => {
     const snapshot = (state.configForm ??
       (state.configSnapshot?.config as Record<string, unknown> | null)) as {
       agents?: { list?: unknown[] };
@@ -188,8 +147,7 @@ const ensureAgentListEntry = (agentId: string) => {
           </button>
           <div class="brand">
             <div class="brand-logo">
-<img src="/favicon.svg" alt="OpenClaw" />
-<img src="${logoHref}" alt="OpenClaw" />
+              <img src="${logoHref}" alt="OpenClaw" />
             </div>
             <div class="brand-text">
               <div class="brand-title">OPENCLAW</div>
@@ -281,8 +239,7 @@ const ensureAgentListEntry = (agentId: string) => {
                 onSessionKeyChange: (next) => {
                   state.sessionKey = next;
                   state.chatMessage = "";
-state.resetToolStream();
-(state as unknown as OpenClawApp).resetToolStream();
+                  (state as unknown as OpenClawApp).resetToolStream();
                   state.applySettings({
                     ...state.settings,
                     sessionKey: next,
@@ -311,8 +268,7 @@ state.resetToolStream();
                 configSchema: state.configSchema,
                 configSchemaLoading: state.configSchemaLoading,
                 configForm: state.configForm,
-configUiHints: state.configUiHints,
-configUiHints: state.configUiHints as ConfigUiHints,
+                configUiHints: state.configUiHints as ConfigUiHints,
                 configSaving: state.configSaving,
                 configFormDirty: state.configFormDirty,
                 nostrProfileFormState: state.nostrProfileFormState,
@@ -321,8 +277,7 @@ configUiHints: state.configUiHints as ConfigUiHints,
                 onWhatsAppStart: (force) => state.handleWhatsAppStart(force),
                 onWhatsAppWait: () => state.handleWhatsAppWait(),
                 onWhatsAppLogout: () => state.handleWhatsAppLogout(),
-onConfigPatch: (path, value) => updateConfigFormValue(state, path, value),
-onConfigPatch: (path, value) =>
+                onConfigPatch: (path, value) =>
                   updateConfigFormValue(state as unknown as ConfigState, path, value),
                 onConfigSave: () => state.handleChannelConfigSave(),
                 onConfigReload: () => state.handleChannelConfigReload(),
@@ -489,8 +444,7 @@ onConfigPatch: (path, value) =>
                     void state.loadCron();
                   }
                 },
-onLoadFiles: (agentId) => loadAgentFiles(state, agentId),
-onLoadFiles: (agentId) => {
+                onLoadFiles: (agentId) => {
                   void (async () => {
                     await loadAgentFiles(state, agentId);
                     if (state.agentFileActive) {
@@ -543,13 +497,7 @@ onLoadFiles: (agentId) => {
                   }
                   const basePath = ["agents", "list", index, "tools"];
                   if (profile) {
-updateConfigFormValue(state, [...basePath, "profile"], profile);
-                  } else {
-                    removeConfigFormValue(state, [...basePath, "profile"]);
-                  }
-                  if (clearAllow) {
-                    removeConfigFormValue(state, [...basePath, "allow"]);
-updateConfigFormValue(
+                    updateConfigFormValue(
                       state as unknown as ConfigState,
                       [...basePath, "profile"],
                       profile,
@@ -584,19 +532,7 @@ updateConfigFormValue(
                   }
                   const basePath = ["agents", "list", index, "tools"];
                   if (alsoAllow.length > 0) {
-updateConfigFormValue(state, [...basePath, "alsoAllow"], alsoAllow);
-                  } else {
-                    removeConfigFormValue(state, [...basePath, "alsoAllow"]);
-                  }
-                  if (deny.length > 0) {
-                    updateConfigFormValue(state, [...basePath, "deny"], deny);
-                  } else {
-                    removeConfigFormValue(state, [...basePath, "deny"]);
-                  }
-                },
-                onConfigReload: () => loadConfig(state),
-                onConfigSave: () => saveConfig(state),
-updateConfigFormValue(
+                    updateConfigFormValue(
                       state as unknown as ConfigState,
                       [...basePath, "alsoAllow"],
                       alsoAllow,
@@ -663,8 +599,7 @@ updateConfigFormValue(
                   } else {
                     next.delete(normalizedSkill);
                   }
-updateConfigFormValue(state, ["agents", "list", index, "skills"], [...next]);
-updateConfigFormValue(
+                  updateConfigFormValue(
                     state as unknown as ConfigState,
                     ["agents", "list", index, "skills"],
                     [...next],
@@ -688,8 +623,7 @@ updateConfigFormValue(
                   if (index < 0) {
                     return;
                   }
-removeConfigFormValue(state, ["agents", "list", index, "skills"]);
-removeConfigFormValue(state as unknown as ConfigState, [
+                  removeConfigFormValue(state as unknown as ConfigState, [
                     "agents",
                     "list",
                     index,
@@ -714,8 +648,7 @@ removeConfigFormValue(state as unknown as ConfigState, [
                   if (index < 0) {
                     return;
                   }
-updateConfigFormValue(state, ["agents", "list", index, "skills"], []);
-updateConfigFormValue(
+                  updateConfigFormValue(
                     state as unknown as ConfigState,
                     ["agents", "list", index, "skills"],
                     [],
@@ -725,27 +658,7 @@ updateConfigFormValue(
                   if (!configValue) {
                     return;
                   }
-const list = (configValue as { agents?: { list?: unknown[] } }).agents?.list;
-                  if (!Array.isArray(list)) {
-                    return;
-                  }
-                  const index = list.findIndex(
-                    (entry) =>
-                      entry &&
-                      typeof entry === "object" &&
-                      "id" in entry &&
-                      (entry as { id?: string }).id === agentId,
-                  );
-                  if (index < 0) {
-                    return;
-                  }
-                  const basePath = ["agents", "list", index, "model"];
-                  if (!modelId) {
-                    removeConfigFormValue(state, basePath);
-                    return;
-                  }
-                  const entry = list[index] as { model?: unknown };
-const defaultId = state.agentsList?.defaultId ?? null;
+                  const defaultId = state.agentsList?.defaultId ?? null;
                   if (defaultId && agentId === defaultId) {
                     const basePath = ["agents", "defaults", "model"];
                     const defaults =
@@ -794,10 +707,7 @@ const defaultId = state.agentsList?.defaultId ?? null;
                       primary: modelId,
                       ...(Array.isArray(fallbacks) ? { fallbacks } : {}),
                     };
-updateConfigFormValue(state, basePath, next);
-                  } else {
-                    updateConfigFormValue(state, basePath, modelId);
-updateConfigFormValue(state as unknown as ConfigState, basePath, next);
+                    updateConfigFormValue(state as unknown as ConfigState, basePath, next);
                   } else {
                     updateConfigFormValue(state as unknown as ConfigState, basePath, modelId);
                   }
@@ -806,25 +716,7 @@ updateConfigFormValue(state as unknown as ConfigState, basePath, next);
                   if (!configValue) {
                     return;
                   }
-const list = (configValue as { agents?: { list?: unknown[] } }).agents?.list;
-                  if (!Array.isArray(list)) {
-                    return;
-                  }
-                  const index = list.findIndex(
-                    (entry) =>
-                      entry &&
-                      typeof entry === "object" &&
-                      "id" in entry &&
-                      (entry as { id?: string }).id === agentId,
-                  );
-                  if (index < 0) {
-                    return;
-                  }
-                  const basePath = ["agents", "list", index, "model"];
-                  const entry = list[index] as { model?: unknown };
                   const normalized = fallbacks.map((name) => name.trim()).filter(Boolean);
-                  const existing = entry.model;
-const normalized = fallbacks.map((name) => name.trim()).filter(Boolean);
                   const defaultId = state.agentsList?.defaultId ?? null;
                   if (defaultId && agentId === defaultId) {
                     const basePath = ["agents", "defaults", "model"];
@@ -895,10 +787,7 @@ const normalized = fallbacks.map((name) => name.trim()).filter(Boolean);
                   const primary = resolvePrimary();
                   if (normalized.length === 0) {
                     if (primary) {
-updateConfigFormValue(state, basePath, primary);
-                    } else {
-                      removeConfigFormValue(state, basePath);
-updateConfigFormValue(state as unknown as ConfigState, basePath, primary);
+                      updateConfigFormValue(state as unknown as ConfigState, basePath, primary);
                     } else {
                       removeConfigFormValue(state as unknown as ConfigState, basePath);
                     }
@@ -907,8 +796,7 @@ updateConfigFormValue(state as unknown as ConfigState, basePath, primary);
                   const next = primary
                     ? { primary, fallbacks: normalized }
                     : { fallbacks: normalized };
-updateConfigFormValue(state, basePath, next);
-updateConfigFormValue(state as unknown as ConfigState, basePath, next);
+                  updateConfigFormValue(state as unknown as ConfigState, basePath, next);
                 },
               })
             : nothing
@@ -965,8 +853,7 @@ updateConfigFormValue(state as unknown as ConfigState, basePath, next);
                 onDeviceRotate: (deviceId, role, scopes) =>
                   rotateDeviceToken(state, { deviceId, role, scopes }),
                 onDeviceRevoke: (deviceId, role) => revokeDeviceToken(state, { deviceId, role }),
-onLoadConfig: () => loadConfig(state),
-onLoadConfig: () => loadConfig(state as unknown as ConfigState),
+                onLoadConfig: () => loadConfig(state as unknown as ConfigState),
                 onLoadExecApprovals: () => {
                   const target =
                     state.execApprovalsTarget === "node" && state.execApprovalsTargetNodeId
@@ -976,10 +863,7 @@ onLoadConfig: () => loadConfig(state as unknown as ConfigState),
                 },
                 onBindDefault: (nodeId) => {
                   if (nodeId) {
-updateConfigFormValue(state, ["tools", "exec", "node"], nodeId);
-                  } else {
-                    removeConfigFormValue(state, ["tools", "exec", "node"]);
-updateConfigFormValue(
+                    updateConfigFormValue(
                       state as unknown as ConfigState,
                       ["tools", "exec", "node"],
                       nodeId,
@@ -995,13 +879,7 @@ updateConfigFormValue(
                 onBindAgent: (agentIndex, nodeId) => {
                   const basePath = ["agents", "list", agentIndex, "tools", "exec", "node"];
                   if (nodeId) {
-updateConfigFormValue(state, basePath, nodeId);
-                  } else {
-                    removeConfigFormValue(state, basePath);
-                  }
-                },
-                onSaveBindings: () => saveConfig(state),
-updateConfigFormValue(state as unknown as ConfigState, basePath, nodeId);
+                    updateConfigFormValue(state as unknown as ConfigState, basePath, nodeId);
                   } else {
                     removeConfigFormValue(state as unknown as ConfigState, basePath);
                   }
@@ -1041,12 +919,7 @@ updateConfigFormValue(state as unknown as ConfigState, basePath, nodeId);
                   state.chatMessage = "";
                   state.chatAttachments = [];
                   state.chatStream = null;
-state.chatStreamStartedAt = null;
                   state.chatRunId = null;
-                  state.chatQueue = [];
-                  state.resetToolStream();
-                  state.resetChatScroll();
-state.chatRunId = null;
                   (state as unknown as OpenClawApp).chatStreamStartedAt = null;
                   state.chatQueue = [];
                   (state as unknown as OpenClawApp).resetToolStream();
@@ -1057,24 +930,17 @@ state.chatRunId = null;
                     lastActiveSessionKey: next,
                   });
                   void state.loadAssistantIdentity();
-void loadChatHistory(state);
-                  void refreshChatAvatar(state);
-void loadChatHistory(state as unknown as ChatState);
+                  void loadChatHistory(state as unknown as ChatState);
                   void refreshChatAvatar(state as unknown as ChatHost);
                 },
                 thinkingLevel: state.chatThinkingLevel,
                 showThinking,
                 loading: state.chatLoading,
                 sending: state.chatSending,
-compactionStatus: state.compactionStatus,
->>>>>>> upstream/main
                 assistantAvatarUrl: chatAvatarUrl,
                 messages: state.chatMessages,
                 toolMessages: state.chatToolMessages,
                 stream: state.chatStream,
-<<<<<<< HEAD
-                streamStartedAt: state.chatStreamStartedAt,
-=======
                 streamStartedAt: null,
                 draft: state.chatMessage,
                 queue: state.chatQueue,
@@ -1085,9 +951,7 @@ compactionStatus: state.compactionStatus,
                 sessions: state.sessionsResult,
                 focusMode: chatFocus,
                 onRefresh: () => {
-state.resetToolStream();
-                  return Promise.all([loadChatHistory(state), refreshChatAvatar(state)]);
-return Promise.all([
+                  return Promise.all([
                     loadChatHistory(state as unknown as ChatState),
                     refreshChatAvatar(state as unknown as ChatHost),
                   ]);
@@ -1101,26 +965,7 @@ return Promise.all([
                     chatFocusMode: !state.settings.chatFocusMode,
                   });
                 },
-onChatScroll: (event) => state.handleChatScroll(event),
-                onDraftChange: (next) => (state.chatMessage = next),
-                attachments: state.chatAttachments,
-                onAttachmentsChange: (next) => (state.chatAttachments = next),
-                onSend: () => state.handleSendChat(),
-                canAbort: Boolean(state.chatRunId),
-                onAbort: () => void state.handleAbortChat(),
-                onQueueRemove: (id) => state.removeQueuedMessage(id),
-                onNewSession: () => state.handleSendChat("/new", { restoreDraft: true }),
-                showNewMessages: state.chatNewMessagesBelow,
-                onScrollToBottom: () => state.scrollToBottom(),
-                // Sidebar props for tool output viewing
-                sidebarOpen: state.sidebarOpen,
-                sidebarContent: state.sidebarContent,
-                sidebarError: state.sidebarError,
-                splitRatio: state.splitRatio,
-                onOpenSidebar: (content: string) => state.handleOpenSidebar(content),
-                onCloseSidebar: () => state.handleCloseSidebar(),
-                onSplitRatioChange: (ratio: number) => state.handleSplitRatioChange(ratio),
-onChatScroll: (event) => (state as unknown as OpenClawApp).handleChatScroll(event),
+                onChatScroll: (event) => (state as unknown as OpenClawApp).handleChatScroll(event),
                 onDraftChange: (next) => (state.chatMessage = next),
                 attachments: state.chatAttachments,
                 onAttachmentsChange: (next) => (state.chatAttachments = next),
@@ -1162,14 +1007,7 @@ onChatScroll: (event) => (state as unknown as OpenClawApp).handleChatScroll(even
                 connected: state.connected,
                 schema: state.configSchema,
                 schemaLoading: state.configSchemaLoading,
-uiHints: state.configUiHints,
-                formMode: state.configFormMode,
-                formValue: state.configForm,
-                originalValue: state.configFormOriginal,
-                searchQuery: state.configSearchQuery,
-                activeSection: state.configActiveSection,
-                activeSubsection: state.configActiveSubsection,
-uiHints: state.configUiHints as ConfigUiHints,
+                uiHints: state.configUiHints as ConfigUiHints,
                 formMode: state.configFormMode,
                 formValue: state.configForm,
                 originalValue: state.configFormOriginal,
@@ -1180,18 +1018,7 @@ uiHints: state.configUiHints as ConfigUiHints,
                   state.configRaw = next;
                 },
                 onFormModeChange: (mode) => (state.configFormMode = mode),
-onFormPatch: (path, value) => updateConfigFormValue(state, path, value),
-                onSearchChange: (query) => (state.configSearchQuery = query),
-                onSectionChange: (section) => {
-                  state.configActiveSection = section;
-                  state.configActiveSubsection = null;
-                },
-                onSubsectionChange: (section) => (state.configActiveSubsection = section),
-                onReload: () => loadConfig(state),
-                onSave: () => saveConfig(state),
-                onApply: () => applyConfig(state),
-                onUpdate: () => runUpdate(state),
-onFormPatch: (path, value) =>
+                onFormPatch: (path, value) =>
                   updateConfigFormValue(state as unknown as OpenClawApp, path, value),
                 onSearchChange: (query) =>
                   ((state as unknown as OpenClawApp).configSearchQuery = query),
@@ -1246,10 +1073,7 @@ onFormPatch: (path, value) =>
                   state.logsLevelFilters = { ...state.logsLevelFilters, [level]: enabled };
                 },
                 onToggleAutoFollow: (next) => (state.logsAutoFollow = next),
-onRefresh: () => loadLogs(state, { reset: true }),
-                onExport: (lines, label) => state.exportLogs(lines, label),
-                onScroll: (event) => state.handleLogsScroll(event),
-onRefresh: () => loadLogs(state as unknown as LogsState, { reset: true }),
+                onRefresh: () => loadLogs(state as unknown as LogsState, { reset: true }),
                 onExport: (lines, label) =>
                   (state as unknown as OpenClawApp).exportLogs(lines, label),
                 onScroll: (event) => (state as unknown as OpenClawApp).handleLogsScroll(event),

@@ -37,8 +37,7 @@ export async function onTimer(state: CronServiceState) {
   state.running = true;
   try {
     await locked(state, async () => {
-await ensureLoaded(state);
-await ensureLoaded(state, { forceReload: true });
+      await ensureLoaded(state, { forceReload: true });
       await runDueJobs(state);
       await persist(state);
       armTimer(state);
@@ -81,13 +80,7 @@ export async function executeJob(
 
   let deleted = false;
 
-const finish = async (
-    status: "ok" | "error" | "skipped",
-    err?: string,
-    summary?: string,
-    outputText?: string,
-  ) => {
-const finish = async (status: "ok" | "error" | "skipped", err?: string, summary?: string) => {
+  const finish = async (status: "ok" | "error" | "skipped", err?: string, summary?: string) => {
     const endedAt = state.deps.nowMs();
     job.state.runningAtMs = undefined;
     job.state.lastRunAtMs = startedAt;
@@ -126,30 +119,6 @@ const finish = async (status: "ok" | "error" | "skipped", err?: string, summary?
       deleted = true;
       emit(state, { jobId: job.id, action: "removed" });
     }
-if (job.sessionTarget === "isolated") {
-      const prefix = job.isolation?.postToMainPrefix?.trim() || "Cron";
-      const mode = job.isolation?.postToMainMode ?? "summary";
-
-      let body = (summary ?? err ?? status).trim();
-      if (mode === "full") {
-        // Prefer full agent output if available; fall back to summary.
-        const maxCharsRaw = job.isolation?.postToMainMaxChars;
-        const maxChars = Number.isFinite(maxCharsRaw) ? Math.max(0, maxCharsRaw as number) : 8000;
-        const fullText = (outputText ?? "").trim();
-        if (fullText) {
-          body = fullText.length > maxChars ? `${fullText.slice(0, maxChars)}…` : fullText;
-        }
-      }
-
-      const statusPrefix = status === "ok" ? prefix : `${prefix} (${status})`;
-      state.deps.enqueueSystemEvent(`${statusPrefix}: ${body}`, {
-        agentId: job.agentId,
-      });
-      if (job.wakeMode === "now") {
-        state.deps.requestHeartbeatNow({ reason: `cron:${job.id}:post` });
-      }
-    }
->>>>>>> upstream/main
   };
 
   try {
@@ -215,14 +184,6 @@ if (job.sessionTarget === "isolated") {
       job,
       message: job.payload.message,
     });
-<<<<<<< HEAD
-    if (res.status === "ok") {
-      await finish("ok", undefined, res.summary, res.outputText);
-    } else if (res.status === "skipped") {
-      await finish("skipped", undefined, res.summary, res.outputText);
-    } else {
-      await finish("error", res.error ?? "cron job failed", res.summary, res.outputText);
-=======
 
     // Post a short summary back to the main session so the user sees
     // the cron result without opening the isolated session.

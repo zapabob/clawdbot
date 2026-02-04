@@ -43,9 +43,7 @@ import { resolveQueueSettings } from "./queue.js";
 import { routeReply } from "./route-reply.js";
 import { ensureSkillSnapshot, prependSystemEvents } from "./session-updates.js";
 import { resolveTypingMode } from "./typing-mode.js";
-=======
 import { appendUntrustedContext } from "./untrusted-context.js";
->>>>>>> upstream/main
 
 type AgentDefaults = NonNullable<OpenClawConfig["agents"]>["defaults"];
 type ExecOverrides = Pick<ExecToolDefaults, "host" | "security" | "ask" | "node">;
@@ -230,8 +228,7 @@ export async function runPreparedReply(
     isNewSession,
     prefixedBodyBase,
   });
-<<<<<<< HEAD
-prefixedBodyBase = appendUntrustedContext(prefixedBodyBase, sessionCtx.UntrustedContext);
+  prefixedBodyBase = appendUntrustedContext(prefixedBodyBase, sessionCtx.UntrustedContext);
   const threadStarterBody = ctx.ThreadStarterBody?.trim();
   const threadStarterNote =
     isNewSession && threadStarterBody

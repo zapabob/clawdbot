@@ -1,7 +1,3 @@
-import type { GatewayBrowserClient } from "../gateway";
-import type { ChatAttachment } from "../ui-types";
-import { extractText } from "../chat/message-extract";
-import { generateUUID } from "../uuid";
 import type { GatewayBrowserClient } from "../gateway.ts";
 import type { ChatAttachment } from "../ui-types.ts";
 import { extractText } from "../chat/message-extract.ts";
@@ -38,11 +34,7 @@ export async function loadChatHistory(state: ChatState) {
   state.chatLoading = true;
   state.lastError = null;
   try {
-const res = await state.client.request("chat.history", {
-      sessionKey: state.sessionKey,
-      limit: 200,
-    });
-const res = await state.client.request<{ messages?: Array<unknown>; thinkingLevel?: string }>(
+    const res = await state.client.request<{ messages?: Array<unknown>; thinkingLevel?: string }>(
       "chat.history",
       {
         sessionKey: state.sessionKey,

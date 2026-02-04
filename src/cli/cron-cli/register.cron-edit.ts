@@ -5,8 +5,7 @@ import { defaultRuntime } from "../../runtime.js";
 import { addGatewayClientOptions, callGatewayFromCli } from "../gateway-rpc.js";
 import {
   getCronChannelOptions,
-parseAtMs,
-parseAt,
+  parseAt,
   parseDurationMs,
   warnIfCronSchedulerDisabled,
 } from "./shared.js";
@@ -47,12 +46,7 @@ export function registerCronEditCommand(cron: Command) {
       .option("--thinking <level>", "Thinking level for agent jobs")
       .option("--model <model>", "Model override for agent jobs")
       .option("--timeout-seconds <n>", "Timeout seconds for agent jobs")
-.option(
-        "--deliver",
-        "Deliver agent output (required when using last-route delivery without --to)",
-      )
-      .option("--no-deliver", "Disable delivery")
-.option("--announce", "Announce summary to a chat (subagent-style)")
+      .option("--announce", "Announce summary to a chat (subagent-style)")
       .option("--deliver", "Deprecated (use --announce). Announces a summary to a chat.")
       .option("--no-deliver", "Disable announce delivery")
       .option("--channel <channel>", `Delivery channel (${getCronChannelOptions()})`)
@@ -62,8 +56,6 @@ export function registerCronEditCommand(cron: Command) {
       )
       .option("--best-effort-deliver", "Do not fail job if delivery fails")
       .option("--no-best-effort-deliver", "Fail job when delivery fails")
-.option("--post-prefix <prefix>", "Prefix for summary system event")
->>>>>>> upstream/main
       .action(async (id, opts) => {
         try {
           if (opts.session === "main" && opts.message) {
@@ -76,10 +68,6 @@ export function registerCronEditCommand(cron: Command) {
               "Isolated jobs cannot use --system-event; use --message or --session main.",
             );
           }
-<<<<<<< HEAD
-          if (opts.session === "main" && typeof opts.postPrefix === "string") {
-            throw new Error("--post-prefix only applies to isolated jobs.");
-=======
           if (opts.announce && typeof opts.deliver === "boolean") {
             throw new Error("Choose --announce or --no-deliver (not multiple).");
           }
@@ -130,12 +118,7 @@ export function registerCronEditCommand(cron: Command) {
             throw new Error("Choose at most one schedule change");
           }
           if (opts.at) {
-const atMs = parseAtMs(String(opts.at));
-            if (!atMs) {
-              throw new Error("Invalid --at");
-            }
-            patch.schedule = { kind: "at", atMs };
-const atIso = parseAt(String(opts.at));
+            const atIso = parseAt(String(opts.at));
             if (!atIso) {
               throw new Error("Invalid --at");
             }
@@ -165,22 +148,15 @@ const atIso = parseAt(String(opts.at));
             ? Number.parseInt(String(opts.timeoutSeconds), 10)
             : undefined;
           const hasTimeoutSeconds = Boolean(timeoutSeconds && Number.isFinite(timeoutSeconds));
-=======
           const hasDeliveryModeFlag = opts.announce || typeof opts.deliver === "boolean";
           const hasDeliveryTarget = typeof opts.channel === "string" || typeof opts.to === "string";
           const hasBestEffort = typeof opts.bestEffortDeliver === "boolean";
->>>>>>> upstream/main
           const hasAgentTurnPatch =
             typeof opts.message === "string" ||
             Boolean(model) ||
             Boolean(thinking) ||
             hasTimeoutSeconds ||
-<<<<<<< HEAD
-            typeof opts.deliver === "boolean" ||
-            typeof opts.channel === "string" ||
-            typeof opts.to === "string" ||
-            typeof opts.bestEffortDeliver === "boolean";
-hasDeliveryModeFlag ||
+            hasDeliveryModeFlag ||
             hasDeliveryTarget ||
             hasBestEffort;
           if (hasSystemEventPatch && hasAgentTurnPatch) {
@@ -197,23 +173,7 @@ hasDeliveryModeFlag ||
             assignIf(payload, "model", model, Boolean(model));
             assignIf(payload, "thinking", thinking, Boolean(thinking));
             assignIf(payload, "timeoutSeconds", timeoutSeconds, hasTimeoutSeconds);
-assignIf(payload, "deliver", opts.deliver, typeof opts.deliver === "boolean");
-            assignIf(payload, "channel", opts.channel, typeof opts.channel === "string");
-            assignIf(payload, "to", opts.to, typeof opts.to === "string");
-            assignIf(
-              payload,
-              "bestEffortDeliver",
-              opts.bestEffortDeliver,
-              typeof opts.bestEffortDeliver === "boolean",
-            );
             patch.payload = payload;
-          }
-
-          if (typeof opts.postPrefix === "string") {
-            patch.isolation = {
-              postToMainPrefix: opts.postPrefix.trim() ? opts.postPrefix : "Cron",
-            };
-patch.payload = payload;
           }
 
           if (hasDeliveryModeFlag || hasDeliveryTarget || hasBestEffort) {

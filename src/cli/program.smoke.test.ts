@@ -165,7 +165,7 @@ describe("cli program (smoke)", () => {
         field: "moonshotApiKey",
       },
       {
-authChoice: "moonshot-api-key-cn",
+        authChoice: "moonshot-api-key-cn",
         flag: "--moonshot-api-key",
         key: "sk-moonshot-cn-test",
         field: "moonshotApiKey",

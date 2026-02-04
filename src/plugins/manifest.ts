@@ -134,8 +134,6 @@ export type OpenClawPackageManifest = {
   extensions?: string[];
   channel?: PluginPackageChannel;
   install?: PluginPackageInstall;
-disabled?: boolean;
-  disabledReason?: string;
 };
 
 export type ManifestKey = typeof MANIFEST_KEY;

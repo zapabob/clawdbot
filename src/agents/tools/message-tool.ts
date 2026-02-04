@@ -24,7 +24,6 @@ import { channelTargetSchema, channelTargetsSchema, stringEnum } from "../schema
 import { jsonResult, readNumberParam, readStringParam } from "./common.js";
 
 const AllMessageActions = CHANNEL_MESSAGE_ACTION_NAMES;
-=======
 const EXPLICIT_TARGET_ACTIONS = new Set<ChannelMessageActionName>([
   "send",
   "sendWithEffect",
@@ -37,7 +36,6 @@ const EXPLICIT_TARGET_ACTIONS = new Set<ChannelMessageActionName>([
 function actionNeedsExplicitTarget(action: ChannelMessageActionName): boolean {
   return EXPLICIT_TARGET_ACTIONS.has(action);
 }
->>>>>>> upstream/main
 function buildRoutingSchema() {
   return {
     channel: Type.Optional(Type.String()),
@@ -207,7 +205,6 @@ function buildGatewaySchema() {
   };
 }
 
-<<<<<<< HEAD
 function buildPresenceSchema() {
   return {
     activityType: Type.Optional(
@@ -237,6 +234,7 @@ function buildPresenceSchema() {
     ),
   };
 }
+
 function buildChannelManagementSchema() {
   return {
     name: Type.Optional(Type.String()),
@@ -269,9 +267,7 @@ function buildMessageToolSchemaProps(options: { includeButtons: boolean; include
     ...buildModerationSchema(),
     ...buildGatewaySchema(),
     ...buildChannelManagementSchema(),
-=======
     ...buildPresenceSchema(),
->>>>>>> upstream/main
   };
 }
 
@@ -301,8 +297,7 @@ type MessageToolOptions = {
   replyToMode?: "off" | "first" | "all";
   hasRepliedRef?: { value: boolean };
   sandboxRoot?: string;
-<<<<<<< HEAD
-requireExplicitTarget?: boolean;
+  requireExplicitTarget?: boolean;
 };
 
 function buildMessageToolSchema(cfg: OpenClawConfig) {
@@ -412,8 +407,6 @@ export function createMessageTool(options?: MessageToolOptions): AnyAgentTool {
       const action = readStringParam(params, "action", {
         required: true,
       }) as ChannelMessageActionName;
-<<<<<<< HEAD
-=======
       const requireExplicitTarget = options?.requireExplicitTarget === true;
       if (requireExplicitTarget && actionNeedsExplicitTarget(action)) {
         const explicitTarget =
@@ -428,7 +421,6 @@ export function createMessageTool(options?: MessageToolOptions): AnyAgentTool {
           );
         }
       }
->>>>>>> upstream/main
 
       // Validate file paths against sandbox root to prevent host file access.
       const sandboxRoot = options?.sandboxRoot;

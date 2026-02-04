@@ -2,7 +2,6 @@ import { Command, Option } from "commander";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { getSubCliEntries, registerSubCliByName } from "./program/register.subclis.js";
 import { resolveStateDir } from "../config/paths.js";
 import { getSubCliEntries, registerSubCliByName } from "./program/register.subclis.js";
 
@@ -175,20 +174,13 @@ export async function isCompletionInstalled(
     (line) => isCompletionProfileHeader(line) || isCompletionProfileLine(line, binName, cachedPath),
   );
 }
+
 export function registerCompletionCli(program: Command) {
   program
     .command("completion")
     .description("Generate shell completion script")
     .addOption(
-new Option("-s, --shell <shell>", "Shell to generate completion for")
-        .choices(["zsh", "bash", "powershell", "fish"])
-        .default("zsh"),
-    )
-    .option("-i, --install", "Install completion script to shell profile")
-    .option("-y, --yes", "Skip confirmation (non-interactive)", false)
-    .action(async (options) => {
-      const shell = options.shell;
-new Option("-s, --shell <shell>", "Shell to generate completion for (default: zsh)").choices(
+      new Option("-s, --shell <shell>", "Shell to generate completion for (default: zsh)").choices(
         COMPLETION_SHELLS,
       ),
     )
@@ -210,22 +202,7 @@ new Option("-s, --shell <shell>", "Shell to generate completion for (default: zs
         await registerSubCliByName(program, entry.name);
       }
 
-if (options.install) {
-        await installCompletion(shell, Boolean(options.yes), program.name());
-        return;
-      }
-
-      let script = "";
-      if (shell === "zsh") {
-        script = generateZshCompletion(program);
-      } else if (shell === "bash") {
-        script = generateBashCompletion(program);
-      } else if (shell === "powershell") {
-        script = generatePowerShellCompletion(program);
-      } else if (shell === "fish") {
-        script = generateFishCompletion(program);
-      }
-if (options.writeState) {
+      if (options.writeState) {
         const writeShells = options.shell ? [shell] : [...COMPLETION_SHELLS];
         await writeCompletionCache({
           program,
@@ -256,10 +233,7 @@ export async function installCompletion(shell: string, yes: boolean, binName = "
   const home = process.env.HOME || os.homedir();
   let profilePath = "";
   let sourceLine = "";
-if (shell === "zsh") {
-    profilePath = path.join(home, ".zshrc");
-    sourceLine = `source <(${binName} completion --shell zsh)`;
-let cachedPath: string | null = null;
+  let cachedPath: string | null = null;
   const isShellSupported = isCompletionShell(shell);
   if (isShellSupported) {
     const candidate = resolveCompletionCachePath(shell, binName);
@@ -277,11 +251,7 @@ let cachedPath: string | null = null;
     } catch {
       profilePath = path.join(home, ".bash_profile");
     }
-sourceLine = `source <(${binName} completion --shell bash)`;
-  } else if (shell === "fish") {
-    profilePath = path.join(home, ".config", "fish", "config.fish");
-    sourceLine = `${binName} completion --shell fish | source`;
-sourceLine = formatCompletionSourceLine("bash", binName, cachedPath);
+    sourceLine = formatCompletionSourceLine("bash", binName, cachedPath);
   } else if (shell === "fish") {
     profilePath = path.join(home, ".config", "fish", "config.fish");
     sourceLine = formatCompletionSourceLine("fish", binName, cachedPath);
@@ -303,8 +273,7 @@ sourceLine = formatCompletionSourceLine("bash", binName, cachedPath);
     }
 
     const content = await fs.readFile(profilePath, "utf-8");
-if (content.includes(`${binName} completion`)) {
-const update = updateCompletionProfile(content, binName, cachedPath, sourceLine);
+    const update = updateCompletionProfile(content, binName, cachedPath, sourceLine);
     if (!update.changed) {
       if (!yes) {
         console.log(`Completion already installed in ${profilePath}`);
@@ -313,15 +282,7 @@ const update = updateCompletionProfile(content, binName, cachedPath, sourceLine)
     }
 
     if (!yes) {
-// Simple confirmation could go here if we had a prompter,
-      // but for now we assume --yes or manual invocation implies consent or we print info.
-      // Since we don't have a prompter passed in here easily without adding deps, we'll log.
-      console.log(`Installing completion to ${profilePath}...`);
-    }
-
-    await fs.appendFile(profilePath, `\n# OpenClaw Completion\n${sourceLine}\n`);
-    console.log(`Completion installed. Restart your shell or run: source ${profilePath}`);
-const action = update.hadExisting ? "Updating" : "Installing";
+      const action = update.hadExisting ? "Updating" : "Installing";
       console.log(`${action} completion in ${profilePath}...`);
     }
 
@@ -371,8 +332,7 @@ function generateZshArgs(cmd: Command): string {
       const flags = opt.flags.split(/[ ,|]+/);
       const name = flags.find((f) => f.startsWith("--")) || flags[0];
       const short = flags.find((f) => f.startsWith("-") && !f.startsWith("--"));
-const desc = opt.description.replace(/'/g, "'\\''");
-const desc = opt.description
+      const desc = opt.description
         .replace(/\\/g, "\\\\")
         .replace(/"/g, '\\"')
         .replace(/'/g, "'\\''")
@@ -391,10 +351,7 @@ function generateZshSubcmdList(cmd: Command): string {
     .map((c) => {
       const desc = c
         .description()
-<<<<<<< HEAD
-=======
         .replace(/\\/g, "\\\\")
->>>>>>> upstream/main
         .replace(/'/g, "'\\''")
         .replace(/\[/g, "\\[")
         .replace(/\]/g, "\\]");

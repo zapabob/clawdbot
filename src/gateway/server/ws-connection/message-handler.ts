@@ -29,9 +29,7 @@ import { authorizeGatewayConnect, isLocalDirectRequest } from "../../auth.js";
 import { buildDeviceAuthPayload } from "../../device-auth.js";
 import { isLoopbackAddress, isTrustedProxyAddress, resolveGatewayClientIp } from "../../net.js";
 import { resolveNodeCommandAllowlist } from "../../node-command-policy.js";
-=======
 import { checkBrowserOrigin } from "../../origin-check.js";
->>>>>>> upstream/main
 import { GATEWAY_CLIENT_IDS } from "../../protocol/client-info.js";
 import {
   type ConnectParams,
@@ -368,8 +366,7 @@ export function attachGatewayWsMessageHandler(params: {
         connectParams.role = role;
         connectParams.scopes = scopes;
 
-<<<<<<< HEAD
-const isControlUi = connectParams.client.id === GATEWAY_CLIENT_IDS.CONTROL_UI;
+        const isControlUi = connectParams.client.id === GATEWAY_CLIENT_IDS.CONTROL_UI;
         const isWebchat = isWebchatConnect(connectParams);
         if (isControlUi || isWebchat) {
           const originCheck = checkBrowserOrigin({
@@ -400,15 +397,12 @@ const isControlUi = connectParams.client.id === GATEWAY_CLIENT_IDS.CONTROL_UI;
             return;
           }
         }
+
         const deviceRaw = connectParams.device;
         let devicePublicKey: string | null = null;
         const hasTokenAuth = Boolean(connectParams.auth?.token);
         const hasPasswordAuth = Boolean(connectParams.auth?.password);
         const hasSharedAuth = hasTokenAuth || hasPasswordAuth;
-<<<<<<< HEAD
-        const isControlUi = connectParams.client.id === GATEWAY_CLIENT_IDS.CONTROL_UI;
-=======
->>>>>>> upstream/main
         const allowInsecureControlUi =
           isControlUi && configSnapshot.gateway?.controlUi?.allowInsecureAuth === true;
         const disableControlUiDeviceAuth =

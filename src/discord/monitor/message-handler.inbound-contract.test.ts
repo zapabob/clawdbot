@@ -21,9 +21,7 @@ vi.mock("../../auto-reply/dispatch.js", async (importOriginal) => {
   };
 });
 
-=======
 import type { DiscordMessagePreflightContext } from "./message-handler.preflight.js";
->>>>>>> upstream/main
 import { processDiscordMessage } from "./message-handler.process.js";
 
 describe("discord processDiscordMessage inbound contract", () => {
@@ -104,8 +102,8 @@ describe("discord processDiscordMessage inbound contract", () => {
     expect(capturedCtx).toBeTruthy();
     expectInboundContextContract(capturedCtx!);
   });
-<<<<<<< HEAD
-it("keeps channel metadata out of GroupSystemPrompt", async () => {
+
+  it("keeps channel metadata out of GroupSystemPrompt", async () => {
     capturedCtx = undefined;
 
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-discord-"));

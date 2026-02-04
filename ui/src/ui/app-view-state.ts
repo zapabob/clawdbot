@@ -1,13 +1,3 @@
-import type { EventLogEntry } from "./app-events";
-import type { DevicePairingList } from "./controllers/devices";
-import type { ExecApprovalRequest } from "./controllers/exec-approval";
-import type { ExecApprovalsFile, ExecApprovalsSnapshot } from "./controllers/exec-approvals";
-import type { SkillMessage } from "./controllers/skills";
-import type { GatewayBrowserClient, GatewayHelloOk } from "./gateway";
-import type { Tab } from "./navigation";
-import type { UiSettings } from "./storage";
-import type { ThemeMode } from "./theme";
-import type { ThemeTransitionContext } from "./theme-transition";
 import type { EventLogEntry } from "./app-events.ts";
 import type { DevicePairingList } from "./controllers/devices.ts";
 import type { ExecApprovalRequest } from "./controllers/exec-approval.ts";
@@ -35,9 +25,6 @@ import type {
   SessionsListResult,
   SkillStatusReport,
   StatusSummary,
-} from "./types";
-import type { ChatAttachment, ChatQueueItem, CronFormState } from "./ui-types";
-import type { NostrProfileFormState } from "./views/channels.nostr-profile-form";
 } from "./types.ts";
 import type { ChatAttachment, ChatQueueItem, CronFormState } from "./ui-types.ts";
 import type { NostrProfileFormState } from "./views/channels.nostr-profile-form.ts";

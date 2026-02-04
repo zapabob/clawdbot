@@ -1,14 +1,5 @@
 import { LitElement } from "lit";
 import { customElement, state } from "lit/decorators.js";
-import type { EventLogEntry } from "./app-events";
-import type { AppViewState } from "./app-view-state";
-import type { DevicePairingList } from "./controllers/devices";
-import type { ExecApprovalRequest } from "./controllers/exec-approval";
-import type { ExecApprovalsFile, ExecApprovalsSnapshot } from "./controllers/exec-approvals";
-import type { SkillMessage } from "./controllers/skills";
-import type { GatewayBrowserClient, GatewayHelloOk } from "./gateway";
-import type { Tab } from "./navigation";
-import type { ResolvedTheme, ThemeMode } from "./theme";
 import type { EventLogEntry } from "./app-events.ts";
 import type { AppViewState } from "./app-view-state.ts";
 import type { DevicePairingList } from "./controllers/devices.ts";
@@ -36,8 +27,6 @@ import type {
   SkillStatusReport,
   StatusSummary,
   NostrProfile,
-} from "./types";
-import type { NostrProfileFormState } from "./views/channels.nostr-profile-form";
 } from "./types.ts";
 import type { NostrProfileFormState } from "./views/channels.nostr-profile-form.ts";
 import {
@@ -52,15 +41,11 @@ import {
   handleWhatsAppLogout as handleWhatsAppLogoutInternal,
   handleWhatsAppStart as handleWhatsAppStartInternal,
   handleWhatsAppWait as handleWhatsAppWaitInternal,
-} from "./app-channels";
 } from "./app-channels.ts";
 import {
   handleAbortChat as handleAbortChatInternal,
   handleSendChat as handleSendChatInternal,
   removeQueuedMessage as removeQueuedMessageInternal,
-} from "./app-chat";
-import { DEFAULT_CRON_FORM, DEFAULT_LOG_LEVEL_FILTERS } from "./app-defaults";
-import { connectGateway as connectGatewayInternal } from "./app-gateway";
 } from "./app-chat.ts";
 import { DEFAULT_CRON_FORM, DEFAULT_LOG_LEVEL_FILTERS } from "./app-defaults.ts";
 import { connectGateway as connectGatewayInternal } from "./app-gateway.ts";
@@ -69,8 +54,6 @@ import {
   handleDisconnected,
   handleFirstUpdated,
   handleUpdated,
-} from "./app-lifecycle";
-import { renderApp } from "./app-render";
 } from "./app-lifecycle.ts";
 import { renderApp } from "./app-render.ts";
 import {
@@ -79,7 +62,6 @@ import {
   handleLogsScroll as handleLogsScrollInternal,
   resetChatScroll as resetChatScrollInternal,
   scheduleChatScroll as scheduleChatScrollInternal,
-} from "./app-scroll";
 } from "./app-scroll.ts";
 import {
   applySettings as applySettingsInternal,
@@ -88,15 +70,6 @@ import {
   setTab as setTabInternal,
   setTheme as setThemeInternal,
   onPopState as onPopStateInternal,
-} from "./app-settings";
-import {
-  resetToolStream as resetToolStreamInternal,
-  type ToolStreamEntry,
-} from "./app-tool-stream";
-import { resolveInjectedAssistantIdentity } from "./assistant-identity";
-import { loadAssistantIdentity as loadAssistantIdentityInternal } from "./controllers/assistant-identity";
-import { loadSettings, type UiSettings } from "./storage";
-import { type ChatAttachment, type ChatQueueItem, type CronFormState } from "./ui-types";
 } from "./app-settings.ts";
 import {
   resetToolStream as resetToolStreamInternal,
@@ -157,8 +130,7 @@ export class OpenClawApp extends LitElement {
   @state() chatStream: string | null = null;
   @state() chatStreamStartedAt: number | null = null;
   @state() chatRunId: string | null = null;
-@state() compactionStatus: import("./app-tool-stream").CompactionStatus | null = null;
-@state() compactionStatus: import("./app-tool-stream.ts").CompactionStatus | null = null;
+  @state() compactionStatus: import("./app-tool-stream.ts").CompactionStatus | null = null;
   @state() chatAvatarUrl: string | null = null;
   @state() chatThinkingLevel: string | null = null;
   @state() chatQueue: ChatQueueItem[] = [];

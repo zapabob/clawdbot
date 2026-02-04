@@ -49,7 +49,6 @@ function firecrawlError(): MockResponse {
   };
 }
 
-=======
 function textResponse(
   text: string,
   url = "https://example.com/",
@@ -64,7 +63,6 @@ function textResponse(
   };
 }
 
->>>>>>> upstream/main
 function errorHtmlResponse(
   html: string,
   status = 404,
@@ -338,8 +336,8 @@ describe("web_fetch extraction fallbacks", () => {
     expect(details.extractor).toBe("firecrawl");
     expect(details.text).toContain("firecrawl fallback");
   });
-<<<<<<< HEAD
-it("wraps external content and clamps oversized maxChars", async () => {
+
+  it("wraps external content and clamps oversized maxChars", async () => {
     const large = "a".repeat(80_000);
     const mockFetch = vi.fn(
       (input: RequestInfo) =>

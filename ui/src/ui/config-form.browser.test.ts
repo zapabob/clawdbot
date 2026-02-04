@@ -1,6 +1,5 @@
 import { render } from "lit";
 import { describe, expect, it, vi } from "vitest";
-import { analyzeConfigSchema, renderConfigForm } from "./views/config-form";
 import { analyzeConfigSchema, renderConfigForm } from "./views/config-form.ts";
 
 const rootSchema = {
@@ -52,8 +51,7 @@ describe("config form renderer", () => {
       container,
     );
 
-const tokenInput = container.querySelector("input[type='password']");
-const tokenInput: HTMLInputElement | null = container.querySelector("input[type='password']");
+    const tokenInput: HTMLInputElement | null = container.querySelector("input[type='password']");
     expect(tokenInput).not.toBeNull();
     if (!tokenInput) {
       return;
@@ -69,8 +67,7 @@ const tokenInput: HTMLInputElement | null = container.querySelector("input[type=
     tokenButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(onPatch).toHaveBeenCalledWith(["mode"], "token");
 
-const checkbox = container.querySelector("input[type='checkbox']");
-const checkbox: HTMLInputElement | null = container.querySelector("input[type='checkbox']");
+    const checkbox: HTMLInputElement | null = container.querySelector("input[type='checkbox']");
     expect(checkbox).not.toBeNull();
     if (!checkbox) {
       return;

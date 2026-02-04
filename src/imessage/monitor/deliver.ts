@@ -7,12 +7,10 @@ import { resolveMarkdownTableMode } from "../../config/markdown-tables.js";
 import { convertMarkdownTables } from "../../markdown/tables.js";
 import { sendMessageIMessage } from "../send.js";
 
-=======
 type SentMessageCache = {
   remember: (scope: string, text: string) => void;
 };
 
->>>>>>> upstream/main
 export async function deliverReplies(params: {
   replies: ReplyPayload[];
   target: string;
@@ -21,10 +19,7 @@ export async function deliverReplies(params: {
   runtime: RuntimeEnv;
   maxBytes: number;
   textLimit: number;
-<<<<<<< HEAD
-}) {
-  const { replies, target, client, runtime, maxBytes, textLimit, accountId } = params;
-sentMessageCache?: SentMessageCache;
+  sentMessageCache?: SentMessageCache;
 }) {
   const { replies, target, client, runtime, maxBytes, textLimit, accountId, sentMessageCache } =
     params;
@@ -44,17 +39,14 @@ sentMessageCache?: SentMessageCache;
       continue;
     }
     if (mediaList.length === 0) {
-=======
       sentMessageCache?.remember(scope, text);
->>>>>>> upstream/main
       for (const chunk of chunkTextWithMode(text, textLimit, chunkMode)) {
         await sendMessageIMessage(target, chunk, {
           maxBytes,
           client,
           accountId,
         });
-<<<<<<< HEAD
-sentMessageCache?.remember(scope, chunk);
+        sentMessageCache?.remember(scope, chunk);
       }
     } else {
       let first = true;
@@ -67,12 +59,9 @@ sentMessageCache?.remember(scope, chunk);
           client,
           accountId,
         });
-<<<<<<< HEAD
-=======
         if (caption) {
           sentMessageCache?.remember(scope, caption);
         }
->>>>>>> upstream/main
       }
     }
     runtime.log?.(`imessage: delivered reply to ${target}`);

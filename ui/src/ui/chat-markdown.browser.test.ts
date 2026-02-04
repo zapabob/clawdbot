@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { OpenClawApp } from "./app";
 import { OpenClawApp } from "./app.ts";
 
 // oxlint-disable-next-line typescript/unbound-method

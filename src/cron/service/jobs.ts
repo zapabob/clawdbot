@@ -1,9 +1,7 @@
 import crypto from "node:crypto";
 import type {
-=======
   CronDelivery,
   CronDeliveryPatch,
->>>>>>> upstream/main
   CronJob,
   CronJobCreate,
   CronJobPatch,
@@ -11,7 +9,6 @@ import type {
   CronPayloadPatch,
 } from "../types.js";
 import type { CronServiceState } from "./state.js";
-<<<<<<< HEAD
 import { parseAbsoluteTimeMs } from "../parse.js";
 import { computeNextRunAtMs } from "../schedule.js";
 import {
@@ -32,14 +29,12 @@ export function assertSupportedJobSpec(job: Pick<CronJob, "sessionTarget" | "pay
   }
 }
 
-=======
 function assertDeliverySupport(job: Pick<CronJob, "sessionTarget" | "delivery">) {
   if (job.delivery && job.sessionTarget !== "isolated") {
     throw new Error('cron delivery config is only supported for sessionTarget="isolated"');
   }
 }
 
->>>>>>> upstream/main
 export function findJobOrThrow(state: CronServiceState, id: string) {
   const job = state.store?.jobs.find((j) => j.id === id);
   if (!job) {
@@ -57,9 +52,7 @@ export function computeJobNextRunAtMs(job: CronJob, nowMs: number): number | und
     if (job.state.lastStatus === "ok" && job.state.lastRunAtMs) {
       return undefined;
     }
-<<<<<<< HEAD
-    return job.schedule.atMs;
-const atMs = parseAbsoluteTimeMs(job.schedule.at);
+    const atMs = parseAbsoluteTimeMs(job.schedule.at);
     return atMs !== null ? atMs : undefined;
   }
   return computeNextRunAtMs(job.schedule, nowMs);
@@ -106,7 +99,6 @@ export function nextWakeAtMs(state: CronServiceState) {
 export function createJob(state: CronServiceState, input: CronJobCreate): CronJob {
   const now = state.deps.nowMs();
   const id = crypto.randomUUID();
-=======
   const deleteAfterRun =
     typeof input.deleteAfterRun === "boolean"
       ? input.deleteAfterRun
@@ -114,16 +106,12 @@ export function createJob(state: CronServiceState, input: CronJobCreate): CronJo
         ? true
         : undefined;
   const enabled = typeof input.enabled === "boolean" ? input.enabled : true;
->>>>>>> upstream/main
   const job: CronJob = {
     id,
     agentId: normalizeOptionalAgentId(input.agentId),
     name: normalizeRequiredName(input.name),
     description: normalizeOptionalText(input.description),
-<<<<<<< HEAD
-    enabled: input.enabled,
-    deleteAfterRun: input.deleteAfterRun,
-enabled,
+    enabled,
     deleteAfterRun,
     createdAtMs: now,
     updatedAtMs: now,
@@ -131,16 +119,13 @@ enabled,
     sessionTarget: input.sessionTarget,
     wakeMode: input.wakeMode,
     payload: input.payload,
-isolation: input.isolation,
-delivery: input.delivery,
+    delivery: input.delivery,
     state: {
       ...input.state,
     },
   };
   assertSupportedJobSpec(job);
-=======
   assertDeliverySupport(job);
->>>>>>> upstream/main
   job.state.nextRunAtMs = computeJobNextRunAtMs(job, now);
   return job;
 }
@@ -170,10 +155,7 @@ export function applyJobPatch(job: CronJob, patch: CronJobPatch) {
   if (patch.payload) {
     job.payload = mergeCronPayload(job.payload, patch.payload);
   }
-<<<<<<< HEAD
-  if (patch.isolation) {
-    job.isolation = patch.isolation;
-if (!patch.delivery && patch.payload?.kind === "agentTurn") {
+  if (!patch.delivery && patch.payload?.kind === "agentTurn") {
     // Back-compat: legacy clients still update delivery via payload fields.
     const legacyDeliveryPatch = buildLegacyDeliveryPatch(patch.payload);
     if (
@@ -197,9 +179,7 @@ if (!patch.delivery && patch.payload?.kind === "agentTurn") {
     job.agentId = normalizeOptionalAgentId((patch as { agentId?: unknown }).agentId);
   }
   assertSupportedJobSpec(job);
-=======
   assertDeliverySupport(job);
->>>>>>> upstream/main
 }
 
 function mergeCronPayload(existing: CronPayload, patch: CronPayloadPatch): CronPayload {
@@ -247,7 +227,6 @@ function mergeCronPayload(existing: CronPayload, patch: CronPayloadPatch): CronP
   return next;
 }
 
-<<<<<<< HEAD
 function buildLegacyDeliveryPatch(
   payload: Extract<CronPayloadPatch, { kind: "agentTurn" }>,
 ): CronDeliveryPatch | null {
@@ -288,6 +267,7 @@ function buildLegacyDeliveryPatch(
 
   return hasPatch ? patch : null;
 }
+
 function buildPayloadFromPatch(patch: CronPayloadPatch): CronPayload {
   if (patch.kind === "systemEvent") {
     if (typeof patch.text !== "string" || patch.text.length === 0) {
@@ -313,8 +293,6 @@ function buildPayloadFromPatch(patch: CronPayloadPatch): CronPayload {
   };
 }
 
-<<<<<<< HEAD
-=======
 function mergeCronDelivery(
   existing: CronDelivery | undefined,
   patch: CronDeliveryPatch,
@@ -344,7 +322,6 @@ function mergeCronDelivery(
   return next;
 }
 
->>>>>>> upstream/main
 export function isJobDue(job: CronJob, nowMs: number, opts: { forced: boolean }) {
   if (opts.forced) {
     return true;

@@ -302,19 +302,7 @@ export type ConfigSchemaResponse = {
 };
 
 export type PresenceEntry = {
-instanceId?: string | null;
-  host?: string | null;
-  ip?: string | null;
-  version?: string | null;
-  platform?: string | null;
   deviceFamily?: string | null;
-  modelIdentifier?: string | null;
-  mode?: string | null;
-  lastInputSeconds?: number | null;
-  reason?: string | null;
-  text?: string | null;
-  ts?: number | null;
-deviceFamily?: string | null;
   host?: string | null;
   instanceId?: string | null;
   ip?: string | null;
@@ -437,8 +425,7 @@ export type SessionsPatchResult = {
 };
 
 export type CronSchedule =
-| { kind: "at"; atMs: number }
-| { kind: "at"; at: string }
+  | { kind: "at"; at: string }
   | { kind: "every"; everyMs: number; anchorMs?: number }
   | { kind: "cron"; expr: string; tz?: string };
 
@@ -452,23 +439,7 @@ export type CronPayload =
       message: string;
       thinking?: string;
       timeoutSeconds?: number;
-deliver?: boolean;
-      provider?:
-        | "last"
-        | "whatsapp"
-        | "telegram"
-        | "discord"
-        | "slack"
-        | "signal"
-        | "imessage"
-        | "msteams";
-      to?: string;
-      bestEffortDeliver?: boolean;
     };
-
-export type CronIsolation = {
-  postToMainPrefix?: string;
-};
 
 export type CronDelivery = {
   mode: "none" | "announce";
@@ -499,8 +470,7 @@ export type CronJob = {
   sessionTarget: CronSessionTarget;
   wakeMode: CronWakeMode;
   payload: CronPayload;
-isolation?: CronIsolation;
-delivery?: CronDelivery;
+  delivery?: CronDelivery;
   state?: CronJobState;
 };
 
@@ -536,10 +506,7 @@ export type SkillStatusEntry = {
   name: string;
   description: string;
   source: string;
-<<<<<<< HEAD
-=======
   bundled?: boolean;
->>>>>>> upstream/main
   filePath: string;
   baseDir: string;
   skillKey: string;

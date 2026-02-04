@@ -1,8 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import { runCommandWithTimeout } from "../process/exec.js";
-import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
-import { resolveOpenClawPackageRoot } from "./openclaw-root.js";
 import { fileURLToPath } from "node:url";
 import { runCommandWithTimeout } from "../process/exec.js";
 import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
@@ -63,8 +60,6 @@ export async function resolveControlUiDistIndexPath(
   return path.join(packageRoot, "dist", "control-ui", "index.html");
 }
 
-<<<<<<< HEAD
-=======
 export type ControlUiRootResolveOptions = {
   argv1?: string;
   moduleUrl?: string;
@@ -145,7 +140,6 @@ export function resolveControlUiRootSync(opts: ControlUiRootResolveOptions = {})
   return null;
 }
 
->>>>>>> upstream/main
 export type EnsureControlUiAssetsResult = {
   ok: boolean;
   built: boolean;

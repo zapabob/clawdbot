@@ -218,7 +218,7 @@ export async function handleDiscordMessageAction(
     );
   }
 
-if (action === "set-presence") {
+  if (action === "set-presence") {
     return await handleDiscordAction(
       {
         action: "setPresence",
@@ -232,6 +232,7 @@ if (action === "set-presence") {
       cfg,
     );
   }
+
   const adminResult = await tryHandleDiscordMessageActionGuildAdmin({
     ctx,
     resolveChannelId,

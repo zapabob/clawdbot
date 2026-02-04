@@ -45,9 +45,7 @@ import { resolveAgentRoute } from "../../routing/resolve-route.js";
 import { truncateUtf16Safe } from "../../utils.js";
 import { resolveIMessageAccount } from "../accounts.js";
 import { createIMessageRpcClient } from "../client.js";
-=======
 import { DEFAULT_IMESSAGE_PROBE_TIMEOUT_MS } from "../constants.js";
->>>>>>> upstream/main
 import { probeIMessage } from "../probe.js";
 import { sendMessageIMessage } from "../send.js";
 import {
@@ -113,7 +111,6 @@ function describeReplyContext(message: IMessagePayload): IMessageReplyContext | 
   return { body, id, sender };
 }
 
-<<<<<<< HEAD
 /**
  * Cache for recently sent messages, used for echo detection.
  * Keys are scoped by conversation (accountId:target) so the same text in different chats is not conflated.
@@ -158,6 +155,7 @@ class SentMessageCache {
     }
   }
 }
+
 export async function monitorIMessageProvider(opts: MonitorIMessageOpts = {}): Promise<void> {
   const runtime = resolveRuntime(opts);
   const cfg = opts.config ?? loadConfig();
@@ -173,9 +171,7 @@ export async function monitorIMessageProvider(opts: MonitorIMessageOpts = {}): P
       DEFAULT_GROUP_HISTORY_LIMIT,
   );
   const groupHistories = new Map<string, HistoryEntry[]>();
-=======
   const sentMessageCache = new SentMessageCache();
->>>>>>> upstream/main
   const textLimit = resolveTextChunkLimit(cfg, "imessage", accountInfo.accountId);
   const allowFrom = normalizeAllowList(opts.allowFrom ?? imessageCfg.allowFrom);
   const groupAllowFrom = normalizeAllowList(
@@ -190,8 +186,7 @@ export async function monitorIMessageProvider(opts: MonitorIMessageOpts = {}): P
   const mediaMaxBytes = (opts.mediaMaxMb ?? imessageCfg.mediaMaxMb ?? 16) * 1024 * 1024;
   const cliPath = opts.cliPath ?? imessageCfg.cliPath ?? "imsg";
   const dbPath = opts.dbPath ?? imessageCfg.dbPath;
-<<<<<<< HEAD
-const probeTimeoutMs = imessageCfg.probeTimeoutMs ?? DEFAULT_IMESSAGE_PROBE_TIMEOUT_MS;
+  const probeTimeoutMs = imessageCfg.probeTimeoutMs ?? DEFAULT_IMESSAGE_PROBE_TIMEOUT_MS;
 
   // Resolve remoteHost: explicit config, or auto-detect from SSH wrapper script
   let remoteHost = imessageCfg.remoteHost;
@@ -398,7 +393,6 @@ const probeTimeoutMs = imessageCfg.probeTimeoutMs ?? DEFAULT_IMESSAGE_PROBE_TIME
     });
     const mentionRegexes = buildMentionRegexes(cfg, route.agentId);
     const messageText = (message.text ?? "").trim();
-=======
 
     // Echo detection: check if the received message matches a recently sent message (within 5 seconds).
     // Scope by conversation so same text in different chats is not conflated.
@@ -410,7 +404,6 @@ const probeTimeoutMs = imessageCfg.probeTimeoutMs ?? DEFAULT_IMESSAGE_PROBE_TIME
       return;
     }
 
->>>>>>> upstream/main
     const attachments = includeAttachments ? (message.attachments ?? []) : [];
     // Filter to valid attachments with paths
     const validAttachments = attachments.filter((entry) => entry?.original_path && !entry?.missing);
@@ -632,8 +625,7 @@ const probeTimeoutMs = imessageCfg.probeTimeoutMs ?? DEFAULT_IMESSAGE_PROBE_TIME
           runtime,
           maxBytes: mediaMaxBytes,
           textLimit,
-<<<<<<< HEAD
-sentMessageCache,
+          sentMessageCache,
         });
       },
       onError: (err, info) => {
@@ -686,8 +678,7 @@ sentMessageCache,
     abortSignal: opts.abortSignal,
     runtime,
     check: async () => {
-const probe = await probeIMessage(2000, { cliPath, dbPath, runtime });
-const probe = await probeIMessage(probeTimeoutMs, { cliPath, dbPath, runtime });
+      const probe = await probeIMessage(probeTimeoutMs, { cliPath, dbPath, runtime });
       if (probe.ok) {
         return { ok: true };
       }

@@ -105,7 +105,6 @@ export type ChannelOutboundAdapter = {
   sendPoll?: (ctx: ChannelPollContext) => Promise<ChannelPollResult>;
 };
 
-export type ChannelStatusAdapter<ResolvedAccount> = {
 export type ChannelStatusAdapter<ResolvedAccount, Probe = unknown, Audit = unknown> = {
   defaultRuntime?: ChannelAccountSnapshot;
   buildChannelSummary?: (params: {
@@ -118,23 +117,18 @@ export type ChannelStatusAdapter<ResolvedAccount, Probe = unknown, Audit = unkno
     account: ResolvedAccount;
     timeoutMs: number;
     cfg: OpenClawConfig;
-}) => Promise<unknown>;
-}) => Promise<Probe>;
+  }) => Promise<Probe>;
   auditAccount?: (params: {
     account: ResolvedAccount;
     timeoutMs: number;
     cfg: OpenClawConfig;
-probe?: unknown;
-  }) => Promise<unknown>;
-probe?: Probe;
+    probe?: Probe;
   }) => Promise<Audit>;
   buildAccountSnapshot?: (params: {
     account: ResolvedAccount;
     cfg: OpenClawConfig;
     runtime?: ChannelAccountSnapshot;
-probe?: unknown;
-    audit?: unknown;
-probe?: Probe;
+    probe?: Probe;
     audit?: Audit;
   }) => ChannelAccountSnapshot | Promise<ChannelAccountSnapshot>;
   logSelfId?: (params: {

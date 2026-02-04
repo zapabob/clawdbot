@@ -19,9 +19,7 @@ describe("normalizeCronJobCreate", () => {
     }) as unknown as Record<string, unknown>;
 
     const payload = normalized.payload as Record<string, unknown>;
-expect(payload.channel).toBe("telegram");
-    expect("provider" in payload).toBe(false);
-expect(payload.channel).toBeUndefined();
+    expect(payload.channel).toBeUndefined();
     expect(payload.deliver).toBeUndefined();
     expect("provider" in payload).toBe(false);
 
@@ -80,11 +78,7 @@ expect(payload.channel).toBeUndefined();
     }) as unknown as Record<string, unknown>;
 
     const payload = normalized.payload as Record<string, unknown>;
-expect(payload.channel).toBe("telegram");
-  });
-
-  it("coerces ISO schedule.at to atMs (UTC)", () => {
-expect(payload.channel).toBeUndefined();
+    expect(payload.channel).toBeUndefined();
     expect(payload.deliver).toBeUndefined();
 
     const delivery = normalized.delivery as Record<string, unknown>;
@@ -108,11 +102,7 @@ expect(payload.channel).toBeUndefined();
 
     const schedule = normalized.schedule as Record<string, unknown>;
     expect(schedule.kind).toBe("at");
-expect(schedule.atMs).toBe(Date.parse("2026-01-12T18:00:00Z"));
-  });
-
-  it("coerces ISO schedule.atMs string to atMs (UTC)", () => {
-expect(schedule.at).toBe(new Date(Date.parse("2026-01-12T18:00:00Z")).toISOString());
+    expect(schedule.at).toBe(new Date(Date.parse("2026-01-12T18:00:00Z")).toISOString());
   });
 
   it("coerces schedule.atMs string to schedule.at (UTC)", () => {
@@ -130,8 +120,7 @@ expect(schedule.at).toBe(new Date(Date.parse("2026-01-12T18:00:00Z")).toISOStrin
 
     const schedule = normalized.schedule as Record<string, unknown>;
     expect(schedule.kind).toBe("at");
-expect(schedule.atMs).toBe(Date.parse("2026-01-12T18:00:00Z"));
-expect(schedule.at).toBe(new Date(Date.parse("2026-01-12T18:00:00Z")).toISOString());
+    expect(schedule.at).toBe(new Date(Date.parse("2026-01-12T18:00:00Z")).toISOString());
   });
 
   it("defaults deleteAfterRun for one-shot schedules", () => {

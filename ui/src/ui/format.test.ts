@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { stripThinkingTags } from "./format";
 import { formatAgo, stripThinkingTags } from "./format.ts";
 
 describe("formatAgo", () => {

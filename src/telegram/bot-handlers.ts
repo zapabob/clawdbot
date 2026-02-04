@@ -1,6 +1,3 @@
-import type { TelegramMessage } from "./bot/types.js";
-import { resolveDefaultAgentId } from "../agents/agent-scope.js";
-// @ts-nocheck
 // @ts-nocheck
 import type { Message } from "@grammyjs/types";
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
@@ -10,18 +7,13 @@ import {
   resolveInboundDebounceMs,
 } from "../auto-reply/inbound-debounce.js";
 import { buildCommandsPaginationKeyboard } from "../auto-reply/reply/commands-info.js";
-=======
 import { buildModelsProviderData } from "../auto-reply/reply/commands-models.js";
 import { resolveStoredModelOverride } from "../auto-reply/reply/model-selection.js";
->>>>>>> upstream/main
 import { listSkillCommandsForAgents } from "../auto-reply/skill-commands.js";
 import { buildCommandsMessagePaginated } from "../auto-reply/status.js";
 import { resolveChannelConfigWrites } from "../channels/plugins/config-writes.js";
 import { loadConfig } from "../config/config.js";
 import { writeConfigFile } from "../config/io.js";
-<<<<<<< HEAD
-import { danger, logVerbose, warn } from "../globals.js";
-import { readChannelAllowFromStore } from "../pairing/pairing-store.js";
 import { loadSessionStore, resolveStorePath } from "../config/sessions.js";
 import { danger, logVerbose, warn } from "../globals.js";
 import { readChannelAllowFromStore } from "../pairing/pairing-store.js";
@@ -32,9 +24,6 @@ import { firstDefined, isSenderAllowed, normalizeAllowFromWithStore } from "./bo
 import { RegisterTelegramHandlerParams } from "./bot-native-commands.js";
 import { MEDIA_GROUP_TIMEOUT_MS, type MediaGroupEntry } from "./bot-updates.js";
 import { resolveMedia } from "./bot/delivery.js";
-import { resolveTelegramForumThreadId } from "./bot/helpers.js";
-import { migrateTelegramGroupConfig } from "./group-migration.js";
-import { resolveTelegramInlineButtonsScope } from "./inline-buttons.js";
 import { buildTelegramGroupPeerId, resolveTelegramForumThreadId } from "./bot/helpers.js";
 import { migrateTelegramGroupConfig } from "./group-migration.js";
 import { resolveTelegramInlineButtonsScope } from "./inline-buttons.js";
@@ -74,8 +63,7 @@ export const registerTelegramHandlers = ({
 
   type TextFragmentEntry = {
     key: string;
-messages: Array<{ msg: TelegramMessage; ctx: unknown; receivedAtMs: number }>;
-messages: Array<{ msg: Message; ctx: unknown; receivedAtMs: number }>;
+    messages: Array<{ msg: Message; ctx: unknown; receivedAtMs: number }>;
     timer: ReturnType<typeof setTimeout>;
   };
   const textFragmentBuffer = new Map<string, TextFragmentEntry>();
@@ -84,8 +72,7 @@ messages: Array<{ msg: Message; ctx: unknown; receivedAtMs: number }>;
   const debounceMs = resolveInboundDebounceMs({ cfg, channel: "telegram" });
   type TelegramDebounceEntry = {
     ctx: unknown;
-msg: TelegramMessage;
-msg: Message;
+    msg: Message;
     allMedia: Array<{ path: string; contentType?: string }>;
     storeAllowFrom: string[];
     debounceKey: string | null;
@@ -124,8 +111,7 @@ msg: Message;
       const baseCtx = first.ctx as { me?: unknown; getFile?: unknown } & Record<string, unknown>;
       const getFile =
         typeof baseCtx.getFile === "function" ? baseCtx.getFile.bind(baseCtx) : async () => ({});
-const syntheticMessage: TelegramMessage = {
-const syntheticMessage: Message = {
+      const syntheticMessage: Message = {
         ...first.msg,
         text: combinedText,
         caption: undefined,
@@ -146,7 +132,6 @@ const syntheticMessage: Message = {
     },
   });
 
-=======
   const resolveTelegramSessionModel = (params: {
     chatId: number | string;
     isGroup: boolean;
@@ -201,7 +186,6 @@ const syntheticMessage: Message = {
     return typeof modelCfg === "string" ? modelCfg : modelCfg?.primary;
   };
 
->>>>>>> upstream/main
   const processMediaGroup = async (entry: MediaGroupEntry) => {
     try {
       entry.messages.sort((a, b) => a.msg.message_id - b.msg.message_id);
@@ -247,9 +231,7 @@ const syntheticMessage: Message = {
         return;
       }
 
-<<<<<<< HEAD
-      const syntheticMessage: TelegramMessage = {
-const syntheticMessage: Message = {
+      const syntheticMessage: Message = {
         ...first.msg,
         text: combinedText,
         caption: undefined,
@@ -489,8 +471,7 @@ const syntheticMessage: Message = {
         return;
       }
 
-const syntheticMessage: TelegramMessage = {
-// Model selection callback handler (mdl_prov, mdl_list_*, mdl_sel_*, mdl_back)
+      // Model selection callback handler (mdl_prov, mdl_list_*, mdl_sel_*, mdl_back)
       const modelCallback = parseModelCallbackData(data);
       if (modelCallback) {
         const modelData = await buildModelsProviderData(cfg);

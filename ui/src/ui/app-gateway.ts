@@ -1,18 +1,3 @@
-import type { OpenClawApp } from "./app";
-import type { EventLogEntry } from "./app-events";
-import type { ExecApprovalRequest } from "./controllers/exec-approval";
-import type { GatewayEventFrame, GatewayHelloOk } from "./gateway";
-import type { Tab } from "./navigation";
-import type { UiSettings } from "./storage";
-import type { AgentsListResult, PresenceEntry, HealthSnapshot, StatusSummary } from "./types";
-import { CHAT_SESSIONS_ACTIVE_MINUTES, flushChatQueueForEvent } from "./app-chat";
-import { applySettings, loadCron, refreshActiveTab, setLastActiveSessionKey } from "./app-settings";
-import { handleAgentEvent, resetToolStream, type AgentEventPayload } from "./app-tool-stream";
-import { loadAgents } from "./controllers/agents";
-import { loadAssistantIdentity } from "./controllers/assistant-identity";
-import { loadChatHistory } from "./controllers/chat";
-import { handleChatEvent, type ChatEventPayload } from "./controllers/chat";
-import { loadDevices } from "./controllers/devices";
 import type { EventLogEntry } from "./app-events.ts";
 import type { OpenClawApp } from "./app.ts";
 import type { ExecApprovalRequest } from "./controllers/exec-approval.ts";
@@ -38,10 +23,6 @@ import {
   parseExecApprovalRequested,
   parseExecApprovalResolved,
   removeExecApproval,
-} from "./controllers/exec-approval";
-import { loadNodes } from "./controllers/nodes";
-import { loadSessions } from "./controllers/sessions";
-import { GatewayBrowserClient } from "./gateway";
 } from "./controllers/exec-approval.ts";
 import { loadNodes } from "./controllers/nodes.ts";
 import { loadSessions } from "./controllers/sessions.ts";

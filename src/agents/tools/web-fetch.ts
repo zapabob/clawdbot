@@ -95,7 +95,6 @@ function resolveFetchReadabilityEnabled(fetch?: WebFetchConfig): boolean {
   return true;
 }
 
-=======
 function resolveFetchMaxCharsCap(fetch?: WebFetchConfig): number {
   const raw =
     fetch && "maxCharsCap" in fetch && typeof fetch.maxCharsCap === "number"
@@ -107,7 +106,6 @@ function resolveFetchMaxCharsCap(fetch?: WebFetchConfig): number {
   return Math.max(100, Math.floor(raw));
 }
 
->>>>>>> upstream/main
 function resolveFirecrawlConfig(fetch?: WebFetchConfig): FirecrawlFetchConfig {
   if (!fetch || typeof fetch !== "object") {
     return undefined;
@@ -173,10 +171,6 @@ function resolveFirecrawlMaxAgeMsOrDefault(firecrawl?: FirecrawlFetchConfig): nu
   return DEFAULT_FIRECRAWL_MAX_AGE_MS;
 }
 
-<<<<<<< HEAD
-function resolveMaxChars(value: unknown, fallback: number): number {
-  const parsed = typeof value === "number" && Number.isFinite(value) ? value : fallback;
-  return Math.max(100, Math.floor(parsed));
 function resolveMaxChars(value: unknown, fallback: number, cap: number): number {
   const parsed = typeof value === "number" && Number.isFinite(value) ? value : fallback;
   const clamped = Math.max(100, Math.floor(parsed));
@@ -665,11 +659,7 @@ export function createWebFetchTool(options?: {
       const url = readStringParam(params, "url", { required: true });
       const extractMode = readStringParam(params, "extractMode") === "text" ? "text" : "markdown";
       const maxChars = readNumberParam(params, "maxChars", { integer: true });
-const result = await runWebFetch({
-        url,
-        extractMode,
-        maxChars: resolveMaxChars(maxChars ?? fetch?.maxChars, DEFAULT_FETCH_MAX_CHARS),
-const maxCharsCap = resolveFetchMaxCharsCap(fetch);
+      const maxCharsCap = resolveFetchMaxCharsCap(fetch);
       const result = await runWebFetch({
         url,
         extractMode,

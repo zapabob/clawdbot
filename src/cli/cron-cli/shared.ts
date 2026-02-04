@@ -60,20 +60,13 @@ export function parseDurationMs(input: string): number | null {
   return Math.floor(n * factor);
 }
 
-export function parseAtMs(input: string): number | null {
 export function parseAt(input: string): string | null {
   const raw = input.trim();
   if (!raw) {
     return null;
   }
   const absolute = parseAbsoluteTimeMs(raw);
-if (absolute) {
-    return absolute;
-  }
-  const dur = parseDurationMs(raw);
-  if (dur) {
-    return Date.now() + dur;
-if (absolute !== null) {
+  if (absolute !== null) {
     return new Date(absolute).toISOString();
   }
   const dur = parseDurationMs(raw);
@@ -104,13 +97,6 @@ const truncate = (value: string, width: number) => {
   return `${value.slice(0, width - 3)}...`;
 };
 
-const formatIsoMinute = (ms: number) => {
-  const d = new Date(ms);
-  if (Number.isNaN(d.getTime())) {
-    return "-";
-  }
-  const iso = d.toISOString();
-  return `${iso.slice(0, 10)} ${iso.slice(11, 16)}Z`;
 const formatIsoMinute = (iso: string) => {
   const parsed = parseAbsoluteTimeMs(iso);
   const d = new Date(parsed ?? NaN);
@@ -158,8 +144,7 @@ const formatRelative = (ms: number | null | undefined, nowMs: number) => {
 
 const formatSchedule = (schedule: CronSchedule) => {
   if (schedule.kind === "at") {
-return `at ${formatIsoMinute(schedule.atMs)}`;
-return `at ${formatIsoMinute(schedule.at)}`;
+    return `at ${formatIsoMinute(schedule.at)}`;
   }
   if (schedule.kind === "every") {
     return `every ${formatDuration(schedule.everyMs)}`;

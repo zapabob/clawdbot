@@ -1,6 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Tab } from "./navigation";
-import { setTabFromRoute } from "./app-settings";
 import type { Tab } from "./navigation.ts";
 import { setTabFromRoute } from "./app-settings.ts";
 

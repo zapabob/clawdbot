@@ -61,9 +61,7 @@ describe("buildAuthChoiceOptions", () => {
     });
 
     expect(options.some((opt) => opt.value === "moonshot-api-key")).toBe(true);
-=======
     expect(options.some((opt) => opt.value === "moonshot-api-key-cn")).toBe(true);
->>>>>>> upstream/main
     expect(options.some((opt) => opt.value === "kimi-code-api-key")).toBe(true);
   });
 
@@ -77,8 +75,7 @@ describe("buildAuthChoiceOptions", () => {
     expect(options.some((opt) => opt.value === "ai-gateway-api-key")).toBe(true);
   });
 
-<<<<<<< HEAD
-it("includes Cloudflare AI Gateway auth choice", () => {
+  it("includes Cloudflare AI Gateway auth choice", () => {
     const store: AuthProfileStore = { version: 1, profiles: {} };
     const options = buildAuthChoiceOptions({
       store,
@@ -87,6 +84,7 @@ it("includes Cloudflare AI Gateway auth choice", () => {
 
     expect(options.some((opt) => opt.value === "cloudflare-ai-gateway-api-key")).toBe(true);
   });
+
   it("includes Synthetic auth choice", () => {
     const store: AuthProfileStore = { version: 1, profiles: {} };
     const options = buildAuthChoiceOptions({

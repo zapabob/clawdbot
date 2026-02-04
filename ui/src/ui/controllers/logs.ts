@@ -1,5 +1,3 @@
-import type { GatewayBrowserClient } from "../gateway";
-import type { LogEntry, LogLevel } from "../types";
 import type { GatewayBrowserClient } from "../gateway.ts";
 import type { LogEntry, LogLevel } from "../types.ts";
 

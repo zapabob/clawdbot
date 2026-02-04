@@ -10,15 +10,12 @@ import { buildTokenProfileId, validateAnthropicSetupToken } from "../../auth-tok
 import { applyGoogleGeminiModelDefault } from "../../google-gemini-model-default.js";
 import {
   applyAuthProfileConfig,
-=======
   applyCloudflareAiGatewayConfig,
->>>>>>> upstream/main
   applyKimiCodeConfig,
   applyMinimaxApiConfig,
   applyMinimaxConfig,
   applyMoonshotConfig,
-<<<<<<< HEAD
-applyMoonshotConfigCn,
+  applyMoonshotConfigCn,
   applyOpencodeZenConfig,
   applyOpenrouterConfig,
   applySyntheticConfig,
@@ -27,9 +24,7 @@ applyMoonshotConfigCn,
   applyXiaomiConfig,
   applyZaiConfig,
   setAnthropicApiKey,
-=======
   setCloudflareAiGatewayConfig,
->>>>>>> upstream/main
   setGeminiApiKey,
   setKimiCodingApiKey,
   setMinimaxApiKey,
@@ -288,8 +283,7 @@ export async function applyNonInteractiveAuthChoice(params: {
     return applyVercelAiGatewayConfig(nextConfig);
   }
 
-<<<<<<< HEAD
-if (authChoice === "cloudflare-ai-gateway-api-key") {
+  if (authChoice === "cloudflare-ai-gateway-api-key") {
     const accountId = opts.cloudflareAiGatewayAccountId?.trim() ?? "";
     const gatewayId = opts.cloudflareAiGatewayGatewayId?.trim() ?? "";
     if (!accountId || !gatewayId) {
@@ -326,6 +320,7 @@ if (authChoice === "cloudflare-ai-gateway-api-key") {
       gatewayId,
     });
   }
+
   if (authChoice === "moonshot-api-key") {
     const resolved = await resolveNonInteractiveApiKey({
       provider: "moonshot",
@@ -349,8 +344,6 @@ if (authChoice === "cloudflare-ai-gateway-api-key") {
     return applyMoonshotConfig(nextConfig);
   }
 
-<<<<<<< HEAD
-=======
   if (authChoice === "moonshot-api-key-cn") {
     const resolved = await resolveNonInteractiveApiKey({
       provider: "moonshot",
@@ -374,7 +367,6 @@ if (authChoice === "cloudflare-ai-gateway-api-key") {
     return applyMoonshotConfigCn(nextConfig);
   }
 
->>>>>>> upstream/main
   if (authChoice === "kimi-code-api-key") {
     const resolved = await resolveNonInteractiveApiKey({
       provider: "kimi-coding",

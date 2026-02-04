@@ -24,9 +24,7 @@ export async function resolveDeliveryTarget(
   channel: Exclude<OutboundChannel, "none">;
   to?: string;
   accountId?: string;
-=======
   threadId?: string | number;
->>>>>>> upstream/main
   mode: "explicit" | "implicit";
   error?: Error;
 }> {
@@ -72,9 +70,7 @@ export async function resolveDeliveryTarget(
   const toCandidate = resolved.to;
 
   if (!toCandidate) {
-<<<<<<< HEAD
-    return { channel, to: undefined, accountId: resolved.accountId, mode };
-return {
+    return {
       channel,
       to: undefined,
       accountId: resolved.accountId,
@@ -94,10 +90,7 @@ return {
     channel,
     to: docked.ok ? docked.to : undefined,
     accountId: resolved.accountId,
-<<<<<<< HEAD
-=======
     threadId: resolved.threadId,
->>>>>>> upstream/main
     mode,
     error: docked.ok ? undefined : docked.error,
   };

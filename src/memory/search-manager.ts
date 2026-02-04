@@ -1,8 +1,4 @@
 import type { OpenClawConfig } from "../config/config.js";
-import type { MemoryIndexManager } from "./manager.js";
-
-export type MemorySearchManagerResult = {
-  manager: MemoryIndexManager | null;
 import type { ResolvedQmdConfig } from "./backend-config.js";
 import type {
   MemoryEmbeddingProbeResult,
@@ -24,7 +20,6 @@ export async function getMemorySearchManager(params: {
   cfg: OpenClawConfig;
   agentId: string;
 }): Promise<MemorySearchManagerResult> {
-=======
   const resolved = resolveMemoryBackendConfig(params);
   if (resolved.backend === "qmd" && resolved.qmd) {
     const cacheKey = buildQmdCacheKey(params.agentId, resolved.qmd);
@@ -59,7 +54,6 @@ export async function getMemorySearchManager(params: {
     }
   }
 
->>>>>>> upstream/main
   try {
     const { MemoryIndexManager } = await import("./manager.js");
     const manager = await MemoryIndexManager.get(params);
@@ -69,7 +63,7 @@ export async function getMemorySearchManager(params: {
     return { manager: null, error: message };
   }
 }
-<<<<<<< HEAD
+
 class FallbackMemoryManager implements MemorySearchManager {
   private fallback: MemorySearchManager | null = null;
   private primaryFailed = false;

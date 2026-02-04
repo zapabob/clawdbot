@@ -13,11 +13,7 @@ import {
 } from "./google-gemini-model-default.js";
 import {
   applyAuthProfileConfig,
-applyKimiCodeConfig,
-  applyKimiCodeProviderConfig,
-  applyMoonshotConfig,
-  applyMoonshotProviderConfig,
-applyCloudflareAiGatewayConfig,
+  applyCloudflareAiGatewayConfig,
   applyCloudflareAiGatewayProviderConfig,
   applyKimiCodeConfig,
   applyKimiCodeProviderConfig,
@@ -38,9 +34,7 @@ applyCloudflareAiGatewayConfig,
   applyXiaomiConfig,
   applyXiaomiProviderConfig,
   applyZaiConfig,
-=======
   CLOUDFLARE_AI_GATEWAY_DEFAULT_MODEL_REF,
->>>>>>> upstream/main
   KIMI_CODING_MODEL_REF,
   MOONSHOT_DEFAULT_MODEL_REF,
   OPENROUTER_DEFAULT_MODEL_REF,
@@ -48,8 +42,7 @@ applyCloudflareAiGatewayConfig,
   VENICE_DEFAULT_MODEL_REF,
   VERCEL_AI_GATEWAY_DEFAULT_MODEL_REF,
   XIAOMI_DEFAULT_MODEL_REF,
-<<<<<<< HEAD
-setCloudflareAiGatewayConfig,
+  setCloudflareAiGatewayConfig,
   setGeminiApiKey,
   setKimiCodingApiKey,
   setMoonshotApiKey,
@@ -90,10 +83,8 @@ export async function applyAuthChoiceApiProviders(
       authChoice = "openrouter-api-key";
     } else if (params.opts.tokenProvider === "vercel-ai-gateway") {
       authChoice = "ai-gateway-api-key";
-=======
     } else if (params.opts.tokenProvider === "cloudflare-ai-gateway") {
       authChoice = "cloudflare-ai-gateway-api-key";
->>>>>>> upstream/main
     } else if (params.opts.tokenProvider === "moonshot") {
       authChoice = "moonshot-api-key";
     } else if (
@@ -246,8 +237,7 @@ export async function applyAuthChoiceApiProviders(
     return { config: nextConfig, agentModelOverride };
   }
 
-<<<<<<< HEAD
-if (authChoice === "cloudflare-ai-gateway-api-key") {
+  if (authChoice === "cloudflare-ai-gateway-api-key") {
     let hasCredential = false;
     let accountId = params.opts?.cloudflareAiGatewayAccountId?.trim() ?? "";
     let gatewayId = params.opts?.cloudflareAiGatewayGatewayId?.trim() ?? "";
@@ -345,6 +335,7 @@ if (authChoice === "cloudflare-ai-gateway-api-key") {
     }
     return { config: nextConfig, agentModelOverride };
   }
+
   if (authChoice === "moonshot-api-key") {
     let hasCredential = false;
 
@@ -392,8 +383,6 @@ if (authChoice === "cloudflare-ai-gateway-api-key") {
     return { config: nextConfig, agentModelOverride };
   }
 
-<<<<<<< HEAD
-=======
   if (authChoice === "moonshot-api-key-cn") {
     let hasCredential = false;
 
@@ -441,7 +430,6 @@ if (authChoice === "cloudflare-ai-gateway-api-key") {
     return { config: nextConfig, agentModelOverride };
   }
 
->>>>>>> upstream/main
   if (authChoice === "kimi-code-api-key") {
     let hasCredential = false;
     const tokenProvider = params.opts?.tokenProvider?.trim().toLowerCase();

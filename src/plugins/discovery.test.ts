@@ -131,32 +131,6 @@ describe("discoverOpenClawPlugins", () => {
     expect(ids).toContain("voice-call");
   });
 
-it("skips packages flagged as disabled", async () => {
-    const stateDir = makeTempDir();
-    const globalExt = path.join(stateDir, "extensions", "disabled-pack");
-    fs.mkdirSync(globalExt, { recursive: true });
-
-    fs.writeFileSync(
-      path.join(globalExt, "package.json"),
-      JSON.stringify({
-        name: "@openclaw/disabled-pack",
-        openclaw: { disabled: true, disabledReason: "duplicate plugin" },
-      }),
-      "utf-8",
-    );
-    fs.writeFileSync(path.join(globalExt, "index.ts"), "export default function () {}", "utf-8");
-
-    const { candidates, diagnostics } = await withStateDir(stateDir, async () => {
-      const { discoverOpenClawPlugins } = await import("./discovery.js");
-      return discoverOpenClawPlugins({});
-    });
-
-    const ids = candidates.map((c) => c.idHint);
-    expect(ids).not.toContain("disabled-pack");
-    expect(
-      diagnostics.some((entry) => entry.message.includes("plugin package disabled")),
-    ).toBe(true);
-  });
   it("treats configured directory paths as plugin packages", async () => {
     const stateDir = makeTempDir();
     const packDir = path.join(stateDir, "packs", "demo-plugin-dir");

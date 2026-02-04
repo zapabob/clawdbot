@@ -1,7 +1,5 @@
 import { Type } from "@sinclair/typebox";
 import type { OpenClawConfig } from "../../config/config.js";
-import type { AnyAgentTool } from "./common.js";
-import { getMemorySearchManager } from "../../memory/index.js";
 import type { MemoryCitationsMode } from "../../config/types.memory.js";
 import type { MemorySearchResult } from "../../memory/types.js";
 import type { AnyAgentTool } from "./common.js";
@@ -57,8 +55,7 @@ export function createMemorySearchTool(options: {
         return jsonResult({ results: [], disabled: true, error });
       }
       try {
-const results = await manager.search(query, {
-const citationsMode = resolveMemoryCitationsMode(cfg);
+        const citationsMode = resolveMemoryCitationsMode(cfg);
         const includeCitations = shouldIncludeCitations({
           mode: citationsMode,
           sessionKey: options.agentSessionKey,
@@ -69,21 +66,18 @@ const citationsMode = resolveMemoryCitationsMode(cfg);
           sessionKey: options.agentSessionKey,
         });
         const status = manager.status();
-=======
         const decorated = decorateCitations(rawResults, includeCitations);
         const resolved = resolveMemoryBackendConfig({ cfg, agentId });
         const results =
           status.backend === "qmd"
             ? clampResultsByInjectedChars(decorated, resolved.qmd?.limits.maxInjectedChars)
             : decorated;
->>>>>>> upstream/main
         return jsonResult({
           results,
           provider: status.provider,
           model: status.model,
           fallback: status.fallback,
-<<<<<<< HEAD
-citations: citationsMode,
+          citations: citationsMode,
         });
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
@@ -112,8 +106,7 @@ export function createMemoryGetTool(options: {
     label: "Memory Get",
     name: "memory_get",
     description:
-"Safe snippet read from MEMORY.md, memory/*.md, or configured memorySearch.extraPaths with optional from/lines; use after memory_search to pull only the needed lines and keep context small.",
-"Safe snippet read from MEMORY.md or memory/*.md with optional from/lines; use after memory_search to pull only the needed lines and keep context small.",
+      "Safe snippet read from MEMORY.md or memory/*.md with optional from/lines; use after memory_search to pull only the needed lines and keep context small.",
     parameters: MemoryGetSchema,
     execute: async (_toolCallId, params) => {
       const relPath = readStringParam(params, "path", { required: true });
@@ -140,8 +133,6 @@ export function createMemoryGetTool(options: {
     },
   };
 }
-<<<<<<< HEAD
-=======
 
 function resolveMemoryCitationsMode(cfg: OpenClawConfig): MemoryCitationsMode {
   const mode = cfg.memory?.citations;
@@ -225,4 +216,3 @@ function deriveChatTypeFromSessionKey(sessionKey?: string): "direct" | "group" |
   }
   return "direct";
 }
->>>>>>> upstream/main

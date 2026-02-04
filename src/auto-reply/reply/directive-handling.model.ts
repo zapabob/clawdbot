@@ -9,9 +9,7 @@ import {
   resolveConfiguredModelRef,
   resolveModelRefFromString,
 } from "../../agents/model-selection.js";
-=======
 import { buildBrowseProvidersButton } from "../../telegram/model-buttons.js";
->>>>>>> upstream/main
 import { shortenHomePath } from "../../utils.js";
 import { resolveModelsCommandReply } from "./commands-models.js";
 import {
@@ -180,8 +178,7 @@ export async function maybeHandleModelDirectiveInfo(params: {
   aliasIndex: ModelAliasIndex;
   allowedModelCatalog: Array<{ provider: string; id?: string; name?: string }>;
   resetModelOverride: boolean;
-<<<<<<< HEAD
-surface?: string;
+  surface?: string;
 }): Promise<ReplyPayload | undefined> {
   if (!params.directives.hasModelDirective) {
     return undefined;
@@ -218,8 +215,6 @@ surface?: string;
 
   if (wantsSummary) {
     const current = `${params.provider}/${params.model}`;
-<<<<<<< HEAD
-=======
     const isTelegram = params.surface === "telegram";
 
     if (isTelegram) {
@@ -236,7 +231,6 @@ surface?: string;
       };
     }
 
->>>>>>> upstream/main
     return {
       text: [
         `Current: ${current}`,

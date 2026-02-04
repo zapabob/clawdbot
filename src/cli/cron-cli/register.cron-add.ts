@@ -8,8 +8,7 @@ import { addGatewayClientOptions, callGatewayFromCli } from "../gateway-rpc.js";
 import { parsePositiveIntOrUndefined } from "../program/helpers.js";
 import {
   getCronChannelOptions,
-parseAtMs,
-parseAt,
+  parseAt,
   parseDurationMs,
   printCronList,
   warnIfCronSchedulerDisabled,
@@ -69,9 +68,7 @@ export function registerCronAddCommand(cron: Command) {
       .option("--description <text>", "Optional description")
       .option("--disabled", "Create job disabled", false)
       .option("--delete-after-run", "Delete one-shot job after it succeeds", false)
-.option("--agent <id>", "Agent id for this job")
-      .option("--session <target>", "Session target (main|isolated)", "main")
-.option("--keep-after-run", "Keep one-shot job after it succeeds", false)
+      .option("--keep-after-run", "Keep one-shot job after it succeeds", false)
       .option("--agent <id>", "Agent id for this job")
       .option("--session <target>", "Session target (main|isolated)")
       .option("--wake <mode>", "Wake mode (now|next-heartbeat)", "next-heartbeat")
@@ -84,12 +81,7 @@ export function registerCronAddCommand(cron: Command) {
       .option("--thinking <level>", "Thinking level for agent jobs (off|minimal|low|medium|high)")
       .option("--model <model>", "Model override for agent jobs (provider/model or alias)")
       .option("--timeout-seconds <n>", "Timeout seconds for agent jobs")
-.option(
-        "--deliver",
-        "Deliver agent output (required when using last-route delivery without --to)",
-        false,
-      )
-.option("--announce", "Announce summary to a chat (subagent-style)", false)
+      .option("--announce", "Announce summary to a chat (subagent-style)", false)
       .option("--deliver", "Deprecated (use --announce). Announces a summary to a chat.")
       .option("--no-deliver", "Disable announce delivery and skip main-session summary")
       .option("--channel <channel>", `Delivery channel (${getCronChannelOptions()})`, "last")
@@ -98,16 +90,7 @@ export function registerCronAddCommand(cron: Command) {
         "Delivery destination (E.164, Telegram chatId, or Discord channel/user)",
       )
       .option("--best-effort-deliver", "Do not fail the job if delivery fails", false)
-.option("--post-prefix <prefix>", "Prefix for main-session post", "Cron")
-      .option(
-        "--post-mode <mode>",
-        "What to post back to main for isolated jobs (summary|full)",
-        "summary",
-      )
-      .option("--post-max-chars <n>", "Max chars when --post-mode=full (default 8000)", "8000")
       .option("--json", "Output JSON", false)
-      .action(async (opts: GatewayRpcOpts & Record<string, unknown>) => {
-.option("--json", "Output JSON", false)
       .action(async (opts: GatewayRpcOpts & Record<string, unknown>, cmd?: Command) => {
         try {
           const schedule = (() => {
@@ -119,12 +102,7 @@ export function registerCronAddCommand(cron: Command) {
               throw new Error("Choose exactly one schedule: --at, --every, or --cron");
             }
             if (at) {
-const atMs = parseAtMs(at);
-              if (!atMs) {
-                throw new Error("Invalid --at; use ISO time or duration like 20m");
-              }
-              return { kind: "at" as const, atMs };
-const atIso = parseAt(at);
+              const atIso = parseAt(at);
               if (!atIso) {
                 throw new Error("Invalid --at; use ISO time or duration like 20m");
               }
@@ -144,12 +122,6 @@ const atIso = parseAt(at);
             };
           })();
 
-const sessionTargetRaw = typeof opts.session === "string" ? opts.session : "main";
-          const sessionTarget = sessionTargetRaw.trim() || "main";
-          if (sessionTarget !== "main" && sessionTarget !== "isolated") {
-            throw new Error("--session must be main or isolated");
-          }
->>>>>>> upstream/main
           const wakeModeRaw = typeof opts.wake === "string" ? opts.wake : "next-heartbeat";
           const wakeMode = wakeModeRaw.trim() || "next-heartbeat";
           if (wakeMode !== "now" && wakeMode !== "next-heartbeat") {
@@ -161,14 +133,13 @@ const sessionTargetRaw = typeof opts.session === "string" ? opts.session : "main
               ? sanitizeAgentId(opts.agent.trim())
               : undefined;
 
-<<<<<<< HEAD
-=======
           const hasAnnounce = Boolean(opts.announce) || opts.deliver === true;
           const hasNoDeliver = opts.deliver === false;
           const deliveryFlagCount = [hasAnnounce, hasNoDeliver].filter(Boolean).length;
           if (deliveryFlagCount > 1) {
             throw new Error("Choose at most one of --announce or --no-deliver");
           }
+
           const payload = (() => {
             const systemEvent = typeof opts.systemEvent === "string" ? opts.systemEvent.trim() : "";
             const message = typeof opts.message === "string" ? opts.message.trim() : "";
@@ -191,13 +162,7 @@ const sessionTargetRaw = typeof opts.session === "string" ? opts.session : "main
                   : undefined,
               timeoutSeconds:
                 timeoutSeconds && Number.isFinite(timeoutSeconds) ? timeoutSeconds : undefined,
-deliver: opts.deliver ? true : undefined,
-              channel: typeof opts.channel === "string" ? opts.channel : "last",
-              to: typeof opts.to === "string" && opts.to.trim() ? opts.to.trim() : undefined,
-              bestEffortDeliver: opts.bestEffortDeliver ? true : undefined,
             };
-          })();
-};
           })();
 
           const optionSource =
@@ -216,29 +181,14 @@ deliver: opts.deliver ? true : undefined,
           if (opts.deleteAfterRun && opts.keepAfterRun) {
             throw new Error("Choose --delete-after-run or --keep-after-run, not both");
           }
+
           if (sessionTarget === "main" && payload.kind !== "systemEvent") {
             throw new Error("Main jobs require --system-event (systemEvent).");
           }
           if (sessionTarget === "isolated" && payload.kind !== "agentTurn") {
             throw new Error("Isolated jobs require --message (agentTurn).");
           }
-const isolation =
-            sessionTarget === "isolated"
-              ? {
-                  postToMainPrefix:
-                    typeof opts.postPrefix === "string" && opts.postPrefix.trim()
-                      ? opts.postPrefix.trim()
-                      : "Cron",
-                  postToMainMode:
-                    opts.postMode === "full" || opts.postMode === "summary"
-                      ? opts.postMode
-                      : undefined,
-                  postToMainMaxChars:
-                    typeof opts.postMaxChars === "string" && /^\d+$/.test(opts.postMaxChars)
-                      ? Number.parseInt(opts.postMaxChars, 10)
-                      : undefined,
-                }
-if (
+          if (
             (opts.announce || typeof opts.deliver === "boolean") &&
             (sessionTarget !== "isolated" || payload.kind !== "agentTurn")
           ) {
@@ -269,15 +219,13 @@ if (
             name,
             description,
             enabled: !opts.disabled,
-deleteAfterRun: Boolean(opts.deleteAfterRun),
-deleteAfterRun: opts.deleteAfterRun ? true : opts.keepAfterRun ? false : undefined,
+            deleteAfterRun: opts.deleteAfterRun ? true : opts.keepAfterRun ? false : undefined,
             agentId,
             schedule,
             sessionTarget,
             wakeMode,
             payload,
-isolation,
-delivery: deliveryMode
+            delivery: deliveryMode
               ? {
                   mode: deliveryMode,
                   channel:

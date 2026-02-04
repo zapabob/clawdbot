@@ -1,4 +1,3 @@
-export type { MemoryIndexManager, MemorySearchResult } from "./manager.js";
 export { MemoryIndexManager } from "./manager.js";
 export type {
   MemoryEmbeddingProbeResult,

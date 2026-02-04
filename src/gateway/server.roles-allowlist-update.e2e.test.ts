@@ -16,10 +16,8 @@ vi.mock("../infra/update-runner.js", () => ({
   })),
 }));
 
-=======
 import { writeConfigFile } from "../config/config.js";
 import { runGatewayUpdate } from "../infra/update-runner.js";
->>>>>>> upstream/main
 import { sleep } from "../utils.js";
 import {
   connectOk,
@@ -197,8 +195,8 @@ describe("gateway update.run", () => {
       process.off("SIGUSR1", sigusr1);
     }
   });
-<<<<<<< HEAD
-test("uses configured update channel", async () => {
+
+  test("uses configured update channel", async () => {
     const sigusr1 = vi.fn();
     process.on("SIGUSR1", sigusr1);
 

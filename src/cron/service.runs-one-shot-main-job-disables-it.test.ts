@@ -36,8 +36,7 @@ describe("CronService", () => {
     vi.useRealTimers();
   });
 
-it("runs a one-shot main job and disables it after success", async () => {
-it("runs a one-shot main job and disables it after success when requested", async () => {
+  it("runs a one-shot main job and disables it after success when requested", async () => {
     const store = await makeStorePath();
     const enqueueSystemEvent = vi.fn();
     const requestHeartbeatNow = vi.fn();
@@ -56,8 +55,7 @@ it("runs a one-shot main job and disables it after success when requested", asyn
     const job = await cron.add({
       name: "one-shot hello",
       enabled: true,
-schedule: { kind: "at", atMs },
-deleteAfterRun: false,
+      deleteAfterRun: false,
       schedule: { kind: "at", at: new Date(atMs).toISOString() },
       sessionTarget: "main",
       wakeMode: "now",
@@ -82,8 +80,7 @@ deleteAfterRun: false,
     await store.cleanup();
   });
 
-it("runs a one-shot job and deletes it after success when requested", async () => {
-it("runs a one-shot job and deletes it after success by default", async () => {
+  it("runs a one-shot job and deletes it after success by default", async () => {
     const store = await makeStorePath();
     const enqueueSystemEvent = vi.fn();
     const requestHeartbeatNow = vi.fn();
@@ -102,9 +99,7 @@ it("runs a one-shot job and deletes it after success by default", async () => {
     const job = await cron.add({
       name: "one-shot delete",
       enabled: true,
-deleteAfterRun: true,
-      schedule: { kind: "at", atMs },
-schedule: { kind: "at", at: new Date(atMs).toISOString() },
+      schedule: { kind: "at", at: new Date(atMs).toISOString() },
       sessionTarget: "main",
       wakeMode: "now",
       payload: { kind: "systemEvent", text: "hello" },
@@ -158,8 +153,7 @@ schedule: { kind: "at", at: new Date(atMs).toISOString() },
     const job = await cron.add({
       name: "wakeMode now waits",
       enabled: true,
-schedule: { kind: "at", atMs: 1 },
-schedule: { kind: "at", at: new Date(1).toISOString() },
+      schedule: { kind: "at", at: new Date(1).toISOString() },
       sessionTarget: "main",
       wakeMode: "now",
       payload: { kind: "systemEvent", text: "hello" },
@@ -214,11 +208,7 @@ schedule: { kind: "at", at: new Date(1).toISOString() },
     await cron.add({
       enabled: true,
       name: "weekly",
-schedule: { kind: "at", atMs },
-      sessionTarget: "isolated",
-      wakeMode: "now",
-      payload: { kind: "agentTurn", message: "do it", deliver: false },
-schedule: { kind: "at", at: new Date(atMs).toISOString() },
+      schedule: { kind: "at", at: new Date(atMs).toISOString() },
       sessionTarget: "isolated",
       wakeMode: "now",
       payload: { kind: "agentTurn", message: "do it" },
@@ -281,10 +271,7 @@ schedule: { kind: "at", at: new Date(atMs).toISOString() },
     await cron.start();
     const jobs = await cron.list({ includeDisabled: true });
     const job = jobs.find((j) => j.id === rawJob.id);
-const payload = job?.payload as unknown as Record<string, unknown>;
-    expect(payload.channel).toBe("telegram");
-    expect("provider" in payload).toBe(false);
-// Legacy delivery fields are migrated to the top-level delivery object
+    // Legacy delivery fields are migrated to the top-level delivery object
     const delivery = job?.delivery as unknown as Record<string, unknown>;
     expect(delivery?.channel).toBe("telegram");
     const payload = job?.payload as unknown as Record<string, unknown>;
@@ -338,9 +325,7 @@ const payload = job?.payload as unknown as Record<string, unknown>;
     await cron.start();
     const jobs = await cron.list({ includeDisabled: true });
     const job = jobs.find((j) => j.id === rawJob.id);
-const payload = job?.payload as unknown as Record<string, unknown>;
-    expect(payload.channel).toBe("telegram");
-// Legacy delivery fields are migrated to the top-level delivery object
+    // Legacy delivery fields are migrated to the top-level delivery object
     const delivery = job?.delivery as unknown as Record<string, unknown>;
     expect(delivery?.channel).toBe("telegram");
 
@@ -372,11 +357,7 @@ const payload = job?.payload as unknown as Record<string, unknown>;
     await cron.add({
       name: "isolated error test",
       enabled: true,
-schedule: { kind: "at", atMs },
-      sessionTarget: "isolated",
-      wakeMode: "now",
-      payload: { kind: "agentTurn", message: "do it", deliver: false },
-schedule: { kind: "at", at: new Date(atMs).toISOString() },
+      schedule: { kind: "at", at: new Date(atMs).toISOString() },
       sessionTarget: "isolated",
       wakeMode: "now",
       payload: { kind: "agentTurn", message: "do it" },
@@ -452,8 +433,7 @@ schedule: { kind: "at", at: new Date(atMs).toISOString() },
             enabled: true,
             createdAtMs: Date.parse("2025-12-13T00:00:00.000Z"),
             updatedAtMs: Date.parse("2025-12-13T00:00:00.000Z"),
-schedule: { kind: "at", atMs },
-schedule: { kind: "at", at: new Date(atMs).toISOString() },
+            schedule: { kind: "at", at: new Date(atMs).toISOString() },
             sessionTarget: "main",
             wakeMode: "now",
             payload: { kind: "agentTurn", message: "bad" },

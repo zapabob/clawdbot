@@ -10,7 +10,6 @@ import {
   tabFromPath,
   titleForTab,
   type Tab,
-} from "./navigation";
 } from "./navigation.ts";
 
 /** All valid tab identifiers derived from TAB_GROUPS */

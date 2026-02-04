@@ -10,7 +10,6 @@ import {
   resolveConfiguredModelRef,
   resolveModelRefFromString,
 } from "../../agents/model-selection.js";
-=======
 import {
   buildModelsKeyboard,
   buildProviderKeyboard,
@@ -18,12 +17,10 @@ import {
   getModelsPageSize,
   type ProviderInfo,
 } from "../../telegram/model-buttons.js";
->>>>>>> upstream/main
 
 const PAGE_SIZE_DEFAULT = 20;
 const PAGE_SIZE_MAX = 100;
 
-<<<<<<< HEAD
 export type ModelsProviderData = {
   byProvider: Map<string, Set<string>>;
   providers: string[];
@@ -118,6 +115,7 @@ export async function buildModelsProviderData(cfg: OpenClawConfig): Promise<Mode
 
   return { byProvider, providers, resolvedDefault };
 }
+
 function formatProviderLine(params: { provider: string; count: number }): string {
   return `- ${params.provider} (${params.count})`;
 }
@@ -182,10 +180,8 @@ function parseModelsArgs(raw: string): {
 export async function resolveModelsCommandReply(params: {
   cfg: OpenClawConfig;
   commandBodyNormalized: string;
-=======
   surface?: string;
   currentModel?: string;
->>>>>>> upstream/main
 }): Promise<ReplyPayload | null> {
   const body = params.commandBodyNormalized.trim();
   if (!body.startsWith("/models")) {
@@ -195,90 +191,7 @@ export async function resolveModelsCommandReply(params: {
   const argText = body.replace(/^\/models\b/i, "").trim();
   const { provider, page, pageSize, all } = parseModelsArgs(argText);
 
-<<<<<<< HEAD
-  const resolvedDefault = resolveConfiguredModelRef({
-    cfg: params.cfg,
-    defaultProvider: DEFAULT_PROVIDER,
-    defaultModel: DEFAULT_MODEL,
-  });
-
-  const catalog = await loadModelCatalog({ config: params.cfg });
-  const allowed = buildAllowedModelSet({
-    cfg: params.cfg,
-    catalog,
-    defaultProvider: resolvedDefault.provider,
-    defaultModel: resolvedDefault.model,
-  });
-
-  const aliasIndex = buildModelAliasIndex({
-    cfg: params.cfg,
-    defaultProvider: resolvedDefault.provider,
-  });
-
-  const byProvider = new Map<string, Set<string>>();
-  const add = (p: string, m: string) => {
-    const key = normalizeProviderId(p);
-    const set = byProvider.get(key) ?? new Set<string>();
-    set.add(m);
-    byProvider.set(key, set);
-  };
-
-  const addRawModelRef = (raw?: string) => {
-    const trimmed = raw?.trim();
-    if (!trimmed) {
-      return;
-    }
-    const resolved = resolveModelRefFromString({
-      raw: trimmed,
-      defaultProvider: resolvedDefault.provider,
-      aliasIndex,
-    });
-    if (!resolved) {
-      return;
-    }
-    add(resolved.ref.provider, resolved.ref.model);
-  };
-
-  const addModelConfigEntries = () => {
-    const modelConfig = params.cfg.agents?.defaults?.model;
-    if (typeof modelConfig === "string") {
-      addRawModelRef(modelConfig);
-    } else if (modelConfig && typeof modelConfig === "object") {
-      addRawModelRef(modelConfig.primary);
-      for (const fallback of modelConfig.fallbacks ?? []) {
-        addRawModelRef(fallback);
-      }
-    }
-
-    const imageConfig = params.cfg.agents?.defaults?.imageModel;
-    if (typeof imageConfig === "string") {
-      addRawModelRef(imageConfig);
-    } else if (imageConfig && typeof imageConfig === "object") {
-      addRawModelRef(imageConfig.primary);
-      for (const fallback of imageConfig.fallbacks ?? []) {
-        addRawModelRef(fallback);
-      }
-    }
-  };
-
-  for (const entry of allowed.allowedCatalog) {
-    add(entry.provider, entry.id);
-  }
-
-  // Include config-only allowlist keys that aren't in the curated catalog.
-  for (const raw of Object.keys(params.cfg.agents?.defaults?.models ?? {})) {
-    addRawModelRef(raw);
-  }
-
-  // Ensure configured defaults/fallbacks/image models show up even when the
-  // curated catalog doesn't know about them (custom providers, dev builds, etc.).
-  add(resolvedDefault.provider, resolvedDefault.model);
-  addModelConfigEntries();
-
-  const providers = [...byProvider.keys()].toSorted();
-
-  if (!provider) {
-const { byProvider, providers } = await buildModelsProviderData(params.cfg);
+  const { byProvider, providers } = await buildModelsProviderData(params.cfg);
   const isTelegram = params.surface === "telegram";
 
   // Provider list (no provider specified)
@@ -335,7 +248,6 @@ const { byProvider, providers } = await buildModelsProviderData(params.cfg);
     return { text: lines.join("\n") };
   }
 
-=======
   // For Telegram: use button-based model list with inline keyboard pagination
   if (isTelegram) {
     const telegramPageSize = getModelsPageSize();
@@ -359,7 +271,6 @@ const { byProvider, providers } = await buildModelsProviderData(params.cfg);
   }
 
   // Text fallback for non-Telegram surfaces
->>>>>>> upstream/main
   const effectivePageSize = all ? total : pageSize;
   const pageCount = effectivePageSize > 0 ? Math.ceil(total / effectivePageSize) : 1;
   const safePage = all ? 1 : Math.max(1, Math.min(page, pageCount));
@@ -405,8 +316,7 @@ export const handleModelsCommand: CommandHandler = async (params, allowTextComma
   const reply = await resolveModelsCommandReply({
     cfg: params.cfg,
     commandBodyNormalized: params.command.commandBodyNormalized,
-<<<<<<< HEAD
-surface: params.ctx.Surface,
+    surface: params.ctx.Surface,
     currentModel: params.model ? `${params.provider}/${params.model}` : undefined,
   });
   if (!reply) {

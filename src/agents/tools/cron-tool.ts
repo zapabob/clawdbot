@@ -174,34 +174,26 @@ JOB SCHEMA (for add action):
   "name": "string (optional)",
   "schedule": { ... },      // Required: when to run
   "payload": { ... },       // Required: what to execute
-=======
   "delivery": { ... },      // Optional: announce summary (isolated only)
->>>>>>> upstream/main
   "sessionTarget": "main" | "isolated",  // Required
   "enabled": true | false   // Optional, default true
 }
 
 SCHEDULE TYPES (schedule.kind):
 - "at": One-shot at absolute time
-<<<<<<< HEAD
-  { "kind": "at", "atMs": <unix-ms-timestamp> }
-{ "kind": "at", "at": "<ISO-8601 timestamp>" }
+  { "kind": "at", "at": "<ISO-8601 timestamp>" }
 - "every": Recurring interval
   { "kind": "every", "everyMs": <interval-ms>, "anchorMs": <optional-start-ms> }
 - "cron": Cron expression
   { "kind": "cron", "expr": "<cron-expression>", "tz": "<optional-timezone>" }
 
-=======
 ISO timestamps without an explicit timezone are treated as UTC.
 
->>>>>>> upstream/main
 PAYLOAD TYPES (payload.kind):
 - "systemEvent": Injects text as system event into session
   { "kind": "systemEvent", "text": "<message>" }
 - "agentTurn": Runs agent with message (isolated sessions only)
-<<<<<<< HEAD
-  { "kind": "agentTurn", "message": "<prompt>", "model": "<optional>", "thinking": "<optional>", "timeoutSeconds": <optional>, "deliver": <optional-bool>, "channel": "<optional>", "to": "<optional>", "bestEffortDeliver": <optional-bool> }
-{ "kind": "agentTurn", "message": "<prompt>", "model": "<optional>", "thinking": "<optional>", "timeoutSeconds": <optional> }
+  { "kind": "agentTurn", "message": "<prompt>", "model": "<optional>", "thinking": "<optional>", "timeoutSeconds": <optional> }
 
 DELIVERY (isolated-only, top-level):
   { "mode": "none|announce", "channel": "<optional>", "to": "<optional>", "bestEffort": <optional-bool> }
@@ -211,9 +203,7 @@ DELIVERY (isolated-only, top-level):
 CRITICAL CONSTRAINTS:
 - sessionTarget="main" REQUIRES payload.kind="systemEvent"
 - sessionTarget="isolated" REQUIRES payload.kind="agentTurn"
-=======
 Default: prefer isolated agentTurn jobs unless the user explicitly wants a main-session system event.
->>>>>>> upstream/main
 
 WAKE MODES (for wake action):
 - "next-heartbeat" (default): Wake on next heartbeat
@@ -227,9 +217,7 @@ Use jobId as the canonical identifier; id is accepted for compatibility. Use con
       const gatewayOpts: GatewayCallOptions = {
         gatewayUrl: readStringParam(params, "gatewayUrl", { trim: false }),
         gatewayToken: readStringParam(params, "gatewayToken", { trim: false }),
-<<<<<<< HEAD
-        timeoutMs: typeof params.timeoutMs === "number" ? params.timeoutMs : undefined,
-timeoutMs: typeof params.timeoutMs === "number" ? params.timeoutMs : 60_000,
+        timeoutMs: typeof params.timeoutMs === "number" ? params.timeoutMs : 60_000,
       };
 
       switch (action) {

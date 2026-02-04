@@ -6,12 +6,10 @@ import {
 } from "../providers/github-copilot-token.js";
 import { ensureAuthProfileStore, listProfilesForProvider } from "./auth-profiles.js";
 import { discoverBedrockModels } from "./bedrock-discovery.js";
-=======
 import {
   buildCloudflareAiGatewayModelDefinition,
   resolveCloudflareAiGatewayBaseUrl,
 } from "./cloudflare-ai-gateway.js";
->>>>>>> upstream/main
 import { resolveAwsSdkEnvVarName, resolveEnvApiKey } from "./model-auth.js";
 import {
   buildSyntheticModelDefinition,
@@ -459,8 +457,7 @@ export async function resolveImplicitProviders(params: {
     providers.xiaomi = { ...buildXiaomiProvider(), apiKey: xiaomiKey };
   }
 
-<<<<<<< HEAD
-const cloudflareProfiles = listProfilesForProvider(authStore, "cloudflare-ai-gateway");
+  const cloudflareProfiles = listProfilesForProvider(authStore, "cloudflare-ai-gateway");
   for (const profileId of cloudflareProfiles) {
     const cred = authStore.profiles[profileId];
     if (cred?.type !== "api_key") {
@@ -487,6 +484,7 @@ const cloudflareProfiles = listProfilesForProvider(authStore, "cloudflare-ai-gat
     };
     break;
   }
+
   // Ollama provider - only add if explicitly configured
   const ollamaKey =
     resolveEnvApiKeyVarName("ollama") ??

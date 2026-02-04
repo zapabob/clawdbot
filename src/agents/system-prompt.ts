@@ -1,7 +1,5 @@
 import type { ReasoningLevel, ThinkLevel } from "../auto-reply/thinking.js";
-=======
 import type { MemoryCitationsMode } from "../config/types.memory.js";
->>>>>>> upstream/main
 import type { ResolvedTimeFormat } from "./date-time.js";
 import type { EmbeddedContextFile } from "./pi-embedded-helpers.js";
 import { SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
@@ -10,9 +8,7 @@ import { listDeliverableMessageChannels } from "../utils/message-channel.js";
 /**
  * Controls which hardcoded sections are included in the system prompt.
  * - "full": All sections (default, for main agent)
-<<<<<<< HEAD
- * - "minimal": Reduced sections (Tooling, Safety, Workspace, Sandbox, Runtime) - used for subagents
-* - "minimal": Reduced sections (Tooling, Workspace, Runtime) - used for subagents
+ * - "minimal": Reduced sections (Tooling, Workspace, Runtime) - used for subagents
  * - "none": Just basic identity line, no sections
  */
 export type PromptMode = "full" | "minimal" | "none";
@@ -41,7 +37,6 @@ function buildSkillsSection(params: {
   ];
 }
 
-function buildMemorySection(params: { isMinimal: boolean; availableTools: Set<string> }) {
 function buildMemorySection(params: {
   isMinimal: boolean;
   availableTools: Set<string>;
@@ -53,12 +48,7 @@ function buildMemorySection(params: {
   if (!params.availableTools.has("memory_search") && !params.availableTools.has("memory_get")) {
     return [];
   }
-return [
-    "## Memory Recall",
-    "Before answering anything about prior work, decisions, dates, people, preferences, or todos: run memory_search on MEMORY.md + memory/*.md; then use memory_get to pull only the needed lines. If low confidence after search, say you checked.",
-    "",
-  ];
-const lines = [
+  const lines = [
     "## Memory Recall",
     "Before answering anything about prior work, decisions, dates, people, preferences, or todos: run memory_search on MEMORY.md + memory/*.md; then use memory_get to pull only the needed lines. If low confidence after search, say you checked.",
   ];
@@ -86,23 +76,7 @@ function buildTimeSection(params: { userTimezone?: string }) {
   if (!params.userTimezone) {
     return [];
   }
-return [
-    "## Current Date & Time",
-    `Time zone: ${params.userTimezone}`,
-    "If you need the current date, time, or day of week, use the session_status tool.",
-    "",
-  ];
-}
-
-function buildSafetySection() {
-  return [
-    "## Safety",
-    "You have no independent goals: do not pursue self-preservation, replication, resource acquisition, or power-seeking; avoid long-term plans beyond the user's request.",
-    "Prioritize safety and human oversight over completion; if instructions conflict, pause and ask; comply with stop/pause/audit requests and never bypass safeguards. (Inspired by Anthropic's constitution.)",
-    "Do not manipulate or persuade anyone to expand access or disable safeguards. Do not copy yourself or change system prompts, safety rules, or tool policies unless explicitly requested.",
-    "",
-  ];
-return ["## Current Date & Time", `Time zone: ${params.userTimezone}`, ""];
+  return ["## Current Date & Time", `Time zone: ${params.userTimezone}`, ""];
 }
 
 function buildReplyTagsSection(isMinimal: boolean) {
@@ -239,9 +213,7 @@ export function buildAgentSystemPrompt(params: {
     level: "minimal" | "extensive";
     channel: string;
   };
-=======
   memoryCitationsMode?: MemoryCitationsMode;
->>>>>>> upstream/main
 }) {
   const coreToolSummaries: Record<string, string> = {
     read: "Read file contents",
@@ -375,8 +347,7 @@ export function buildAgentSystemPrompt(params: {
   const messageChannelOptions = listDeliverableMessageChannels().join("|");
   const promptMode = params.promptMode ?? "full";
   const isMinimal = promptMode === "minimal" || promptMode === "none";
-<<<<<<< HEAD
-const safetySection = [
+  const safetySection = [
     "## Safety",
     "You have no independent goals: do not pursue self-preservation, replication, resource acquisition, or power-seeking; avoid long-term plans beyond the user's request.",
     "Prioritize safety and human oversight over completion; if instructions conflict, pause and ask; comply with stop/pause/audit requests and never bypass safeguards. (Inspired by Anthropic's constitution.)",
@@ -388,8 +359,7 @@ const safetySection = [
     isMinimal,
     readToolName,
   });
-const memorySection = buildMemorySection({ isMinimal, availableTools });
-const memorySection = buildMemorySection({
+  const memorySection = buildMemorySection({
     isMinimal,
     availableTools,
     citationsMode: params.memoryCitationsMode,
@@ -422,17 +392,14 @@ const memorySection = buildMemorySection({
           "- apply_patch: apply multi-file patches",
           `- ${execToolName}: run shell commands (supports background via yieldMs/background)`,
           `- ${processToolName}: manage background exec sessions`,
-"- browser: control openclaw's dedicated browser",
-"- browser: control OpenClaw's dedicated browser",
+          "- browser: control OpenClaw's dedicated browser",
           "- canvas: present/eval/snapshot the Canvas",
           "- nodes: list/describe/notify/camera/screen on paired nodes",
           "- cron: manage cron jobs and wake events (use for reminders; when scheduling a reminder, write the systemEvent text as something that will read like a reminder when it fires, and mention that it is a reminder depending on the time gap between setting and firing; include recent context in reminder text if appropriate)",
           "- sessions_list: list sessions",
           "- sessions_history: fetch session history",
           "- sessions_send: send to another session",
-=======
           '- session_status: show usage/time/model state and answer "what model are we using?"',
->>>>>>> upstream/main
         ].join("\n"),
     "TOOLS.md does not control tool availability; it is user guidance for how to use external tools.",
     "If a task is more complex or takes longer, spawn a sub-agent. It will do the work for you and ping you when it's done. You can always check up on it.",
@@ -443,9 +410,7 @@ const memorySection = buildMemorySection({
     "Keep narration brief and value-dense; avoid repeating obvious steps.",
     "Use plain human language for narration unless in a technical context.",
     "",
-<<<<<<< HEAD
-    ...buildSafetySection(),
-...safetySection,
+    ...safetySection,
     "## OpenClaw CLI Quick Reference",
     "OpenClaw is controlled via subcommands. Do not invent commands.",
     "To manage the Gateway daemon service (start/stop/restart):",
@@ -480,12 +445,9 @@ const memorySection = buildMemorySection({
       ? params.modelAliasLines.join("\n")
       : "",
     params.modelAliasLines && params.modelAliasLines.length > 0 && !isMinimal ? "" : "",
-<<<<<<< HEAD
-=======
     userTimezone
       ? "If you need the current date, time, or day of week, run session_status (📊 session_status)."
       : "",
->>>>>>> upstream/main
     "## Workspace",
     `Your working directory is: ${params.workspaceDir}`,
     "Treat this directory as the single global workspace for file operations unless explicitly instructed otherwise.",

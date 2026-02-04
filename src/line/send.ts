@@ -635,36 +635,3 @@ export async function getUserDisplayName(
   const profile = await getUserProfile(userId, opts);
   return profile?.displayName ?? userId;
 }
-/**
- * Chat action types for LINE
- * LINE uses showLoadingAnimation as the equivalent of typing indicators
- */
-export type LineChatAction =
-  | "typing" // Shows loading animation for text processing
-  | "command" // Shows loading animation for command execution
-  | "location" // Shows loading animation for location retrieval
-  | "media" // Shows loading animation for media processing
-
-export interface SendChatLineOptions {
-  channelAccessToken?: string;
-  accountId?: string;
-}
-
-/**
- * Send a chat action (typing indicator) to a user
- * LINE uses showLoadingAnimation as the equivalent of Telegram's sendChatAction
- * This shows visual feedback to users while the bot is processing
- */
-export async function sendChatLine(
-  chatId: string,
-  action: LineChatAction,
-  opts: SendChatLineOptions = {},
-): Promise<void> {
-  const loadingSeconds = 20; // LINE default is 20 seconds
-  await showLoadingAnimation(chatId, {
-    channelAccessToken: opts.channelAccessToken,
-    accountId: opts.accountId,
-    loadingSeconds,
-  });
-  logVerbose(`line: sent chat action '${action}' to ${chatId}`);
-}

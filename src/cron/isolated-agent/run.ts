@@ -53,9 +53,7 @@ import {
   getHookType,
   isExternalHookSession,
 } from "../../security/external-content.js";
-=======
 import { resolveCronDeliveryPlan } from "../delivery.js";
->>>>>>> upstream/main
 import { resolveDeliveryTarget } from "./delivery-target.js";
 import {
   isHeartbeatOnlyResponse,
@@ -84,7 +82,6 @@ function matchesMessagingToolDeliveryTarget(
   return target.to === delivery.to;
 }
 
-<<<<<<< HEAD
 function resolveCronDeliveryBestEffort(job: CronJob): boolean {
   if (typeof job.delivery?.bestEffort === "boolean") {
     return job.delivery.bestEffort;
@@ -94,6 +91,7 @@ function resolveCronDeliveryBestEffort(job: CronJob): boolean {
   }
   return false;
 }
+
 export type RunCronAgentTurnResult = {
   status: "ok" | "error" | "skipped";
   summary?: string;
@@ -244,17 +242,7 @@ export async function runCronIsolatedAgentTurn(params: {
   });
 
   const agentPayload = params.job.payload.kind === "agentTurn" ? params.job.payload : null;
-const deliveryMode =
-    agentPayload?.deliver === true ? "explicit" : agentPayload?.deliver === false ? "off" : "auto";
-  const hasExplicitTarget = Boolean(agentPayload?.to && agentPayload.to.trim());
-  const deliveryRequested =
-    deliveryMode === "explicit" || (deliveryMode === "auto" && hasExplicitTarget);
-  const bestEffortDeliver = agentPayload?.bestEffortDeliver === true;
-
-  const resolvedDelivery = await resolveDeliveryTarget(cfgWithAgentDefaults, agentId, {
-    channel: agentPayload?.channel ?? "last",
-    to: agentPayload?.to,
-const deliveryPlan = resolveCronDeliveryPlan(params.job);
+  const deliveryPlan = resolveCronDeliveryPlan(params.job);
   const deliveryRequested = deliveryPlan.requested;
 
   const resolvedDelivery = await resolveDeliveryTarget(cfgWithAgentDefaults, agentId, {
@@ -305,12 +293,10 @@ const deliveryPlan = resolveCronDeliveryPlan(params.job);
     // Internal/trusted source - use original format
     commandBody = `${base}\n${timeLine}`.trim();
   }
-=======
   if (deliveryRequested) {
     commandBody =
       `${commandBody}\n\nReturn your summary as plain text; it will be delivered automatically. If the task explicitly calls for messaging a specific external recipient, note who/where it should go instead of sending it yourself.`.trim();
   }
->>>>>>> upstream/main
 
   const existingSnapshot = cronSession.sessionEntry.skillsSnapshot;
   const skillsSnapshotVersion = getSkillsSnapshotVersion(workspaceDir);
@@ -397,8 +383,7 @@ const deliveryPlan = resolveCronDeliveryPlan(params.job);
           verboseLevel: resolvedVerboseLevel,
           timeoutMs,
           runId: cronSession.sessionEntry.sessionId,
-<<<<<<< HEAD
-requireExplicitMessageTarget: true,
+          requireExplicitMessageTarget: true,
           disableMessageTool: deliveryRequested,
         });
       },
@@ -446,18 +431,13 @@ requireExplicitMessageTarget: true,
   const firstText = payloads[0]?.text ?? "";
   const summary = pickSummaryFromPayloads(payloads) ?? pickSummaryFromOutput(firstText);
   const outputText = pickLastNonEmptyTextFromPayloads(payloads);
-=======
   const deliveryBestEffort = resolveCronDeliveryBestEffort(params.job);
->>>>>>> upstream/main
 
   // Skip delivery for heartbeat-only responses (HEARTBEAT_OK with no real content).
   const ackMaxChars = resolveHeartbeatAckMaxChars(agentCfg);
   const skipHeartbeatDelivery = deliveryRequested && isHeartbeatOnlyResponse(payloads, ackMaxChars);
   const skipMessagingToolDelivery =
     deliveryRequested &&
-<<<<<<< HEAD
-    deliveryMode === "auto" &&
->>>>>>> upstream/main
     runResult.didSendViaMessagingTool === true &&
     (runResult.messagingToolSentTargets ?? []).some((target) =>
       matchesMessagingToolDeliveryTarget(target, {
@@ -468,24 +448,6 @@ requireExplicitMessageTarget: true,
     );
 
   if (deliveryRequested && !skipHeartbeatDelivery && !skipMessagingToolDelivery) {
-<<<<<<< HEAD
-    if (!resolvedDelivery.to) {
-      const reason =
-        resolvedDelivery.error?.message ?? "Cron delivery requires a recipient (--to).";
-      if (!bestEffortDeliver) {
-        return {
-          status: "error",
-          summary,
-          outputText,
-          error: reason,
-        };
-      }
-      return {
-        status: "skipped",
-        summary: `Delivery skipped (${reason}).`,
-        outputText,
-      };
-=======
     if (resolvedDelivery.error) {
       if (!deliveryBestEffort) {
         return {
@@ -517,16 +479,7 @@ requireExplicitMessageTarget: true,
         channel: resolvedDelivery.channel,
         to: resolvedDelivery.to,
         accountId: resolvedDelivery.accountId,
-payloads,
-        bestEffort: bestEffortDeliver,
-        deps: createOutboundSendDeps(params.deps),
-      });
-    } catch (err) {
-      if (!bestEffortDeliver) {
-        return { status: "error", summary, outputText, error: String(err) };
-      }
-      return { status: "ok", summary, outputText };
-threadId: resolvedDelivery.threadId,
+        threadId: resolvedDelivery.threadId,
         payloads,
         bestEffort: deliveryBestEffort,
         deps: createOutboundSendDeps(params.deps),

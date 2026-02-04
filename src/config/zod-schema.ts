@@ -5,7 +5,6 @@ import { ApprovalsSchema } from "./zod-schema.approvals.js";
 import { HexColorSchema, ModelsConfigSchema } from "./zod-schema.core.js";
 import { HookMappingSchema, HooksGmailSchema, InternalHooksSchema } from "./zod-schema.hooks.js";
 import { ChannelsSchema } from "./zod-schema.providers.js";
-import { CommandsSchema, MessagesSchema, SessionSchema } from "./zod-schema.session.js";
 import {
   CommandsSchema,
   MessagesSchema,
@@ -33,7 +32,6 @@ const NodeHostSchema = z
   .strict()
   .optional();
 
-=======
 const MemoryQmdPathSchema = z
   .object({
     path: z.string(),
@@ -89,7 +87,6 @@ const MemorySchema = z
   .strict()
   .optional();
 
->>>>>>> upstream/main
 export const OpenClawSchema = z
   .object({
     meta: z
@@ -217,9 +214,7 @@ export const OpenClawSchema = z
               .object({
                 cdpPort: z.number().int().min(1).max(65535).optional(),
                 cdpUrl: z.string().optional(),
-<<<<<<< HEAD
-                driver: z.union([z.literal("openclaw"), z.literal("extension")]).optional(),
-driver: z.union([z.literal("clawd"), z.literal("extension")]).optional(),
+                driver: z.union([z.literal("clawd"), z.literal("extension")]).optional(),
                 color: HexColorSchema,
               })
               .strict()
@@ -333,8 +328,6 @@ driver: z.union([z.literal("clawd"), z.literal("extension")]).optional(),
         wideArea: z
           .object({
             enabled: z.boolean().optional(),
-domain: z.string().optional(),
->>>>>>> upstream/main
           })
           .strict()
           .optional(),
@@ -384,8 +377,6 @@ domain: z.string().optional(),
           .object({
             enabled: z.boolean().optional(),
             basePath: z.string().optional(),
-<<<<<<< HEAD
-=======
             root: z.string().optional(),
             allowedOrigins: z.array(z.string()).optional(),
             allowInsecureAuth: z.boolean().optional(),
@@ -516,10 +507,7 @@ domain: z.string().optional(),
       })
       .strict()
       .optional(),
-<<<<<<< HEAD
-=======
     memory: MemorySchema,
->>>>>>> upstream/main
     skills: z
       .object({
         allowBundled: z.array(z.string()).optional(),

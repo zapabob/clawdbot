@@ -89,8 +89,7 @@ describe("gateway server cron", () => {
       const routeRes = await rpcReq(ws, "cron.add", {
         name: "route test",
         enabled: true,
-schedule: { kind: "at", atMs: routeAtMs },
-schedule: { kind: "at", at: new Date(routeAtMs).toISOString() },
+        schedule: { kind: "at", at: new Date(routeAtMs).toISOString() },
         sessionTarget: "main",
         wakeMode: "next-heartbeat",
         payload: { kind: "systemEvent", text: "cron route check" },
@@ -109,8 +108,7 @@ schedule: { kind: "at", at: new Date(routeAtMs).toISOString() },
       const wrappedRes = await rpcReq(ws, "cron.add", {
         data: {
           name: "wrapped",
-schedule: { atMs: wrappedAtMs },
-schedule: { at: new Date(wrappedAtMs).toISOString() },
+          schedule: { at: new Date(wrappedAtMs).toISOString() },
           payload: { kind: "systemEvent", text: "hello" },
         },
       });
@@ -139,8 +137,7 @@ schedule: { at: new Date(wrappedAtMs).toISOString() },
       const updateRes = await rpcReq(ws, "cron.update", {
         id: patchJobId,
         patch: {
-schedule: { atMs },
-schedule: { at: new Date(atMs).toISOString() },
+          schedule: { at: new Date(atMs).toISOString() },
           payload: { kind: "systemEvent", text: "updated" },
         },
       });
@@ -167,32 +164,20 @@ schedule: { at: new Date(atMs).toISOString() },
       const mergeUpdateRes = await rpcReq(ws, "cron.update", {
         id: mergeJobId,
         patch: {
-payload: { kind: "agentTurn", deliver: true, channel: "telegram", to: "19098680" },
-delivery: { mode: "announce", channel: "telegram", to: "19098680" },
+          delivery: { mode: "announce", channel: "telegram", to: "19098680" },
         },
       });
       expect(mergeUpdateRes.ok).toBe(true);
       const merged = mergeUpdateRes.payload as
         | {
-payload?: {
-              kind?: unknown;
-              message?: unknown;
-              model?: unknown;
-              deliver?: unknown;
-              channel?: unknown;
-              to?: unknown;
-            };
-payload?: { kind?: unknown; message?: unknown; model?: unknown };
+            payload?: { kind?: unknown; message?: unknown; model?: unknown };
             delivery?: { mode?: unknown; channel?: unknown; to?: unknown };
           }
         | undefined;
       expect(merged?.payload?.kind).toBe("agentTurn");
       expect(merged?.payload?.message).toBe("hello");
       expect(merged?.payload?.model).toBe("opus");
-expect(merged?.payload?.deliver).toBe(true);
-      expect(merged?.payload?.channel).toBe("telegram");
-      expect(merged?.payload?.to).toBe("19098680");
-expect(merged?.delivery?.mode).toBe("announce");
+      expect(merged?.delivery?.mode).toBe("announce");
       expect(merged?.delivery?.channel).toBe("telegram");
       expect(merged?.delivery?.to).toBe("19098680");
 
@@ -212,8 +197,7 @@ expect(merged?.delivery?.mode).toBe("announce");
       const rejectUpdateRes = await rpcReq(ws, "cron.update", {
         id: rejectJobId,
         patch: {
-payload: { kind: "agentTurn", deliver: true },
-payload: { kind: "agentTurn", message: "nope" },
+          payload: { kind: "agentTurn", message: "nope" },
         },
       });
       expect(rejectUpdateRes.ok).toBe(false);
@@ -234,8 +218,7 @@ payload: { kind: "agentTurn", message: "nope" },
       const jobIdUpdateRes = await rpcReq(ws, "cron.update", {
         jobId,
         patch: {
-schedule: { atMs: Date.now() + 2_000 },
-schedule: { at: new Date(Date.now() + 2_000).toISOString() },
+          schedule: { at: new Date(Date.now() + 2_000).toISOString() },
           payload: { kind: "systemEvent", text: "updated" },
         },
       });
@@ -293,8 +276,7 @@ schedule: { at: new Date(Date.now() + 2_000).toISOString() },
       const addRes = await rpcReq(ws, "cron.add", {
         name: "log test",
         enabled: true,
-schedule: { kind: "at", atMs },
-schedule: { kind: "at", at: new Date(atMs).toISOString() },
+        schedule: { kind: "at", at: new Date(atMs).toISOString() },
         sessionTarget: "main",
         wakeMode: "next-heartbeat",
         payload: { kind: "systemEvent", text: "hello" },
@@ -343,8 +325,7 @@ schedule: { kind: "at", at: new Date(atMs).toISOString() },
       const autoRes = await rpcReq(ws, "cron.add", {
         name: "auto run test",
         enabled: true,
-schedule: { kind: "at", atMs: Date.now() - 10 },
-schedule: { kind: "at", at: new Date(Date.now() - 10).toISOString() },
+        schedule: { kind: "at", at: new Date(Date.now() - 10).toISOString() },
         sessionTarget: "main",
         wakeMode: "next-heartbeat",
         payload: { kind: "systemEvent", text: "auto" },

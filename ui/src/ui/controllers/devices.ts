@@ -1,6 +1,3 @@
-import type { GatewayBrowserClient } from "../gateway";
-import { clearDeviceAuthToken, storeDeviceAuthToken } from "../device-auth";
-import { loadOrCreateDeviceIdentity } from "../device-identity";
 import type { GatewayBrowserClient } from "../gateway.ts";
 import { clearDeviceAuthToken, storeDeviceAuthToken } from "../device-auth.ts";
 import { loadOrCreateDeviceIdentity } from "../device-identity.ts";
@@ -60,8 +57,7 @@ export async function loadDevices(state: DevicesState, opts?: { quiet?: boolean 
     state.devicesError = null;
   }
   try {
-const res = await state.client.request("device.pair.list", {});
-const res = await state.client.request<{
+    const res = await state.client.request<{
       pending?: Array<PendingDevice>;
       paired?: Array<PendingDevice>;
     }>("device.pair.list", {});
@@ -114,8 +110,7 @@ export async function rotateDeviceToken(
     return;
   }
   try {
-const res = await state.client.request("device.token.rotate", params);
-const res = await state.client.request<{
+    const res = await state.client.request<{
       token: string;
       role?: string;
       deviceId?: string;

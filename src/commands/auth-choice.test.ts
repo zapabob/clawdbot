@@ -33,9 +33,7 @@ describe("applyAuthChoice", () => {
   const previousPiAgentDir = process.env.PI_CODING_AGENT_DIR;
   const previousOpenrouterKey = process.env.OPENROUTER_API_KEY;
   const previousAiGatewayKey = process.env.AI_GATEWAY_API_KEY;
-=======
   const previousCloudflareGatewayKey = process.env.CLOUDFLARE_AI_GATEWAY_API_KEY;
->>>>>>> upstream/main
   const previousSshTty = process.env.SSH_TTY;
   const previousChutesClientId = process.env.CHUTES_CLIENT_ID;
   let tempStateDir: string | null = null;
@@ -72,8 +70,7 @@ describe("applyAuthChoice", () => {
     } else {
       process.env.AI_GATEWAY_API_KEY = previousAiGatewayKey;
     }
-<<<<<<< HEAD
-if (previousCloudflareGatewayKey === undefined) {
+    if (previousCloudflareGatewayKey === undefined) {
       delete process.env.CLOUDFLARE_AI_GATEWAY_API_KEY;
     } else {
       process.env.CLOUDFLARE_AI_GATEWAY_API_KEY = previousCloudflareGatewayKey;
@@ -287,8 +284,7 @@ if (previousCloudflareGatewayKey === undefined) {
     );
     expect(result.config.agents?.defaults?.model?.primary).toBe("anthropic/claude-opus-4-5");
     expect(result.config.models?.providers?.["opencode-zen"]).toBeUndefined();
-expect(result.agentModelOverride).toBe("opencode/kimi-k2.5");
-expect(result.agentModelOverride).toBe("opencode/claude-opus-4-5");
+    expect(result.agentModelOverride).toBe("opencode/claude-opus-4-5");
   });
 
   it("uses existing OPENROUTER_API_KEY when selecting openrouter-api-key", async () => {
@@ -415,8 +411,6 @@ expect(result.agentModelOverride).toBe("opencode/claude-opus-4-5");
     delete process.env.AI_GATEWAY_API_KEY;
   });
 
-<<<<<<< HEAD
-=======
   it("uses existing CLOUDFLARE_AI_GATEWAY_API_KEY when selecting cloudflare-ai-gateway-api-key", async () => {
     tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-auth-"));
     process.env.OPENCLAW_STATE_DIR = tempStateDir;
@@ -487,7 +481,6 @@ expect(result.agentModelOverride).toBe("opencode/claude-opus-4-5");
     delete process.env.CLOUDFLARE_AI_GATEWAY_API_KEY;
   });
 
->>>>>>> upstream/main
   it("writes Chutes OAuth credentials when selecting chutes (remote/manual)", async () => {
     tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-auth-"));
     process.env.OPENCLAW_STATE_DIR = tempStateDir;

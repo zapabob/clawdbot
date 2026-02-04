@@ -3,7 +3,6 @@ import {
   normalizeMessage,
   normalizeRoleForGrouping,
   isToolResultMessage,
-} from "./message-normalizer";
 } from "./message-normalizer.ts";
 
 describe("message-normalizer", () => {

@@ -22,13 +22,7 @@ function coerceSchedule(schedule: UnknownRecord) {
   const kind = typeof schedule.kind === "string" ? schedule.kind : undefined;
   const atMsRaw = schedule.atMs;
   const atRaw = schedule.at;
-const parsedAtMs =
-    typeof atMsRaw === "string"
-      ? parseAbsoluteTimeMs(atMsRaw)
-      : typeof atRaw === "string"
-        ? parseAbsoluteTimeMs(atRaw)
-        : null;
-const atString = typeof atRaw === "string" ? atRaw.trim() : "";
+  const atString = typeof atRaw === "string" ? atRaw.trim() : "";
   const parsedAtMs =
     typeof atMsRaw === "number"
       ? atMsRaw
@@ -52,13 +46,7 @@ const atString = typeof atRaw === "string" ? atRaw.trim() : "";
     }
   }
 
-if (typeof schedule.atMs !== "number" && parsedAtMs !== null) {
-    next.atMs = parsedAtMs;
-  }
-
-  if ("at" in next) {
-    delete next.at;
-if (atString) {
+  if (atString) {
     next.at = parsedAtMs ? new Date(parsedAtMs).toISOString() : atString;
   } else if (parsedAtMs !== null) {
     next.at = new Date(parsedAtMs).toISOString();
@@ -77,7 +65,6 @@ function coercePayload(payload: UnknownRecord) {
   return next;
 }
 
-=======
 function coerceDelivery(delivery: UnknownRecord) {
   const next: UnknownRecord = { ...delivery };
   if (typeof delivery.mode === "string") {
@@ -150,7 +137,6 @@ function stripLegacyDeliveryFields(payload: UnknownRecord) {
   }
 }
 
->>>>>>> upstream/main
 function unwrapJob(raw: UnknownRecord) {
   if (isRecord(raw.data)) {
     return raw.data;
@@ -208,23 +194,21 @@ export function normalizeCronJobInput(
     next.payload = coercePayload(base.payload);
   }
 
-<<<<<<< HEAD
-if (isRecord(base.delivery)) {
+  if (isRecord(base.delivery)) {
     next.delivery = coerceDelivery(base.delivery);
   }
 
   if (isRecord(base.isolation)) {
     delete next.isolation;
   }
+
   if (options.applyDefaults) {
     if (!next.wakeMode) {
       next.wakeMode = "next-heartbeat";
     }
-=======
     if (typeof next.enabled !== "boolean") {
       next.enabled = true;
     }
->>>>>>> upstream/main
     if (!next.sessionTarget && isRecord(next.payload)) {
       const kind = typeof next.payload.kind === "string" ? next.payload.kind : "";
       if (kind === "systemEvent") {
@@ -234,8 +218,7 @@ if (isRecord(base.delivery)) {
         next.sessionTarget = "isolated";
       }
     }
-<<<<<<< HEAD
-if (
+    if (
       "schedule" in next &&
       isRecord(next.schedule) &&
       next.schedule.kind === "at" &&

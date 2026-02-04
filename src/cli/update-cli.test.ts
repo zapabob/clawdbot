@@ -56,6 +56,7 @@ vi.mock("node:child_process", async () => {
     })),
   };
 });
+
 vi.mock("../process/exec.js", () => ({
   runCommandWithTimeout: vi.fn(),
 }));

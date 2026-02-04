@@ -1,8 +1,7 @@
 import type { ChannelId } from "../channels/plugins/types.js";
 
 export type CronSchedule =
-| { kind: "at"; atMs: number }
-| { kind: "at"; at: string }
+  | { kind: "at"; at: string }
   | { kind: "every"; everyMs: number; anchorMs?: number }
   | { kind: "cron"; expr: string; tz?: string };
 
@@ -11,7 +10,6 @@ export type CronWakeMode = "next-heartbeat" | "now";
 
 export type CronMessageChannel = ChannelId | "last";
 
-=======
 export type CronDeliveryMode = "none" | "announce";
 
 export type CronDelivery = {
@@ -23,7 +21,6 @@ export type CronDelivery = {
 
 export type CronDeliveryPatch = Partial<CronDelivery>;
 
->>>>>>> upstream/main
 export type CronPayload =
   | { kind: "systemEvent"; text: string }
   | {
@@ -55,19 +52,6 @@ export type CronPayloadPatch =
       bestEffortDeliver?: boolean;
     };
 
-<<<<<<< HEAD
-export type CronIsolation = {
-  postToMainPrefix?: string;
-  /**
-   * What to post back into the main session after an isolated run.
-   * - summary: small status/summary line (default)
-   * - full: the agent's final text output (optionally truncated)
-   */
-  postToMainMode?: "summary" | "full";
-  /** Max chars when postToMainMode="full". Default: 8000. */
-  postToMainMaxChars?: number;
-};
->>>>>>> upstream/main
 export type CronJobState = {
   nextRunAtMs?: number;
   runningAtMs?: number;
@@ -90,9 +74,6 @@ export type CronJob = {
   sessionTarget: CronSessionTarget;
   wakeMode: CronWakeMode;
   payload: CronPayload;
-<<<<<<< HEAD
-  isolation?: CronIsolation;
-=======
   delivery?: CronDelivery;
   state: CronJobState;
 };
@@ -108,9 +89,6 @@ export type CronJobCreate = Omit<CronJob, "id" | "createdAtMs" | "updatedAtMs" |
 
 export type CronJobPatch = Partial<Omit<CronJob, "id" | "createdAtMs" | "state" | "payload">> & {
   payload?: CronPayloadPatch;
-<<<<<<< HEAD
-=======
   delivery?: CronDeliveryPatch;
->>>>>>> upstream/main
   state?: Partial<CronJobState>;
 };

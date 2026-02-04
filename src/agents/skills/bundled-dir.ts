@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-export function resolveBundledSkillsDir(): string | undefined {
 import { resolveOpenClawPackageRootSync } from "../../infra/openclaw-root.js";
 
 function looksLikeSkillsDir(dir: string): boolean {
@@ -44,8 +43,7 @@ export function resolveBundledSkillsDir(
 
   // bun --compile: ship a sibling `skills/` next to the executable.
   try {
-const execDir = path.dirname(process.execPath);
-const execPath = opts.execPath ?? process.execPath;
+    const execPath = opts.execPath ?? process.execPath;
     const execDir = path.dirname(execPath);
     const sibling = path.join(execDir, "skills");
     if (fs.existsSync(sibling)) {
@@ -57,12 +55,7 @@ const execPath = opts.execPath ?? process.execPath;
 
   // npm/dev: resolve `<packageRoot>/skills` relative to this module.
   try {
-const moduleDir = path.dirname(fileURLToPath(import.meta.url));
-    const root = path.resolve(moduleDir, "..", "..", "..");
-    const candidate = path.join(root, "skills");
-    if (fs.existsSync(candidate)) {
-      return candidate;
-const moduleUrl = opts.moduleUrl ?? import.meta.url;
+    const moduleUrl = opts.moduleUrl ?? import.meta.url;
     const moduleDir = path.dirname(fileURLToPath(moduleUrl));
     const argv1 = opts.argv1 ?? process.argv[1];
     const cwd = opts.cwd ?? process.cwd();

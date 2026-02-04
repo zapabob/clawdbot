@@ -208,7 +208,7 @@ describe("runGatewayUpdate", () => {
     expect(calls.some((call) => call === "npm i -g openclaw@latest")).toBe(true);
   });
 
-it("uses update channel for global npm installs when tag is omitted", async () => {
+  it("uses update channel for global npm installs when tag is omitted", async () => {
     const nodeModules = path.join(tempDir, "node_modules");
     const pkgRoot = path.join(nodeModules, "openclaw");
     await fs.mkdir(pkgRoot, { recursive: true });
@@ -255,6 +255,7 @@ it("uses update channel for global npm installs when tag is omitted", async () =
     expect(result.after?.version).toBe("2.0.0");
     expect(calls.some((call) => call === "npm i -g openclaw@beta")).toBe(true);
   });
+
   it("cleans stale npm rename dirs before global update", async () => {
     const nodeModules = path.join(tempDir, "node_modules");
     const pkgRoot = path.join(nodeModules, "openclaw");

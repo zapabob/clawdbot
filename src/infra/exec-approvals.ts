@@ -586,7 +586,6 @@ export type ExecCommandAnalysis = {
 
 const DISALLOWED_PIPELINE_TOKENS = new Set([">", "<", "`", "\n", "\r", "(", ")"]);
 const DOUBLE_QUOTE_ESCAPES = new Set(["\\", '"', "$", "`", "\n", "\r"]);
-=======
 const WINDOWS_UNSUPPORTED_TOKENS = new Set([
   "&",
   "|",
@@ -600,7 +599,6 @@ const WINDOWS_UNSUPPORTED_TOKENS = new Set([
   "\n",
   "\r",
 ]);
->>>>>>> upstream/main
 
 function isDoubleQuoteEscape(next: string | undefined): next is string {
   return Boolean(next && DOUBLE_QUOTE_ESCAPES.has(next));
@@ -750,7 +748,6 @@ function splitShellPipeline(command: string): { ok: boolean; reason?: string; se
   return { ok: true, segments: result.parts };
 }
 
-<<<<<<< HEAD
 function findWindowsUnsupportedToken(command: string): string | null {
   for (const ch of command) {
     if (WINDOWS_UNSUPPORTED_TOKENS.has(ch)) {
@@ -830,6 +827,7 @@ function isWindowsPlatform(platform?: string | null): boolean {
     .toLowerCase();
   return normalized.startsWith("win");
 }
+
 function tokenizeShellSegment(segment: string): string[] | null {
   const tokens: string[] = [];
   let buf = "";
@@ -923,8 +921,7 @@ export function analyzeShellCommand(params: {
   command: string;
   cwd?: string;
   env?: NodeJS.ProcessEnv;
-}): ExecCommandAnalysis {
-platform?: string | null;
+  platform?: string | null;
 }): ExecCommandAnalysis {
   if (isWindowsPlatform(params.platform)) {
     return analyzeWindowsShellCommand(params);
@@ -1290,9 +1287,7 @@ export function evaluateShellAllowlist(params: {
   env?: NodeJS.ProcessEnv;
   skillBins?: Set<string>;
   autoAllowSkills?: boolean;
-}): ExecAllowlistAnalysis {
-  const chainParts = splitCommandChain(params.command);
-platform?: string | null;
+  platform?: string | null;
 }): ExecAllowlistAnalysis {
   const chainParts = isWindowsPlatform(params.platform) ? null : splitCommandChain(params.command);
   if (!chainParts) {
@@ -1300,9 +1295,7 @@ platform?: string | null;
       command: params.command,
       cwd: params.cwd,
       env: params.env,
-=======
       platform: params.platform,
->>>>>>> upstream/main
     });
     if (!analysis.ok) {
       return {
@@ -1336,8 +1329,7 @@ platform?: string | null;
       command: part,
       cwd: params.cwd,
       env: params.env,
-<<<<<<< HEAD
-platform: params.platform,
+      platform: params.platform,
     });
     if (!analysis.ok) {
       return {

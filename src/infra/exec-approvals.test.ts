@@ -161,7 +161,6 @@ describe("exec approvals shell parsing", () => {
     expect(res.ok).toBe(true);
     expect(res.segments[0]?.argv[0]).toBe("echo");
   });
-=======
 
   it("rejects windows shell metacharacters", () => {
     const res = analyzeShellCommand({
@@ -180,7 +179,6 @@ describe("exec approvals shell parsing", () => {
     expect(res.ok).toBe(true);
     expect(res.segments[0]?.argv).toEqual(["C:\\Program Files\\Tool\\tool.exe", "--version"]);
   });
->>>>>>> upstream/main
 });
 
 describe("exec approvals shell allowlist (chained commands)", () => {
@@ -247,8 +245,8 @@ describe("exec approvals shell allowlist (chained commands)", () => {
     expect(result.analysisOk).toBe(true);
     expect(result.allowlistSatisfied).toBe(true);
   });
-<<<<<<< HEAD
-it("rejects windows chain separators for allowlist analysis", () => {
+
+  it("rejects windows chain separators for allowlist analysis", () => {
     const allowlist: ExecAllowlistEntry[] = [{ pattern: "/usr/bin/ping" }];
     const result = evaluateShellAllowlist({
       command: "ping 127.0.0.1 -n 1 & whoami",

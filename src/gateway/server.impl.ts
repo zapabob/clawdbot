@@ -1,6 +1,3 @@
-import type { CanvasHostServer } from "../canvas-host/server.js";
-import type { PluginServicesHandle } from "../plugins/services.js";
-import type { RuntimeEnv } from "../runtime.js";
 import path from "node:path";
 import type { CanvasHostServer } from "../canvas-host/server.js";
 import type { PluginServicesHandle } from "../plugins/services.js";
@@ -23,13 +20,11 @@ import {
 } from "../config/config.js";
 import { applyPluginAutoEnable } from "../config/plugin-auto-enable.js";
 import { clearAgentRunContext, onAgentEvent } from "../infra/agent-events.js";
-=======
 import {
   ensureControlUiAssetsBuilt,
   resolveControlUiRootOverrideSync,
   resolveControlUiRootSync,
 } from "../infra/control-ui-assets.js";
->>>>>>> upstream/main
 import { isDiagnosticsEnabled } from "../infra/diagnostic-events.js";
 import { logAcceptedEnvOption } from "../infra/env.js";
 import { createExecApprovalForwarder } from "../infra/exec-approval-forwarder.js";
@@ -99,7 +94,6 @@ const logReload = log.child("reload");
 const logHooks = log.child("hooks");
 const logPlugins = log.child("plugins");
 const logWsControl = log.child("ws");
-<<<<<<< HEAD
 const gatewayRuntime = runtimeForLogger(log);
 const canvasRuntime = runtimeForLogger(logCanvas);
 
@@ -267,9 +261,7 @@ export async function startGatewayServer(
     openResponsesEnabled,
     openResponsesConfig,
     controlUiBasePath,
-=======
     controlUiRoot: controlUiRootOverride,
->>>>>>> upstream/main
     resolvedAuth,
     tailscaleConfig,
     tailscaleMode,
@@ -277,8 +269,7 @@ export async function startGatewayServer(
   let hooksConfig = runtimeConfig.hooksConfig;
   const canvasHostEnabled = runtimeConfig.canvasHostEnabled;
 
-<<<<<<< HEAD
-let controlUiRootState: ControlUiRootState | undefined;
+  let controlUiRootState: ControlUiRootState | undefined;
   if (controlUiRootOverride) {
     const resolvedOverride = resolveControlUiRootOverrideSync(controlUiRootOverride);
     const resolvedOverridePath = path.resolve(controlUiRootOverride);
@@ -309,6 +300,7 @@ let controlUiRootState: ControlUiRootState | undefined;
       ? { kind: "resolved", path: resolvedRoot }
       : { kind: "missing" };
   }
+
   const wizardRunner = opts.wizardRunner ?? runOnboardingWizard;
   const { wizardSessions, findRunningWizard, purgeWizardSession } = createWizardSessionTracker();
 
@@ -340,10 +332,7 @@ let controlUiRootState: ControlUiRootState | undefined;
     port,
     controlUiEnabled,
     controlUiBasePath,
-<<<<<<< HEAD
-=======
     controlUiRoot: controlUiRootState,
->>>>>>> upstream/main
     openAiChatCompletionsEnabled,
     openResponsesEnabled,
     openResponsesConfig,

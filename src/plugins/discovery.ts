@@ -58,18 +58,6 @@ function resolvePackageExtensions(manifest: PackageManifest): string[] {
   return raw.map((entry) => (typeof entry === "string" ? entry.trim() : "")).filter(Boolean);
 }
 
-function resolvePackageDisableInfo(manifest: PackageManifest | null | undefined): {
-  disabled: boolean;
-  reason?: string;
-} {
-  const metadata = manifest ? getPackageManifestMetadata(manifest) : undefined;
-  if (!metadata?.disabled) {
-    return { disabled: false };
-  }
-  const reason = typeof metadata.disabledReason === "string" ? metadata.disabledReason.trim() : "";
-  return { disabled: true, reason: reason || undefined };
-}
->>>>>>> upstream/main
 function deriveIdHint(params: {
   filePath: string;
   packageName?: string;
@@ -168,17 +156,6 @@ function discoverInDirectory(params: {
     }
 
     const manifest = readPackageManifest(fullPath);
-<<<<<<< HEAD
-    const disabled = resolvePackageDisableInfo(manifest);
-    if (disabled.disabled) {
-      params.diagnostics.push({
-        level: "warn",
-        message: `plugin package disabled${disabled.reason ? `: ${disabled.reason}` : ""}`,
-        source: fullPath,
-      });
-      continue;
-    }
-=======
     const extensions = manifest ? resolvePackageExtensions(manifest) : [];
 
     if (extensions.length > 0) {
@@ -265,18 +242,6 @@ function discoverFromPath(params: {
 
   if (stat.isDirectory()) {
     const manifest = readPackageManifest(resolved);
-<<<<<<< HEAD
-    const disabled = resolvePackageDisableInfo(manifest);
-    if (disabled.disabled) {
-      params.diagnostics.push({
-        level: "warn",
-        message: `plugin package disabled${disabled.reason ? `: ${disabled.reason}` : ""}`,
-        source: resolved,
-      });
-      return;
-    }
-=======
->>>>>>> upstream/main
     const extensions = manifest ? resolvePackageExtensions(manifest) : [];
 
     if (extensions.length > 0) {

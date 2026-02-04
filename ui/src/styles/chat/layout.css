@@ -137,6 +137,7 @@
   stroke-linejoin: round;
   flex-shrink: 0;
 }
+
 /* Chat compose - sticky at bottom */
 .chat-compose {
   position: sticky;

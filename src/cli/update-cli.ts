@@ -1,8 +1,6 @@
 import type { Command } from "commander";
 import { confirm, isCancel, select, spinner } from "@clack/prompts";
-=======
 import { spawnSync } from "node:child_process";
->>>>>>> upstream/main
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -203,7 +201,6 @@ async function pathExists(targetPath: string): Promise<boolean> {
   }
 }
 
-<<<<<<< HEAD
 async function tryWriteCompletionCache(root: string, jsonMode: boolean): Promise<void> {
   const binPath = path.join(root, "openclaw.mjs");
   if (!(await pathExists(binPath))) {
@@ -226,6 +223,7 @@ async function tryWriteCompletionCache(root: string, jsonMode: boolean): Promise
     defaultRuntime.log(theme.warn(`Completion cache update failed${detail}.`));
   }
 }
+
 async function isEmptyDir(targetPath: string): Promise<boolean> {
   try {
     const entries = await fs.readdir(targetPath);
@@ -985,11 +983,8 @@ export async function updateCommand(opts: UpdateCommandOptions): Promise<void> {
     defaultRuntime.log(theme.warn("Skipping plugin updates: config is invalid."));
   }
 
-<<<<<<< HEAD
-=======
   await tryWriteCompletionCache(root, Boolean(opts.json));
 
->>>>>>> upstream/main
   // Restart service if requested
   if (shouldRestart) {
     if (!opts.json) {

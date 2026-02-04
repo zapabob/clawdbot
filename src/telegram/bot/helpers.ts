@@ -1,13 +1,3 @@
-import type {
-  TelegramForwardChat,
-  TelegramForwardOrigin,
-  TelegramForwardUser,
-  TelegramForwardedMessage,
-  TelegramLocation,
-  TelegramMessage,
-  TelegramStreamMode,
-  TelegramVenue,
-} from "./types.js";
 import type { Chat, Message, MessageOrigin, User } from "@grammyjs/types";
 import type { TelegramStreamMode } from "./types.js";
 import { formatLocationText, type NormalizedLocation } from "../../channels/location.js";
@@ -109,7 +99,6 @@ export function buildTelegramGroupFrom(chatId: number | string, messageThreadId?
   return `telegram:group:${buildTelegramGroupPeerId(chatId, messageThreadId)}`;
 }
 
-export function buildSenderName(msg: TelegramMessage) {
 export function buildSenderName(msg: Message) {
   const name =
     [msg.from?.first_name, msg.from?.last_name].filter(Boolean).join(" ").trim() ||
@@ -117,7 +106,6 @@ export function buildSenderName(msg: Message) {
   return name || undefined;
 }
 
-export function buildSenderLabel(msg: TelegramMessage, senderId?: number | string) {
 export function buildSenderLabel(msg: Message, senderId?: number | string) {
   const name = buildSenderName(msg);
   const username = msg.from?.username ? `@${msg.from.username}` : undefined;
@@ -140,11 +128,6 @@ export function buildSenderLabel(msg: Message, senderId?: number | string) {
   return idPart ?? "id:unknown";
 }
 
-export function buildGroupLabel(
-  msg: TelegramMessage,
-  chatId: number | string,
-  messageThreadId?: number,
-) {
 export function buildGroupLabel(msg: Message, chatId: number | string, messageThreadId?: number) {
   const title = msg.chat?.title;
   const topicSuffix = messageThreadId != null ? ` topic:${messageThreadId}` : "";
@@ -154,7 +137,6 @@ export function buildGroupLabel(msg: Message, chatId: number | string, messageTh
   return `group:${chatId}${topicSuffix}`;
 }
 
-export function hasBotMention(msg: TelegramMessage, botUsername: string) {
 export function hasBotMention(msg: Message, botUsername: string) {
   const text = (msg.text ?? msg.caption ?? "").toLowerCase();
   if (text.includes(`@${botUsername}`)) {
@@ -224,7 +206,6 @@ export type TelegramReplyTarget = {
   kind: "reply" | "quote";
 };
 
-export function describeReplyTarget(msg: TelegramMessage): TelegramReplyTarget | null {
 export function describeReplyTarget(msg: Message): TelegramReplyTarget | null {
   const reply = msg.reply_to_message;
   const quote = msg.quote;
@@ -280,26 +261,7 @@ export type TelegramForwardedContext = {
   fromUsername?: string;
   fromTitle?: string;
   fromSignature?: string;
-};
-
-function normalizeForwardedUserLabel(user: TelegramForwardUser) {
-  const name = [user.first_name, user.last_name].filter(Boolean).join(" ").trim();
-  const username = user.username?.trim() || undefined;
-  const id = user.id != null ? String(user.id) : undefined;
-  const display =
-    (name && username
-      ? `${name} (@${username})`
-      : name || (username ? `@${username}` : undefined)) || (id ? `user:${id}` : undefined);
-  return { display, name: name || undefined, username, id };
-}
-
-function normalizeForwardedChatLabel(chat: TelegramForwardChat, fallbackKind: "chat" | "channel") {
-  const title = chat.title?.trim() || undefined;
-  const username = chat.username?.trim() || undefined;
-  const id = chat.id != null ? String(chat.id) : undefined;
-  const display =
-    title || (username ? `@${username}` : undefined) || (id ? `${fallbackKind}:${id}` : undefined);
-/** Original chat type from forward_from_chat (e.g. "channel", "supergroup", "group"). */
+  /** Original chat type from forward_from_chat (e.g. "channel", "supergroup", "group"). */
   fromChatType?: Chat["type"];
   /** Original message ID in the source chat (channel forwards). */
   fromMessageId?: number;
@@ -325,8 +287,7 @@ function normalizeForwardedChatLabel(chat: Chat, fallbackKind: "chat" | "channel
 }
 
 function buildForwardedContextFromUser(params: {
-user: TelegramForwardUser;
-user: User;
+  user: User;
   date?: number;
   type: string;
 }): TelegramForwardedContext | null {
@@ -362,14 +323,7 @@ function buildForwardedContextFromHiddenName(params: {
 }
 
 function buildForwardedContextFromChat(params: {
-chat: TelegramForwardChat;
-  date?: number;
-  type: string;
-  signature?: string;
-}): TelegramForwardedContext | null {
-  const fallbackKind =
-    params.type === "channel" || params.type === "legacy_channel" ? "channel" : "chat";
-chat: Chat;
+  chat: Chat;
   date?: number;
   type: string;
   signature?: string;
@@ -382,9 +336,7 @@ chat: Chat;
   }
   const signature = params.signature?.trim() || undefined;
   const from = signature ? `${display} (${signature})` : display;
-=======
   const chatType = (params.chat.type?.trim() || undefined) as Chat["type"] | undefined;
->>>>>>> upstream/main
   return {
     from,
     date: params.date,
@@ -393,106 +345,7 @@ chat: Chat;
     fromUsername: username,
     fromTitle: title,
     fromSignature: signature,
-<<<<<<< HEAD
-  };
-}
-
-function resolveForwardOrigin(
-  origin: TelegramForwardOrigin,
-  signature?: string,
-): TelegramForwardedContext | null {
-  if (origin.type === "user" && origin.sender_user) {
-    return buildForwardedContextFromUser({
-      user: origin.sender_user,
-      date: origin.date,
-      type: "user",
-    });
-  }
-  if (origin.type === "hidden_user") {
-    return buildForwardedContextFromHiddenName({
-      name: origin.sender_user_name,
-      date: origin.date,
-      type: "hidden_user",
-    });
-  }
-  if (origin.type === "chat" && origin.sender_chat) {
-    return buildForwardedContextFromChat({
-      chat: origin.sender_chat,
-      date: origin.date,
-      type: "chat",
-      signature,
-    });
-  }
-  if (origin.type === "channel" && origin.chat) {
-    return buildForwardedContextFromChat({
-      chat: origin.chat,
-      date: origin.date,
-      type: "channel",
-      signature,
-    });
-  }
-  return null;
-}
-
-/**
- * Extract forwarded message origin info from Telegram message.
- * Supports both new forward_origin API and legacy forward_from/forward_from_chat fields.
- */
-export function normalizeForwardedContext(msg: TelegramMessage): TelegramForwardedContext | null {
-  const forwardMsg = msg as TelegramForwardedMessage;
-  const signature = forwardMsg.forward_signature?.trim() || undefined;
-
-  if (forwardMsg.forward_origin) {
-    const originContext = resolveForwardOrigin(forwardMsg.forward_origin, signature);
-    if (originContext) {
-      return originContext;
-    }
-  }
-
-  if (forwardMsg.forward_from_chat) {
-    const legacyType =
-      forwardMsg.forward_from_chat.type === "channel" ? "legacy_channel" : "legacy_chat";
-    const legacyContext = buildForwardedContextFromChat({
-      chat: forwardMsg.forward_from_chat,
-      date: forwardMsg.forward_date,
-      type: legacyType,
-      signature,
-    });
-    if (legacyContext) {
-      return legacyContext;
-    }
-  }
-
-  if (forwardMsg.forward_from) {
-    const legacyContext = buildForwardedContextFromUser({
-      user: forwardMsg.forward_from,
-      date: forwardMsg.forward_date,
-      type: "legacy_user",
-    });
-    if (legacyContext) {
-      return legacyContext;
-    }
-  }
-
-  const hiddenContext = buildForwardedContextFromHiddenName({
-    name: forwardMsg.forward_sender_name,
-    date: forwardMsg.forward_date,
-    type: "legacy_hidden_user",
-  });
-  if (hiddenContext) {
-    return hiddenContext;
-  }
-
-  return null;
-}
-
-export function extractTelegramLocation(msg: TelegramMessage): NormalizedLocation | null {
-  const msgWithLocation = msg as {
-    location?: TelegramLocation;
-    venue?: TelegramVenue;
-  };
-  const { venue, location } = msgWithLocation;
-fromChatType: chatType,
+    fromChatType: chatType,
     fromMessageId: params.messageId,
   };
 }

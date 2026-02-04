@@ -1,8 +1,6 @@
 import type { AgentTool } from "@mariozechner/pi-agent-core";
 import type { AgentSession } from "@mariozechner/pi-coding-agent";
-=======
 import type { MemoryCitationsMode } from "../../config/types.memory.js";
->>>>>>> upstream/main
 import type { ResolvedTimeFormat } from "../date-time.js";
 import type { EmbeddedContextFile } from "../pi-embedded-helpers.js";
 import type { EmbeddedSandboxInfo } from "./types.js";
@@ -49,8 +47,7 @@ export function buildEmbeddedSystemPrompt(params: {
   userTime?: string;
   userTimeFormat?: ResolvedTimeFormat;
   contextFiles?: EmbeddedContextFile[];
-<<<<<<< HEAD
-memoryCitationsMode?: MemoryCitationsMode;
+  memoryCitationsMode?: MemoryCitationsMode;
 }): string {
   return buildAgentSystemPrompt({
     workspaceDir: params.workspaceDir,
@@ -76,10 +73,7 @@ memoryCitationsMode?: MemoryCitationsMode;
     userTime: params.userTime,
     userTimeFormat: params.userTimeFormat,
     contextFiles: params.contextFiles,
-<<<<<<< HEAD
-=======
     memoryCitationsMode: params.memoryCitationsMode,
->>>>>>> upstream/main
   });
 }
 

@@ -1,10 +1,8 @@
 import type { OpenClawConfig } from "../config/config.js";
-=======
 import {
   buildCloudflareAiGatewayModelDefinition,
   resolveCloudflareAiGatewayBaseUrl,
 } from "../agents/cloudflare-ai-gateway.js";
->>>>>>> upstream/main
 import { buildXiaomiProvider, XIAOMI_DEFAULT_MODEL_ID } from "../agents/models-config.providers.js";
 import {
   buildSyntheticModelDefinition,
@@ -19,8 +17,7 @@ import {
   VENICE_MODEL_CATALOG,
 } from "../agents/venice-models.js";
 import {
-<<<<<<< HEAD
-CLOUDFLARE_AI_GATEWAY_DEFAULT_MODEL_REF,
+  CLOUDFLARE_AI_GATEWAY_DEFAULT_MODEL_REF,
   OPENROUTER_DEFAULT_MODEL_REF,
   VERCEL_AI_GATEWAY_DEFAULT_MODEL_REF,
   XIAOMI_DEFAULT_MODEL_REF,
@@ -30,9 +27,7 @@ import {
   buildMoonshotModelDefinition,
   KIMI_CODING_MODEL_REF,
   MOONSHOT_BASE_URL,
-=======
   MOONSHOT_CN_BASE_URL,
->>>>>>> upstream/main
   MOONSHOT_DEFAULT_MODEL_ID,
   MOONSHOT_DEFAULT_MODEL_REF,
 } from "./onboard-auth.models.js";
@@ -103,7 +98,6 @@ export function applyVercelAiGatewayProviderConfig(cfg: OpenClawConfig): OpenCla
   };
 }
 
-<<<<<<< HEAD
 export function applyCloudflareAiGatewayProviderConfig(
   cfg: OpenClawConfig,
   params?: { accountId?: string; gatewayId?: string },
@@ -170,6 +164,7 @@ export function applyCloudflareAiGatewayProviderConfig(
     },
   };
 }
+
 export function applyVercelAiGatewayConfig(cfg: OpenClawConfig): OpenClawConfig {
   const next = applyVercelAiGatewayProviderConfig(cfg);
   const existingModel = next.agents?.defaults?.model;
@@ -192,7 +187,6 @@ export function applyVercelAiGatewayConfig(cfg: OpenClawConfig): OpenClawConfig 
   };
 }
 
-=======
 export function applyCloudflareAiGatewayConfig(
   cfg: OpenClawConfig,
   params?: { accountId?: string; gatewayId?: string },
@@ -218,7 +212,6 @@ export function applyCloudflareAiGatewayConfig(
   };
 }
 
->>>>>>> upstream/main
 export function applyOpenrouterConfig(cfg: OpenClawConfig): OpenClawConfig {
   const next = applyOpenrouterProviderConfig(cfg);
   const existingModel = next.agents?.defaults?.model;
@@ -242,12 +235,7 @@ export function applyOpenrouterConfig(cfg: OpenClawConfig): OpenClawConfig {
 }
 
 export function applyMoonshotProviderConfig(cfg: OpenClawConfig): OpenClawConfig {
-<<<<<<< HEAD
-  const models = { ...cfg.agents?.defaults?.models };
-  models[MOONSHOT_DEFAULT_MODEL_REF] = {
-    ...models[MOONSHOT_DEFAULT_MODEL_REF],
-    alias: models[MOONSHOT_DEFAULT_MODEL_REF]?.alias ?? "Kimi K2",
-return applyMoonshotProviderConfigWithBaseUrl(cfg, MOONSHOT_BASE_URL);
+  return applyMoonshotProviderConfigWithBaseUrl(cfg, MOONSHOT_BASE_URL);
 }
 
 export function applyMoonshotProviderConfigCn(cfg: OpenClawConfig): OpenClawConfig {
@@ -278,8 +266,7 @@ function applyMoonshotProviderConfigWithBaseUrl(
   const normalizedApiKey = resolvedApiKey?.trim();
   providers.moonshot = {
     ...existingProviderRest,
-baseUrl: MOONSHOT_BASE_URL,
-baseUrl,
+    baseUrl,
     api: "openai-completions",
     ...(normalizedApiKey ? { apiKey: normalizedApiKey } : {}),
     models: mergedModels.length > 0 ? mergedModels : [defaultModel],
@@ -323,8 +310,6 @@ export function applyMoonshotConfig(cfg: OpenClawConfig): OpenClawConfig {
   };
 }
 
-<<<<<<< HEAD
-=======
 export function applyMoonshotConfigCn(cfg: OpenClawConfig): OpenClawConfig {
   const next = applyMoonshotProviderConfigCn(cfg);
   const existingModel = next.agents?.defaults?.model;
@@ -347,7 +332,6 @@ export function applyMoonshotConfigCn(cfg: OpenClawConfig): OpenClawConfig {
   };
 }
 
->>>>>>> upstream/main
 export function applyKimiCodeProviderConfig(cfg: OpenClawConfig): OpenClawConfig {
   const models = { ...cfg.agents?.defaults?.models };
   models[KIMI_CODING_MODEL_REF] = {

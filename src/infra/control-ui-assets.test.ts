@@ -2,7 +2,6 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { resolveControlUiDistIndexPath, resolveControlUiRepoRoot } from "./control-ui-assets.js";
 import {
   resolveControlUiDistIndexPath,
   resolveControlUiRepoRoot,
@@ -49,7 +48,6 @@ describe("control UI assets helpers", () => {
     );
   });
 
-=======
   it("resolves control-ui root for dist bundle argv1", async () => {
     const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-ui-"));
     try {
@@ -97,7 +95,6 @@ describe("control UI assets helpers", () => {
     }
   });
 
->>>>>>> upstream/main
   it("resolves dist control-ui index path from package root argv1", async () => {
     const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-ui-"));
     try {
@@ -114,8 +111,7 @@ describe("control UI assets helpers", () => {
     }
   });
 
-<<<<<<< HEAD
-it("resolves control-ui root for package entrypoint argv1", async () => {
+  it("resolves control-ui root for package entrypoint argv1", async () => {
     const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-ui-"));
     try {
       await fs.writeFile(path.join(tmp, "package.json"), JSON.stringify({ name: "openclaw" }));
@@ -130,6 +126,7 @@ it("resolves control-ui root for package entrypoint argv1", async () => {
       await fs.rm(tmp, { recursive: true, force: true });
     }
   });
+
   it("resolves dist control-ui index path from .bin argv1", async () => {
     const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-ui-"));
     try {

@@ -1,5 +1,4 @@
 import { html, nothing } from "lit";
-import type { AppViewState } from "../app-view-state";
 import type { AppViewState } from "../app-view-state.ts";
 
 function formatRemaining(ms: number): string {

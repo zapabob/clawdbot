@@ -52,7 +52,7 @@ export type IMessageAccountConfig = {
   includeAttachments?: boolean;
   /** Max outbound media size in MB. */
   mediaMaxMb?: number;
-/** Timeout for probe/RPC operations in milliseconds (default: 10000). */
+  /** Timeout for probe/RPC operations in milliseconds (default: 10000). */
   probeTimeoutMs?: number;
   /** Outbound text chunk size (chars). Default: 4000. */
   textChunkLimit?: number;

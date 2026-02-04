@@ -361,7 +361,7 @@ export type ToolsConfig = {
       enabled?: boolean;
       /** Max characters to return from fetched content. */
       maxChars?: number;
-/** Hard cap for maxChars (tool or config), defaults to 50000. */
+      /** Hard cap for maxChars (tool or config), defaults to 50000. */
       maxCharsCap?: number;
       /** Timeout in seconds for fetch requests. */
       timeoutSeconds?: number;

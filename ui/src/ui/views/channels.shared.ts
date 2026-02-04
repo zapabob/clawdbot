@@ -1,6 +1,4 @@
 import { html, nothing } from "lit";
-import type { ChannelAccountSnapshot } from "../types";
-import type { ChannelKey, ChannelsProps } from "./channels.types";
 import type { ChannelAccountSnapshot } from "../types.ts";
 import type { ChannelKey, ChannelsProps } from "./channels.types.ts";
 

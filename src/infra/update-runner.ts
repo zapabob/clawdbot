@@ -3,7 +3,6 @@ import os from "node:os";
 import path from "node:path";
 import { type CommandOptions, runCommandWithTimeout } from "../process/exec.js";
 import { trimLogTail } from "./restart-sentinel.js";
-import { DEV_BRANCH, isBetaTag, isStableTag, type UpdateChannel } from "./update-channels.js";
 import {
   channelToNpmTag,
   DEFAULT_PACKAGE_CHANNEL,
@@ -808,8 +807,7 @@ export async function runGatewayUpdate(opts: UpdateRunnerOptions = {}): Promise<
       globalRoot: path.dirname(pkgRoot),
       packageName,
     });
-const spec = `${packageName}@${normalizeTag(opts.tag)}`;
-const channel = opts.channel ?? DEFAULT_PACKAGE_CHANNEL;
+    const channel = opts.channel ?? DEFAULT_PACKAGE_CHANNEL;
     const tag = normalizeTag(opts.tag ?? channelToNpmTag(channel));
     const spec = `${packageName}@${tag}`;
     const updateStep = await runStep({

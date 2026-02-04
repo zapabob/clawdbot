@@ -1,11 +1,9 @@
-import type { GatewayBrowserClient } from "../gateway";
 import type { GatewayBrowserClient } from "../gateway.ts";
 import type {
   AgentFileEntry,
   AgentsFilesGetResult,
   AgentsFilesListResult,
   AgentsFilesSetResult,
-} from "../types";
 } from "../types.ts";
 
 export type AgentFilesState = {
@@ -57,11 +55,6 @@ export async function loadAgentFiles(state: AgentFilesState, agentId: string) {
   }
 }
 
-export async function loadAgentFileContent(state: AgentFilesState, agentId: string, name: string) {
-  if (!state.client || !state.connected || state.agentFilesLoading) {
-    return;
-  }
-  if (Object.hasOwn(state.agentFileContents, name)) {
 export async function loadAgentFileContent(
   state: AgentFilesState,
   agentId: string,
@@ -83,10 +76,7 @@ export async function loadAgentFileContent(
     });
     if (res?.file) {
       const content = res.file.content ?? "";
-state.agentFilesList = mergeFileEntry(state.agentFilesList, res.file);
-      state.agentFileContents = { ...state.agentFileContents, [name]: content };
-      if (!Object.hasOwn(state.agentFileDrafts, name)) {
-const previousBase = state.agentFileContents[name] ?? "";
+      const previousBase = state.agentFileContents[name] ?? "";
       const currentDraft = state.agentFileDrafts[name];
       const preserveDraft = opts?.preserveDraft ?? true;
       state.agentFilesList = mergeFileEntry(state.agentFilesList, res.file);

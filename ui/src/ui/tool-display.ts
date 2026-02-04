@@ -1,5 +1,3 @@
-import type { IconName } from "./icons";
-import rawConfig from "./tool-display.json";
 import type { IconName } from "./icons.ts";
 import rawConfig from "./tool-display.json" with { type: "json" };
 

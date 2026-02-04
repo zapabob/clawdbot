@@ -238,29 +238,3 @@ Record:
 
 Redact secrets. Never log tokens or full credential contents.
 
-<<<<<<< HEAD
-## Memory writes (required)
-
-## Memory writes (conditional)
-
-Only write to memory files when the user explicitly opts in and the session is a private/local workspace
-(per `docs/reference/templates/AGENTS.md`). Otherwise provide a redacted, paste-ready summary the user can
-decide to save elsewhere.
-
-Follow the durable-memory prompt format used by OpenClaw compaction:
-
-- Write lasting notes to `memory/YYYY-MM-DD.md`.
-
-After each audit/hardening run, append a short, dated summary to `memory/YYYY-MM-DD.md`
-(what was checked, key findings, actions taken, any scheduled cron jobs, key decisions,
-and all commands executed). Append-only: never overwrite existing entries.
-
-After each audit/hardening run, if opted-in, append a short, dated summary to `memory/YYYY-MM-DD.md`
-(what was checked, key findings, actions taken, any scheduled cron jobs, key decisions,
-and all commands executed). Append-only: never overwrite existing entries.
-Redact sensitive host details (usernames, hostnames, IPs, serials, service names, tokens).
-If there are durable preferences or decisions (risk posture, allowed ports, update policy),
-also update `MEMORY.md` (long-term memory is optional and only used in private sessions).
-
-If the session cannot write to the workspace, ask for permission or provide exact entries
-the user can paste into the memory files.

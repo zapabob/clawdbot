@@ -1,7 +1,4 @@
 import type { OpenClawConfig } from "../../config/config.js";
-import { normalizeChatChannelId } from "../../channels/registry.js";
-import { loadSessionStore, resolveStorePath } from "../../config/sessions.js";
-import { normalizeE164 } from "../../utils.js";
 import { loadSessionStore, resolveStorePath } from "../../config/sessions.js";
 import { normalizeE164 } from "../../utils.js";
 import { normalizeChatChannelId } from "../registry.js";

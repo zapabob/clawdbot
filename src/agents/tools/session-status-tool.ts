@@ -1,23 +1,6 @@
 import { Type } from "@sinclair/typebox";
 import type { OpenClawConfig } from "../../config/config.js";
 import type { AnyAgentTool } from "./common.js";
-import { resolveAgentDir } from "../../agents/agent-scope.js";
-import {
-  ensureAuthProfileStore,
-  resolveAuthProfileDisplayLabel,
-  resolveAuthProfileOrder,
-} from "../../agents/auth-profiles.js";
-import { getCustomProviderApiKey, resolveEnvApiKey } from "../../agents/model-auth.js";
-import { loadModelCatalog } from "../../agents/model-catalog.js";
-import {
-  buildAllowedModelSet,
-  buildModelAliasIndex,
-  modelKey,
-  normalizeProviderId,
-  resolveDefaultModelForAgent,
-  resolveModelRefFromString,
-} from "../../agents/model-selection.js";
->>>>>>> upstream/main
 import { normalizeGroupActivation } from "../../auto-reply/group-activation.js";
 import { getFollowupQueueDepth, resolveQueueSettings } from "../../auto-reply/reply/queue.js";
 import { buildStatusMessage } from "../../auto-reply/status.js";
@@ -40,9 +23,6 @@ import {
   resolveAgentIdFromSessionKey,
 } from "../../routing/session-key.js";
 import { applyModelOverrideToSessionEntry } from "../../sessions/model-overrides.js";
-<<<<<<< HEAD
-import { formatUserTime, resolveUserTimeFormat, resolveUserTimezone } from "../date-time.js";
-=======
 import { resolveAgentDir } from "../agent-scope.js";
 import {
   ensureAuthProfileStore,
@@ -124,8 +104,7 @@ function resolveModelAuthLabel(params: {
     if (profile.type === "token") {
       return `token ${formatApiKeySnippet(profile.token)}${label ? ` (${label})` : ""}`;
     }
-return `api-key ${formatApiKeySnippet(profile.key)}${label ? ` (${label})` : ""}`;
-return `api-key ${formatApiKeySnippet(profile.key ?? "")}${label ? ` (${label})` : ""}`;
+    return `api-key ${formatApiKeySnippet(profile.key ?? "")}${label ? ` (${label})` : ""}`;
   }
 
   const envKey = resolveEnvApiKey(providerKey);

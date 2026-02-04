@@ -2,9 +2,7 @@ import type { CronJobCreate, CronJobPatch } from "../../cron/types.js";
 import type { GatewayRequestHandlers } from "./types.js";
 import { normalizeCronJobCreate, normalizeCronJobPatch } from "../../cron/normalize.js";
 import { readCronRunLogEntries, resolveCronRunLogPath } from "../../cron/run-log.js";
-=======
 import { validateScheduleTimestamp } from "../../cron/validate-timestamp.js";
->>>>>>> upstream/main
 import {
   ErrorCodes,
   errorShape,
@@ -85,9 +83,7 @@ export const cronHandlers: GatewayRequestHandlers = {
       );
       return;
     }
-<<<<<<< HEAD
-    const job = await context.cron.add(normalized as unknown as CronJobCreate);
-const jobCreate = normalized as unknown as CronJobCreate;
+    const jobCreate = normalized as unknown as CronJobCreate;
     const timestampValidation = validateScheduleTimestamp(jobCreate.schedule);
     if (!timestampValidation.ok) {
       respond(
@@ -131,8 +127,7 @@ const jobCreate = normalized as unknown as CronJobCreate;
       );
       return;
     }
-const job = await context.cron.update(jobId, p.patch as unknown as CronJobPatch);
-const patch = p.patch as unknown as CronJobPatch;
+    const patch = p.patch as unknown as CronJobPatch;
     if (patch.schedule) {
       const timestampValidation = validateScheduleTimestamp(patch.schedule);
       if (!timestampValidation.ok) {

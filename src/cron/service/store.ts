@@ -1,20 +1,3 @@
-import type { CronJob } from "../types.js";
-import type { CronServiceState } from "./state.js";
-import { migrateLegacyCronPayload } from "../payload-migration.js";
-import { loadCronStore, saveCronStore } from "../store.js";
-import { inferLegacyName, normalizeOptionalText } from "./normalize.js";
-
-const storeCache = new Map<string, { version: 1; jobs: CronJob[] }>();
-
-export async function ensureLoaded(state: CronServiceState) {
-  if (state.store) {
-    return;
-  }
-  const cached = storeCache.get(state.deps.storePath);
-  if (cached) {
-    state.store = cached;
-    return;
-  }
 import fs from "node:fs";
 import type { CronJob } from "../types.js";
 import type { CronServiceState } from "./state.js";
@@ -174,24 +157,19 @@ export async function ensureLoaded(state: CronServiceState, opts?: { forceReload
       mutated = true;
     }
 
-=======
     if (typeof raw.enabled !== "boolean") {
       raw.enabled = true;
       mutated = true;
     }
 
->>>>>>> upstream/main
     const payload = raw.payload;
     if (payload && typeof payload === "object" && !Array.isArray(payload)) {
       if (migrateLegacyCronPayload(payload as Record<string, unknown>)) {
         mutated = true;
       }
     }
-<<<<<<< HEAD
-  }
-  state.store = { version: 1, jobs: jobs as unknown as CronJob[] };
-  storeCache.set(state.deps.storePath, state.store);
-const schedule = raw.schedule;
+
+    const schedule = raw.schedule;
     if (schedule && typeof schedule === "object" && !Array.isArray(schedule)) {
       const sched = schedule as Record<string, unknown>;
       const kind = typeof sched.kind === "string" ? sched.kind.trim().toLowerCase() : "";
@@ -279,6 +257,7 @@ const schedule = raw.schedule;
 
   // Recompute next runs after loading to ensure accuracy
   recomputeNextRuns(state);
+
   if (mutated) {
     await persist(state);
   }
@@ -303,9 +282,6 @@ export async function persist(state: CronServiceState) {
     return;
   }
   await saveCronStore(state.deps.storePath, state.store);
-<<<<<<< HEAD
-=======
   // Update file mtime after save to prevent immediate reload
   state.storeFileMtimeMs = await getFileMtimeMs(state.deps.storePath);
->>>>>>> upstream/main
 }

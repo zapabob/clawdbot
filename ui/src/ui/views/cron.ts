@@ -1,7 +1,4 @@
 import { html, nothing } from "lit";
-import type { ChannelUiMetaEntry, CronJob, CronRunLogEntry, CronStatus } from "../types";
-import type { CronFormState } from "../ui-types";
-import { formatMs } from "../format";
 import type { ChannelUiMetaEntry, CronJob, CronRunLogEntry, CronStatus } from "../types.ts";
 import type { CronFormState } from "../ui-types.ts";
 import { formatMs } from "../format.ts";
@@ -10,7 +7,6 @@ import {
   formatCronSchedule,
   formatCronState,
   formatNextRun,
-} from "../presenter";
 } from "../presenter.ts";
 
 export type CronProps = {
@@ -36,8 +32,7 @@ export type CronProps = {
 
 function buildChannelOptions(props: CronProps): string[] {
   const options = ["last", ...props.channels.filter(Boolean)];
-const current = props.form.channel?.trim();
-const current = props.form.deliveryChannel?.trim();
+  const current = props.form.deliveryChannel?.trim();
   if (current && !options.includes(current)) {
     options.push(current);
   }
@@ -202,78 +197,7 @@ export function renderCron(props: CronProps) {
             rows="4"
           ></textarea>
         </label>
-${
-              props.form.payloadKind === "agentTurn"
-                ? html`
-	              <div class="form-grid" style="margin-top: 12px;">
-                <label class="field checkbox">
-                  <span>Deliver</span>
-                  <input
-                    type="checkbox"
-                    .checked=${props.form.deliver}
-                    @change=${(e: Event) =>
-                      props.onFormChange({
-                        deliver: (e.target as HTMLInputElement).checked,
-                      })}
-                  />
-	                </label>
-	                <label class="field">
-	                  <span>Channel</span>
-	                  <select
-	                    .value=${props.form.channel || "last"}
-	                    @change=${(e: Event) =>
-                        props.onFormChange({
-                          channel: (e.target as HTMLSelectElement).value,
-                        })}
-	                  >
-	                    ${channelOptions.map(
-                        (channel) =>
-                          html`<option value=${channel}>
-                            ${resolveChannelLabel(props, channel)}
-                          </option>`,
-                      )}
-                  </select>
-                </label>
-                <label class="field">
-                  <span>To</span>
-                  <input
-                    .value=${props.form.to}
-                    @input=${(e: Event) =>
-                      props.onFormChange({ to: (e.target as HTMLInputElement).value })}
-                    placeholder="+1555… or chat id"
-                  />
-                </label>
-                <label class="field">
-                  <span>Timeout (seconds)</span>
-                  <input
-                    .value=${props.form.timeoutSeconds}
-                    @input=${(e: Event) =>
-                      props.onFormChange({
-                        timeoutSeconds: (e.target as HTMLInputElement).value,
-                      })}
-                  />
-                </label>
-                ${
-                  props.form.sessionTarget === "isolated"
-                    ? html`
-                      <label class="field">
-                        <span>Post to main prefix</span>
-                        <input
-                          .value=${props.form.postToMainPrefix}
-                          @input=${(e: Event) =>
-                            props.onFormChange({
-                              postToMainPrefix: (e.target as HTMLInputElement).value,
-                            })}
-                        />
-                      </label>
-                    `
-                    : nothing
-                }
-              </div>
-            `
-                : nothing
-            }
-${
+        ${
           props.form.payloadKind === "agentTurn"
             ? html`
                 <div class="form-grid" style="margin-top: 12px;">

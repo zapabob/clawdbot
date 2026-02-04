@@ -29,12 +29,7 @@ export type CronFormState = {
   wakeMode: "next-heartbeat" | "now";
   payloadKind: "systemEvent" | "agentTurn";
   payloadText: string;
-deliver: boolean;
-  channel: string;
-  to: string;
-  timeoutSeconds: string;
-  postToMainPrefix: string;
-deliveryMode: "none" | "announce";
+  deliveryMode: "none" | "announce";
   deliveryChannel: string;
   deliveryTo: string;
   timeoutSeconds: string;
