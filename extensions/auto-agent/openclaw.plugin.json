@@ -1,0 +1,47 @@
+{
+  "id": "auto-agent",
+  "name": "Auto Agent",
+  "description": "Autonomous self-improving, self-repairing agent with Codex/GeminiCLI/Opencode integration",
+  "version": "2026.2.1",
+  "author": "OpenClaw",
+  "license": "MIT",
+  "runtime": {
+    "node": ">=18.0.0"
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "default": true
+      },
+      "aiTools": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "default": ["codex", "gemini", "opencode"]
+      },
+      "autoImprove": {
+        "type": "boolean",
+        "default": true
+      },
+      "autoRepair": {
+        "type": "boolean",
+        "default": true
+      },
+      "autoGitCommit": {
+        "type": "boolean",
+        "default": true
+      },
+      "checkIntervalMs": {
+        "type": "number",
+        "default": 60000
+      },
+      "maxChangesPerCommit": {
+        "type": "number",
+        "default": 10
+      }
+  }
+}
