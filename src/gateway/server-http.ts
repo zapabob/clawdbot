@@ -34,6 +34,11 @@ import {
 import { handleOpenAiHttpRequest } from "./openai-http.js";
 import { handleOpenResponsesHttpRequest } from "./openresponses-http.js";
 import { handleToolsInvokeHttpRequest } from "./tools-invoke-http.js";
+import {
+  createOAuthCallbackHandler,
+  createOAuthRefreshHandler,
+  createOAuthStatusHandler,
+} from "./oauth-callback.js";
 
 type SubsystemLogger = ReturnType<typeof createSubsystemLogger>;
 
@@ -217,6 +222,7 @@ export function createGatewayHttpServer(opts: {
   handleHooksRequest: HooksRequestHandler;
   handlePluginRequest?: HooksRequestHandler;
   resolvedAuth: import("./auth.js").ResolvedGatewayAuth;
+  oauthManager?: import("../infra/oauth2-manager.js").OAuth2Manager;
   tlsOptions?: TlsOptions;
 }): HttpServer {
   const {
@@ -230,7 +236,23 @@ export function createGatewayHttpServer(opts: {
     handleHooksRequest,
     handlePluginRequest,
     resolvedAuth,
+    oauthManager,
   } = opts;
+
+  const bindHost = opts.tlsOptions ? "0.0.0.0" : "127.0.0.1";
+  const port = process.env.OPENCLAW_GATEWAY_PORT
+    ? parseInt(process.env.OPENCLAW_GATEWAY_PORT, 10)
+    : 18789;
+
+  const oauthCallbackHandler = oauthManager
+    ? createOAuthCallbackHandler({ oauthManager, bindHost, port })
+    : null;
+  const oauthStatusHandler = oauthManager
+    ? createOAuthStatusHandler({ oauthManager, bindHost, port })
+    : null;
+  const oauthRefreshHandler = oauthManager
+    ? createOAuthRefreshHandler({ oauthManager, bindHost, port })
+    : null;
   const httpServer: HttpServer = opts.tlsOptions
     ? createHttpsServer(opts.tlsOptions, (req, res) => {
         void handleRequest(req, res);
@@ -248,6 +270,17 @@ export function createGatewayHttpServer(opts: {
     try {
       const configSnapshot = loadConfig();
       const trustedProxies = configSnapshot.gateway?.trustedProxies ?? [];
+
+      if (oauthCallbackHandler && (await oauthCallbackHandler(req, res))) {
+        return;
+      }
+      if (oauthStatusHandler && (await oauthStatusHandler(req, res))) {
+        return;
+      }
+      if (oauthRefreshHandler && (await oauthRefreshHandler(req, res))) {
+        return;
+      }
+
       if (await handleHooksRequest(req, res)) {
         return;
       }

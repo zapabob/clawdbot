@@ -25,6 +25,7 @@ import { attachGatewayUpgradeHandler, createGatewayHttpServer } from "./server-h
 import { createGatewayHooksRequestHandler } from "./server/hooks.js";
 import { listenGatewayHttpServer } from "./server/http-listen.js";
 import { createGatewayPluginRequestHandler } from "./server/plugins-http.js";
+import type { OAuth2Manager } from "../infra/oauth2-manager.js";
 
 export async function createGatewayRuntimeState(params: {
   cfg: import("../config/config.js").OpenClawConfig;
@@ -44,6 +45,7 @@ export async function createGatewayRuntimeState(params: {
   canvasRuntime: RuntimeEnv;
   canvasHostEnabled: boolean;
   allowCanvasHostInTests?: boolean;
+  oauthManager?: OAuth2Manager;
   logCanvas: { info: (msg: string) => void; warn: (msg: string) => void };
   log: { info: (msg: string) => void; warn: (msg: string) => void };
   logHooks: ReturnType<typeof createSubsystemLogger>;
@@ -135,6 +137,7 @@ export async function createGatewayRuntimeState(params: {
       handleHooksRequest,
       handlePluginRequest,
       resolvedAuth: params.resolvedAuth,
+      oauthManager: params.oauthManager,
       tlsOptions: params.gatewayTls?.enabled ? params.gatewayTls.tlsOptions : undefined,
     });
     try {

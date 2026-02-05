@@ -77,6 +77,7 @@ import {
   refreshGatewayHealthSnapshot,
 } from "./server/health-state.js";
 import { loadGatewayTlsRuntime } from "./server/tls.js";
+import { createOAuth2Manager } from "../infra/oauth2-manager.js";
 
 export { __resetModelCatalogCacheForTest } from "./server-model-catalog.js";
 
@@ -346,6 +347,7 @@ export async function startGatewayServer(
     canvasRuntime,
     canvasHostEnabled,
     allowCanvasHostInTests: opts.allowCanvasHostInTests,
+    oauthManager: createOAuth2Manager(),
     logCanvas,
     log,
     logHooks,
