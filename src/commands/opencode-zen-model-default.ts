@@ -1,7 +1,7 @@
 import type { OpenClawConfig } from "../config/config.js";
 import type { AgentModelListConfig } from "../config/types.js";
 
-export const OPENCODE_ZEN_DEFAULT_MODEL = "opencode/claude-opus-4-5";
+export const OPENCODE_ZEN_DEFAULT_MODEL = "openai-codex/gpt-5.2";
 const LEGACY_OPENCODE_ZEN_DEFAULT_MODEL = "opencode-zen/claude-opus-4-5";
 
 function resolvePrimaryModel(model?: AgentModelListConfig | string): string | undefined {

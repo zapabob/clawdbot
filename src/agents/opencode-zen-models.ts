@@ -11,7 +11,7 @@
 import type { ModelApi, ModelDefinitionConfig } from "../config/types.js";
 
 export const OPENCODE_ZEN_API_BASE_URL = "https://opencode.ai/zen/v1";
-export const OPENCODE_ZEN_DEFAULT_MODEL = "claude-opus-4-5";
+export const OPENCODE_ZEN_DEFAULT_MODEL = "gpt-5.2";
 export const OPENCODE_ZEN_DEFAULT_MODEL_REF = `opencode/${OPENCODE_ZEN_DEFAULT_MODEL}`;
 
 // Cache for fetched models (1 hour TTL)
@@ -21,31 +21,32 @@ const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 /**
  * Model aliases for convenient shortcuts.
- * Users can use "opus" instead of "claude-opus-4-5", etc.
+ * Users can use "gpt5" or "gpt" instead of "gpt-5.2", etc.
  */
 export const OPENCODE_ZEN_MODEL_ALIASES: Record<string, string> = {
-  // Claude
-  opus: "claude-opus-4-5",
-  "opus-4.5": "claude-opus-4-5",
-  "opus-4": "claude-opus-4-5",
-
-  // Legacy Claude aliases (OpenCode Zen rotates model catalogs; keep old keys working).
-  sonnet: "claude-opus-4-5",
-  "sonnet-4": "claude-opus-4-5",
-  haiku: "claude-opus-4-5",
-  "haiku-3.5": "claude-opus-4-5",
-
-  // GPT-5.x family
+  // GPT-5.x family (Codex - Primary)
   gpt5: "gpt-5.2",
   "gpt-5": "gpt-5.2",
+  gpt: "gpt-5.2",
   "gpt-5.1": "gpt-5.1",
 
-  // Legacy GPT aliases (keep old config/docs stable; map to closest current equivalents).
+  // Legacy Claude aliases (deprecated - now use GPT)
+  opus: "gpt-5.2",
+  "opus-4.5": "gpt-5.2",
+  "opus-4": "gpt-5.2",
+
+  // Legacy Claude (keep working for backward compatibility)
+  sonnet: "gpt-5.2",
+  "sonnet-4": "gpt-5.2",
+  haiku: "gpt-5.2",
+  "haiku-3.5": "gpt-5.2",
+
+  // Legacy GPT aliases
   gpt4: "gpt-5.1",
   "gpt-4": "gpt-5.1",
   "gpt-mini": "gpt-5.1-codex-mini",
 
-  // Legacy O-series aliases (no longer in the Zen catalog; map to a strong default).
+  // Legacy O-series aliases (no longer in the Zen catalog)
   o1: "gpt-5.2",
   o3: "gpt-5.2",
   "o3-mini": "gpt-5.1-codex-mini",
