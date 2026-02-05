@@ -21,56 +21,41 @@ const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 /**
  * Model aliases for convenient shortcuts.
- * Users can use "gpt5" or "gpt" instead of "gpt-5.2", etc.
+ * No Claude aliases - only Codex GPT-5.x and Gemini CLI.
  */
 export const OPENCODE_ZEN_MODEL_ALIASES: Record<string, string> = {
-  // GPT-5.x family (Codex - Primary)
+  // GPT-5.x family (Codex - Primary Default)
   gpt5: "gpt-5.2",
   "gpt-5": "gpt-5.2",
   gpt: "gpt-5.2",
   "gpt-5.1": "gpt-5.1",
 
-  // Legacy Claude aliases (deprecated - now use GPT)
-  opus: "gpt-5.2",
-  "opus-4.5": "gpt-5.2",
-  "opus-4": "gpt-5.2",
-
-  // Legacy Claude (keep working for backward compatibility)
-  sonnet: "gpt-5.2",
-  "sonnet-4": "gpt-5.2",
-  haiku: "gpt-5.2",
-  "haiku-3.5": "gpt-5.2",
-
-  // Legacy GPT aliases
-  gpt4: "gpt-5.1",
-  "gpt-4": "gpt-5.1",
-  "gpt-mini": "gpt-5.1-codex-mini",
-
-  // Legacy O-series aliases (no longer in the Zen catalog)
-  o1: "gpt-5.2",
-  o3: "gpt-5.2",
-  "o3-mini": "gpt-5.1-codex-mini",
-
-  // Codex family
-  codex: "gpt-5.1-codex",
-  "codex-mini": "gpt-5.1-codex-mini",
-  "codex-max": "gpt-5.1-codex-max",
-
-  // Gemini
+  // Google Gemini CLI (Secondary Default)
   gemini: "gemini-3-pro",
   "gemini-pro": "gemini-3-pro",
   "gemini-3": "gemini-3-pro",
   flash: "gemini-3-flash",
   "gemini-flash": "gemini-3-flash",
 
-  // Legacy Gemini 2.5 aliases (map to the nearest current Gemini tier).
+  // Legacy aliases (map to GPT-5.2 for compatibility)
+  gpt4: "gpt-5.1",
+  "gpt-4": "gpt-5.1",
+  "gpt-mini": "gpt-5.1-codex-mini",
+
+  // O-series legacy aliases
+  o1: "gpt-5.2",
+  o3: "gpt-5.2",
+  "o3-mini": "gpt-5.1-codex-mini",
+
+  // Codex-specific variants
+  codex: "gpt-5.1-codex",
+  "codex-mini": "gpt-5.1-codex-mini",
+  "codex-max": "gpt-5.1-codex-max",
+
+  // Legacy Gemini 2.5 aliases (map to Gemini 3)
   "gemini-2.5": "gemini-3-pro",
   "gemini-2.5-pro": "gemini-3-pro",
   "gemini-2.5-flash": "gemini-3-flash",
-
-  // GLM (free)
-  glm: "glm-4.7",
-  "glm-free": "glm-4.7",
 };
 
 /**
