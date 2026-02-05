@@ -22,6 +22,9 @@ Welcome to the lobster tank! 🦞
 - **Christoph Nakazawa** - JS Infra
   - GitHub: [@cpojer](https://github.com/cpojer) · X: [@cnakazawa](https://x.com/cnakazawa)
 
+- **Gustavo Madeira Santana** - Multi-agents, CLI, web UI
+  - GitHub: [@gumadeiras](https://github.com/gumadeiras) · X: [@gumadeiras](https://x.com/gumadeiras)
+
 ## How to Contribute
 
 1. **Bugs & small fixes** → Open a PR!
@@ -49,6 +52,7 @@ legacy style:
 The root `tsconfig.json` is configured for legacy decorators (`experimentalDecorators: true`)
 with `useDefineForClassFields: false`. Avoid flipping these unless you are also updating the UI
 build tooling to support standard decorators.
+
 ## AI/Vibe-Coded PRs Welcome! 🤖
 
 Built with Codex, Claude, or other AI tools? **Awesome - just mark it!**
