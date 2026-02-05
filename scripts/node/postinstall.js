@@ -32,7 +32,7 @@ function shouldApplyPnpmPatchedDependenciesFallback(pm = detectPackageManager())
 
 function getRepoRoot() {
   const here = path.dirname(fileURLToPath(import.meta.url));
-  return path.resolve(here, "..", "..");
+  return path.resolve(here, "..");
 }
 
 function ensureExecutable(targetPath) {

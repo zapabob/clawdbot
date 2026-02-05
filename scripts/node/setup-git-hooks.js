@@ -8,7 +8,7 @@ const PRE_COMMIT_HOOK = "pre-commit";
 
 function getRepoRoot() {
   const here = path.dirname(fileURLToPath(import.meta.url));
-  return path.resolve(here, "..", "..");
+  return path.resolve(here, "..");
 }
 
 function runGitCommand(args, options = {}) {

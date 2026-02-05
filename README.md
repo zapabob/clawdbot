@@ -26,149 +26,136 @@
 
 ## 🔍 Overview / 概要
 
-**OpenClaw** is a _personal AI assistant_ you run on your own devices. It answers you on the channels you already use (WhatsApp, Telegram, Slack, Discord, Google Chat, Signal, iMessage, Microsoft Teams, WebChat, **LINE**), plus extension channels like BlueBubbles, Matrix, Zalo, and Zalo Personal. It can speak and listen on macOS/iOS/Android, and can render a live Canvas you control. The Gateway is just the control plane — the product is the assistant.
+**OpenClaw** is a _personal AI assistant_ you run on your own devices. It answers you on the channels you already use (WhatsApp, Telegram, Slack, Discord, Google Chat, Signal, iMessage, Microsoft Teams, WebChat, **LINE**), plus extension channels like BlueBubbles, Matrix, Zalo, and Zalo Personal. It can speak and listen on macOS/iOS/Android, and can render a live Canvas you control.
 
-**OpenClaw**は、自分のデバイス上で実行できる*パーソナルAIアシスタント*です。使用しているメッセージアプリ（WhatsApp, Telegram, Slack, Discord, LINEなど）で応答し、音声での入出力や、ライブCanvasのレンダリングも可能です。
+**OpenClaw**は、自分のデバイス上で実行できる*パーソナルAIアシスタント*です。使用しているメッセージアプリ（WhatsApp, Telegram, Slack, Discord, **LINE**など）で応答し、音声での入出力や、ライブCanvasのレンダリングも可能です。ローカルで高速、常時稼働のパーソナルAIアシスタントを求める方に最適です。
 
-If you want a personal, single-user assistant that feels local, fast, and always-on, this is it.
+---
 
-ローカルで高速、常時稼働のパーソナルAIアシスタントを求める方に最適です。
+## 🚀 Latest Features (2025) / 最新機能
+
+Cutting-edge capabilities inspired by Sakana AI and advanced agentic patterns.
+Sakana AIや最新のエージェント研究にインスパイアされた最先端の機能を搭載しています。
+
+### 🧬 Evolutionary Engine / 進化エンジン
+
+**Self-Improving Code Generation**: Implements an evolutionary algorithm (Evolution Strategy) to iteratively improve agent logic and strategies.
+
+- **Population Management**: Maintains a diverse population of solution candidates.
+- **Mutation & Crossover**: Automatically explores new code variations.
+- **Selection**: Survives the fittest strategies based on objective benchmarks.
+
+**自己改善型コード生成**: 進化戦略（Evolution Strategy）アルゴリズムを実装し、エージェントのロジックや戦略を反復的に改善します。
+
+- **個体群管理**: 多様な解決策の候補を維持・管理。
+- **突然変異と交叉**: 新しいコードのバリエーションを自動探索。
+- **淘汰**: 客観的なベンチマークに基づいて、最適な戦略を選抜。
+
+### 🧠 Collective Intelligence / 集合知システム
+
+**Multi-Agent Consensus**: Agents collaborate, debate, and reach consensus on complex tasks using a sophisticated voting and trust system.
+
+- **Role-Based Agents**: Researcher, Critic, Architect, and Implementer roles.
+- **Trust Scores**: Dynamic reputation system for agent reliability.
+- **Proposal & Debate**: Structured refinement of ideas before execution.
+
+**マルチエージェント合意形成**: 投票と信頼スコアシステムを用いて、複数のエージェントが複雑なタスクについて議論し、合意を形成します。
+
+- **役割ベース**: リサーチャー、批評家、アーキテクト、実装者などの専門ロール。
+- **信頼スコア**: エージェントの信頼性を動的に評価。
+- **提案と議論**: 実行前にアイデアを構造的に洗練。
+
+### 🛡️ Self-Healing / 自己修復
+
+**Autonomous Error Recovery**: The system detects failures, analyzes logs, and applies patches without human intervention.
+
+- **Live Patching**: Applies hotfixes to running agents.
+- **Regression Testing**: Verifies fixes do not break existing functionality.
+
+**自律的なエラー回復**: システムが障害を検知し、ログを分析して、人間の介入なしに修正パッチを適用します。
+
+- **ライブパッチ**: 稼働中のエージェントに修正を適用。
+- **回帰テスト**: 修正による既存機能の破壊を防止。
+
+---
+
+## ✨ Unique Features / 独自の機能
+
+### 🌐 Multi-Channel Matrix / マルチチャネル対応
+
+**True Universality**: Communicate via **LINE**, **WhatsApp**, **Discord**, **Slack**, **Telegram**, and more simultaneously.
+
+- **Unified Inbox**: Manage all conversations from a single Gateway.
+- **Group Routing**: Intelligent routing for group chats and mentions.
+
+**真のユニバーサリティ**: **LINE**、**WhatsApp**、**Discord**、**Slack**、**Telegram**など、あらゆるチャネルで同時に通信可能です。単一のゲートウェイですべての会話を統合管理します。
+
+### 🥽 VRChat Integration (Pro) / VRChat連携
+
+**Immersive Presence**: Deep integration with VRChat for embodied AI interaction.
+
+- **OSC Control**: Sync avatar parameters and chatbox in real-time.
+- **Camera Control**: Pro-level control over Zoom, Aperture, and GreenScreen HSL.
+- **Permissions**: Granular SAFE/PRO/DIRECTOR access levels for remote users.
+
+**没入型プレゼンス**: VRChatとの高度な統合により、身体性を持ったAIインタラクションを実現。OSCによるアバター操作や、プロ仕様のカメラ制御（ズーム、絞り、HSL）が可能です。
+
+### 🎨 Live Canvas (A2UI) / ライブキャンバス
+
+**Generative UI**: The agent can render interactive UI components (React/HTML) in real-time to visualize data or create mini-apps.
+
+**生成型UI**: エージェントがリアルタイムでインタラクティブなUIコンポーネントを描画し、データの可視化やミニアプリの作成を行います。
 
 ---
 
 ## 🏗️ Project Structure / プロジェクト構造
 
-Professional industry-standard organization for scalability and maintainability:
+Professional industry-standard organization for scalability and maintainability.
+拡張性と保守性を考慮した、業界標準のプロフェッショナルなディレクトリ構成です。
 
-- **`src/`**: Core TypeScript source code (Multi-channel agents, logic).
-- **`apps/`**: Platform-specific implementations (macOS, iOS, Android, Swabble).
-- **`extensions/`**: Modular plugin system and optional features.
-- **`scripts/`**: Consolidated automation and utility scripts.
-  - `automation/`: OS-level automation (.ps1, .bat, .sh).
-  - `tools/`: Python-based heavy processing and resolution tools.
-  - `node/`: Build and development utility Node.js scripts.
-- **`config/`**: Centralized configuration management and templates.
-- **`deploy/`**: Containerization and cloud deployment manifests (Docker, Fly.io).
-- **`docs/`**: Comprehensive documentation and user guides.
-- **`test/`**: High-coverage unit and E2E test suites.
-
-## 🥽 VRChat Integration (Pro) / VRChat統合（プロ版）
-
-**Advanced OSC interaction for immersive AI experiences!**
-
-OpenClaw features a **Pro Edition VRChat Relay** that provides:
-
-- **Chatbox Control**: Real-time messaging with typing animations.
-- **Avatar parameters**: Bidirectional OSC parameter sync.
-- **Pro Camera Control**: Full control over Zoom, Aperture, and GreenScreen HSL.
-- **Permission System**: Secure SAFE/PRO/DIRECTOR access levels.
+- **`src/`**: Core TypeScript source code / コアソースコード
+- **`apps/`**: Platform specifics (iOS, Android, macOS) / プラットフォーム別アプリ
+- **`extensions/`**: Modular plugins / 拡張機能
+- **`scripts/`**: Automation & Utilities / 自動化スクリプト
+  - `automation/`: OS scripts (.ps1, .sh) / OS自動化
+  - `tools/`: Python/Advanced tools / 高度なツール
+  - `node/`: Node.js utilities / Node.jsユーティリティ
+- **`config/`**: Configuration / 設定ファイル
+- **`deploy/`**: Docker & Cloud / デプロイ設定
+- **`docs/`**: Documentation / ドキュメント
+- **`test/`**: High-coverage test suites / テストスイート
 
 ---
 
-[Website](https://openclaw.ai) · [Docs](https://docs.openclaw.ai) · [DeepWiki](https://deepwiki.com/openclaw/openclaw) · [Getting Started](https://docs.openclaw.ai/start/getting-started) · [Updating](https://docs.openclaw.ai/install/updating) · [Showcase](https://docs.openclaw.ai/start/showcase) · [FAQ](https://docs.openclaw.ai/start/faq) · [Wizard](https://docs.openclaw.ai/start/wizard) · [Nix](https://github.com/openclaw/nix-clawdbot) · [Docker](https://docs.openclaw.ai/install/docker) · [Discord](https://discord.gg/clawd)
+## 🚀 Quick Start / クイックスタート
 
-Preferred setup: run the onboarding wizard (`openclaw onboard`). It walks through gateway, workspace, channels, and skills. The CLI wizard is the recommended path and works on **macOS, Linux, and Windows (via WSL2; strongly recommended)**.
-Works with npm, pnpm, or bun.
-New install? Start here: [Getting started](https://docs.openclaw.ai/start/getting-started)
+[Website](https://openclaw.ai) · [Docs](https://docs.openclaw.ai) · [DeepWiki](https://deepwiki.com/openclaw/openclaw) · [Getting Started](https://docs.openclaw.ai/start/getting-started) · [Discord](https://discord.gg/clawd)
 
-**Subscriptions (OAuth):**
+Preferred setup: run the onboarding wizard (`openclaw onboard`).
+推奨セットアップ：`openclaw onboard`を実行してウィザード形式で設定します。
 
-- **[Anthropic](https://www.anthropic.com/)** (Claude Pro/Max)
-- **[OpenAI](https://openai.com/)** (ChatGPT/Codex)
-
-Model note: while any model is supported, I strongly recommend **Anthropic Pro/Max (100/200) + Opus 4.5** for long‑context strength and better prompt‑injection resistance. See [Onboarding](https://docs.openclaw.ai/start/onboarding).
-
-## Models (selection + auth)
-
-- Models config + CLI: [Models](https://docs.openclaw.ai/concepts/models)
-- Auth profile rotation (OAuth vs API keys) + fallbacks: [Model failover](https://docs.openclaw.ai/concepts/model-failover)
-
-## Install (recommended)
-
-Runtime: **Node ≥22**.
+**Runtime**: Node.js ≥22
 
 ```bash
+# Install / インストール
 npm install -g openclaw@latest
-# or: pnpm add -g openclaw@latest
 
+# Optimize Setup (Daemon & Tools) / 最適化セットアップ
 openclaw onboard --install-daemon
+
+# Start Gateway / ゲートウェイ起動
+openclaw gateway --port 18789 --verbose
 ```
 
-The wizard installs the Gateway daemon (launchd/systemd user service) so it stays running.
+### 🔐 Auth & Models / 認証とモデル
 
-## Quick start (TL;DR)
-
-Runtime: **Node ≥22**.
-
-Full beginner guide (auth, pairing, channels): [Getting started](https://docs.openclaw.ai/start/getting-started)
+Supports **Anthropic** (Claude Pro/Max) and **OpenAI** (ChatGPT/Codex).
+Recommended: **Anthropic Pro/Max (100/200) + Opus 4.5**.
 
 ```bash
-openclaw onboard --install-daemon
-
-openclaw gateway --port 18789 --verbose
-
-# Send a message
-openclaw message send --to +1234567890 --message "Hello from OpenClaw"
-
-# Talk to the assistant (optionally deliver back to any connected channel: WhatsApp/Telegram/Slack/Discord/Google Chat/Signal/iMessage/BlueBubbles/Microsoft Teams/Matrix/Zalo/Zalo Personal/WebChat)
+# Talk to the assistant / アシスタントと会話
 openclaw agent --message "Ship checklist" --thinking high
 ```
-
-Upgrading? [Updating guide](https://docs.openclaw.ai/install/updating) (and run `openclaw doctor`).
-
-## Development channels
-
-- **stable**: tagged releases (`vYYYY.M.D` or `vYYYY.M.D-<patch>`), npm dist-tag `latest`.
-- **beta**: prerelease tags (`vYYYY.M.D-beta.N`), npm dist-tag `beta` (macOS app may be missing).
-- **dev**: moving head of `main`, npm dist-tag `dev` (when published).
-
-Switch channels (git + npm): `openclaw update --channel stable|beta|dev`.
-Details: [Development channels](https://docs.openclaw.ai/install/development-channels).
-
-## From source (development)
-
-Prefer `pnpm` for builds from source. Bun is optional for running TypeScript directly.
-
-```bash
-git clone https://github.com/openclaw/openclaw.git
-cd openclaw
-
-pnpm install
-pnpm ui:build # auto-installs UI deps on first run
-pnpm build
-
-pnpm openclaw onboard --install-daemon
-
-# Dev loop (auto-reload on TS changes)
-pnpm gateway:watch
-```
-
-Note: `pnpm openclaw ...` runs TypeScript directly (via `tsx`). `pnpm build` produces `dist/` for running via Node / the packaged `openclaw` binary.
-
-## Security defaults (DM access)
-
-OpenClaw connects to real messaging surfaces. Treat inbound DMs as **untrusted input**.
-
-Full security guide: [Security](https://docs.openclaw.ai/gateway/security)
-
-Default behavior on Telegram/WhatsApp/Signal/iMessage/Microsoft Teams/Discord/Google Chat/Slack:
-
-- **DM pairing** (`dmPolicy="pairing"` / `channels.discord.dm.policy="pairing"` / `channels.slack.dm.policy="pairing"`): unknown senders receive a short pairing code and the bot does not process their message.
-- Approve with: `openclaw pairing approve <channel> <code>` (then the sender is added to a local allowlist store).
-- Public inbound DMs require an explicit opt-in: set `dmPolicy="open"` and include `"*"` in the channel allowlist (`allowFrom` / `channels.discord.dm.allowFrom` / `channels.slack.dm.allowFrom`).
-
-Run `openclaw doctor` to surface risky/misconfigured DM policies.
-
-## Highlights
-
-- **[Local-first Gateway](https://docs.openclaw.ai/gateway)** — single control plane for sessions, channels, tools, and events.
-- **[Multi-channel inbox](https://docs.openclaw.ai/channels)** — WhatsApp, Telegram, Slack, Discord, Google Chat, Signal, BlueBubbles (iMessage), iMessage (legacy), Microsoft Teams, Matrix, Zalo, Zalo Personal, WebChat, macOS, iOS/Android.
-- **[Multi-agent routing](https://docs.openclaw.ai/gateway/configuration)** — route inbound channels/accounts/peers to isolated agents (workspaces + per-agent sessions).
-- **[Voice Wake](https://docs.openclaw.ai/nodes/voicewake) + [Talk Mode](https://docs.openclaw.ai/nodes/talk)** — always-on speech for macOS/iOS/Android with ElevenLabs.
-- **[Live Canvas](https://docs.openclaw.ai/platforms/mac/canvas)** — agent-driven visual workspace with [A2UI](https://docs.openclaw.ai/platforms/mac/canvas#canvas-a2ui).
-- **[First-class tools](https://docs.openclaw.ai/tools)** — browser, canvas, nodes, cron, sessions, and Discord/Slack actions.
-- **[Companion apps](https://docs.openclaw.ai/platforms/macos)** — macOS menu bar app + iOS/Android [nodes](https://docs.openclaw.ai/nodes).
-- **[Onboarding](https://docs.openclaw.ai/start/wizard) + [skills](https://docs.openclaw.ai/tools/skills)** — wizard-driven setup with bundled/managed/workspace skills.
 
 ## Star History
 

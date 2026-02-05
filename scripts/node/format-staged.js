@@ -7,7 +7,7 @@ const OXFMT_EXTENSIONS = new Set([".cjs", ".js", ".json", ".jsonc", ".jsx", ".mj
 
 function getRepoRoot() {
   const here = path.dirname(fileURLToPath(import.meta.url));
-  return path.resolve(here, "..", "..");
+  return path.resolve(here, "..");
 }
 
 function runGitCommand(args, options = {}) {

@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { ErrorCodes, PROTOCOL_VERSION, ProtocolSchemas } from "../../src/gateway/protocol/schema.js";
+import { ErrorCodes, PROTOCOL_VERSION, ProtocolSchemas } from "../src/gateway/protocol/schema.js";
 
 type JsonSchema = {
   type?: string | string[];
@@ -13,7 +13,7 @@ type JsonSchema = {
 };
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(__dirname, "..", "..");
+const repoRoot = path.resolve(__dirname, "..");
 const outPaths = [
   path.join(repoRoot, "apps", "macos", "Sources", "OpenClawProtocol", "GatewayModels.swift"),
   path.join(
