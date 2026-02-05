@@ -160,7 +160,9 @@ async function runGatewayCommand(opts: GatewayRunOpts) {
 
   const snapshot = await readConfigFileSnapshot().catch(() => null);
   const configExists = (snapshot?.exists ?? false) || fs.existsSync(CONFIG_PATH);
-  const mode = cfg.gateway?.mode ?? snapshot?.parsed?.gateway?.mode;
+  const cfgAny = cfg as Record<string, unknown>;
+  const snapshotParsed = snapshot?.parsed as Record<string, unknown> | undefined;
+  const mode = cfgAny.gateway?.mode ?? snapshotParsed?.gateway?.mode;
   if (!opts.allowUnconfigured && mode !== "local") {
     if (!configExists) {
       defaultRuntime.error(
