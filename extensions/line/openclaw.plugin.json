@@ -1,6 +1,17 @@
 {
   "id": "line",
   "channels": ["line"],
+  "disabled": false,
+  "mergedFeatures": {
+    "source": "line-ai-bridge",
+    "features": [
+      "webhook-server",
+      "terminal-bridge",
+      "ai-tools-integration",
+      "session-management",
+      "free-tier-tracking"
+    ]
+  },
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
