@@ -42,18 +42,21 @@ const plugin = {
     ),
     modeDefault: Type.Optional(Type.String({ default: "CLI", enum: ["LINE", "CLI", "GUI"] })),
     enableHumanInLoop: Type.Optional(Type.Boolean({ default: true })),
+    memoryBackend: Type.Optional(Type.String({ default: "builtin", enum: ["builtin", "qmd"] })),
   }),
 
   register(
     api: {
       registerTool: (tool: unknown) => void;
       runtime: { log: (msg: string) => void };
+      config?: Record<string, unknown>;
+      agentId?: string;
     },
     config?: VRChatAgentConfig,
   ) {
     api.runtime.log("Registering VRChat Memory plugin...");
 
-    const agent = new VRChatAgent(config);
+    const agent = new VRChatAgent(config, api.config, api.agentId);
 
     agent.on("initialized", () => {
       api.runtime.log("VRChat Memory agent initialized");
@@ -430,6 +433,59 @@ ${list}`,
     });
 
     api.registerTool({
+      name: "vrchat_memory_search_upstream",
+      description: "Search memories using OpenClaw's upstream memory backend (QMD or builtin)",
+      parameters: Type.Object({
+        query: Type.String({ description: "Search query" }),
+        limit: Type.Optional(Type.Number({ description: "Max results", default: 5 })),
+      }),
+      async execute(_id: string, params: { query: string; limit?: number }) {
+        const results = await agent.searchUpstreamMemory(params.query, params.limit);
+
+        if (results.length === 0) {
+          return {
+            content: [{ type: "text", text: "No memories found in upstream storage" }],
+          };
+        }
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Found ${results.length} memories:\n${results.map((r, i) => `${i + 1}. ${r}`).join("\n")}`,
+            },
+          ],
+        };
+      },
+    });
+
+    api.registerTool({
+      name: "vrchat_memory_upstream_status",
+      description: "Get status of OpenClaw upstream memory backend",
+      parameters: Type.Object({}),
+      async execute() {
+        const status = await agent.getUpstreamMemoryStatus();
+
+        if (!status) {
+          return {
+            content: [{ type: "text", text: "Upstream memory bridge not configured" }],
+          };
+        }
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Upstream Memory Status:
+- Initialized: ${status.initialized}
+- Backend: ${status.backend}`,
+            },
+          ],
+        };
+      },
+    });
+
+    api.registerTool({
       name: "vrchat_memory_clear",
       description: "Clear all VRChat memory data",
       parameters: Type.Object({}),
@@ -444,7 +500,7 @@ ${list}`,
 
     api.runtime.log("VRChat Memory plugin registered successfully");
     api.runtime.log(
-      "Features: GRPO optimization, Ebbinghaus memory, Episodic memory, Mode switching",
+      "Features: GRPO optimization, Ebbinghaus memory, Episodic memory, Mode switching, Upstream memory bridge",
     );
   },
 };

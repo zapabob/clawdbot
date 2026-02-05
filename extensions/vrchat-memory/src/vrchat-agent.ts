@@ -11,6 +11,7 @@ import { EbbinghausMemory, EbbinghausConfig, MemoryItem } from "./ebbinghaus-mem
 import { EpisodicMemory, EpisodicConfig, EpisodeType } from "./episodic-memory.js";
 import { GRPOEngine, GRPOConfig, RewardFunction } from "./grpo-engine.js";
 import { ModeSwitcher, ControlMode, CommandContext, ParsedCommand } from "./mode-switcher.js";
+import { MemoryBridge } from "./memory-bridge.js";
 
 export interface VRChatAgentConfig {
   grpo?: Partial<GRPOConfig>;
@@ -18,6 +19,7 @@ export interface VRChatAgentConfig {
   episodic?: Partial<EpisodicConfig>;
   modeDefault?: ControlMode;
   enableHumanInLoop?: boolean;
+  memoryBackend?: "builtin" | "qmd";
 }
 
 export interface VRChatAction {
@@ -73,11 +75,16 @@ export class VRChatAgent extends EventEmitter {
   private ebbinghaus: EbbinghausMemory;
   private episodic: EpisodicMemory;
   private modeSwitcher: ModeSwitcher;
+  private memoryBridge: MemoryBridge | null = null;
   private state: AgentState;
   private actionHistory: ActionResult[] = [];
   private readonly MAX_ACTION_HISTORY = 500;
 
-  constructor(config: Partial<VRChatAgentConfig> = {}) {
+  constructor(
+    config: Partial<VRChatAgentConfig> = {},
+    openclawConfig?: Record<string, unknown>,
+    agentId?: string,
+  ) {
     super();
     this.config = {
       grpo: config.grpo ?? {},
@@ -85,6 +92,7 @@ export class VRChatAgent extends EventEmitter {
       episodic: config.episodic ?? {},
       modeDefault: config.modeDefault ?? "CLI",
       enableHumanInLoop: config.enableHumanInLoop ?? true,
+      memoryBackend: config.memoryBackend ?? "builtin",
     };
 
     this.grpo = new GRPOEngine(this.config.grpo);
@@ -94,6 +102,10 @@ export class VRChatAgent extends EventEmitter {
       defaultMode: this.config.modeDefault,
       enableAutoSwitch: true,
     });
+
+    if (openclawConfig && agentId) {
+      this.memoryBridge = new MemoryBridge(openclawConfig as any, agentId);
+    }
 
     this.state = {
       isInitialized: false,
@@ -129,7 +141,14 @@ export class VRChatAgent extends EventEmitter {
     if (this.state.isInitialized) return;
 
     this.state.isInitialized = true;
-    this.state.memoryReady = true;
+
+    if (this.memoryBridge) {
+      this.memoryBridge.initialize().then((success) => {
+        this.state.memoryReady = success;
+      });
+    } else {
+      this.state.memoryReady = true;
+    }
 
     this.initializePolicy();
     this.startSession();
@@ -501,6 +520,35 @@ export class VRChatAgent extends EventEmitter {
     return this.episodic.getCurrentSession();
   }
 
+  async searchUpstreamMemory(query: string, limit?: number): Promise<string[]> {
+    if (!this.memoryBridge) {
+      return [];
+    }
+
+    try {
+      const results = await this.memoryBridge.search({ query, limit });
+      return results.map((r) => r.content);
+    } catch {
+      return [];
+    }
+  }
+
+  async addToUpstreamMemory(content: string, metadata?: Record<string, unknown>): Promise<void> {
+    if (!this.memoryBridge) {
+      return;
+    }
+
+    await this.memoryBridge.addMemory(content, metadata);
+  }
+
+  async getUpstreamMemoryStatus(): Promise<{ initialized: boolean; backend: string } | null> {
+    if (!this.memoryBridge) {
+      return null;
+    }
+
+    return this.memoryBridge.getStatus();
+  }
+
   getSessionSummary(sessionId?: string) {
     const session = sessionId
       ? this.episodic.getSession(sessionId)
@@ -524,6 +572,9 @@ export class VRChatAgent extends EventEmitter {
     this.episodic.clear();
     this.grpo.clearGroups();
     this.actionHistory = [];
+    if (this.memoryBridge) {
+      this.memoryBridge.close();
+    }
   }
 
   serialize(): string {
