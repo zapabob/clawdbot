@@ -138,30 +138,146 @@ Official VRChat 2025.3.3 Open Beta ranges:
 | LookAtMeXOffset   | -25 - 25  | units    |
 | LookAtMeYOffset   | -25 - 25  | units    |
 
-## Usage Examples
+## Usage Examples / 使い方例
 
-### Send Chatbox Message with Typing
+### Send Chatbox Message with Typing / チャットボックスにタイピング付きでメッセージ送信
 
 ```bash
 openclaw agent --message "Send 'Hello VRChat!' to chatbox with typing animation"
 ```
 
-### Set Camera Zoom
+### Set Camera Zoom / カメラズーム設定
 
 ```bash
 openclaw agent --message "Set VRChat camera zoom to 50 (requires DIRECTOR permission)"
 ```
 
-### Change Permission Level
+### Change Permission Level / 権限レベル変更
 
 ```bash
 openclaw agent --message "Switch to DIRECTOR mode for camera control"
 ```
 
-### Discover Avatar Parameters
+### Discover Avatar Parameters / アバターパラメータ探索
 
 ```bash
 openclaw agent --message "Discover OSC parameters for current avatar"
+```
+
+## Usage Guide / 使い方ガイド
+
+### 1. Login / ログイン
+
+**English:**
+Authenticate with your VRChat credentials. Supports 2FA/TOTP.
+
+**日本語:**
+VRChatアカウントで認証します。2要素認証（TOTP）にも対応。
+
+```bash
+openclaw agent --message "VRChatにログイン username password"
+```
+
+### 2. Send Chat Message / チャットメッセージ送信
+
+**English:**
+Send a message to the VRChat chatbox with typing animation. Max 144 characters, 9 lines.
+
+**日本語:**
+VRChatのチャットボックスにタイピングアニメーション付きでメッセージを送信。最大144文字、9行。
+
+```bash
+openclaw agent --message "Send 'Hello everyone!' to chatbox"
+```
+
+### 3. Control Camera / カメラ制御
+
+**English:**
+Control VRChat camera parameters (requires DIRECTOR permission). Available: Zoom, Aperture, FocalDistance, etc.
+
+**日本語:**
+VRChatカメラを制御（DIRECTOR権限が必要）。利用可能なパラメータ：Zoom、Aperture、FocalDistanceなど。
+
+```bash
+# Set zoom to 50
+openclaw agent --message "Set camera zoom to 50"
+
+# Set aperture to f/2.8
+openclaw agent --message "Set camera aperture to 2.8"
+
+# Enable green screen with custom HSL
+openclaw agent --message "Set camera greenscreen hue to 120 saturation to 80"
+```
+
+### 4. Avatar Parameters / アバターパラメータ制御
+
+**English:**
+Discover and control avatar parameters via OSC. Supports bool, int, and float types.
+
+**日本語:**
+OSC経由でアバターパラメータを探索・制御。bool、int、float型に対応。
+
+```bash
+# Discover available parameters
+openclaw agent --message "Discover OSC parameters for current avatar"
+
+# Set a parameter
+openclaw agent --message "Set avatar parameter ' parameter_name ' to 1.0"
+```
+
+### 5. Input Commands / 入力コマンド
+
+**English:**
+Send input commands like Jump, Move, Interact (requires PRO permission).
+
+**日本語:**
+Jump、Move、Interactなどの入力コマンドを送信（PRO権限が必要）。
+
+```bash
+# Jump
+openclaw agent --message "Send VRChat input command Jump"
+
+# Move forward
+openclaw agent --message "Send VRChat input command MoveForward 1.0"
+
+# Interact
+openclaw agent --message "Send VRChat input command Interact"
+```
+
+### 6. OSC Listener / OSCリスナー
+
+**English:**
+Start listening for OSC messages from VRChat. Useful for triggers and automation.
+
+**日本語:**
+VRChatからのOSCメッセージ受信を開始。トリガーや自動化に便利。
+
+```bash
+# Start listener
+openclaw agent --message "Start VRChat OSC listener"
+
+# Check status
+openclaw agent --message "Get VRChat listener status"
+
+# Stop listener
+openclaw agent --message "Stop VRChat OSC listener"
+```
+
+### 7. Permission Management / 権限管理
+
+**English:**
+Switch between permission levels: SAFE (default), PRO, or DIRECTOR.
+
+**日本語:**
+権限レベルを切り替え：SAFE（デフォルト）、PRO、DIRECTOR。
+
+```bash
+# Check current permission
+openclaw agent --message "Show VRChat permission status"
+
+# Set permission level
+openclaw agent --message "Set VRChat permission to PRO"
+openclaw agent --message "Set VRChat permission to DIRECTOR"
 ```
 
 ## Rate Limits
