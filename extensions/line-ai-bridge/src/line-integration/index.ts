@@ -7,6 +7,7 @@
 
 import type { PluginRuntime } from "openclaw/plugin-sdk";
 import type { BridgeRouter } from "../bridge/index.js";
+import type { LineMessage } from "../types.js";
 
 let runtime: PluginRuntime | null = null;
 let bridge: BridgeRouter | null = null;
@@ -77,7 +78,7 @@ export async function handleLineWebhook(payload: {
     type: string;
     replyToken?: string;
     source: { userId: string };
-    message: { text: string; id: string };
+    message: { type: string; text?: string; id: string };
   }>;
 }): Promise<void> {
   if (!bridge) {
@@ -86,7 +87,12 @@ export async function handleLineWebhook(payload: {
   }
 
   for (const event of payload.events) {
-    if (event.type !== "message" || !event.message || event.message.type !== "text") {
+    if (
+      event.type !== "message" ||
+      !event.message ||
+      event.message.type !== "text" ||
+      !event.message.text
+    ) {
       continue;
     }
 
@@ -97,7 +103,7 @@ export async function handleLineWebhook(payload: {
     console.log(`[LINE-AI Integration] Received from ${userId}: ${text}`);
 
     // Create LINE message object
-    const lineMessage = {
+    const lineMessage: LineMessage = {
       id: event.message.id,
       userId,
       text,
@@ -126,7 +132,10 @@ export async function handleLineWebhook(payload: {
 export function createLineWebhookHandler() {
   return async (
     req: { body: unknown },
-    res: { send: (data: string) => void; status: (code: number) => void },
+    res: {
+      send: (data: string) => void;
+      status: (code: number) => { send: (data: string) => void };
+    },
   ) => {
     try {
       const body = req.body as { events?: unknown[] };

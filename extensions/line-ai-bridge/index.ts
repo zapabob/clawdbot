@@ -23,11 +23,8 @@ const plugin = {
   }),
 
   register(api: OpenClawPluginApi) {
-    runtime = api.runtime;
-    if (!runtime) {
-      throw new Error("Runtime not available");
-    }
-    runtime.log("Registering LINE AI Bridge plugin with terminal support...");
+    const log = (msg: string) => console.log(`[LINE-AI-Bridge] ${msg}`);
+    log("Registering LINE AI Bridge plugin with terminal support...");
 
     // Initialize bridge with config
     const initBridge = (config: BridgeConfig) => {
@@ -90,7 +87,9 @@ Workflow:
             sessionTimeoutMinutes: 30,
             maxMessageLength: 5000,
             lineSendCallback: async (userId: string, message: string) => {
-              runtime?.log(`Sending to LINE user ${userId}: ${message.substring(0, 50)}...`);
+              console.log(
+                `[LINE-AI-Bridge] Sending to LINE user ${userId}: ${message.substring(0, 50)}...`,
+              );
             },
           };
 
@@ -551,16 +550,18 @@ ${webhookUrl}
     });
 
     if (runtime) {
-      runtime.log("LINE AI Bridge plugin with LINE integration registered successfully");
-      runtime.log(
-        "Tools: line_bridge_start, line_bridge_stop, line_bridge_status, line_bridge_repos, line_bridge_test_connection, line_bridge_send, line_bridge_user_state, line_bridge_usage, line_bridge_reset_usage, line_bridge_config_status, line_bridge_send_message, line_bridge_webhook_url",
+      console.log("[LINE-AI-Bridge] Plugin registered successfully");
+      console.log(
+        "[LINE-AI-Bridge] Tools: line_bridge_start, line_bridge_stop, line_bridge_status, line_bridge_repos, line_bridge_test_connection, line_bridge_send, line_bridge_user_state, line_bridge_usage, line_bridge_reset_usage, line_bridge_config_status, line_bridge_send_message, line_bridge_webhook_url",
       );
-      runtime.log(
-        "Workflow: User sends /terminal from LINE -> Select repo -> Terminal opens -> Execute commands",
+      console.log(
+        "[LINE-AI-Bridge] Workflow: User sends /terminal from LINE -> Select repo -> Terminal opens -> Execute commands",
       );
-      runtime.log("Free Tier: Codex (50/day), Gemini (60/day), Opencode (100/day)");
-      runtime.log(
-        "IMPORTANT: Set LINE_CHANNEL_ACCESS_TOKEN and LINE_CHANNEL_SECRET environment variables!",
+      console.log(
+        "[LINE-AI-Bridge] Free Tier: Codex (50/day), Gemini (60/day), Opencode (100/day)",
+      );
+      console.log(
+        "[LINE-AI-Bridge] IMPORTANT: Set LINE_CHANNEL_ACCESS_TOKEN and LINE_CHANNEL_SECRET environment variables!",
       );
     }
   },
