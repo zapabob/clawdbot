@@ -1,0 +1,124 @@
+{
+  "id": "vrchat-memory",
+  "name": "VRChat Memory",
+  "description": "VRChat control with GRPO optimization, Ebbinghaus forgetting curve memory, and episodic memory for intelligent session management",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "grpo": {
+        "type": "object",
+        "description": "GRPO optimization settings",
+        "properties": {
+          "groupSize": {
+            "type": "integer",
+            "description": "Number of samples per group for advantage estimation",
+            "default": 8,
+            "minimum": 2,
+            "maximum": 32
+          },
+          "learningRate": {
+            "type": "number",
+            "description": "GRPO learning rate",
+            "default": 0.001,
+            "minimum": 0.0001,
+            "maximum": 0.1
+          },
+          "clipRatio": {
+            "type": "number",
+            "description": "PPO-style clipping ratio",
+            "default": 0.2,
+            "minimum": 0.05,
+            "maximum": 0.5
+          },
+          "referenceKLWeight": {
+            "type": "number",
+            "description": "Weight for reference policy KL divergence",
+            "default": 0.03,
+            "minimum": 0.001,
+            "maximum": 0.1
+          },
+          "updateInterval": {
+            "type": "integer",
+            "description": "Number of interactions before policy update",
+            "default": 100,
+            "minimum": 10,
+            "maximum": 1000
+          }
+        }
+      },
+      "ebbinghaus": {
+        "type": "object",
+        "description": "Ebbinghaus forgetting curve settings",
+        "properties": {
+          "decayConstant": {
+            "type": "number",
+            "description": "Decay constant for forgetting curve",
+            "default": 1.25,
+            "minimum": 0.5,
+            "maximum": 3.0
+          },
+          "stabilityIncrement": {
+            "type": "number",
+            "description": "Stability increase per successful review",
+            "default": 1.5,
+            "minimum": 1.0,
+            "maximum": 3.0
+          },
+          "initialStability": {
+            "type": "number",
+            "description": "Initial stability for new memories",
+            "default": 1.0,
+            "minimum": 0.5,
+            "maximum": 2.0
+          },
+          "reviewThreshold": {
+            "type": "number",
+            "description": "Retention threshold for scheduling reviews (0-1)",
+            "default": 0.7,
+            "minimum": 0.3,
+            "maximum": 0.95
+          }
+        }
+      },
+      "episodic": {
+        "type": "object",
+        "description": "Episodic memory settings",
+        "properties": {
+          "maxSessionLength": {
+            "type": "integer",
+            "description": "Maximum session length in minutes",
+            "default": 180,
+            "minimum": 30,
+            "maximum": 480
+          },
+          "maxEpisodes": {
+            "type": "integer",
+            "description": "Maximum number of stored episodes",
+            "default": 1000,
+            "minimum": 100,
+            "maximum": 10000
+          },
+          "importanceThreshold": {
+            "type": "number",
+            "description": "Minimum importance score for long-term storage",
+            "default": 0.6,
+            "minimum": 0.3,
+            "maximum": 0.9
+          }
+        }
+      },
+      "modeDefault": {
+        "type": "string",
+        "description": "Default control mode (LINE, CLI, GUI)",
+        "default": "CLI",
+        "enum": ["LINE", "CLI", "GUI"]
+      },
+      "enableHumanInLoop": {
+        "type": "boolean",
+        "description": "Enable human-in-the-loop for initial login and sensitive operations",
+        "default": true
+      }
+    }
+  }
+}

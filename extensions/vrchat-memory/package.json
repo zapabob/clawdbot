@@ -1,0 +1,16 @@
+{
+  "name": "@openclaw/vrchat-memory",
+  "version": "2026.2.2",
+  "description": "OpenClaw VRChat memory and learning plugin with GRPO and Ebbinghaus forgetting curve",
+  "type": "module",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "openclaw": "workspace:*"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}
