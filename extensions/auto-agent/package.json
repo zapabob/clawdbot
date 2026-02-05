@@ -1,6 +1,6 @@
 {
   "name": "auto-agent",
-  "version": "2026.2.1",
+  "version": "2026.2.4",
   "description": "Autonomous self-improving, self-repairing agent with Codex/GeminiCLI/Opencode integration",
   "keywords": [
     "agent",
