@@ -1,0 +1,11 @@
+{
+  "id": "line-ai-bridge",
+  "name": "LINE AI Bridge",
+  "description": "Bidirectional communication bridge between LINE and AI development tools",
+  "version": "2026.2.2",
+  "author": "OpenClaw",
+  "license": "MIT",
+  "runtime": {
+    "node": ">=18.0.0"
+  }
+}
