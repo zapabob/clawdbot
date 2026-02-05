@@ -354,7 +354,7 @@ export class BridgeRouter {
     const tracker = getFreeTierTracker();
     const quickUsage = tracker.getTodayUsage();
 
-    return `🤖 LINE AI Bridge with Terminal Support
+    return `🤖 LINE AI Bridge - ⭐ Codex Central
 
 Getting Started:
 /terminal or /start - Select a repository and open terminal
@@ -364,16 +364,13 @@ Getting Started:
 /reset - Reset and start over
 
 Commands (after selecting repo):
-/codex or /gpt - Switch to Codex (${quickUsage.codex.remaining} left today)
-/gemini or /google - Switch to Gemini (${quickUsage.gemini.remaining} left today)
-/opencode or /code - Switch to Opencode (${quickUsage.opencode.remaining} left today)
+⭐ /codex or /gpt - Use Codex (${quickUsage.codex.remaining} left today) - DEFAULT
+  /gemini or /google - Use Gemini (${quickUsage.gemini.remaining} left today) - Alternative
+  /opencode or /code - Use Opencode (${quickUsage.opencode.remaining} left today) - Fallback
 
-Any other message will be executed as a command in the terminal!
+Any other message will be executed as Codex command in the terminal!
 
-💡 Free Tier Limits:
-• Codex: 50 requests/day
-• Gemini: 60 requests/day
-• Opencode: 100 requests/day
+💡 Codex is your primary AI assistant. Switch when quota exhausted.
 
 Current status: ${this.isRunning ? "✅ Active" : "❌ Stopped"}`;
   }

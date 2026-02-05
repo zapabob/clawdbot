@@ -1,14 +1,29 @@
 # LINE AI Bridge (Terminal Mode)
 
-Bidirectional communication between LINE and AI development tools (Codex CLI, Gemini CLI, Opencode) with **terminal integration**.
+Bidirectional communication between LINE and AI development tools, with **Codex as the primary/default choice**.
+
+## Why Codex?
+
+**Codex (GitHub Copilot Free)** is set as the default AI tool because:
+
+- Excellent code completion and generation
+- Wide language support
+- Seamless GitHub integration
+- Generous free tier (50 requests/day)
+- Mature CLI with proven reliability
+
+Other tools (Gemini, Opencode) are available as alternatives when you need more quota.
 
 ## Features
 
+- **Codex Central**: Codex is the default AI assistant
 - **Terminal Integration**: Opens actual terminal windows on your PC
 - **Repository Selection**: Automatically scans and lets you choose which repository to work with
 - **Multi-Tool Support**: Switch between Codex, Gemini, and Opencode seamlessly
 - **Interactive Sessions**: Execute commands directly in the terminal from LINE
 - **Repository Management**: Auto-discovers git repositories on your PC
+- **Free Tier Tracking**: Monitors usage to stay within free limits
+- **Usage Warnings**: Alerts when approaching daily limits
 
 ## How It Works
 
@@ -33,21 +48,27 @@ npm install --omit=dev
 
 ## Required AI CLIs
 
-### Codex CLI (GitHub)
+### ⭐ Codex CLI (GitHub) - DEFAULT/Primary
+
+**Recommended for most tasks**
 
 ```bash
 npm install -g @github/codex-cli
 export OPENAI_API_KEY="your-key"
 ```
 
-### Gemini CLI (Google)
+### Gemini CLI (Google) - Alternative
+
+**Use when Codex quota is exhausted**
 
 ```bash
 npm install -g @google/gemini-cli
 export GEMINI_API_KEY="your-key"
 ```
 
-### Opencode
+### Opencode - Fallback
+
+**Use when both Codex and Gemini are exhausted**
 
 ```bash
 # Follow Opencode installation guide
@@ -89,9 +110,11 @@ openclaw line_bridge_start --default-tool codex
 
 **After Selecting Repository:**
 
-- `/codex` or `/gpt` - Switch to Codex
-- `/gemini` or `/google` - Switch to Gemini
-- `/opencode` or `/code` - Switch to Opencode
+- `/codex` or `/gpt` - ⭐ **Use Codex** (Default - 50/day)
+- `/gemini` or `/google` - Use Gemini (Alternative - 60/day)
+- `/opencode` or `/code` - Use Opencode (Fallback - 100/day)
+
+**Default: Codex** - Best for most coding tasks
 
 **Any Other Message:**
 
@@ -139,10 +162,10 @@ openclaw line_bridge_start --default-tool codex
 
    💻 Terminal opened!
 
-   You can now:
-   • Send any message to run as a command
-   • Use /codex, /gemini, or /opencode to switch tools
-   • Use /reset to start over
+    You can now:
+    • Send any message to run as a command (Codex will answer!)
+    • Use /codex, /gemini, or /opencode to switch tools
+    • Use /reset to start over
    ```
 
 5. **A terminal window opens** on your PC with Codex ready!
@@ -157,13 +180,15 @@ openclaw line_bridge_start --default-tool codex
 
 ## CLI Tools
 
-- `line_bridge_start` - Start the bridge
+- `line_bridge_start` - Start the bridge (defaults to Codex)
 - `line_bridge_stop` - Stop the bridge
 - `line_bridge_status` - Check status
 - `line_bridge_repos` - List repositories on PC
 - `line_bridge_test_connection` - Test CLI installations
 - `line_bridge_send` - Send test message
 - `line_bridge_user_state` - Check user session state
+- `line_bridge_usage` - Check free tier usage (Codex priority)
+- `line_bridge_reset_usage` - Reset usage tracking (testing)
 
 ## Repository Detection
 
@@ -257,18 +282,21 @@ Output to LINE
 
 This extension includes built-in tracking to help you stay within free tier limits:
 
-### Supported Limits
+### Priority: Codex First!
 
-| Tool                        | Free Tier        | Limit   |
-| --------------------------- | ---------------- | ------- |
-| Codex (GitHub Copilot Free) | 50 requests/day  | Tracked |
-| Gemini (Google API)         | 60 requests/day  | Tracked |
-| Opencode                    | 100 requests/day | Tracked |
+| Tool         | Free Tier        | Priority  | When to Use                  |
+| ------------ | ---------------- | --------- | ---------------------------- |
+| **⭐ Codex** | 50 requests/day  | Primary   | Default choice for all tasks |
+| **Gemini**   | 60 requests/day  | Secondary | When Codex exhausted         |
+| **Opencode** | 100 requests/day | Tertiary  | Fallback option              |
+
+Codex is prioritized as your main AI assistant. Other tools are available when you need more quota.
 
 ### Usage Commands
 
 - `/usage` - Check today's usage for all tools
 - Shows remaining requests for each tool
+- Codex usage shown first (as primary)
 - Warnings at 50%, 80%, and 100% usage
 
 ### Example Usage Output
@@ -276,22 +304,23 @@ This extension includes built-in tracking to help you stay within free tier limi
 ```
 📊 Today's Free Tier Usage (2026-02-05):
 
-🤖 Codex: 25/50 requests (25 remaining)
-🔷 Gemini: 10/60 requests (50 remaining)
-💎 Opencode: 5/100 requests (95 remaining)
+🤖 Codex: 25/50 requests (25 remaining) ⭐ Primary
+🔷 Gemini: 10/60 requests (50 remaining) - Alternative
+💎 Opencode: 5/100 requests (95 remaining) - Fallback
 
-💡 Tips to save usage:
-• Use /status to check remaining quota
-• Batch multiple questions in one message
-• Use /reset to start fresh when switching topics
+💡 Tips:
+• Start with Codex for best results
+• Switch to Gemini when Codex hits 50/day limit
+• Use Opencode as last resort
 ```
 
 ### Tips for Free Tier Users
 
-1. **Batch Questions**: Ask multiple things in one message instead of separate messages
-2. **Rotate Tools**: If one tool runs out, switch to another with `/gemini` or `/opencode`
-3. **Check Often**: Use `/usage` to monitor your consumption
-4. **Plan Ahead**: Start heavy work early in the day when quotas are fresh
+1. **Start with Codex**: Best results for code tasks, use it first
+2. **Batch Questions**: Ask multiple things in one message
+3. **Rotate Tools**: If Codex runs out, switch to `/gemini`
+4. **Check Often**: Use `/usage` to monitor consumption
+5. **Plan Ahead**: Do Codex-heavy work early in the day
 
 ### CLI Tools for Usage
 
