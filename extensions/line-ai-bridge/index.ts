@@ -365,15 +365,203 @@ ${state.sessionId ? `Session: ${state.sessionId}` : ""}`,
       },
     });
 
+    // Tool: line_bridge_config_status - Check LINE configuration
+    api.registerTool({
+      name: "line_bridge_config_status",
+      label: "Check LINE Configuration",
+      description: "Check if LINE API credentials are properly configured",
+      parameters: Type.Object({}),
+      async execute() {
+        const channelAccessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+        const channelSecret = process.env.LINE_CHANNEL_SECRET;
+        const webhookPort = process.env.WEBHOOK_PORT || "3000";
+
+        const configured = Boolean(channelAccessToken);
+        const hasSecret = Boolean(channelSecret);
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `LINE Configuration Status:
+
+🔧 API Credentials:
+${configured ? "✅" : "❌"} Channel Access Token: ${configured ? "Configured" : "NOT SET"}
+${hasSecret ? "✅" : "❌"} Channel Secret: ${hasSecret ? "Configured" : "NOT SET"}
+
+🌐 Webhook Settings:
+• Webhook Port: ${webhookPort}
+• Webhook URL: https://your-domain.com/webhook/line
+• Health Check: http://localhost:${webhookPort}/health
+
+${configured ? "✅ Ready to receive messages!" : "❌ Cannot send messages without Channel Access Token"}
+
+To configure LINE:
+1. Create a LINE Messaging API channel at https://developers.line.me/
+2. Get Channel Access Token and Channel Secret
+3. Set environment variables:
+   export LINE_CHANNEL_ACCESS_TOKEN=your-token
+   export LINE_CHANNEL_SECRET=your-secret
+4. Restart the bridge`,
+            },
+          ],
+          details: {
+            hasAccessToken: configured,
+            hasSecret,
+            webhookPort,
+          },
+        };
+      },
+    });
+
+    // Tool: line_bridge_send_message - Send message to LINE user
+    api.registerTool({
+      name: "line_bridge_send_message",
+      label: "Send LINE Message",
+      description: "Send a test message to a LINE user (requires LINE_CHANNEL_ACCESS_TOKEN)",
+      parameters: Type.Object({
+        userId: Type.String({ description: "LINE user ID to send message to" }),
+        message: Type.String({ description: "Message text to send" }),
+      }),
+      async execute(_id: string, params: { userId: string; message: string }) {
+        const channelAccessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+
+        if (!channelAccessToken) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: "❌ LINE_CHANNEL_ACCESS_TOKEN not configured. Set it in environment variables first.",
+              },
+            ],
+            details: null,
+            isError: true,
+          };
+        }
+
+        try {
+          const response = await fetch("https://api.line.me/v2/bot/message/push", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${channelAccessToken}`,
+            },
+            body: JSON.stringify({
+              to: params.userId,
+              messages: [
+                {
+                  type: "text",
+                  text: params.message,
+                },
+              ],
+            }),
+          });
+
+          if (!response.ok) {
+            const error = await response.text();
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: `❌ LINE API error: ${error}`,
+                },
+              ],
+              details: null,
+              isError: true,
+            };
+          }
+
+          return {
+            content: [
+              {
+                type: "text",
+                text: `✅ Message sent successfully to ${params.userId}`,
+              },
+            ],
+            details: { userId: params.userId },
+          };
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `❌ Error sending message: ${error instanceof Error ? error.message : "Unknown error"}`,
+              },
+            ],
+            details: null,
+            isError: true,
+          };
+        }
+      },
+    });
+
+    // Tool: line_bridge_webhook_url - Get webhook URL for LINE configuration
+    api.registerTool({
+      name: "line_bridge_webhook_url",
+      label: "Get Webhook URL",
+      description: "Generate the webhook URL to configure in LINE Developers Console",
+      parameters: Type.Object({
+        host: Type.Optional(
+          Type.String({
+            description: "Your server hostname (e.g., myapp.example.com)",
+            default: "localhost",
+          }),
+        ),
+        port: Type.Optional(Type.Number({ description: "Webhook server port", default: 3000 })),
+      }),
+      async execute(_id: string, params: { host?: string; port?: number }) {
+        const host = params.host || "localhost";
+        const port = params.port || 3000;
+        const protocol = host === "localhost" ? "http" : "https";
+
+        const webhookUrl = `${protocol}://${host}:${port}/webhook/line`;
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `LINE Webhook Configuration:
+
+🔗 Webhook URL:
+${webhookUrl}
+
+📋 Setup Steps:
+1. Go to LINE Developers Console: https://developers.line.me/console/
+2. Select your Messaging API channel
+3. Go to "Messaging API settings"
+4. Scroll to "Webhook settings"
+5. Enable webhook
+6. Enter the URL above
+7. Save settings
+
+✅ Once configured, LINE will send messages to this URL
+
+💡 Note: For production, use HTTPS with a valid SSL certificate.
+   You can use ngrok for testing: ngrok http ${port}`,
+            },
+          ],
+          details: {
+            webhookUrl,
+            host,
+            port,
+            protocol,
+          },
+        };
+      },
+    });
+
     if (runtime) {
-      runtime.log("LINE AI Bridge plugin with terminal support registered successfully");
+      runtime.log("LINE AI Bridge plugin with LINE integration registered successfully");
       runtime.log(
-        "Tools: line_bridge_start, line_bridge_stop, line_bridge_status, line_bridge_repos, line_bridge_test_connection, line_bridge_send, line_bridge_user_state, line_bridge_usage, line_bridge_reset_usage",
+        "Tools: line_bridge_start, line_bridge_stop, line_bridge_status, line_bridge_repos, line_bridge_test_connection, line_bridge_send, line_bridge_user_state, line_bridge_usage, line_bridge_reset_usage, line_bridge_config_status, line_bridge_send_message, line_bridge_webhook_url",
       );
       runtime.log(
         "Workflow: User sends /terminal from LINE -> Select repo -> Terminal opens -> Execute commands",
       );
       runtime.log("Free Tier: Codex (50/day), Gemini (60/day), Opencode (100/day)");
+      runtime.log(
+        "IMPORTANT: Set LINE_CHANNEL_ACCESS_TOKEN and LINE_CHANNEL_SECRET environment variables!",
+      );
     }
   },
 };
