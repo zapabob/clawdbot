@@ -3,6 +3,7 @@ import { Type } from "@sinclair/typebox";
 import type { AIToolType } from "./src/types.js";
 import { createAIToolClient, findRepositories, formatRepoList } from "./src/ai-tools/index.js";
 import { BridgeRouter, type BridgeConfig } from "./src/bridge/index.js";
+import { getFreeTierTracker } from "./src/free-tier/index.js";
 
 let bridge: BridgeRouter | null = null;
 let runtime: { log: (msg: string) => void } | null = null;
@@ -106,7 +107,12 @@ Default tool: ${params.defaultTool || "codex"}
 To use:
 1. Send /terminal from LINE
 2. Select a repository
-3. Start coding with AI assistance!`,
+3. Start coding with AI assistance!
+
+💡 Free Tier Limits:
+• Codex: 50 requests/day
+• Gemini: 60 requests/day  
+• Opencode: 100 requests/day`,
               },
             ],
             details: null,
@@ -211,7 +217,10 @@ To use:
           content: [
             {
               type: "text",
-              text: `AI CLI Installation Status:\n\n${results.join("\n")}\n\nTo install:\n• Codex: npm install -g @github/codex-cli\n• Gemini: npm install -g @google/gemini-cli\n• Opencode: Follow Opencode installation guide`,
+              text: `AI CLI Installation Status:\n\n${results.join("\n")}\n\nTo install:
+• Codex: npm install -g @github/codex-cli
+• Gemini: npm install -g @google/gemini-cli
+• Opencode: Follow Opencode installation guide`,
             },
           ],
           details: null,
@@ -312,14 +321,59 @@ ${state.sessionId ? `Session: ${state.sessionId}` : ""}`,
       },
     });
 
+    // Tool: line_bridge_usage - Check free tier usage
+    api.registerTool({
+      name: "line_bridge_usage",
+      label: "Check Free Tier Usage",
+      description: "Check today's free tier usage for all AI tools",
+      parameters: Type.Object({}),
+      async execute() {
+        const tracker = getFreeTierTracker();
+        const usageStats = tracker.formatUsageStats();
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: usageStats,
+            },
+          ],
+          details: tracker.getTodayUsage(),
+        };
+      },
+    });
+
+    // Tool: line_bridge_reset_usage - Reset usage tracking
+    api.registerTool({
+      name: "line_bridge_reset_usage",
+      label: "Reset Usage Tracking",
+      description: "Reset all free tier usage tracking (for testing)",
+      parameters: Type.Object({}),
+      async execute() {
+        const tracker = getFreeTierTracker();
+        tracker.resetUsage();
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: "✅ Free tier usage tracking has been reset. All counters are now at zero.",
+            },
+          ],
+          details: null,
+        };
+      },
+    });
+
     if (runtime) {
       runtime.log("LINE AI Bridge plugin with terminal support registered successfully");
       runtime.log(
-        "Tools: line_bridge_start, line_bridge_stop, line_bridge_status, line_bridge_repos, line_bridge_test_connection, line_bridge_send, line_bridge_user_state",
+        "Tools: line_bridge_start, line_bridge_stop, line_bridge_status, line_bridge_repos, line_bridge_test_connection, line_bridge_send, line_bridge_user_state, line_bridge_usage, line_bridge_reset_usage",
       );
       runtime.log(
         "Workflow: User sends /terminal from LINE -> Select repo -> Terminal opens -> Execute commands",
       );
+      runtime.log("Free Tier: Codex (50/day), Gemini (60/day), Opencode (100/day)");
     }
   },
 };

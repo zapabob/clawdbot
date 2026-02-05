@@ -253,6 +253,51 @@ Command Execution
 Output to LINE
 ```
 
+## Free Tier Management
+
+This extension includes built-in tracking to help you stay within free tier limits:
+
+### Supported Limits
+
+| Tool                        | Free Tier        | Limit   |
+| --------------------------- | ---------------- | ------- |
+| Codex (GitHub Copilot Free) | 50 requests/day  | Tracked |
+| Gemini (Google API)         | 60 requests/day  | Tracked |
+| Opencode                    | 100 requests/day | Tracked |
+
+### Usage Commands
+
+- `/usage` - Check today's usage for all tools
+- Shows remaining requests for each tool
+- Warnings at 50%, 80%, and 100% usage
+
+### Example Usage Output
+
+```
+📊 Today's Free Tier Usage (2026-02-05):
+
+🤖 Codex: 25/50 requests (25 remaining)
+🔷 Gemini: 10/60 requests (50 remaining)
+💎 Opencode: 5/100 requests (95 remaining)
+
+💡 Tips to save usage:
+• Use /status to check remaining quota
+• Batch multiple questions in one message
+• Use /reset to start fresh when switching topics
+```
+
+### Tips for Free Tier Users
+
+1. **Batch Questions**: Ask multiple things in one message instead of separate messages
+2. **Rotate Tools**: If one tool runs out, switch to another with `/gemini` or `/opencode`
+3. **Check Often**: Use `/usage` to monitor your consumption
+4. **Plan Ahead**: Start heavy work early in the day when quotas are fresh
+
+### CLI Tools for Usage
+
+- `line_bridge_usage` - Check free tier usage
+- `line_bridge_reset_usage` - Reset usage tracking (for testing)
+
 ## License
 
 MIT

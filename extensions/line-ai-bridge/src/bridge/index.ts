@@ -8,6 +8,7 @@ import {
   closeTerminalSession,
   formatRepoList,
 } from "../ai-tools/index.js";
+import { getFreeTierTracker } from "../free-tier/index.js";
 import { SessionManager } from "../session/index.js";
 
 export interface BridgeConfig {
@@ -159,6 +160,13 @@ export class BridgeRouter {
         return { success: true, content: statusText };
       }
 
+      if (text === "/usage") {
+        const tracker = getFreeTierTracker();
+        const usageStats = tracker.formatUsageStats();
+        await this.config.lineSendCallback(userId, usageStats);
+        return { success: true, content: usageStats };
+      }
+
       // Handle repository selection
       if (userState.step === "selecting_repo" && userState.availableRepos) {
         const selection = parseInt(text, 10);
@@ -224,6 +232,25 @@ export class BridgeRouter {
 
         // Execute command in terminal
         if (userState.sessionId) {
+          // Check free tier limits before executing
+          const currentTool = userState.selectedTool || this.config.defaultTool;
+          const tracker = getFreeTierTracker();
+          const limitCheck = tracker.canMakeRequest(currentTool);
+
+          if (!limitCheck.allowed) {
+            await this.config.lineSendCallback(
+              userId,
+              `❌ ${limitCheck.reason}\n\nTry:\n• Switch to another tool with /codex, /gemini, or /opencode\n• Wait until tomorrow for the quota to reset\n• Check usage with /usage`,
+            );
+            return { success: false, error: limitCheck.reason };
+          }
+
+          // Show warning if approaching limit
+          const warning = tracker.getWarningMessage(currentTool);
+          if (warning) {
+            await this.config.lineSendCallback(userId, warning);
+          }
+
           // Check if terminal session exists
           const session = getTerminalSession(userState.sessionId);
           if (!session) {
@@ -240,6 +267,11 @@ export class BridgeRouter {
 
           // Send command to terminal
           const result = await sendToTerminal(userState.sessionId, text);
+
+          // Record the request (for tracking AI tool usage)
+          if (result.success) {
+            tracker.recordRequest(currentTool);
+          }
 
           if (result.success && result.content) {
             // Truncate if too long
@@ -319,20 +351,29 @@ export class BridgeRouter {
    * Get help text
    */
   private getHelpText(): string {
+    const tracker = getFreeTierTracker();
+    const quickUsage = tracker.getTodayUsage();
+
     return `🤖 LINE AI Bridge with Terminal Support
 
 Getting Started:
 /terminal or /start - Select a repository and open terminal
 /repos - List all available repositories
 /status - Check your session status
+/usage - Check free tier usage
 /reset - Reset and start over
 
 Commands (after selecting repo):
-/codex or /gpt - Switch to Codex
-/gemini or /google - Switch to Gemini
-/opencode or /code - Switch to Opencode
+/codex or /gpt - Switch to Codex (${quickUsage.codex.remaining} left today)
+/gemini or /google - Switch to Gemini (${quickUsage.gemini.remaining} left today)
+/opencode or /code - Switch to Opencode (${quickUsage.opencode.remaining} left today)
 
 Any other message will be executed as a command in the terminal!
+
+💡 Free Tier Limits:
+• Codex: 50 requests/day
+• Gemini: 60 requests/day
+• Opencode: 100 requests/day
 
 Current status: ${this.isRunning ? "✅ Active" : "❌ Stopped"}`;
   }
