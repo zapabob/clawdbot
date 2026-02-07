@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "openclaw": {
+      "command": "node",
+      "args": ["C:\\Users\\downl\\Desktop\\clawdbot-main3\\clawdbot-main\\gemini-mcp-server.js"]
+    }
+  }
+}
