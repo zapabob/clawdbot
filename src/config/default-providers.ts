@@ -22,38 +22,30 @@ export interface DefaultProvidersConfig {
 
 export const DEFAULT_PROVIDERS: DefaultProvidersConfig = {
   primary: {
-    id: "openai-chatgpt-plus",
-    name: "OpenAI ChatGPT Plus",
+    id: "google-gemini-cli",
+    name: "Google Gemini CLI (OAuth2) - PRIMARY",
     type: "primary",
-    provider: "openai",
-    model: "gpt-4",
+    provider: "google",
+    model: "gemini-2.0-flash-exp",
     authType: "oauth2",
-    capabilities: [
-      "code_generation",
-      "code_analysis",
-      "reasoning",
-      "planning",
-      "debugging",
-      "refactoring",
-      "documentation",
-    ],
-    costPer1kTokens: 0.03,
-    maxTokens: 8192,
-    latency: 1500,
+    capabilities: ["code_generation", "code_analysis", "reasoning", "planning", "multimodal"],
+    costPer1kTokens: 0.01,
+    maxTokens: 1048576,
+    latency: 800,
     enabled: true,
   },
 
   secondary: {
-    id: "google-gemini-cli",
-    name: "Google Gemini CLI (OAuth2)",
+    id: "openai-codex-gpt-5-2",
+    name: "OpenAI Codex GPT-5.2 (OAuth2) - FALLBACK",
     type: "secondary",
-    provider: "google",
-    model: "gemini-3.0-preview",
+    provider: "openai-codex",
+    model: "gpt-5.2",
     authType: "oauth2",
-    capabilities: ["code_generation", "code_analysis", "reasoning", "planning"],
-    costPer1kTokens: 0.01,
-    maxTokens: 8192,
-    latency: 1000,
+    capabilities: ["code_generation", "code_optimization", "code_analysis", "refactoring"],
+    costPer1kTokens: 0.05,
+    maxTokens: 16384,
+    latency: 1500,
     enabled: true,
   },
 
@@ -73,16 +65,24 @@ export const DEFAULT_PROVIDERS: DefaultProvidersConfig = {
 
   additional: [
     {
-      id: "openai-codex-gpt-5-2",
-      name: "OpenAI Codex GPT-5.2 (OAuth2)",
+      id: "openai-chatgpt-plus",
+      name: "OpenAI ChatGPT Plus",
       type: "additional",
       provider: "openai",
-      model: "codex-5.2-max",
+      model: "gpt-4o",
       authType: "oauth2",
-      capabilities: ["code_generation", "code_optimization", "code_analysis", "refactoring"],
-      costPer1kTokens: 0.05,
-      maxTokens: 16384,
-      latency: 2000,
+      capabilities: [
+        "code_generation",
+        "code_analysis",
+        "reasoning",
+        "planning",
+        "debugging",
+        "refactoring",
+        "documentation",
+      ],
+      costPer1kTokens: 0.03,
+      maxTokens: 8192,
+      latency: 1500,
       enabled: true,
     },
   ],
@@ -121,35 +121,35 @@ export function createEnvTemplate(): string {
 # AI Providers Configuration (Auto-generated)
 # ============================================
 
-# OpenAI ChatGPT Plus (Primary - OAuth2)
-OPENAI_CLIENT_ID=your_openai_client_id
-OPENAI_CLIENT_SECRET=your_openai_client_secret
-OPENAI_ACCESS_TOKEN=
-OPENAI_REFRESH_TOKEN=
-OPENAI_TOKEN_EXPIRY=
-
-# Google Gemini CLI (Secondary - OAuth2)
+# Google Gemini CLI (Primary - OAuth2)
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 GOOGLE_ACCESS_TOKEN=
 GOOGLE_REFRESH_TOKEN=
 GOOGLE_TOKEN_EXPIRY=
 
-# Opencode (Tertiary - Free)
-OPENCODE_API_KEY=  # Free tier - no key required
-
-# OpenAI Codex GPT-5.2 (Additional - OAuth2)
+# OpenAI Codex GPT-5.2 (Secondary - OAuth2)
 CODEX_CLIENT_ID=your_codex_client_id
 CODEX_CLIENT_SECRET=your_codex_client_secret
 CODEX_ACCESS_TOKEN=
 CODEX_REFRESH_TOKEN=
 CODEX_TOKEN_EXPIRY=
 
+# Opencode (Tertiary - Free)
+OPENCODE_API_KEY=  # Free tier - no key required
+
+# OpenAI ChatGPT Plus (Additional - OAuth2)
+OPENAI_CLIENT_ID=your_openai_client_id
+OPENAI_CLIENT_SECRET=your_openai_client_secret
+OPENAI_ACCESS_TOKEN=
+OPENAI_REFRESH_TOKEN=
+OPENAI_TOKEN_EXPIRY=
+
 # Default Provider Selection
-DEFAULT_PRIMARY_PROVIDER=openai-chatgpt-plus
-DEFAULT_SECONDARY_PROVIDER=google-gemini-cli
+DEFAULT_PRIMARY_PROVIDER=google-gemini-cli
+DEFAULT_SECONDARY_PROVIDER=openai-codex-gpt-5-2
 DEFAULT_TERTIARY_PROVIDER=opencode-free
-`;
+ `;
 }
 
 export function parseEnvForProviders(envContent: string): Record<string, string> {
