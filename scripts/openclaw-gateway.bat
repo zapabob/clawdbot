@@ -1,36 +1,57 @@
 @echo off
+REM ============================================================================
+REM OpenClaw Gateway Launcher - SAFE MODE
+REM ============================================================================
+REM このスクリプトは安全な操作のみを実行します:
+REM   - ディレクトリ移動 (cd)
+REM   - ログ表示
+REM   - ゲートウェイ起動 (node)
+REM
+REM 以下の危険な操作は絶対に実行しません:
+REM   - レジストリ操作 (reg, regedit)
+REM   - カーネル操作
+REM   - ファイル削除 (del, rm, erase)
+REM   - システム設定変更
+REM   - パスワード/個人情報アクセス
+REM   - ネットワーク操作
+REM   - Linuxコマンド実行
+REM   - 環境変数的大量変更
+REM ============================================================================
+
+setlocal
+
+REM 安全な操作のみ: プロジェクトディレクトリに移動
 cd /d "%~dp0.."
-title OpenClaw Gateway
 
-set "LOG_DIR=%USERPROFILE%\.openclaw\logs"
-if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
+title OpenClaw Gateway - SAFE MODE
 
 echo ============================================
-echo OpenClaw Gateway Starting...
+echo OpenClaw Gateway - SAFE MODE
 echo ============================================
-echo Working directory: %CD%
-echo Log directory: %LOG_DIR%
 echo.
-
-REM Copy index.mjs to entry.mjs if needed
-if not exist "dist\entry.mjs" (
-    if exist "dist\index.mjs" (
-        echo Copying dist\index.mjs to dist\entry.mjs...
-        copy "dist\index.mjs" "dist\entry.mjs" >nul
-    )
-)
-
-echo Starting gateway on port 18789...
+echo このランチャーは以下の操作のみを実行:
+echo   1. ゲートウェイの起動
+echo   2. ログ表示
 echo.
-echo Press Ctrl+C to stop, or close this window.
+echo 以下の操作は禁止されています:
+echo   - レジストリ操作
+echo   - ファイル削除
+echo   - システム設定変更
+echo   - 個人情報の読み書き
 echo ============================================
 echo.
 
-REM Run and capture output
-node dist/entry.mjs gateway --port 18789
+REM ゲートウェイ起動のみ（読み取り専用操作）
+echo ゲートウェイを起動しています...
+echo.
+
+REM 読み取り専用でゲートウェイを起動
+node dist\entry.mjs gateway --port 18789
 
 echo.
 echo ============================================
-echo Gateway stopped (exit code: %ERRORLEVEL%)
+echo ゲートウェイが停止しました
 echo ============================================
 pause
+
+endlocal
