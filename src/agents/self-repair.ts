@@ -148,7 +148,7 @@ export class SelfRepairEngine {
   private repairMissingFallbacks(): void {
     if (!this.config?.agents?.defaults?.model?.fallbacks) {
       const before = this.config?.agents?.defaults?.model?.fallbacks;
-      const fallbacks = ["ollama/rnj-1-instruct"];
+      const fallbacks = ["ollama/rnj-1-instruct", "ollama/aegis-phi3.5-jpv2.5"];
 
       if (!this.config!.agents!.defaults!.model) {
         this.config!.agents!.defaults!.model = {};
