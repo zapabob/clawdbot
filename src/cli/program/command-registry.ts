@@ -2,23 +2,6 @@ import type { Command } from "commander";
 import { getPrimaryCommand, hasHelpOrVersion } from "../argv.js";
 import { reparseProgramFromActionArgs } from "./action-reparse.js";
 import type { ProgramContext } from "./context.js";
-import { agentsListCommand } from "../../commands/agents.js";
-import { healthCommand } from "../../commands/health.js";
-import { sessionsCommand } from "../../commands/sessions.js";
-import { statusCommand } from "../../commands/status.js";
-import { defaultRuntime } from "../../runtime.js";
-import { getFlagValue, getPositiveIntFlagValue, getVerboseFlag, hasFlag } from "../argv.js";
-import { registerBrowserCli } from "../browser-cli.js";
-import { registerConfigCli } from "../config-cli.js";
-import { registerEvoCommands } from "../evo-cli.js";
-import { registerMemoryCli, runMemoryStatus } from "../memory-cli.js";
-import { registerAgentCommands } from "./register.agent.js";
-import { registerConfigureCommand } from "./register.configure.js";
-import { registerMaintenanceCommands } from "./register.maintenance.js";
-import { registerMessageCommands } from "./register.message.js";
-import { registerOnboardCommand } from "./register.onboard.js";
-import { registerSetupCommand } from "./register.setup.js";
-import { registerStatusHealthSessionsCommands } from "./register.status-health-sessions.js";
 import { registerSubCliCommands } from "./register.subclis.js";
 
 type CommandRegisterParams = {
@@ -27,10 +10,6 @@ type CommandRegisterParams = {
   argv: string[];
 };
 
-export type CommandRegistration = {
-  id: string;
-  register: (params: CommandRegisterParams) => void;
-};
 
 type CoreCliCommandDescriptor = {
   name: string;
@@ -109,12 +88,30 @@ const coreEntries: CoreCliEntry[] = [
     },
   },
   {
-    id: "evo",
-    register: ({ program }) => registerEvoCommands(program),
+    commands: [
+      {
+        name: "evo",
+        description: "Self-evolution and self-repair commands (health/repair/evolve/status)",
+        hasSubcommands: true,
+      },
+    ],
+    register: async ({ program }) => {
+      const { registerEvoCommands } = await import("../evo-cli.js");
+      registerEvoCommands(program);
+    },
   },
   {
-    id: "maintenance",
-    register: ({ program }) => registerMaintenanceCommands(program),
+    commands: [
+      {
+        name: "maintenance",
+        description: "Run maintenance tasks (vacuum, cleanup, diagnostics)",
+        hasSubcommands: true,
+      },
+    ],
+    register: async ({ program }) => {
+      const mod = await import("./register.maintenance.js");
+      mod.registerMaintenanceCommands(program);
+    },
   },
   {
     commands: [
