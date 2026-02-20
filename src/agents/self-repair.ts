@@ -1,5 +1,7 @@
+import os from "node:os";
 import type { OpenClawConfig } from "../config/config.js";
 import { readConfigFileSnapshot } from "../config/io.js";
+import { captureSystemSnapshot } from "./self-metrics.js";
 
 export interface RepairResult {
   success: boolean;
@@ -43,6 +45,8 @@ export class SelfRepairEngine {
     checks.push(this.checkModelConfiguration());
     checks.push(this.checkProviderAvailability());
     checks.push(this.checkMemorySettings());
+    checks.push(await this.checkDiskSpace());
+    checks.push(this.checkNodeProcessMemory());
 
     return checks;
   }
@@ -119,6 +123,64 @@ export class SelfRepairEngine {
       name: "memory_settings",
       status: "healthy",
       message: "Memory search enabled",
+    };
+  }
+
+  private async checkDiskSpace(): Promise<HealthCheck> {
+    const snap = await captureSystemSnapshot().catch(() => null);
+    if (!snap) {
+      return { name: "disk_space", status: "warning", message: "Could not check disk space" };
+    }
+    if (snap.freeDiskRatio < 0.05) {
+      return {
+        name: "disk_space",
+        status: "critical",
+        message: `Disk critically low: ${(snap.freeDiskRatio * 100).toFixed(1)}% free`,
+        suggestion: "Free disk space to avoid memory/config write failures",
+      };
+    }
+    if (snap.freeDiskRatio < 0.15) {
+      return {
+        name: "disk_space",
+        status: "warning",
+        message: `Disk space low: ${(snap.freeDiskRatio * 100).toFixed(1)}% free`,
+        suggestion: "Consider freeing disk space soon",
+      };
+    }
+    return {
+      name: "disk_space",
+      status: "healthy",
+      message: `Disk OK: ${(snap.freeDiskRatio * 100).toFixed(1)}% free`,
+    };
+  }
+
+  private checkNodeProcessMemory(): HealthCheck {
+    const mem = process.memoryUsage();
+    const heapPressure = mem.heapUsed / (mem.heapTotal || 1);
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
+    const systemPressure = 1 - freeMem / totalMem;
+
+    if (heapPressure > 0.9 || systemPressure > 0.95) {
+      return {
+        name: "process_memory",
+        status: "critical",
+        message: `Heap pressure: ${(heapPressure * 100).toFixed(0)}%, system: ${(systemPressure * 100).toFixed(0)}%`,
+        suggestion: "Restart agent to reclaim memory",
+      };
+    }
+    if (heapPressure > 0.75 || systemPressure > 0.85) {
+      return {
+        name: "process_memory",
+        status: "warning",
+        message: `Heap pressure: ${(heapPressure * 100).toFixed(0)}%, system: ${(systemPressure * 100).toFixed(0)}%`,
+        suggestion: "Monitor memory usage",
+      };
+    }
+    return {
+      name: "process_memory",
+      status: "healthy",
+      message: `Heap: ${(heapPressure * 100).toFixed(0)}%, system: ${(systemPressure * 100).toFixed(0)}% used`,
     };
   }
 
