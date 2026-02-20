@@ -1,6 +1,9 @@
 import type { Command } from "commander";
 import { EvolutionaryEngine } from "../agents/self-evolution.js";
 import { runSelfRepair, runHealthCheck } from "../agents/self-repair.js";
+import { SelfReplicationEngine } from "../agents/self-replication.js";
+import { EvoDaemon, isDaemonRunning, readDaemonStatus } from "../agents/evo-daemon.js";
+import { getSharedMetricsCollector } from "../agents/self-metrics.js";
 import { readConfigFileSnapshot } from "../config/io.js";
 import { info, success, warn } from "../globals.js";
 
@@ -166,5 +169,146 @@ export function registerEvoCommands(program: Command): void {
       } catch (error) {
         console.log(`Status check failed: ${error}`);
       }
+    });
+  // ---------------------------------------------------------------------------
+  // evo daemon
+  // ---------------------------------------------------------------------------
+  const daemon = evo.command("daemon").description("Autonomous self-management daemon");
+
+  daemon
+    .command("start")
+    .description("Start the evo daemon (self-repair + evolution + replication)")
+    .option("-r, --repair-interval <ms>", "Repair interval in ms", "300000")
+    .option("-e, --evolve-interval <ms>", "Evolve interval in ms", "3600000")
+    .action(async (opts: { repairInterval: string; evolveInterval: string }) => {
+      info("Starting evo daemon...");
+      const d = new EvoDaemon({
+        repairIntervalMs: parseInt(opts.repairInterval, 10),
+        evolveIntervalMs: parseInt(opts.evolveInterval, 10),
+      });
+      const started = await d.start();
+      if (!started) {
+        warn("Daemon is already running (or lock file exists). Use 'evo daemon status'.");
+        process.exit(1);
+      }
+      success("Daemon started. PID: " + process.pid);
+      // Keep alive — stop when signalled
+      process.on("SIGINT", () => void d.stop().then(() => process.exit(0)));
+      process.on("SIGTERM", () => void d.stop().then(() => process.exit(0)));
+    });
+
+  daemon
+    .command("status")
+    .description("Show daemon status")
+    .action(async () => {
+      const running = await isDaemonRunning();
+      const status = await readDaemonStatus();
+
+      console.log("\n=== EvoDaemon Status ===");
+      console.log(`  Running  : ${running ? "✓ YES" : "✗ NO"}`);
+
+      if (status) {
+        console.log(`  PID      : ${status.pid ?? "—"}`);
+        console.log(
+          `  Started  : ${
+            status.startedAt ? new Date(status.startedAt).toLocaleString() : "—"
+          }`,
+        );
+        console.log(`  Repairs  : ${status.repairCount}`);
+        console.log(`  Evolves  : ${status.evolveCount}`);
+        console.log(`  Clones   : ${status.cloneCount}`);
+        console.log(
+          `  BestFit  : ${
+            status.bestFitness !== null ? status.bestFitness.toFixed(4) : "—"
+          }`,
+        );
+        console.log(`  Gen      : ${status.currentGeneration}`);
+      } else {
+        console.log("  No status file found.");
+      }
+      console.log("");
+    });
+
+  // ---------------------------------------------------------------------------
+  // evo clone
+  // ---------------------------------------------------------------------------
+  const clone = evo.command("clone").description("Self-replication management");
+
+  clone
+    .command("list")
+    .description("List all agent clones")
+    .action(async () => {
+      const engine = new SelfReplicationEngine();
+      await engine.loadManifest();
+      const clones = engine.getClones();
+
+      if (clones.length === 0) {
+        info("No clones found. Run 'evo daemon start' to begin self-replication.");
+        return;
+      }
+
+      console.log(`\n=== Agent Clones (${clones.length}/${engine.getMaxClones()} max) ===\n`);
+      for (const c of [...clones].sort((a, b) => b.fitness - a.fitness)) {
+        const age = Math.round((Date.now() - c.createdAt) / 60_000);
+        console.log(`  ${c.id.slice(0, 24)}  fit=${c.fitness.toFixed(4)}  gen=${c.generation}  age=${age}m`);
+        console.log(`    ${c.dir}`);
+      }
+      console.log("");
+    });
+
+  clone
+    .command("prune")
+    .description("Remove lowest-fitness clones, keeping the top N")
+    .option("-k, --keep <n>", "Number of clones to keep", "3")
+    .action(async (opts: { keep: string }) => {
+      const keepCount = parseInt(opts.keep, 10);
+      const engine = new SelfReplicationEngine();
+      await engine.loadManifest();
+      const removed = await engine.pruneWeakClones(keepCount);
+      success(`Pruned ${removed} clone(s). ${engine.getClones().length} remaining.`);
+    });
+
+  clone
+    .command("spawn")
+    .description("Manually spawn a clone from the current best config")
+    .action(async () => {
+      info("Spawning new agent clone...");
+      const snapshot = await readConfigFileSnapshot();
+      const engine = new SelfReplicationEngine();
+      await engine.loadManifest();
+      const record = await engine.spawnClone(snapshot.config);
+      if (!record) {
+        warn(`Clone cap (${engine.getMaxClones()}) reached. Run 'evo clone prune' first.`);
+        process.exit(1);
+      }
+      success(`Spawned clone: ${record.id}`);
+      console.log(`  Dir: ${record.dir}`);
+    });
+
+  // ---------------------------------------------------------------------------
+  // evo metrics
+  // ---------------------------------------------------------------------------
+  evo
+    .command("metrics")
+    .description("Show current agent performance metrics")
+    .action(async () => {
+      const collector = getSharedMetricsCollector();
+      await collector.load();
+      const m = collector.compute();
+
+      console.log("\n=== Agent Performance Metrics ===\n");
+      if (m.sampleSize === 0) {
+        info("No metrics recorded yet. Metrics accumulate as the agent handles tasks.");
+        return;
+      }
+      console.log(`  Sample size       : ${m.sampleSize} calls`);
+      console.log(`  Avg response time : ${m.avgResponseTimeMs.toFixed(0)} ms`);
+      console.log(`  Error rate        : ${(m.errorRate * 100).toFixed(1)}%`);
+      console.log(`  Task completion   : ${(m.taskCompletionRate * 100).toFixed(1)}%`);
+      console.log(`  Memory pressure   : ${(m.memoryPressure * 100).toFixed(1)}%`);
+      console.log(
+        `  Last updated      : ${new Date(m.lastUpdatedAt).toLocaleString()}`,
+      );
+      console.log("");
     });
 }

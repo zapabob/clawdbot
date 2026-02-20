@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { OpenClawConfig } from "../config/config.js";
 import { resolveOpenClawAgentDir } from "./agent-paths.js";
+import type { AgentMetrics } from "./self-metrics.js";
 
 export interface EvolutionIndividual {
   id: string;
@@ -129,54 +130,73 @@ export class EvolutionaryEngine {
     return config;
   }
 
-  async evaluateIndividual(_individual: EvolutionIndividual): Promise<EvaluationResult> {
-    const startTime = Date.now();
-
+  /**
+   * Evaluate an individual against live AgentMetrics.
+   * Fitness = weighted combination of real observed metrics:
+   *   40% task completion rate
+   *   30% error-free rate
+   *   20% normalised response speed (capped at 5s)
+   *   10% available memory
+   */
+  async evaluateIndividual(
+    _individual: EvolutionIndividual,
+    metrics?: AgentMetrics,
+  ): Promise<EvaluationResult> {
     try {
-      const errors: string[] = [];
+      // Use provided metrics or fall back to safe defaults (no random)
+      const responseTimeMs = metrics?.avgResponseTimeMs ?? 500;
+      const errorRate = metrics?.errorRate ?? 0;
+      const taskCompletion = metrics?.taskCompletionRate ?? 1;
+      const memoryPressure = metrics?.memoryPressure ?? 0.3;
 
-      const responseTime = Math.random() * 100 + 50;
-      const errorRate = Math.random() * 0.1;
-      const memoryUsage = Math.random() * 0.5 + 0.2;
-      const taskCompletion = Math.random() * 0.3 + 0.7;
+      // Normalise response time: 0 ms → 1.0, 5000 ms → 0.0
+      const MAX_RESPONSE_MS = 5_000;
+      const responseScore = Math.max(0, 1 - responseTimeMs / MAX_RESPONSE_MS);
 
       const fitness =
+        0.4 * taskCompletion +
         0.3 * (1 - errorRate) +
-        0.3 * taskCompletion +
-        0.2 * (1 / (responseTime / 100)) +
-        0.2 * (1 - memoryUsage);
+        0.2 * responseScore +
+        0.1 * (1 - memoryPressure);
 
       return {
         success: true,
-        fitness,
+        fitness: Math.max(0, Math.min(1, fitness)),
         metrics: {
-          responseTime,
+          responseTime: responseTimeMs,
           errorRate,
-          memoryUsage,
+          memoryUsage: memoryPressure,
           taskCompletion,
         },
-        errors,
+        errors: [],
       };
     } catch (error) {
       return {
         success: false,
         fitness: 0,
-        metrics: {
-          responseTime: Date.now() - startTime,
-          errorRate: 1,
-          memoryUsage: 1,
-          taskCompletion: 0,
-        },
+        metrics: { responseTime: 0, errorRate: 1, memoryUsage: 1, taskCompletion: 0 },
         errors: [String(error)],
       };
     }
   }
 
+  /** Run one generation using the provided live metrics snapshot. */
+  async evolveWithMetrics(metrics: AgentMetrics): Promise<EvolutionIndividual | null> {
+    // Temporarily bind metrics for this generation's evaluation
+    this._currentMetrics = metrics;
+    const result = await this.evolve();
+    this._currentMetrics = null;
+    return result;
+  }
+
+  /** Bound during evolveWithMetrics(); null otherwise. */
+  private _currentMetrics: AgentMetrics | null = null;
+
   async evolve(): Promise<EvolutionIndividual | null> {
     console.log(`Starting evolution generation ${this.generation + 1}`);
 
     const evaluations = await Promise.all(
-      this.population.map((ind) => this.evaluateIndividual(ind)),
+      this.population.map((ind) => this.evaluateIndividual(ind, this._currentMetrics ?? undefined)),
     );
 
     evaluations.forEach((evalResult, i) => {
