@@ -1,0 +1,57 @@
+{
+  "id": "auto-agent",
+  "name": "Auto Agent",
+  "description": "Autonomous self-improvement and self-repair agent plugin with internet access and web search capabilities.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "description": "Enable or disable the auto-agent."
+      },
+      "checkIntervalMs": {
+        "type": "number",
+        "description": "Interval in milliseconds between autonomous checks.",
+        "default": 60000
+      },
+      "maxChangesPerCommit": {
+        "type": "number",
+        "description": "Maximum number of file changes per auto-commit.",
+        "default": 10
+      },
+      "selfHealing": {
+        "type": "boolean",
+        "description": "Enable automatic self-healing on errors.",
+        "default": true
+      },
+      "autoRollback": {
+        "type": "boolean",
+        "description": "Enable automatic rollback on failed changes.",
+        "default": true
+      },
+      "gitAutoCommit": {
+        "type": "boolean",
+        "description": "Automatically commit improvements to git.",
+        "default": false
+      },
+      "webSearch": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Enable web search for autonomous knowledge retrieval.",
+            "default": true
+          },
+          "provider": {
+            "type": "string",
+            "enum": ["brave", "perplexity", "grok"],
+            "description": "Web search provider.",
+            "default": "brave"
+          }
+        }
+      }
+    }
+  }
+}
