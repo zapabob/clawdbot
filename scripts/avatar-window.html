@@ -214,19 +214,28 @@
       camera.lookAt(0, 1.0, 0);
 
       // --- Lights ---
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+      // Boosted ambient light for brighter cartoon shading
+      const ambientLight = new THREE.AmbientLight(0xffffff, 1.8);
       scene.add(ambientLight);
 
-      const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+      // Main directional light
+      const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
       dirLight.position.set(2, 5, 3);
       dirLight.castShadow = true;
       dirLight.shadow.mapSize.width = 2048;
       dirLight.shadow.mapSize.height = 2048;
+      // Make shadows softer and less dark
+      dirLight.shadow.bias = -0.001;
       scene.add(dirLight);
 
-      const fillLight = new THREE.DirectionalLight(0x88ccff, 0.4);
-      fillLight.position.set(-2, 2, -1);
+      // Fill / Rim light for anime feel
+      const fillLight = new THREE.DirectionalLight(0xccccff, 0.8);
+      fillLight.position.set(-2, 2, -3);
       scene.add(fillLight);
+      
+      const rimLight = new THREE.DirectionalLight(0xffffff, 1.0);
+      rimLight.position.set(0, 3, -5);
+      scene.add(rimLight);
 
       // --- Controls ---
       const controls = new OrbitControls(camera, canvas);
@@ -264,10 +273,45 @@
           fbx.position.y = -box.min.y * scale;
           fbx.position.z = -center.z * scale;
 
+          // Create LilToon-like Gradient Map for Toon Shading (4-step)
+          const colors = new Uint8Array(4);
+          for (let c = 0; c <= colors.length; c++) {
+            colors[c] = (c / colors.length) * 256;
+          }
+          const toonGradientMap = new THREE.DataTexture(colors, colors.length, 1, THREE.RedFormat);
+          toonGradientMap.needsUpdate = true;
+
           fbx.traverse((child) => {
             if (child.isMesh) {
               child.castShadow = true;
               child.receiveShadow = true;
+              
+              // Apply LilToon-like Toon Shader
+              if (child.material) {
+                const materials = Array.isArray(child.material) ? child.material : [child.material];
+                
+                const newMaterials = materials.map(mat => {
+                  const toonMat = new THREE.MeshToonMaterial({
+                    color: mat.color || new THREE.Color(0xffffff),
+                    map: mat.map,
+                    gradientMap: toonGradientMap,
+                    transparent: mat.transparent,
+                    alphaTest: mat.alphaTest > 0 ? mat.alphaTest : 0.5,
+                    side: THREE.DoubleSide
+                  });
+                  
+                  // Emissive properties to simulate unlit flat colors + slight shadow
+                  toonMat.emissive = mat.color || new THREE.Color(0xffffff);
+                  if (mat.map) {
+                    toonMat.emissiveMap = mat.map;
+                  }
+                  toonMat.emissiveIntensity = 0.35; // Brighten up the base texture significantly
+
+                  return toonMat;
+                });
+                
+                child.material = Array.isArray(child.material) ? newMaterials : newMaterials[0];
+              }
             }
           });
 
@@ -305,7 +349,7 @@
       // --- SBV2 status check ---
       async function checkSbv2() {
         try {
-          const res = await fetch("http://localhost:5000/status", {
+          const res = await fetch(`http://${window.location.hostname}:5000/status`, {
             signal: AbortSignal.timeout(2000),
           });
           if (res.ok) {
@@ -457,7 +501,7 @@
 
       function connectGateway() {
         // Assume default port 3000
-        gwSocket = new WebSocket(`ws://127.0.0.1:3000/?token=${GW_TOKEN}`);
+        gwSocket = new WebSocket(`ws://${window.location.hostname}:3000/?token=${GW_TOKEN}`);
         
         gwSocket.onopen = () => {
           gwStatusEl.textContent = "Gateway: ✓ connected";
@@ -632,7 +676,7 @@
         try {
           // Fetch from SBV2 directly (assuming port 5000 and default params)
           // OpenClaw config uses modelId: "Hakua", speakerId: 0
-          const ttsUrl = `http://localhost:5000/voice?text=${encodeURIComponent(text)}&model_id=0&speaker_id=0&style_weight=1`;
+          const ttsUrl = `http://${window.location.hostname}:5000/voice?text=${encodeURIComponent(text)}&model_id=0&speaker_id=0&style_weight=1`;
           
           const response = await fetch(ttsUrl);
           if (!response.ok) throw new Error("TTS fetch failed");
