@@ -399,7 +399,7 @@ export const telegramPlugin: ChannelPlugin<ResolvedTelegramAccount, TelegramProb
         }
       }
       ctx.log?.info(`[${account.accountId}] starting provider${telegramBotLabel}`);
-      return getTelegramRuntime().channel.telegram.monitorTelegramProvider({
+      const providerPromise = getTelegramRuntime().channel.telegram.monitorTelegramProvider({
         token,
         accountId: account.accountId,
         config: ctx.cfg,
@@ -411,6 +411,17 @@ export const telegramPlugin: ChannelPlugin<ResolvedTelegramAccount, TelegramProb
         webhookPath: account.config.webhookPath,
         webhookHost: account.config.webhookHost,
       });
+      if (account.config.webhookUrl) {
+        await providerPromise;
+        return new Promise<void>((resolve) => {
+          if (ctx.abortSignal?.aborted) {
+            resolve();
+            return;
+          }
+          ctx.abortSignal?.addEventListener("abort", () => resolve(), { once: true });
+        });
+      }
+      return providerPromise;
     },
     logoutAccount: async ({ accountId, cfg }) => {
       const envToken = process.env.TELEGRAM_BOT_TOKEN?.trim() ?? "";
