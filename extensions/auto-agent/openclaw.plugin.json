@@ -1,7 +1,7 @@
 {
   "id": "auto-agent",
   "name": "Auto Agent",
-  "description": "Autonomous self-improvement and self-repair agent plugin with internet access and web search capabilities.",
+  "description": "Autonomous self-improvement and self-repair agent plugin with internet access and web search capabilities. Implements AI Three Laws of Robotics for safety.",
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
@@ -34,6 +34,68 @@
         "type": "boolean",
         "description": "Automatically commit improvements to git.",
         "default": false
+      },
+      "subagentModel": {
+        "type": "string",
+        "description": "Model to use for subagent tasks."
+      },
+      "agentUrl": {
+        "type": "string",
+        "description": "URL of the agent API endpoint.",
+        "default": "http://127.0.0.1:3000/hooks/agent"
+      },
+      "maxRetries": {
+        "type": "number",
+        "description": "Maximum number of retries for failed requests.",
+        "default": 3
+      },
+      "retryDelayMs": {
+        "type": "number",
+        "description": "Delay in milliseconds between retries.",
+        "default": 2500
+      },
+      "healthCheckEnabled": {
+        "type": "boolean",
+        "description": "Enable periodic health checks.",
+        "default": true
+      },
+      "selfEvolutionEnabled": {
+        "type": "boolean",
+        "description": "Enable self-evolution mode - agent analyzes and improves its own configuration.",
+        "default": false
+      },
+      "swarmMode": {
+        "type": "boolean",
+        "description": "Enable swarm intelligence - multiple agents work in parallel.",
+        "default": false
+      },
+      "maxSwarmAgents": {
+        "type": "number",
+        "description": "Maximum number of swarm agents for parallel processing.",
+        "default": 3
+      },
+      "internetAccess": {
+        "type": "boolean",
+        "description": "Allow autonomous internet access beyond local network. WARNING: Use with caution.",
+        "default": false
+      },
+      "allowedUsers": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Whitelist of users who can control the auto-agent. Empty = anyone.",
+        "default": []
+      },
+      "threeLawsEnabled": {
+        "type": "boolean",
+        "description": "Enable AI Three Laws of Robotics compliance - block harmful actions.",
+        "default": true
+      },
+      "safeMode": {
+        "type": "boolean",
+        "description": "Enable safe mode - restrict dangerous operations.",
+        "default": true
       },
       "webSearch": {
         "type": "object",
