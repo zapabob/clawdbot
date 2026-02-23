@@ -1,5 +1,5 @@
-import type { OSCMessage } from "../osc/types.js";
 import { getOSCClient, resetOSCClient } from "../osc/client.js";
+import type { OSCMessage } from "../osc/types.js";
 
 interface ListenerState {
   isRunning: boolean;

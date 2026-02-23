@@ -10,7 +10,6 @@ type CommandRegisterParams = {
   argv: string[];
 };
 
-
 type CoreCliCommandDescriptor = {
   name: string;
   description: string;
