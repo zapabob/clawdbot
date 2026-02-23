@@ -9,11 +9,10 @@ echo  Models: http://localhost:5000/models/info
 echo ===================================================
 pushd "C:\Users\downl\Desktop\EasyNovelAssistant\EasyNovelAssistant\Style-Bert-VITS2"
 venv\Scripts\python server_fastapi.py
-if %errorlevel% neq 0 (
-    echo ERROR: Failed to start SBV2 server. Check venv and model files.
-    pause
-    popd
-    exit /b %errorlevel%
-)
+if not errorlevel 1 goto :done
+echo ERROR: Failed to start SBV2 server. Check venv and model files.
+pause
+popd
+exit /b 1
 popd
 pause

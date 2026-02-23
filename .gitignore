@@ -110,3 +110,18 @@ configure_help.txt
 daemon_status.log
 models_help.txt
 openclaw_help.txt
+
+# Heavy files and NFD
+NFD/
+assets/NFD/
+*.fbx
+*.vrm
+*.pmx
+*.mp4
+*.wav
+*.gguf
+*.bin
+*.safetensors
+*.onnx
+*.pth
+*.pt
