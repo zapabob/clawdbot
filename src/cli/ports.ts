@@ -4,6 +4,31 @@ import { sleep } from "../utils.js";
 
 export type PortProcess = { pid: number; command?: string };
 
+/** Windows fallback: use `netstat -ano` to find PIDs listening on a port. */
+function listPortListenersWindows(port: number): PortProcess[] {
+  try {
+    const out = execFileSync("netstat", ["-ano", "-p", "TCP"], { encoding: "utf-8" });
+    const results: PortProcess[] = [];
+    const seen = new Set<number>();
+    for (const line of out.split(/\r?\n/)) {
+      // e.g. "  TCP    0.0.0.0:3000           0.0.0.0:0              LISTENING       12345"
+      const m = line.match(/TCP\s+[\d.:*]+:(\d+)\s+[\d.:*]+\s+LISTENING\s+(\d+)/i);
+      if (!m) {
+        continue;
+      }
+      const linePort = Number.parseInt(m[1], 10);
+      const pid = Number.parseInt(m[2], 10);
+      if (linePort === port && !seen.has(pid)) {
+        seen.add(pid);
+        results.push({ pid });
+      }
+    }
+    return results;
+  } catch {
+    return [];
+  }
+}
+
 export type ForceFreePortResult = {
   killed: PortProcess[];
   waitedMs: number;
@@ -31,6 +56,9 @@ export function parseLsofOutput(output: string): PortProcess[] {
 }
 
 export function listPortListeners(port: number): PortProcess[] {
+  if (process.platform === "win32") {
+    return listPortListenersWindows(port);
+  }
   try {
     const lsof = resolveLsofCommandSync();
     const out = execFileSync(lsof, ["-nP", `-iTCP:${port}`, "-sTCP:LISTEN", "-FpFc"], {
@@ -41,7 +69,8 @@ export function listPortListeners(port: number): PortProcess[] {
     const status = (err as { status?: number }).status;
     const code = (err as { code?: string }).code;
     if (code === "ENOENT") {
-      throw new Error("lsof not found; required for --force", { cause: err });
+      // lsof not available — try system netstat as fallback
+      return listPortListenersWindows(port);
     }
     if (status === 1) {
       return [];

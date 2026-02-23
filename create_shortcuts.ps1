@@ -1,7 +1,7 @@
 $WshShell = New-Object -comObject WScript.Shell
 $DesktopPath = [Environment]::GetFolderPath('Desktop')
 $StartupPath = [Environment]::GetFolderPath('Startup')
-$ProjectDir = "C:\Users\downl\Desktop\clawdbot-main3\clawdbot-main"
+$ProjectDir = $PSScriptRoot
 
 # --- OpenClaw Server shortcut ---
 $TargetPath = "$ProjectDir\start_openclaw.bat"

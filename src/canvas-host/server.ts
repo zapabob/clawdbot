@@ -321,6 +321,39 @@ export async function createCanvasHostHandler(
         urlPath = urlPath === basePath ? "/" : urlPath.slice(basePath.length) || "/";
       }
 
+      // Add a simple reverse proxy for TTS audio requests to bypass CORS
+      if (urlPath.startsWith("/api/tts/")) {
+        const targetUrl = new URL(urlPath.replace("/api/tts", ""), "http://127.0.0.1:5000");
+        targetUrl.search = url.search;
+        try {
+          const proxyReq = http.request(
+            targetUrl,
+            {
+              method: req.method,
+              headers: { ...req.headers, host: "127.0.0.1:5000" },
+            },
+            (proxyRes) => {
+              res.statusCode = proxyRes.statusCode || 200;
+              for (const [key, value] of Object.entries(proxyRes.headers)) {
+                if (value) {
+                  res.setHeader(key, value);
+                }
+              }
+              proxyRes.pipe(res);
+            },
+          );
+          proxyReq.on("error", (_err) => {
+            res.statusCode = 502;
+            res.end("Bad Gateway: TTS Server unreachable");
+          });
+          req.pipe(proxyReq);
+        } catch {
+          res.statusCode = 500;
+          res.end("Internal Server Error while proxying");
+        }
+        return true;
+      }
+
       if (req.method !== "GET" && req.method !== "HEAD") {
         res.statusCode = 405;
         res.setHeader("Content-Type", "text/plain; charset=utf-8");

@@ -56,11 +56,8 @@ const plugin = {
     ),
   }),
 
-  register(api: {
-    registerTool: (tool: unknown) => void;
-    runtime: { log: (msg: string) => void };
-  }) {
-    api.runtime.log("Registering VRChat Relay plugin (Pro Edition)...");
+  register(api: { registerTool: (tool: unknown) => void }) {
+    console.log("[vrchat-relay] Registering VRChat Relay plugin (Pro Edition)...");
 
     // vrchat_login - Authenticate with VRChat
     api.registerTool({
@@ -653,9 +650,9 @@ ${logText}`,
       },
     });
 
-    api.runtime.log("VRChat Relay Pro plugin registered successfully");
-    api.runtime.log(
-      "Features: Camera Control, Permission Profiles, Rate Limiting, OSCQuery Discovery",
+    console.log("[vrchat-relay] VRChat Relay Pro plugin registered successfully");
+    console.log(
+      "[vrchat-relay] Features: Camera Control, Permission Profiles, Rate Limiting, OSCQuery Discovery",
     );
   },
 };

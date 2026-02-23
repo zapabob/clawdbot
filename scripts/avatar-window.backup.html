@@ -1,0 +1,943 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hakua Avatar</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        background: transparent;
+        overflow: hidden;
+        width: 100vw;
+        height: 100vh;
+      }
+      #canvas-container {
+        width: 100%;
+        height: 100%;
+        position: relative;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      #status {
+        position: absolute;
+        bottom: 8px;
+        left: 8px;
+        color: rgba(255, 255, 255, 0.7);
+        font-family: monospace;
+        font-size: 11px;
+        pointer-events: none;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+      }
+      #sbv2-status {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        color: rgba(100, 255, 150, 0.9);
+        font-family: monospace;
+        font-size: 10px;
+        pointer-events: none;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+      }
+      #gw-status {
+        position: absolute;
+        top: 24px;
+        right: 8px;
+        color: rgba(100, 200, 255, 0.9);
+        font-family: monospace;
+        font-size: 10px;
+        pointer-events: none;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+      }
+      #ui-overlay {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 16px;
+      }
+      #camera-pip {
+        align-self: flex-start;
+        width: 160px;
+        height: 120px;
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 8px;
+        overflow: hidden;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        position: relative;
+      }
+      #user-video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transform: scaleX(-1); /* mirror */
+      }
+      .recording-badge {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        background: rgba(255, 0, 0, 0.8);
+        color: white;
+        font-size: 10px;
+        font-weight: bold;
+        padding: 4px 6px;
+        border-radius: 4px;
+        animation: pulse 1s infinite alternate;
+      }
+      @keyframes pulse {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0.5;
+        }
+      }
+      .hidden {
+        display: none !important;
+      }
+
+      #chat-bubble {
+        align-self: center;
+        background: rgba(20, 20, 25, 0.85);
+        color: #fff;
+        padding: 12px 16px;
+        border-radius: 12px;
+        max-width: 80%;
+        font-family: sans-serif;
+        font-size: 16px;
+        text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        transition: opacity 0.3s;
+        margin-bottom: 20px;
+      }
+
+      #controls {
+        align-self: center;
+        pointer-events: auto;
+        display: flex;
+        gap: 12px;
+        margin-bottom: 30px;
+      }
+      button {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.2s;
+        backdrop-filter: blur(4px);
+      }
+      button:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+      button.active {
+        background: rgba(100, 200, 255, 0.4);
+        border-color: rgba(100, 200, 255, 0.8);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="canvas-container">
+      <canvas id="avatar-canvas"></canvas>
+
+      <!-- UI Overlay for Conversation & Camera -->
+      <div id="ui-overlay">
+        <div id="camera-pip">
+          <video id="user-video" autoplay playsinline muted></video>
+          <div id="mic-status" class="recording-badge hidden">🔴 MIC ON</div>
+        </div>
+
+        <div id="chat-bubble" class="hidden">
+          <div id="chat-text">...</div>
+        </div>
+
+        <div id="controls">
+          <button id="toggle-mic-btn">Start Mic</button>
+          <button id="toggle-cam-btn">Start Cam</button>
+        </div>
+      </div>
+
+      <div id="status">Loading Hakua.fbx...</div>
+      <div id="sbv2-status">SBV2: checking...</div>
+      <div id="gw-status">Gateway: disconnected</div>
+    </div>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import * as THREE from "three";
+      import { FBXLoader } from "three/addons/loaders/FBXLoader.js";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+      const canvas = document.getElementById("avatar-canvas");
+      const statusEl = document.getElementById("status");
+      const sbv2El = document.getElementById("sbv2-status");
+
+      // --- Renderer ---
+      const renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: true,
+        alpha: true,
+      });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      // Tone mapping prevents colors from blowing out to pure white when light intensity is high
+      // However, to preserve exact FBX colors (anime style), we use NoToneMapping and balance lights to 1.0 max
+      renderer.toneMapping = THREE.NoToneMapping;
+      renderer.toneMappingExposure = 1.0;
+
+      // --- Scene ---
+      const scene = new THREE.Scene();
+
+      // --- Camera ---
+      const camera = new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000,
+      );
+      camera.position.set(0, 1.5, 3.0);
+      camera.lookAt(0, 1.0, 0);
+
+      // --- Lights ---
+      // For anime style, Ambient + Key must not exceed 1.0 on flat surfaces pointed at the light
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.55);
+      scene.add(ambientLight);
+
+      // Main directional light (Key light) - Brings total front light to 1.0
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.45);
+      dirLight.position.set(2, 5, 3);
+      dirLight.castShadow = true;
+      dirLight.shadow.mapSize.width = 2048;
+      dirLight.shadow.mapSize.height = 2048;
+      // Make shadows softer and less dark
+      dirLight.shadow.bias = -0.001;
+      scene.add(dirLight);
+
+      // Fill light for anime feel (cool tint)
+      const fillLight = new THREE.DirectionalLight(0xccccff, 0.1);
+      fillLight.position.set(-2, 2, -3);
+      scene.add(fillLight);
+
+      // Rim light for edge highlighting
+      const rimLight = new THREE.DirectionalLight(0xffffff, 0.15);
+      rimLight.position.set(0, 3, -5);
+      scene.add(rimLight);
+
+      // --- Controls ---
+      const controls = new OrbitControls(camera, canvas);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.target.set(0, 1.0, 0);
+      controls.minDistance = 1.0;
+      controls.maxDistance = 8.0;
+      controls.maxPolarAngle = Math.PI / 1.5;
+
+      // LilToon-style 4-step gradient: shadow -> midtone -> bright (NearestFilter = hard cel-shade)
+      const gradientData = new Uint8Array([0, 80, 180, 255]);
+      const lilToonGradient = new THREE.DataTexture(gradientData, 4, 1, THREE.RedFormat);
+      lilToonGradient.minFilter = THREE.NearestFilter;
+      lilToonGradient.magFilter = THREE.NearestFilter;
+      lilToonGradient.needsUpdate = true;
+
+      // Accurate color palette based on Hakua's actual material structure
+      const partColors = {
+        skin: new THREE.Color(0xf7d7be), // Warm peach skin
+        hair: new THREE.Color(0xb8cfe0), // Silver-blue hair
+        cloth: new THREE.Color(0x2e2e45), // Dark navy dress
+        white: new THREE.Color(0xe8e4f0), // Soft white (lace/uniform trims)
+        metal: new THREE.Color(0xd4af37), // Gold accessories
+        eye: new THREE.Color(0x6699cc), // Slate-blue eyes
+        lip: new THREE.Color(0xe8788a), // Soft pink lips
+      };
+
+      function guessPartColor(matName) {
+        const n = (matName || "").toLowerCase();
+        if (n.includes("face") || n.includes("sotai") || n.includes("skin") || n.includes("body"))
+          return partColors.skin;
+        if (n.includes("hair")) return partColors.hair;
+        if (
+          n.includes("cloth") ||
+          n.includes("dress") ||
+          n.includes("uniform") ||
+          n.includes("costume")
+        )
+          return partColors.cloth;
+        if (
+          n.includes("metal") ||
+          n.includes("gold") ||
+          n.includes("button") ||
+          n.includes("ribbon")
+        )
+          return partColors.metal;
+        if (n.includes("eye") || n.includes("iris") || n.includes("pupil")) return partColors.eye;
+        if (n.includes("lip") || n.includes("mouth")) return partColors.lip;
+        if (n.includes("lace") || n.includes("under") || n.includes("white") || n.includes("frill"))
+          return partColors.white;
+        // DEFAULT: skin tone instead of white to prevent face white-out
+        return partColors.skin;
+      }
+
+      // --- Bone Map for procedural animation ---
+      const bones = {};
+
+      // --- FBX Loader ---
+      const loader = new FBXLoader();
+      let mixer = null;
+      let model = null;
+      let idleAction = null;
+      const fbxPath = "../assets/NFD/Hakua/FBX/Hakua.fbx";
+
+      loader.load(
+        fbxPath,
+        (fbx) => {
+          model = fbx;
+          console.log("FBX Model loaded:", fbx);
+
+          // Auto-scale: normalize to ~1.7m height
+          const box = new THREE.Box3().setFromObject(fbx);
+          const size = box.getSize(new THREE.Vector3());
+          const targetHeight = 1.7;
+          let scale = size.y > 0 ? targetHeight / size.y : 1.0;
+          fbx.scale.setScalar(scale);
+
+          // Center on ground
+          fbx.position.set(0, 0, 0);
+          const box2 = new THREE.Box3().setFromObject(fbx);
+          fbx.position.y = -box2.min.y;
+
+          // Collect bones from SkinnedMesh.skeleton.bones (bound bones that deform vertices)
+          // scene.traverse(isBone) returns hierarchy nodes but they may not be the bound skeleton
+          fbx.traverse((child) => {
+            if (child.isSkinnedMesh && child.skeleton) {
+              child.skeleton.bones.forEach((bone) => {
+                if (bone.name && !bones[bone.name]) {
+                  bones[bone.name] = bone;
+                }
+              });
+            }
+            if (child.isMesh) {
+              child.castShadow = true;
+              child.receiveShadow = true;
+
+              const materials = Array.isArray(child.material) ? child.material : [child.material];
+              const newMaterials = materials.map((mat) => {
+                const hasTexture = mat.map && mat.map.image;
+                // For textured materials, forcefully replace the base color with white
+                // to prevent the FBX loader from applying a gray tint and darkening the texture
+                const baseColor = hasTexture ? new THREE.Color(0xffffff) : guessPartColor(mat.name);
+
+                // Luminance check: suppress emissive on light colors to prevent white-out
+                const lum = baseColor.r * 0.299 + baseColor.g * 0.587 + baseColor.b * 0.114;
+
+                const toonMat = new THREE.MeshToonMaterial({
+                  color: baseColor,
+                  map: hasTexture ? mat.map : null,
+                  gradientMap: lilToonGradient,
+                  transparent: false,
+                  side: THREE.DoubleSide,
+                });
+
+                // Emissive handling:
+                // If it's skin or a light color, ensure emissive is black so it receives shadow properly.
+                // Hair and clothes get a tiny bit of self-illumination to pop.
+                if (
+                  lum <= 0.55 &&
+                  !mat.name.toLowerCase().includes("face") &&
+                  !mat.name.toLowerCase().includes("skin")
+                ) {
+                  toonMat.emissive = baseColor.clone().multiplyScalar(0.06);
+                } else {
+                  toonMat.emissive = new THREE.Color(0x000000);
+                }
+
+                return toonMat;
+              });
+              child.material = Array.isArray(child.material) ? newMaterials : newMaterials[0];
+            }
+          });
+
+          scene.add(fbx);
+          const boneList = Object.keys(bones);
+          console.log("Bones found:", boneList.length, "Sample:", boneList.slice(0, 8).join(", "));
+          // Expose bones for debugging
+          window.avatarBones = bones;
+          window.avatarModel = model;
+
+          // Always create AnimationMixer — required for mixer.clipAction()
+          // which is used by the QuaternionKeyframeTrack pose system
+          mixer = new THREE.AnimationMixer(fbx);
+          buildPoseClips(); // build all QuaternionKeyframeTrack AnimationClips
+          statusEl.textContent = `Hakua loaded (${boneList.length} bones, LilToon)`;
+
+          // Start idle breathing
+          startIdleAnimation();
+        },
+        (progress) => {
+          if (progress.total > 0) {
+            const pct = Math.round((progress.loaded / progress.total) * 100);
+            statusEl.textContent = `Loading Hakua.fbx... ${pct}%`;
+          }
+        },
+        (err) => {
+          console.error("FBX load error:", err);
+          statusEl.textContent = `FBX error: ${err.message}`;
+          // Show fallback placeholder cube
+          const geo = new THREE.BoxGeometry(0.5, 1.7, 0.3);
+          const mat = new THREE.MeshLambertMaterial({ color: 0xccaaff });
+          const placeholder = new THREE.Mesh(geo, mat);
+          placeholder.position.y = 0.85;
+          scene.add(placeholder);
+          statusEl.textContent = "Placeholder avatar (FBX not found)";
+        },
+      );
+
+      // --- SBV2 status check ---
+      async function checkSbv2() {
+        try {
+          const res = await fetch(`http://${window.location.hostname}:5000/status`, {
+            signal: AbortSignal.timeout(2000),
+          });
+          if (res.ok) {
+            sbv2El.textContent = "SBV2: ✓ online";
+            sbv2El.style.color = "rgba(100,255,150,0.9)";
+          } else {
+            sbv2El.textContent = `SBV2: ${res.status}`;
+            sbv2El.style.color = "rgba(255,200,100,0.9)";
+          }
+        } catch {
+          sbv2El.textContent = "SBV2: offline";
+          sbv2El.style.color = "rgba(255,120,120,0.9)";
+        }
+      }
+      checkSbv2();
+      setInterval(checkSbv2, 10000);
+
+      // --- TTS and Lip Sync state (hoisted above animate to avoid TDZ) ---
+      let analyser = null;
+      let dataArray = null;
+      let currentSource = null;
+      let jawBone = null;
+      let isSpeaking = false;
+
+      // --- AnimationMixer-based pose system ---
+      // Canonical Three.js approach using QuaternionKeyframeTrack for FBX SkinnedMesh
+
+      function E2Q(x, y, z) {
+        const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(x, y, z, "XYZ"));
+        return [q.x, q.y, q.z, q.w];
+      }
+      function qt(boneName, times, eulers) {
+        return new THREE.QuaternionKeyframeTrack(
+          `${boneName}.quaternion`,
+          times,
+          eulers.flatMap((e) => E2Q(...e)),
+        );
+      }
+      const _I = [0, 0, 0];
+
+      let poseClips = null;
+      let currentAction = null;
+
+      function buildPoseClips() {
+        poseClips = {
+          wave: new THREE.AnimationClip("wave", 3.0, [
+            qt("RightShoulder", [0, 0.5, 3.0], [_I, [-0.2, 0, 0.8], _I]),
+            qt("RightUpperArm", [0, 0.5, 3.0], [_I, [-0.1, 0, 1.2], _I]),
+            qt(
+              "RightLowerArm",
+              [0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0],
+              [_I, [0, 0, 0.4], [0, 0, -0.3], [0, 0, 0.4], [0, 0, -0.3], [0, 0, 0.4], _I],
+            ),
+          ]),
+          nod: new THREE.AnimationClip("nod", 2.0, [
+            qt(
+              "Head",
+              [0, 0.25, 0.5, 0.75, 1.0, 1.5, 2.0],
+              [_I, [0.25, 0, 0], _I, [0.25, 0, 0], _I, [0.25, 0, 0], _I],
+            ),
+          ]),
+          shake: new THREE.AnimationClip("shake", 2.0, [
+            qt(
+              "Head",
+              [0, 0.2, 0.5, 0.8, 1.1, 1.5, 2.0],
+              [_I, [0, 0.25, 0], [0, -0.25, 0], [0, 0.25, 0], [0, -0.25, 0], [0, 0.25, 0], _I],
+            ),
+          ]),
+          bow: new THREE.AnimationClip("bow", 3.0, [
+            qt("Spine", [0, 1.0, 2.0, 3.0], [_I, [0.45, 0, 0], [0.45, 0, 0], _I]),
+            qt("Chest", [0, 1.0, 2.0, 3.0], [_I, [0.2, 0, 0], [0.2, 0, 0], _I]),
+            qt("Head", [0, 1.0, 2.0, 3.0], [_I, [0.15, 0, 0], [0.15, 0, 0], _I]),
+          ]),
+          think: new THREE.AnimationClip("think", 4.0, [
+            qt("Head", [0, 0.5, 3.5, 4.0], [_I, [0.15, 0, -0.1], [0.15, 0, -0.1], _I]),
+            qt("RightUpperArm", [0, 0.5, 3.5, 4.0], [_I, [-0.1, 0, -0.5], [-0.1, 0, -0.5], _I]),
+            qt("RightLowerArm", [0, 0.5, 3.5, 4.0], [_I, [-1.2, 0, 0], [-1.2, 0, 0], _I]),
+          ]),
+          happy: new THREE.AnimationClip("happy", 3.0, [
+            qt(
+              "LeftUpperArm",
+              [0, 0.5, 1.0, 1.5, 2.5, 3.0],
+              [_I, [0, 0, -0.5], [0, 0, -0.2], [0, 0, -0.5], [0, 0, -0.2], _I],
+            ),
+            qt(
+              "RightUpperArm",
+              [0, 0.5, 1.0, 1.5, 2.5, 3.0],
+              [_I, [0, 0, 0.5], [0, 0, 0.2], [0, 0, 0.5], [0, 0, 0.2], _I],
+            ),
+          ]),
+          sad: new THREE.AnimationClip("sad", 4.0, [
+            qt("Head", [0, 1.0, 3.0, 4.0], [_I, [0.25, 0, 0], [0.25, 0, 0], _I]),
+            qt("Spine", [0, 1.0, 3.0, 4.0], [_I, [0.12, 0, 0], [0.12, 0, 0], _I]),
+            qt("LeftShoulder", [0, 1.0, 3.0, 4.0], [_I, [0, 0, -0.15], [0, 0, -0.15], _I]),
+            qt("RightShoulder", [0, 1.0, 3.0, 4.0], [_I, [0, 0, 0.15], [0, 0, 0.15], _I]),
+          ]),
+          dance: new THREE.AnimationClip("dance", 4.0, [
+            qt(
+              "Hips",
+              [0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0],
+              [
+                [0, -0.1, 0],
+                [0, 0.1, 0],
+                [0, -0.1, 0],
+                [0, 0.1, 0],
+                [0, -0.1, 0],
+                [0, 0.1, 0],
+                [0, -0.1, 0],
+                [0, 0.1, 0],
+                [0, -0.1, 0],
+              ],
+            ),
+            qt(
+              "LeftUpperArm",
+              [0, 0.5, 1.0, 1.5, 2.0, 4.0],
+              [_I, [0, 0, -0.8], [0, 0, -0.3], [0, 0, -0.8], [0, 0, -0.3], _I],
+            ),
+            qt(
+              "RightUpperArm",
+              [0, 0.5, 1.0, 1.5, 2.0, 4.0],
+              [_I, [0, 0, 0.8], [0, 0, 0.3], [0, 0, 0.8], [0, 0, 0.3], _I],
+            ),
+            qt("Head", [0, 0.5, 1.0, 1.5, 4.0], [_I, [0, 0.1, 0], [0, -0.1, 0], [0, 0.1, 0], _I]),
+          ]),
+          point: new THREE.AnimationClip("point", 3.0, [
+            qt("RightUpperArm", [0, 0.5, 2.5, 3.0], [_I, [-0.2, 0, -1.0], [-0.2, 0, -1.0], _I]),
+            qt("RightLowerArm", [0, 0.5, 2.5, 3.0], [_I, [-0.4, 0, 0], [-0.4, 0, 0], _I]),
+            qt("Head", [0, 0.5, 2.5, 3.0], [_I, [0, 0.2, 0], [0, 0.2, 0], _I]),
+          ]),
+        };
+      }
+
+      function startIdleAnimation() {
+        // Idle breathing is handled in the render loop via direct bone manipulation
+        // No clip needed — it's continuous math-based motion
+      }
+
+      function playPose(poseName) {
+        if (!mixer || !poseClips) {
+          console.warn("Pose system not ready");
+          return;
+        }
+        const clip = poseClips[poseName];
+        if (!clip) {
+          console.warn("Unknown pose:", poseName);
+          return;
+        }
+        console.log("Playing pose:", poseName);
+        if (currentAction) {
+          currentAction.stop();
+          currentAction = null;
+        }
+        const action = mixer.clipAction(clip);
+        action.setLoop(THREE.LoopOnce, 1);
+        action.clampWhenFinished = false;
+        action.reset().play();
+        currentAction = action;
+        mixer.addEventListener("finished", function cb(e) {
+          if (e.action === action) {
+            mixer.removeEventListener("finished", cb);
+            currentAction = null;
+          }
+        });
+      }
+      window.playPose = playPose;
+
+      // --- Idle breathing (direct bone, runs every frame) ---
+      let idleTime = 0;
+
+      // (old poseAnimations removed — replaced by AnimationMixer clip system above)
+
+      // --- Render loop ---
+      const clock = new THREE.Clock();
+      function animate() {
+        requestAnimationFrame(animate);
+        const delta = clock.getDelta();
+
+        controls.update();
+
+        // Idle breathing — direct bone rotation (works without AnimationClip)
+        if (model && !currentAction) {
+          idleTime += delta;
+          const spBone = bones["Spine"];
+          if (spBone) spBone.rotation.x = Math.sin(idleTime * 1.5) * 0.015;
+          const hdBone = bones["Head"];
+          if (hdBone) {
+            hdBone.rotation.y = Math.sin(idleTime * 0.5) * 0.03;
+            hdBone.rotation.x = Math.sin(idleTime * 0.7) * 0.015;
+          }
+          const earL = bones["Ear_Left_01"],
+            earR = bones["Ear_Right_01"];
+          if (earL) earL.rotation.z = Math.sin(idleTime * 2.3) * 0.04;
+          if (earR) earR.rotation.z = Math.sin(idleTime * 2.5) * 0.04;
+          const ahoge = bones["HairAhoge_01"];
+          if (ahoge) ahoge.rotation.z = Math.sin(idleTime * 1.0) * 0.07;
+        }
+
+        if (mixer) {
+          mixer.update(delta);
+        }
+
+        // Lip Sync Logic
+        if (isSpeaking && analyser && dataArray && jawBone) {
+          analyser.getByteFrequencyData(dataArray);
+          // Calculate average volume from the frequency data
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) {
+            sum += dataArray[i];
+          }
+          const avg = sum / dataArray.length;
+
+          // Map volume (0-255) to jaw rotation angle (0 to 0.4 rad)
+          // Thresholding it a bit to avoid jitter on background noise
+          const targetRotation = avg > 10 ? (avg / 255) * 0.4 : 0;
+
+          // Smoothly interpolate the jaw rotation for natural movement
+          jawBone.rotation.x += (targetRotation - jawBone.rotation.x) * 0.2;
+        }
+
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      // --- Resize handler ---
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      // --- Keyboard shortcuts ---
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "r" || e.key === "R") {
+          // Reset camera
+          camera.position.set(0, 1.5, 3.0);
+          controls.target.set(0, 1.0, 0);
+          controls.update();
+        }
+      });
+
+      // --- UI & Interaction Logic ---
+      const toggleMicBtn = document.getElementById("toggle-mic-btn");
+      const toggleCamBtn = document.getElementById("toggle-cam-btn");
+      const userVideo = document.getElementById("user-video");
+      const micStatus = document.getElementById("mic-status");
+      const chatBubble = document.getElementById("chat-bubble");
+      const chatText = document.getElementById("chat-text");
+
+      let audioStream = null;
+      let videoStream = null;
+      let micActive = false;
+      let camActive = false;
+
+      // Toggle Camera
+      toggleCamBtn.addEventListener("click", async () => {
+        if (!camActive) {
+          try {
+            videoStream = await navigator.mediaDevices.getUserMedia({
+              video: { width: 320, height: 240 },
+            });
+            userVideo.srcObject = videoStream;
+            camActive = true;
+            toggleCamBtn.textContent = "Stop Cam";
+            toggleCamBtn.classList.add("active");
+          } catch (err) {
+            console.error("Camera access denied or error:", err);
+            alert("Warning: Could not access the camera. Check your permissions.");
+          }
+        } else {
+          if (videoStream) {
+            videoStream.getTracks().forEach((track) => track.stop());
+            userVideo.srcObject = null;
+          }
+          camActive = false;
+          toggleCamBtn.textContent = "Start Cam";
+          toggleCamBtn.classList.remove("active");
+        }
+      });
+
+      // Toggle Microphone (Placeholder, full STT logic to follow)
+      toggleMicBtn.addEventListener("click", async () => {
+        if (!micActive) {
+          try {
+            audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            micActive = true;
+            toggleMicBtn.textContent = "Stop Mic";
+            toggleMicBtn.classList.add("active");
+            micStatus.classList.remove("hidden");
+            // NOTE: SpeechRecognition init will go here
+          } catch (err) {
+            console.error("Mic access denied or error:", err);
+            alert("Warning: Could not access the microphone.");
+          }
+        } else {
+          if (audioStream) {
+            audioStream.getTracks().forEach((track) => track.stop());
+          }
+          micActive = false;
+          toggleMicBtn.textContent = "Start Mic";
+          toggleMicBtn.classList.remove("active");
+          micStatus.classList.add("hidden");
+        }
+      });
+
+      function showChat(text, duration = 5000) {
+        chatText.textContent = text;
+        chatBubble.classList.remove("hidden");
+        setTimeout(() => chatBubble.classList.add("hidden"), duration);
+      }
+
+      // --- OpenClaw WebSocket Client ---
+      let gwSocket = null;
+      const gwStatusEl = document.getElementById("gw-status");
+      // Use config.gateway.auth.token
+      const GW_TOKEN = "kUyymC6zOuDa41H0KEcVZILRScO2vJ7Z95cPBX2jF9GAy0BO7y08NKFEgFn22BZ";
+
+      function connectGateway() {
+        // Assume default port 3000
+        gwSocket = new WebSocket(`ws://${window.location.hostname}:3000/?token=${GW_TOKEN}`);
+
+        gwSocket.onopen = () => {
+          gwStatusEl.textContent = "Gateway: ✓ connected";
+          gwStatusEl.style.color = "rgba(100,255,150,0.9)";
+          console.log("Connected to OpenClaw Gateway WebSocket.");
+        };
+
+        gwSocket.onmessage = async (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === "agent:message" && data.payload && data.payload.text) {
+              const text = data.payload.text;
+              showChat(`Hakua: ${text}`, 8000);
+              await playTTSAndAnimate(text);
+            }
+          } catch (e) {
+            console.error("WebSocket message parse error", e);
+          }
+        };
+
+        gwSocket.onclose = () => {
+          gwStatusEl.textContent = "Gateway: disconnected (reconnecting...)";
+          gwStatusEl.style.color = "rgba(255,200,100,0.9)";
+          setTimeout(connectGateway, 5000);
+        };
+
+        gwSocket.onerror = (err) => {
+          console.error("Gateway WS Error", err);
+        };
+      }
+
+      connectGateway();
+
+      // Send text to the gateway
+      function sendToGateway(text) {
+        if (gwSocket && gwSocket.readyState === WebSocket.OPEN) {
+          showChat(`You: ${text}`, 3000);
+          gwSocket.send(
+            JSON.stringify({
+              type: "chat:post",
+              payload: { text, channel: "voice-call", user: "local-user" },
+            }),
+          );
+        } else {
+          console.warn("Cannot send message, WebSocket not open.");
+          showChat("Error: Not connected to Gateway", 2000);
+        }
+      }
+
+      // --- Speech Recognition ---
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      let recognition = null;
+
+      if (SpeechRecognition) {
+        recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = false;
+        recognition.lang = "ja-JP";
+
+        recognition.onresult = (event) => {
+          const transcript = event.results[event.results.length - 1][0].transcript.trim();
+          if (transcript) {
+            console.log("Speech recognized:", transcript);
+            sendToGateway(transcript);
+          }
+        };
+
+        recognition.onerror = (event) => {
+          console.error("Speech recognition error", event.error);
+        };
+
+        recognition.onend = () => {
+          // Restart if still active (continuous listening mode)
+          if (micActive) {
+            try {
+              recognition.start();
+            } catch (e) {}
+          }
+        };
+      } else {
+        console.warn("Speech recognition not supported in this browser.");
+      }
+
+      // Update Mic Toggle to use Recognition
+      toggleMicBtn.addEventListener("click", async () => {
+        if (!micActive) {
+          try {
+            audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            micActive = true;
+            toggleMicBtn.textContent = "Stop Mic";
+            toggleMicBtn.classList.add("active");
+            micStatus.classList.remove("hidden");
+
+            if (recognition) {
+              try {
+                recognition.start();
+              } catch (e) {
+                /* already started */
+              }
+            }
+          } catch (err) {
+            console.error("Mic access denied or error:", err);
+            alert("Warning: Could not access the microphone.");
+          }
+        } else {
+          if (audioStream) {
+            audioStream.getTracks().forEach((track) => track.stop());
+          }
+          if (recognition) {
+            recognition.stop();
+          }
+          micActive = false;
+          toggleMicBtn.textContent = "Start Mic";
+          toggleMicBtn.classList.remove("active");
+          micStatus.classList.add("hidden");
+        }
+      });
+
+      // --- TTS and Animation Logic ---
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      // NOTE: analyser, dataArray, currentSource, jawBone, isSpeaking
+      // are declared above animate() to avoid Temporal Dead Zone errors.
+
+      // Extract animation tags e.g "Hello *wave*" -> text: "Hello", anim: "wave"
+      function extractAnimationTags(text) {
+        let cleanText = text;
+        let animations = [];
+        const regex = /\*([a-zA-Z0-9_-]+)\*/g;
+        let match;
+        while ((match = regex.exec(text)) !== null) {
+          animations.push(match[1].toLowerCase());
+          cleanText = cleanText.replace(match[0], "");
+        }
+        return { text: cleanText.trim(), animations };
+      }
+
+      // Find the jaw bone in the FBX model
+      function findJawBone() {
+        if (!model || jawBone) return;
+        model.traverse((child) => {
+          if (child.isBone && child.name.toLowerCase().includes("jaw")) {
+            jawBone = child;
+            console.log("Found Jaw bone:", jawBone.name);
+          }
+        });
+      }
+
+      async function playTTSAndAnimate(rawText) {
+        if (currentSource) {
+          currentSource.stop();
+        }
+
+        const { text, animations } = extractAnimationTags(rawText);
+        console.log("TTS Text:", text, "Animations:", animations);
+
+        // Play procedural poses from animation tags
+        if (animations.length > 0) {
+          playPose(animations[0]);
+        }
+
+        if (!text) return; // Only animation tags were sent
+
+        try {
+          // Fetch from SBV2 via local proxy to avoid CORS Options issues
+          // OpenClaw config uses modelId: "Hakua", speakerId: 0
+          const ttsUrl = `/api/tts/voice?text=${encodeURIComponent(text)}&model_id=0&speaker_id=0&style_weight=1`;
+
+          const response = await fetch(ttsUrl);
+          if (!response.ok) throw new Error("TTS fetch failed");
+
+          const arrayBuffer = await response.arrayBuffer();
+          const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+
+          currentSource = audioCtx.createBufferSource();
+          currentSource.buffer = audioBuffer;
+
+          analyser = audioCtx.createAnalyser();
+          analyser.fftSize = 256;
+          const bufferLength = analyser.frequencyBinCount;
+          dataArray = new Uint8Array(bufferLength);
+
+          currentSource.connect(analyser);
+          analyser.connect(audioCtx.destination);
+
+          findJawBone();
+
+          currentSource.onended = () => {
+            isSpeaking = false;
+            if (jawBone) {
+              jawBone.rotation.x = 0; // Reset jaw
+            }
+          };
+
+          isSpeaking = true;
+          currentSource.start(0);
+        } catch (err) {
+          console.error("TTS playback error:", err);
+        }
+      }
+    </script>
+  </body>
+</html>

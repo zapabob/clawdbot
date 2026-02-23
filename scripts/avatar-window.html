@@ -69,11 +69,11 @@
         align-self: flex-start;
         width: 160px;
         height: 120px;
-        background: rgba(0,0,0,0.5);
+        background: rgba(0, 0, 0, 0.5);
         border-radius: 8px;
         overflow: hidden;
-        border: 2px solid rgba(255,255,255,0.2);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
         position: relative;
       }
       #user-video {
@@ -95,10 +95,16 @@
         animation: pulse 1s infinite alternate;
       }
       @keyframes pulse {
-        from { opacity: 1; }
-        to { opacity: 0.5; }
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0.5;
+        }
       }
-      .hidden { display: none !important; }
+      .hidden {
+        display: none !important;
+      }
 
       #chat-bubble {
         align-self: center;
@@ -110,8 +116,8 @@
         font-family: sans-serif;
         font-size: 16px;
         text-align: center;
-        border: 1px solid rgba(255,255,255,0.1);
-        box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
         backdrop-filter: blur(4px);
         transition: opacity 0.3s;
         margin-bottom: 20px;
@@ -125,8 +131,8 @@
         margin-bottom: 30px;
       }
       button {
-        background: rgba(255,255,255,0.1);
-        border: 1px solid rgba(255,255,255,0.3);
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.3);
         color: white;
         padding: 8px 16px;
         border-radius: 20px;
@@ -136,7 +142,7 @@
         backdrop-filter: blur(4px);
       }
       button:hover {
-        background: rgba(255,255,255,0.2);
+        background: rgba(255, 255, 255, 0.2);
       }
       button.active {
         background: rgba(100, 200, 255, 0.4);
@@ -199,6 +205,10 @@
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       renderer.outputColorSpace = THREE.SRGBColorSpace;
+      // Tone mapping prevents colors from blowing out to pure white when light intensity is high
+      // However, to preserve exact FBX colors (anime style), we use NoToneMapping and balance lights to 1.0 max
+      renderer.toneMapping = THREE.NoToneMapping;
+      renderer.toneMappingExposure = 1.0;
 
       // --- Scene ---
       const scene = new THREE.Scene();
@@ -214,12 +224,12 @@
       camera.lookAt(0, 1.0, 0);
 
       // --- Lights ---
-      // Boosted ambient light for brighter cartoon shading
-      const ambientLight = new THREE.AmbientLight(0xffffff, 1.8);
+      // For anime style, Ambient + Key must not exceed 1.0 on flat surfaces
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
       scene.add(ambientLight);
 
-      // Main directional light
-      const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+      // Main directional light (Key light) - 0.5 keeps total at 1.0 so colors are exact without blowout
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
       dirLight.position.set(2, 5, 3);
       dirLight.castShadow = true;
       dirLight.shadow.mapSize.width = 2048;
@@ -228,12 +238,13 @@
       dirLight.shadow.bias = -0.001;
       scene.add(dirLight);
 
-      // Fill / Rim light for anime feel
-      const fillLight = new THREE.DirectionalLight(0xccccff, 0.8);
+      // Fill light for anime feel (cool tint)
+      const fillLight = new THREE.DirectionalLight(0xccccff, 0.1);
       fillLight.position.set(-2, 2, -3);
       scene.add(fillLight);
-      
-      const rimLight = new THREE.DirectionalLight(0xffffff, 1.0);
+
+      // Rim light for edge highlighting
+      const rimLight = new THREE.DirectionalLight(0xffffff, 0.15);
       rimLight.position.set(0, 3, -5);
       scene.add(rimLight);
 
@@ -246,86 +257,155 @@
       controls.maxDistance = 8.0;
       controls.maxPolarAngle = Math.PI / 1.5;
 
+      // LilToon-style 4-step gradient: shadow -> midtone -> bright (NearestFilter = hard cel-shade)
+      const gradientData = new Uint8Array([0, 80, 180, 255]);
+      const lilToonGradient = new THREE.DataTexture(gradientData, 4, 1, THREE.RedFormat);
+      lilToonGradient.minFilter = THREE.NearestFilter;
+      lilToonGradient.magFilter = THREE.NearestFilter;
+      lilToonGradient.needsUpdate = true;
+
+      // Accurate color palette based on Hakua's actual material structure
+      const partColors = {
+        skin: new THREE.Color(0xf7d7be), // Warm peach skin
+        hair: new THREE.Color(0xb8cfe0), // Silver-blue hair
+        cloth: new THREE.Color(0x2e2e45), // Dark navy dress
+        white: new THREE.Color(0xe8e4f0), // Soft white (lace/uniform trims)
+        metal: new THREE.Color(0xd4af37), // Gold accessories
+        eye: new THREE.Color(0x6699cc), // Slate-blue eyes
+        lip: new THREE.Color(0xe8788a), // Soft pink lips
+      };
+
+      function guessPartColor(matName) {
+        const n = (matName || "").toLowerCase();
+        if (n.includes("face") || n.includes("sotai") || n.includes("skin") || n.includes("body"))
+          return partColors.skin;
+        if (n.includes("hair")) return partColors.hair;
+        if (
+          n.includes("cloth") ||
+          n.includes("dress") ||
+          n.includes("uniform") ||
+          n.includes("costume")
+        )
+          return partColors.cloth;
+        if (
+          n.includes("metal") ||
+          n.includes("gold") ||
+          n.includes("button") ||
+          n.includes("ribbon")
+        )
+          return partColors.metal;
+        if (n.includes("eye") || n.includes("iris") || n.includes("pupil")) return partColors.eye;
+        if (n.includes("lip") || n.includes("mouth")) return partColors.lip;
+        if (n.includes("lace") || n.includes("under") || n.includes("white") || n.includes("frill"))
+          return partColors.white;
+        // DEFAULT: skin tone instead of white to prevent face white-out
+        return partColors.skin;
+      }
+
+      // --- Bone Map for procedural animation ---
+      const bones = {};
+
       // --- FBX Loader ---
       const loader = new FBXLoader();
       let mixer = null;
       let model = null;
       let idleAction = null;
-
-      // FBX path - relative to this HTML file location
       const fbxPath = "../assets/NFD/Hakua/FBX/Hakua.fbx";
 
       loader.load(
         fbxPath,
         (fbx) => {
           model = fbx;
+          console.log("FBX Model loaded:", fbx);
 
           // Auto-scale: normalize to ~1.7m height
           const box = new THREE.Box3().setFromObject(fbx);
           const size = box.getSize(new THREE.Vector3());
           const targetHeight = 1.7;
-          const scale = targetHeight / size.y;
+          let scale = size.y > 0 ? targetHeight / size.y : 1.0;
           fbx.scale.setScalar(scale);
 
           // Center on ground
-          const center = box.getCenter(new THREE.Vector3());
-          fbx.position.x = -center.x * scale;
-          fbx.position.y = -box.min.y * scale;
-          fbx.position.z = -center.z * scale;
+          fbx.position.set(0, 0, 0);
+          const box2 = new THREE.Box3().setFromObject(fbx);
+          fbx.position.y = -box2.min.y;
 
-          // Create LilToon-like Gradient Map for Toon Shading (4-step)
-          const colors = new Uint8Array(4);
-          for (let c = 0; c <= colors.length; c++) {
-            colors[c] = (c / colors.length) * 256;
-          }
-          const toonGradientMap = new THREE.DataTexture(colors, colors.length, 1, THREE.RedFormat);
-          toonGradientMap.needsUpdate = true;
-
+          // Collect bones from SkinnedMesh.skeleton.bones (bound bones that deform vertices)
+          // scene.traverse(isBone) returns hierarchy nodes but they may not be the bound skeleton
           fbx.traverse((child) => {
+            if (child.isSkinnedMesh && child.skeleton) {
+              child.skeleton.bones.forEach((bone) => {
+                if (bone.name && !bones[bone.name]) {
+                  bones[bone.name] = bone;
+                }
+              });
+            }
             if (child.isMesh) {
               child.castShadow = true;
               child.receiveShadow = true;
-              
-              // Apply LilToon-like Toon Shader
-              if (child.material) {
-                const materials = Array.isArray(child.material) ? child.material : [child.material];
-                
-                const newMaterials = materials.map(mat => {
-                  const toonMat = new THREE.MeshToonMaterial({
-                    color: mat.color || new THREE.Color(0xffffff),
-                    map: mat.map,
-                    gradientMap: toonGradientMap,
-                    transparent: mat.transparent,
-                    alphaTest: mat.alphaTest > 0 ? mat.alphaTest : 0.5,
-                    side: THREE.DoubleSide
-                  });
-                  
-                  // Emissive properties to simulate unlit flat colors + slight shadow
-                  toonMat.emissive = mat.color || new THREE.Color(0xffffff);
-                  if (mat.map) {
-                    toonMat.emissiveMap = mat.map;
-                  }
-                  toonMat.emissiveIntensity = 0.35; // Brighten up the base texture significantly
 
-                  return toonMat;
+              const materials = Array.isArray(child.material) ? child.material : [child.material];
+              const newMaterials = materials.map((mat) => {
+                const hasTexture = mat.map && mat.map.image;
+
+                // Anime style: Emphasize original FBX color and avoid white face blowout.
+                let baseColor = mat.color ? mat.color.clone() : new THREE.Color(0xffffff);
+                if (!hasTexture && baseColor.getHex() === 0xffffff) {
+                  baseColor = guessPartColor(mat.name);
+                }
+
+                // Enhance color saturation for vivid anime style
+                const hsl = {};
+                baseColor.getHSL(hsl);
+                hsl.s = Math.min(1.0, hsl.s * 1.5);
+                baseColor.setHSL(hsl.h, hsl.s, hsl.l);
+
+                const lum = baseColor.r * 0.299 + baseColor.g * 0.587 + baseColor.b * 0.114;
+
+                const toonMat = new THREE.MeshToonMaterial({
+                  color: baseColor,
+                  map: hasTexture ? mat.map : null,
+                  gradientMap: lilToonGradient,
+                  transparent: false,
+                  side: THREE.DoubleSide,
                 });
-                
-                child.material = Array.isArray(child.material) ? newMaterials : newMaterials[0];
-              }
+
+                // Keep emissive completely black for face/skin to prevent blowing out into white!
+                // Only use a very slight emissive on dark clothing/hair.
+                if (
+                  lum <= 0.6 &&
+                  !mat.name.toLowerCase().includes("face") &&
+                  !mat.name.toLowerCase().includes("skin") &&
+                  !mat.name.toLowerCase().includes("body")
+                ) {
+                  toonMat.emissive = baseColor.clone();
+                  toonMat.emissiveIntensity = 0.15;
+                } else {
+                  toonMat.emissive = new THREE.Color(0x000000);
+                  toonMat.emissiveIntensity = 0;
+                }
+
+                return toonMat;
+              });
+              child.material = Array.isArray(child.material) ? newMaterials : newMaterials[0];
             }
           });
 
           scene.add(fbx);
+          const boneList = Object.keys(bones);
+          console.log("Bones found:", boneList.length, "Sample:", boneList.slice(0, 8).join(", "));
+          // Expose bones for debugging
+          window.avatarBones = bones;
+          window.avatarModel = model;
 
-          // Animation mixer
-          if (fbx.animations && fbx.animations.length > 0) {
-            mixer = new THREE.AnimationMixer(fbx);
-            idleAction = mixer.clipAction(fbx.animations[0]);
-            idleAction.play();
-            statusEl.textContent = `Hakua loaded (${fbx.animations.length} animations)`;
-          } else {
-            statusEl.textContent = "Hakua loaded (no animations)";
-          }
+          // Always create AnimationMixer — required for mixer.clipAction()
+          // which is used by the QuaternionKeyframeTrack pose system
+          mixer = new THREE.AnimationMixer(fbx);
+          buildPoseClips(); // build all QuaternionKeyframeTrack AnimationClips
+          statusEl.textContent = `Hakua loaded (${boneList.length} bones, LilToon)`;
+
+          // Start idle breathing
+          startIdleAnimation();
         },
         (progress) => {
           if (progress.total > 0) {
@@ -367,23 +447,188 @@
       checkSbv2();
       setInterval(checkSbv2, 10000);
 
-      // --- Breathing idle animation (when no FBX animation) ---
-      let t = 0;
+      // --- TTS and Lip Sync state (hoisted above animate to avoid TDZ) ---
+      let analyser = null;
+      let dataArray = null;
+      let currentSource = null;
+      let jawBone = null;
+      let isSpeaking = false;
+
+      // --- AnimationMixer-based pose system ---
+      // Canonical Three.js approach using QuaternionKeyframeTrack for FBX SkinnedMesh
+
+      function E2Q(x, y, z) {
+        const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(x, y, z, "XYZ"));
+        return [q.x, q.y, q.z, q.w];
+      }
+      function qt(boneName, times, eulers) {
+        return new THREE.QuaternionKeyframeTrack(
+          `${boneName}.quaternion`,
+          times,
+          eulers.flatMap((e) => E2Q(...e)),
+        );
+      }
+      const _I = [0, 0, 0];
+
+      let poseClips = null;
+      let currentAction = null;
+
+      function buildPoseClips() {
+        poseClips = {
+          wave: new THREE.AnimationClip("wave", 3.0, [
+            qt("RightShoulder", [0, 0.5, 3.0], [_I, [-0.2, 0, 0.8], _I]),
+            qt("RightUpperArm", [0, 0.5, 3.0], [_I, [-0.1, 0, 1.2], _I]),
+            qt(
+              "RightLowerArm",
+              [0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0],
+              [_I, [0, 0, 0.4], [0, 0, -0.3], [0, 0, 0.4], [0, 0, -0.3], [0, 0, 0.4], _I],
+            ),
+          ]),
+          nod: new THREE.AnimationClip("nod", 2.0, [
+            qt(
+              "Head",
+              [0, 0.25, 0.5, 0.75, 1.0, 1.5, 2.0],
+              [_I, [0.25, 0, 0], _I, [0.25, 0, 0], _I, [0.25, 0, 0], _I],
+            ),
+          ]),
+          shake: new THREE.AnimationClip("shake", 2.0, [
+            qt(
+              "Head",
+              [0, 0.2, 0.5, 0.8, 1.1, 1.5, 2.0],
+              [_I, [0, 0.25, 0], [0, -0.25, 0], [0, 0.25, 0], [0, -0.25, 0], [0, 0.25, 0], _I],
+            ),
+          ]),
+          bow: new THREE.AnimationClip("bow", 3.0, [
+            qt("Spine", [0, 1.0, 2.0, 3.0], [_I, [0.45, 0, 0], [0.45, 0, 0], _I]),
+            qt("Chest", [0, 1.0, 2.0, 3.0], [_I, [0.2, 0, 0], [0.2, 0, 0], _I]),
+            qt("Head", [0, 1.0, 2.0, 3.0], [_I, [0.15, 0, 0], [0.15, 0, 0], _I]),
+          ]),
+          think: new THREE.AnimationClip("think", 4.0, [
+            qt("Head", [0, 0.5, 3.5, 4.0], [_I, [0.15, 0, -0.1], [0.15, 0, -0.1], _I]),
+            qt("RightUpperArm", [0, 0.5, 3.5, 4.0], [_I, [-0.1, 0, -0.5], [-0.1, 0, -0.5], _I]),
+            qt("RightLowerArm", [0, 0.5, 3.5, 4.0], [_I, [-1.2, 0, 0], [-1.2, 0, 0], _I]),
+          ]),
+          happy: new THREE.AnimationClip("happy", 3.0, [
+            qt(
+              "LeftUpperArm",
+              [0, 0.5, 1.0, 1.5, 2.5, 3.0],
+              [_I, [0, 0, -0.5], [0, 0, -0.2], [0, 0, -0.5], [0, 0, -0.2], _I],
+            ),
+            qt(
+              "RightUpperArm",
+              [0, 0.5, 1.0, 1.5, 2.5, 3.0],
+              [_I, [0, 0, 0.5], [0, 0, 0.2], [0, 0, 0.5], [0, 0, 0.2], _I],
+            ),
+          ]),
+          sad: new THREE.AnimationClip("sad", 4.0, [
+            qt("Head", [0, 1.0, 3.0, 4.0], [_I, [0.25, 0, 0], [0.25, 0, 0], _I]),
+            qt("Spine", [0, 1.0, 3.0, 4.0], [_I, [0.12, 0, 0], [0.12, 0, 0], _I]),
+            qt("LeftShoulder", [0, 1.0, 3.0, 4.0], [_I, [0, 0, -0.15], [0, 0, -0.15], _I]),
+            qt("RightShoulder", [0, 1.0, 3.0, 4.0], [_I, [0, 0, 0.15], [0, 0, 0.15], _I]),
+          ]),
+          dance: new THREE.AnimationClip("dance", 4.0, [
+            qt(
+              "Hips",
+              [0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0],
+              [
+                [0, -0.1, 0],
+                [0, 0.1, 0],
+                [0, -0.1, 0],
+                [0, 0.1, 0],
+                [0, -0.1, 0],
+                [0, 0.1, 0],
+                [0, -0.1, 0],
+                [0, 0.1, 0],
+                [0, -0.1, 0],
+              ],
+            ),
+            qt(
+              "LeftUpperArm",
+              [0, 0.5, 1.0, 1.5, 2.0, 4.0],
+              [_I, [0, 0, -0.8], [0, 0, -0.3], [0, 0, -0.8], [0, 0, -0.3], _I],
+            ),
+            qt(
+              "RightUpperArm",
+              [0, 0.5, 1.0, 1.5, 2.0, 4.0],
+              [_I, [0, 0, 0.8], [0, 0, 0.3], [0, 0, 0.8], [0, 0, 0.3], _I],
+            ),
+            qt("Head", [0, 0.5, 1.0, 1.5, 4.0], [_I, [0, 0.1, 0], [0, -0.1, 0], [0, 0.1, 0], _I]),
+          ]),
+          point: new THREE.AnimationClip("point", 3.0, [
+            qt("RightUpperArm", [0, 0.5, 2.5, 3.0], [_I, [-0.2, 0, -1.0], [-0.2, 0, -1.0], _I]),
+            qt("RightLowerArm", [0, 0.5, 2.5, 3.0], [_I, [-0.4, 0, 0], [-0.4, 0, 0], _I]),
+            qt("Head", [0, 0.5, 2.5, 3.0], [_I, [0, 0.2, 0], [0, 0.2, 0], _I]),
+          ]),
+        };
+      }
+
+      function startIdleAnimation() {
+        // Idle breathing is handled in the render loop via direct bone manipulation
+        // No clip needed — it's continuous math-based motion
+      }
+
+      function playPose(poseName) {
+        if (!mixer || !poseClips) {
+          console.warn("Pose system not ready");
+          return;
+        }
+        const clip = poseClips[poseName];
+        if (!clip) {
+          console.warn("Unknown pose:", poseName);
+          return;
+        }
+        console.log("Playing pose:", poseName);
+        if (currentAction) {
+          currentAction.stop();
+          currentAction = null;
+        }
+        const action = mixer.clipAction(clip);
+        action.setLoop(THREE.LoopOnce, 1);
+        action.clampWhenFinished = false;
+        action.reset().play();
+        currentAction = action;
+        mixer.addEventListener("finished", function cb(e) {
+          if (e.action === action) {
+            mixer.removeEventListener("finished", cb);
+            currentAction = null;
+          }
+        });
+      }
+      window.playPose = playPose;
+
+      // --- Idle breathing (direct bone, runs every frame) ---
+      let idleTime = 0;
+
+      // (old poseAnimations removed — replaced by AnimationMixer clip system above)
 
       // --- Render loop ---
       const clock = new THREE.Clock();
       function animate() {
         requestAnimationFrame(animate);
         const delta = clock.getDelta();
-        t += delta;
 
         controls.update();
 
+        // Idle breathing — direct bone rotation (works without AnimationClip)
+        if (model && !currentAction) {
+          idleTime += delta;
+          const spBone = bones["Spine"];
+          if (spBone) spBone.rotation.x = Math.sin(idleTime * 1.5) * 0.015;
+          const hdBone = bones["Head"];
+          if (hdBone) {
+            hdBone.rotation.y = Math.sin(idleTime * 0.5) * 0.03;
+            hdBone.rotation.x = Math.sin(idleTime * 0.7) * 0.015;
+          }
+          const earL = bones["Ear_Left_01"],
+            earR = bones["Ear_Right_01"];
+          if (earL) earL.rotation.z = Math.sin(idleTime * 2.3) * 0.04;
+          if (earR) earR.rotation.z = Math.sin(idleTime * 2.5) * 0.04;
+          const ahoge = bones["HairAhoge_01"];
+          if (ahoge) ahoge.rotation.z = Math.sin(idleTime * 1.0) * 0.07;
+        }
+
         if (mixer) {
           mixer.update(delta);
-        } else if (model) {
-          // Gentle breathing bob
-          model.position.y += Math.sin(t * 1.5) * 0.0002;
         }
 
         // Lip Sync Logic
@@ -395,11 +640,11 @@
             sum += dataArray[i];
           }
           const avg = sum / dataArray.length;
-          
+
           // Map volume (0-255) to jaw rotation angle (0 to 0.4 rad)
           // Thresholding it a bit to avoid jitter on background noise
           const targetRotation = avg > 10 ? (avg / 255) * 0.4 : 0;
-          
+
           // Smoothly interpolate the jaw rotation for natural movement
           jawBone.rotation.x += (targetRotation - jawBone.rotation.x) * 0.2;
         }
@@ -438,15 +683,31 @@
       let micActive = false;
       let camActive = false;
 
+      // Hidden canvas for extracting frames
+      let visionInterval = null;
+      const offscreenCanvas = document.createElement("canvas");
+      const offscreenCtx = offscreenCanvas.getContext("2d");
+      const VISION_WIDTH = 320;
+      const VISION_HEIGHT = 240;
+      offscreenCanvas.width = VISION_WIDTH;
+      offscreenCanvas.height = VISION_HEIGHT;
+
       // Toggle Camera
       toggleCamBtn.addEventListener("click", async () => {
+        const cameraPip = document.getElementById("camera-pip");
         if (!camActive) {
           try {
-            videoStream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 } });
+            videoStream = await navigator.mediaDevices.getUserMedia({
+              video: { width: 320, height: 240 },
+            });
             userVideo.srcObject = videoStream;
             camActive = true;
             toggleCamBtn.textContent = "Stop Cam";
             toggleCamBtn.classList.add("active");
+            cameraPip.classList.remove("hidden");
+
+            // Start sending frames to Gateway every 10 seconds
+            visionInterval = setInterval(sendVisionFrame, 10000);
           } catch (err) {
             console.error("Camera access denied or error:", err);
             alert("Warning: Could not access the camera. Check your permissions.");
@@ -459,8 +720,37 @@
           camActive = false;
           toggleCamBtn.textContent = "Start Cam";
           toggleCamBtn.classList.remove("active");
+          cameraPip.classList.add("hidden");
+
+          if (visionInterval) {
+            clearInterval(visionInterval);
+            visionInterval = null;
+          }
         }
       });
+
+      function sendVisionFrame() {
+        if (!camActive || !gwSocket || gwSocket.readyState !== WebSocket.OPEN) return;
+
+        // Draw video frame to canvas
+        offscreenCtx.drawImage(userVideo, 0, 0, VISION_WIDTH, VISION_HEIGHT);
+
+        // Get base64 JPEG
+        const base64DataUrl = offscreenCanvas.toDataURL("image/jpeg", 0.7);
+
+        // Send Custom Gateway Method Request
+        const reqId = crypto.randomUUID
+          ? crypto.randomUUID()
+          : Math.random().toString(36).substring(2, 15);
+        gwSocket.send(
+          JSON.stringify({
+            type: "req",
+            id: reqId,
+            method: "auto-agent.vision",
+            params: { image: base64DataUrl },
+          }),
+        );
+      }
 
       // Toggle Microphone (Placeholder, full STT logic to follow)
       toggleMicBtn.addEventListener("click", async () => {
@@ -502,18 +792,19 @@
       function connectGateway() {
         // Assume default port 3000
         gwSocket = new WebSocket(`ws://${window.location.hostname}:3000/?token=${GW_TOKEN}`);
-        
+
         gwSocket.onopen = () => {
           gwStatusEl.textContent = "Gateway: ✓ connected";
           gwStatusEl.style.color = "rgba(100,255,150,0.9)";
           console.log("Connected to OpenClaw Gateway WebSocket.");
         };
-        
+
         gwSocket.onmessage = async (event) => {
           try {
             const data = JSON.parse(event.data);
             if (data.type === "agent:message" && data.payload && data.payload.text) {
               const text = data.payload.text;
+              if (text.trim() === "NO_RESPONSE") return; // Ignore silent vision evaluations
               showChat(`Hakua: ${text}`, 8000);
               await playTTSAndAnimate(text);
             }
@@ -527,22 +818,24 @@
           gwStatusEl.style.color = "rgba(255,200,100,0.9)";
           setTimeout(connectGateway, 5000);
         };
-        
+
         gwSocket.onerror = (err) => {
           console.error("Gateway WS Error", err);
         };
       }
-      
+
       connectGateway();
 
       // Send text to the gateway
       function sendToGateway(text) {
         if (gwSocket && gwSocket.readyState === WebSocket.OPEN) {
           showChat(`You: ${text}`, 3000);
-          gwSocket.send(JSON.stringify({
-            type: "chat:post",
-            payload: { text, channel: "voice-call", user: "local-user" }
-          }));
+          gwSocket.send(
+            JSON.stringify({
+              type: "chat:post",
+              payload: { text, channel: "voice-call", user: "local-user" },
+            }),
+          );
         } else {
           console.warn("Cannot send message, WebSocket not open.");
           showChat("Error: Not connected to Gateway", 2000);
@@ -552,12 +845,12 @@
       // --- Speech Recognition ---
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       let recognition = null;
-      
+
       if (SpeechRecognition) {
         recognition = new SpeechRecognition();
         recognition.continuous = true;
         recognition.interimResults = false;
-        recognition.lang = 'ja-JP';
+        recognition.lang = "ja-JP";
 
         recognition.onresult = (event) => {
           const transcript = event.results[event.results.length - 1][0].transcript.trim();
@@ -566,15 +859,17 @@
             sendToGateway(transcript);
           }
         };
-        
+
         recognition.onerror = (event) => {
           console.error("Speech recognition error", event.error);
         };
-        
+
         recognition.onend = () => {
           // Restart if still active (continuous listening mode)
           if (micActive) {
-            try { recognition.start(); } catch(e) { }
+            try {
+              recognition.start();
+            } catch (e) {}
           }
         };
       } else {
@@ -590,9 +885,13 @@
             toggleMicBtn.textContent = "Stop Mic";
             toggleMicBtn.classList.add("active");
             micStatus.classList.remove("hidden");
-            
+
             if (recognition) {
-              try { recognition.start(); } catch(e) { /* already started */ }
+              try {
+                recognition.start();
+              } catch (e) {
+                /* already started */
+              }
             }
           } catch (err) {
             console.error("Mic access denied or error:", err);
@@ -614,11 +913,8 @@
 
       // --- TTS and Animation Logic ---
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      let analyser = null;
-      let dataArray = null;
-      let currentSource = null;
-      let jawBone = null;
-      let isSpeaking = false;
+      // NOTE: analyser, dataArray, currentSource, jawBone, isSpeaking
+      // are declared above animate() to avoid Temporal Dead Zone errors.
 
       // Extract animation tags e.g "Hello *wave*" -> text: "Hello", anim: "wave"
       function extractAnimationTags(text) {
@@ -652,41 +948,27 @@
         const { text, animations } = extractAnimationTags(rawText);
         console.log("TTS Text:", text, "Animations:", animations);
 
-        // Try to play corresponding FBX animation if requested
-        if (mixer && animations.length > 0) {
-          const animName = animations[0]; // Play the first one for now
-          const clip = model.animations.find(a => a.name.toLowerCase().includes(animName));
-          if (clip) {
-            console.log("Playing animation:", clip.name);
-            const action = mixer.clipAction(clip);
-            action.reset();
-            action.play();
-            // Simple crossfade
-            if (idleAction) {
-              idleAction.crossFadeTo(action, 0.5, false);
-              setTimeout(() => {
-                action.crossFadeTo(idleAction, 0.5, false);
-              }, clip.duration * 1000 - 500);
-            }
-          }
+        // Play procedural poses from animation tags
+        if (animations.length > 0) {
+          playPose(animations[0]);
         }
 
         if (!text) return; // Only animation tags were sent
 
         try {
-          // Fetch from SBV2 directly (assuming port 5000 and default params)
+          // Fetch from SBV2 via local proxy to avoid CORS Options issues
           // OpenClaw config uses modelId: "Hakua", speakerId: 0
-          const ttsUrl = `http://${window.location.hostname}:5000/voice?text=${encodeURIComponent(text)}&model_id=0&speaker_id=0&style_weight=1`;
-          
+          const ttsUrl = `/api/tts/voice?text=${encodeURIComponent(text)}&model_id=0&speaker_id=0&style_weight=1`;
+
           const response = await fetch(ttsUrl);
           if (!response.ok) throw new Error("TTS fetch failed");
-          
+
           const arrayBuffer = await response.arrayBuffer();
           const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-          
+
           currentSource = audioCtx.createBufferSource();
           currentSource.buffer = audioBuffer;
-          
+
           analyser = audioCtx.createAnalyser();
           analyser.fftSize = 256;
           const bufferLength = analyser.frequencyBinCount;
@@ -694,9 +976,9 @@
 
           currentSource.connect(analyser);
           analyser.connect(audioCtx.destination);
-          
+
           findJawBone();
-          
+
           currentSource.onended = () => {
             isSpeaking = false;
             if (jawBone) {
@@ -706,18 +988,10 @@
 
           isSpeaking = true;
           currentSource.start(0);
-
         } catch (err) {
           console.error("TTS playback error:", err);
         }
       }
-
-      // Integrate Lip Sync into the render loop
-      const originalAnimate = animate; // We can't really redefine animate directly, so we inject logic inside the existing animate loop instead of wrapping it.
-      // Wait, let's just modify the animate function in the previous block.
-      // We will override animate by reassigning it, since it's a function declaration. Unsafe in some strict modes, but we can do it.
-      // Better approach: wrap the requestAnimationFrame call, but it's recursively calling animate.
-      // So let's override the `animate` reference.
     </script>
   </body>
 </html>
