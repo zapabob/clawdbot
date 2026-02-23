@@ -1,6 +1,6 @@
 import { createSocket, type Socket } from "node:dgram";
-import type { OSCConfig, OSCMessage } from "./types.js";
 import { encodeOSCMessage, decodeOSCMessage } from "./codec.js";
+import type { OSCConfig, OSCMessage } from "./types.js";
 import { DEFAULT_OSC_CONFIG, DEFAULT_OSC_PATHS } from "./types.js";
 
 export class OSCClient {
