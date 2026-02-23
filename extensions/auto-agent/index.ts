@@ -112,8 +112,19 @@ const SWARM_TASKS = [
 ];
 
 function getConfig(api: OpenClawPluginApi): AutoAgentConfig {
-  const cfg = api.runtime.config.loadConfig();
-  return (cfg.plugins?.entries?.["auto-agent"]?.config ?? {}) as AutoAgentConfig;
+  const root = api.runtime.config.loadConfig();
+  const entry = root.plugins?.entries?.["auto-agent"];
+  const cfg = (entry?.config ?? {}) as AutoAgentConfig;
+
+  // Important: `plugins.entries["auto-agent"].enabled=false` must hard-disable the plugin,
+  // even if a stale config block exists. Otherwise the gateway may keep running the loop.
+  const entryEnabled = entry?.enabled ?? true;
+  const cfgEnabled = cfg.enabled ?? false;
+
+  return {
+    ...cfg,
+    enabled: Boolean(entryEnabled) && Boolean(cfgEnabled),
+  };
 }
 
 async function runAutonomousTask(
