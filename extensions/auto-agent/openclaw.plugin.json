@@ -39,6 +39,11 @@
         "type": "string",
         "description": "Model to use for subagent tasks."
       },
+      "autonomousTasks": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Custom tasks for the autonomous pool."
+      },
       "agentUrl": {
         "type": "string",
         "description": "URL of the agent API endpoint.",
