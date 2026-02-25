@@ -1,0 +1,46 @@
+{
+  "status": "success",
+  "query": "ShinkaEvolve algorithm",
+  "summary": "Research on 'ShinkaEvolve algorithm' based on 10 sources.\n\nPrimary finding: Sep 17, 2025 · ShinkaEvolve discovers a new state-of-the-art circle packing solution using only 150 samples, designs high-performing agentic harnesses for AIME ......",
+  "sources": [
+    {
+      "title": "[2509.19349] ShinkaEvolve: Towards Open-Ended And Sample-Efficient ...",
+      "url": "https://arxiv.org/abs/2509.19349"
+    },
+    {
+      "title": "ShinkaEvolve: Evolving New Algorithms with LLMs ... - Sakana AI",
+      "url": "https://sakana.ai/shinka-evolve/"
+    },
+    {
+      "title": "ShinkaEvolve Evolutionary Framework - Emergent Mind",
+      "url": "https://www.emergentmind.com/topics/shinkaevolve-framework"
+    },
+    {
+      "title": "10 Analytical Insights Into How ShinkaEvolve's LLM Mutations Are ...",
+      "url": "https://notaiworld.com/how-shinkaevolve-sakana-ai-revolutionizing-program-evolution-scientific-discovery-2025/"
+    },
+    {
+      "title": "ShinkaEvolve: Open-Ended Program Synthesis - Emergent Mind",
+      "url": "https://www.emergentmind.com/topics/shinkaevolve"
+    }
+  ],
+  "facts": [
+    {
+      "statement": "Sep 17, 2025 · ShinkaEvolve discovers a new state-of-the-art circle packing solution using only 150 samples, designs high-performing agentic harnesses for AIME",
+      "confidence": "high"
+    },
+    {
+      "statement": "Sep 25, 2025 · ShinkaEvolve generates a search summary document consisting of previous code proposal summaries, a set of insights outlined in a scratchpad,",
+      "confidence": "high"
+    },
+    {
+      "statement": "ShinkaEvolve is an open-source evolutionary framework that integrates large language models into its optimization loop to improve sample efficiency",
+      "confidence": "high"
+    }
+  ],
+  "recommendations": [
+    "Based on 3 verified facts, consider implementing the core concepts.",
+    "Primary reference: [2509.19349] ShinkaEvolve: Towards Open-Ended And Sample-Efficient ... (https://arxiv.org/abs/2509.19349)",
+    "Further experimentation and validation recommended."
+  ]
+}
