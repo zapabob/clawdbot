@@ -2,6 +2,11 @@
 """
 OpenClaw Voice Integration Script
 Real-time voice conversation with Ollama + Moonshine/Whisper STT + Edge TTS
+
+Usage:
+    py -3 voice_assistant.py --turns 5      # Voice conversation
+    py -3 voice_assistant.py --speak "text" # Speak text
+    py -3 voice_assistant.py --listen       # Listen only
 """
 
 import sys
@@ -23,7 +28,6 @@ class OpenClawVoiceAssistant:
         stt_provider: str = "moonshine",
         tts_provider: str = "edge",
     ):
-        """Initialize voice assistant."""
         print(f"Initializing Voice Assistant...")
 
         # Ollama client
@@ -40,42 +44,71 @@ class OpenClawVoiceAssistant:
 
     def listen(self, duration: float = 5.0) -> str:
         """Listen and transcribe speech."""
-        print(f"Listening for {duration}s...")
-        result = self.voice.listen_realtime(duration=duration)
-        print(f"You: {result.text}")
-        return result.text
+        print(f"\n🎤 聞いています... ({duration}秒)")
+        try:
+            result = self.voice.listen_realtime(duration=duration)
+            print(f"📝 認識結果: {result.text}")
+            return result.text
+        except Exception as e:
+            print(f"❌ 音声認識エラー: {e}")
+            return ""
 
     def speak(self, text: str):
         """Speak text."""
-        print(f"Assistant: {text}")
-        self.voice.speak(text, play=True)
+        print(f"🔊  Assistant: {text}")
+        try:
+            self.voice.speak(text, play=True)
+        except Exception as e:
+            print(f"❌ 音声出力エラー: {e}")
 
     def chat(self, message: str) -> str:
         """Chat with Ollama."""
         response = self.ollama.generate(prompt=message, temperature=0.7, num_predict=512)
         return response.response
 
-    def converse(self, num_turns: int = 3):
-        """Run voice conversation."""
+    def converse(self, num_turns: int = 5):
+        """Run voice conversation loop."""
         print("\n" + "=" * 50)
-        print("Voice Conversation Started")
+        print("🎙️ 音声エージェント会話 Started")
         print("=" * 50)
+        print("MICを使用します。話しかけてください。")
+        print("終了するには Ctrl+C を押してください。")
 
-        for i in range(num_turns):
-            print(f"\n--- Turn {i + 1}/{num_turns} ---")
+        greeting = "こんにちは！私はOpenClawの音声エージェントです。何でも聞いてください！"
+        self.speak(greeting)
+
+        turn = 0
+        while turn < num_turns:
+            turn += 1
+            print(f"\n--- Turn {turn}/{num_turns} ---")
 
             # Listen
-            user_text = self.listen(duration=5.0)
+            user_text = self.listen(duration=6.0)
 
             if not user_text.strip():
-                print("No speech detected, skipping...")
+                print("🙈 認識できませんでした。もう一度お願いします。")
+                self.speak("すみません、聞こえませんでした。もう一度お願いします。")
                 continue
 
+            # Check for exit
+            if any(
+                word in user_text.lower()
+                for word in ["終わり", "終了", "quit", "exit", "さようなら"]
+            ):
+                print("👋 終了します。")
+                self.speak("分かりました！また話しかけてください。バイバイ！")
+                break
+
             # Chat with Ollama
+            print("🤔 Ollamaに問い合わせ中...")
             response = self.chat(user_text)
 
             # Speak response
             self.speak(response)
+
+        if turn >= num_turns:
+            print("\n✅ 会話を終了します。")
+            self.speak("セッション終了です。また話しかけてください！")
 
         print("\nConversation ended!")
 
@@ -99,9 +132,9 @@ def main():
     parser.add_argument(
         "--tts", default="edge", choices=["edge", "coqui", "piper"], help="TTS provider"
     )
-    parser.add_argument("--turns", type=int, default=3, help="Number of conversation turns")
-    parser.add_argument("--speak-only", type=str, help="Text to speak (no listening)")
-    parser.add_argument("--listen-only", action="store_true", help="Listen and print (no speaking)")
+    parser.add_argument("--turns", type=int, default=5, help="Number of conversation turns")
+    parser.add_argument("--speak", type=str, help="Text to speak (no listening)")
+    parser.add_argument("--listen", action="store_true", help="Listen and print (no speaking)")
 
     args = parser.parse_args()
 
@@ -111,19 +144,19 @@ def main():
     )
 
     try:
-        if args.speak_only:
-            # Speak only mode
-            assistant.speak(args.speak_only)
+        if args.speak:
+            assistant.speak(args.speak)
 
-        elif args.listen_only:
-            # Listen only mode
-            text = assistant.listen(duration=5.0)
-            print(f"\nTranscribed: {text}")
+        elif args.listen:
+            text = assistant.listen(duration=6.0)
+            print(f"\n認識テキスト: {text}")
 
         else:
-            # Full conversation
             assistant.converse(num_turns=args.turns)
 
+    except KeyboardInterrupt:
+        print("\n\n⌨️ 中断されました")
+        assistant.speak("分かりました！")
     finally:
         assistant.close()
 
