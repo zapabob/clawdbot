@@ -174,7 +174,7 @@ const coreEntries: CoreCliEntry[] = [
       {
         name: "sessions",
         description: "List stored conversation sessions",
-        hasSubcommands: false,
+        hasSubcommands: true,
       },
     ],
     register: async ({ program }) => {
