@@ -156,4 +156,4 @@ src/agents/tools/web-search.ts
 
 # GPT-5.2 Evolution & Logs
 *.log
-_docs/
+
