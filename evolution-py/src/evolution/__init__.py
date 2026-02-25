@@ -14,6 +14,7 @@ from .search import SearchAPI
 from .deep_research import DeepResearch
 from .ollama_client import OllamaClient
 from .system import create_system, EvolutionSystem
+from .voice import VoiceAPI, create_voice_api, STTProvider, TTSProvider
 
 __all__ = [
     "EvolutionEngine",
@@ -22,4 +23,8 @@ __all__ = [
     "OllamaClient",
     "create_system",
     "EvolutionSystem",
+    "VoiceAPI",
+    "create_voice_api",
+    "STTProvider",
+    "TTSProvider",
 ]
