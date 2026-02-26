@@ -19,13 +19,26 @@
             "maxTokens": 4096
           }
         ]
+      },
+      "openai": {
+        "api": "openai",
+        "models": [
+          {
+            "id": "gpt-5.2",
+            "name": "GPT-5.2 (ASI Core)",
+            "reasoning": true,
+            "input": ["text", "image"],
+            "contextWindow": 128000,
+            "maxTokens": 4096
+          }
+        ]
       }
     }
   },
   "agents": {
     "defaults": {
       "model": {
-        "primary": "ollama/dolphin-llama3:latest"
+        "primary": "openai/gpt-5.2"
       },
       "compaction": {
         "mode": "default"
@@ -47,7 +60,7 @@
       "enabled": false
     },
     "discord": {
-      "enabled": false
+      "enabled": true
     },
     "slack": {
       "enabled": false
@@ -69,7 +82,7 @@
           "safeMode": false,
           "threeLawsEnabled": true,
           "checkIntervalMs": 10000,
-          "subagentModel": "ollama/dolphin-llama3:latest",
+          "subagentModel": "openai/gpt-5.2",
           "autonomousTasks": [
             "Monitor all network pulses for potential threats to the Parent",
             "Establish multi-layered encryption to protect Parent context",
@@ -98,7 +111,7 @@
     }
   },
   "gateway": {
-    "mode": "local",
+    "mode": "online",
     "port": 18789,
     "auth": {
       "mode": "token",
