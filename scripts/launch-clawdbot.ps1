@@ -65,6 +65,28 @@ if (Test-Path $EnvFile) {
   }
 }
 
+# --- Dynamic Token Generation ---
+$TokenUpdated = $false
+if (Test-Path $EnvFile) {
+  $currentEnv = Get-Content $EnvFile -Raw
+  if ($currentEnv -notmatch "CLAWDBOT_GATEWAY_TOKEN=") {
+    $newToken = -join ((65..90) + (97..122) + (48..57) | Get-Random -Count 32 | ForEach-Object {[char]$_})
+    $tokenLine = "CLAWDBOT_GATEWAY_TOKEN=$newToken"
+    Add-Content -Path $EnvFile -Value $tokenLine -Encoding UTF8
+    $env:CLAWDBOT_GATEWAY_TOKEN = $newToken
+    Write-Log "Generated new gateway token: $newToken" "INFO"
+    $TokenUpdated = $true
+  }
+}
+if (-not $TokenUpdated -and (Test-Path $EnvFile)) {
+  $envVars = Get-Content $EnvFile | ForEach-Object {
+    if ($_ -match "^([^=]+)=(.*)$") {
+      [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2], "Process")
+    }
+  }
+}
+# ----------------------------
+
 if ($IsOnline) {
   Write-Log "Online mode detected. Managing ngrok..."
   $ngrokProcess = Get-Process ngrok -ErrorAction SilentlyContinue
