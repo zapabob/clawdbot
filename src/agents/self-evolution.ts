@@ -96,11 +96,17 @@ export class EvolutionaryEngine {
       config.agents.defaults = {};
     }
 
-    if (index % 3 === 0 && config.agents.defaults.model?.fallbacks) {
-      const fallbacks = [...config.agents.defaults.model.fallbacks];
-      fallbacks.sort(() => Math.random() - 0.5);
-      if (config.agents.defaults.model) {
-        config.agents.defaults.model.fallbacks = fallbacks;
+    if (
+      index % 3 === 0 &&
+      typeof config.agents.defaults.model === "object" &&
+      config.agents.defaults.model?.fallbacks
+    ) {
+      const model = config.agents.defaults.model;
+      const fallbacks = model.fallbacks;
+      if (fallbacks) {
+        const sorted = [...fallbacks];
+        sorted.sort(() => Math.random() - 0.5);
+        model.fallbacks = sorted;
       }
     }
 
@@ -334,12 +340,16 @@ export class EvolutionaryEngine {
 
     switch (mutationType) {
       case "provider_priority":
-        if (mutatedConfig.agents.defaults.model?.fallbacks) {
-          const fallbacks = [...mutatedConfig.agents.defaults.model.fallbacks];
-          const idx1 = Math.floor(Math.random() * fallbacks.length);
-          const idx2 = Math.floor(Math.random() * fallbacks.length);
-          [fallbacks[idx1], fallbacks[idx2]] = [fallbacks[idx2], fallbacks[idx1]];
-          mutatedConfig.agents.defaults.model.fallbacks = fallbacks;
+        if (
+          typeof mutatedConfig.agents.defaults.model === "object" &&
+          mutatedConfig.agents.defaults.model?.fallbacks
+        ) {
+          const fallbacks = mutatedConfig.agents.defaults.model.fallbacks;
+          if (fallbacks && fallbacks.length > 1) {
+            const idx1 = Math.floor(Math.random() * fallbacks.length);
+            const idx2 = Math.floor(Math.random() * fallbacks.length);
+            [fallbacks[idx1], fallbacks[idx2]] = [fallbacks[idx2], fallbacks[idx1]];
+          }
         }
         break;
 
@@ -422,11 +432,20 @@ export class EvolutionaryEngine {
   private mergeConfigs(config1: OpenClawConfig, config2: OpenClawConfig): OpenClawConfig {
     const result = JSON.parse(JSON.stringify(config1)) as OpenClawConfig;
 
-    if (config2.agents?.defaults?.model?.fallbacks && result.agents?.defaults?.model?.fallbacks) {
-      const fallbacks1 = result.agents.defaults.model.fallbacks;
-      const fallbacks2 = config2.agents.defaults.model.fallbacks;
-      const combined = [...new Set([...fallbacks1, ...fallbacks2])];
-      result.agents.defaults.model.fallbacks = combined;
+    const model1 = result.agents?.defaults?.model;
+    const model2 = config2.agents?.defaults?.model;
+    if (
+      typeof model1 === "object" &&
+      typeof model2 === "object" &&
+      model1?.fallbacks &&
+      model2?.fallbacks
+    ) {
+      const fallbacks1 = model1.fallbacks;
+      const fallbacks2 = model2.fallbacks;
+      if (fallbacks1 && fallbacks2) {
+        const combined = [...new Set([...fallbacks1, ...fallbacks2])];
+        model1.fallbacks = combined;
+      }
     }
 
     const vecWeight1 = result.agents?.defaults?.memorySearch?.query?.hybrid?.vectorWeight;
