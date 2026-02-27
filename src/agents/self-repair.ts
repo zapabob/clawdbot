@@ -54,7 +54,7 @@ export class SelfRepairEngine {
   private checkModelConfiguration(): HealthCheck {
     const model = this.config?.agents?.defaults?.model;
 
-    if (!model?.primary) {
+    if (typeof model === "string" || !model?.primary) {
       return {
         name: "model_configuration",
         status: "critical",
@@ -80,7 +80,8 @@ export class SelfRepairEngine {
   }
 
   private checkProviderAvailability(): HealthCheck {
-    const providers = this.config?.agents?.defaults?.model?.fallbacks || [];
+    const model = this.config?.agents?.defaults?.model;
+    const providers = (typeof model === "object" && model?.fallbacks) || [];
 
     if (providers.length === 0) {
       return {
@@ -208,14 +209,15 @@ export class SelfRepairEngine {
   }
 
   private repairMissingFallbacks(): void {
-    if (!this.config?.agents?.defaults?.model?.fallbacks) {
-      const before = this.config?.agents?.defaults?.model?.fallbacks;
+    const model = this.config?.agents?.defaults?.model;
+    if (typeof model !== "object" || !model?.fallbacks) {
+      const before = typeof model === "object" ? model?.fallbacks : undefined;
       const fallbacks = ["ollama/rnj-1-instruct", "ollama/aegis-phi3.5-jpv2.5"];
 
-      if (!this.config!.agents!.defaults!.model) {
-        this.config!.agents!.defaults!.model = {};
+      if (typeof model === "string" || !model) {
+        (this.config!.agents!.defaults as { model?: object }).model = {};
       }
-      this.config!.agents!.defaults!.model.fallbacks = fallbacks;
+      (this.config!.agents!.defaults!.model as { fallbacks?: string[] }).fallbacks = fallbacks;
 
       this.repairHistory.push({
         type: "add_fallbacks",
