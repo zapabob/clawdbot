@@ -67,11 +67,13 @@ REM 3. Browser Control (Edge)
 echo [3/4] Launching Browser Control...
 set EDGE_PATH=C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe
 set BROWSER_URL=http://127.0.0.1:18791/
+set UI_URL=http://127.0.0.1:18789/
 
 if exist "%EDGE_PATH%" (
-    start "" "%EDGE_PATH%" "%BROWSER_URL%" --no-first-run --disable-extensions --disable-sync
+    start "" "%EDGE_PATH%" "%BROWSER_URL%" "%UI_URL%" --no-first-run --disable-extensions --disable-sync
 ) else (
     start "" "%BROWSER_URL%"
+    start "" "%UI_URL%"
 )
 
 REM 4. Avatar Window

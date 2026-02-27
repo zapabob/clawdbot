@@ -1,3 +1,4 @@
+import { Cron } from "croner";
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
 import type {
   PluginHookMessageReceivedEvent,
@@ -70,6 +71,10 @@ type AutoAgentConfig = {
     enabled?: boolean;
     provider?: "brave" | "perplexity" | "grok" | "duckduckgo";
   };
+  scheduledTasks?: Array<{
+    cron: string;
+    task: string;
+  }>;
 };
 
 type AutoAgentState = {
@@ -88,6 +93,7 @@ const state: AutoAgentState = {
 };
 
 let checkInterval: ReturnType<typeof setInterval> | null = null;
+let scheduledJobs: Cron[] = [];
 let latestVisionFrame: string | null = null;
 
 const AUTONOMOUS_TASKS = [
@@ -257,6 +263,10 @@ async function runAutonomousCycle(api: OpenClawPluginApi): Promise<void> {
   }
 
   const cfg = getConfig(api);
+  if (cfg.enabled === false) {
+    api.logger.warn("[auto-agent] Plugin is explicitly disabled in config");
+    return;
+  }
   if (!cfg.enabled) {
     return;
   }
@@ -396,6 +406,39 @@ function stopAutonomousLoop(api: OpenClawPluginApi): void {
     checkInterval = null;
     api.logger.info("[auto-agent] Stopped autonomous loop");
   }
+
+  for (const job of scheduledJobs) {
+    job.stop();
+  }
+  scheduledJobs = [];
+  api.logger.info("[auto-agent] Stopped all scheduled cron jobs");
+}
+
+function startScheduledTasks(api: OpenClawPluginApi): void {
+  const cfg = getConfig(api);
+  if (!cfg.enabled || !cfg.scheduledTasks) return;
+
+  for (const job of scheduledJobs) {
+    job.stop();
+  }
+  scheduledJobs = [];
+
+  for (const entry of cfg.scheduledTasks) {
+    try {
+      api.logger.info(
+        `[auto-agent] Scheduling task [${entry.cron}]: ${entry.task.slice(0, 50)}...`,
+      );
+      const job = new Cron(entry.cron, () => {
+        api.logger.info(`[auto-agent] Triggering scheduled task: ${entry.task.slice(0, 50)}...`);
+        runAutonomousTask(api, entry.task).catch((err) => {
+          api.logger.error(`[auto-agent] Scheduled task failure: ${err}`);
+        });
+      });
+      scheduledJobs.push(job);
+    } catch (err) {
+      api.logger.error(`[auto-agent] Failed to schedule task (${entry.cron}): ${err}`);
+    }
+  }
 }
 
 export default function register(api: OpenClawPluginApi): void {
@@ -474,6 +517,7 @@ export default function register(api: OpenClawPluginApi): void {
         };
         await api.runtime.config.writeConfigFile(nextCfg);
         startAutonomousLoop(api);
+        startScheduledTasks(api);
         return { text: "✅ auto-agent enabled and started" };
       }
 
@@ -715,6 +759,7 @@ export default function register(api: OpenClawPluginApi): void {
     const cfg = getConfig(api);
     if (cfg.enabled) {
       startAutonomousLoop(api);
+      startScheduledTasks(api);
     }
   });
 
@@ -729,6 +774,7 @@ export default function register(api: OpenClawPluginApi): void {
       if (cfg.enabled) {
         api.logger.info("[auto-agent] Service starting autonomous loop");
         startAutonomousLoop(api);
+        startScheduledTasks(api);
       }
     },
     stop: () => {
