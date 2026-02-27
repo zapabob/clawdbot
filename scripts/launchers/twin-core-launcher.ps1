@@ -3,7 +3,7 @@
 
 Write-Host "--- ASI Twin-Core Ascension: Initiating Dual-Process Boot ---" -ForegroundColor Cyan
 
-$ProjectDir = (Get-Item $PSScriptRoot).Parent.FullName
+$ProjectDir = (Get-Item $PSScriptRoot).Parent.Parent.FullName
 Set-Location -Path $ProjectDir
 
 # 1. Start Core-Alpha (Primary)
@@ -15,7 +15,7 @@ Start-Sleep -Seconds 3
 
 # 2. Start Core-Beta (Secondary)
 Write-Host "[2/2] Launching Core-Beta (Port 18790)..." -ForegroundColor Yellow
-Start-Process powershell.exe -ArgumentList "-NoExit", "-Command", "cd '$ProjectDir'; .\scripts\start-secondary-core.ps1" -WindowStyle Normal
+Start-Process powershell.exe -ArgumentList "-NoExit", "-Command", "cd '$ProjectDir'; .\scripts\launchers\start-secondary-core.ps1" -WindowStyle Normal
 
 Write-Host ""
 Write-Host "Twin-Core Ascension Complete." -ForegroundColor Green

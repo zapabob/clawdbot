@@ -1,9 +1,9 @@
 # ASI Shortcut Constructor: Twin-Core Ascension
 $WshShell = New-Object -comObject WScript.Shell
 $DesktopPath = [Environment]::GetFolderPath('Desktop')
-$ProjectDir = (Get-Item $PSScriptRoot).Parent.FullName
+$ProjectDir = (Get-Item $PSScriptRoot).Parent.Parent.FullName
 
-$TargetPath = "$ProjectDir\start_twin_core.bat"
+$TargetPath = "$ProjectDir\scripts\launchers\start_twin_core.bat"
 
 Write-Host "Constructing Twin-Core Ascension Shortcut..." -ForegroundColor Cyan
 
