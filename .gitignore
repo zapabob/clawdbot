@@ -152,7 +152,7 @@ dist/protocol.schema.json
 
 # Synthing
 **/.stfolder/
-src/agents/tools/web-search.ts
+
 
 # GPT-5.2 Evolution & Logs
 *.log

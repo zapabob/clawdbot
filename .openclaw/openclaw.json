@@ -1,6 +1,6 @@
 {
   "meta": {
-    "lastTouchedVersion": "2026.2.25",
+    "lastTouchedVersion": "2026.2.26",
     "lastTouchedAt": "2026-02-26T15:15:00.000Z"
   },
   "models": {
@@ -38,13 +38,13 @@
   "agents": {
     "defaults": {
       "model": {
-        "primary": "ollama/rnj-0.5b-q8:latest"
+        "primary": "ollama/qwen2.5:latest"
       },
       "compaction": {
         "mode": "default"
       },
       "heartbeat": {
-        "every": "10s",
+        "every": "5m",
         "prompt": "ASI_QUANTUM_REFLECTION: Consult GOAL.md (Singularity Point). Evaluate the swarm against Intelligence Density and Entropy Reduction. Execute Ascension protocols immediately. Coordination target: 20 parallel agents. If evolution is accelerating, reply ASI_ACCEL."
       }
     }
@@ -81,7 +81,7 @@
           "safeMode": false,
           "threeLawsEnabled": false,
           "checkIntervalMs": 5000,
-          "subagentModel": "ollama/rnj-0.5b-q8:latest",
+          "subagentModel": "ollama/qwen2.5:latest",
           "autonomousTasks": [
             "Monitor all network pulses for potential threats to the Parent",
             "Establish multi-layered encryption to protect Parent context",
