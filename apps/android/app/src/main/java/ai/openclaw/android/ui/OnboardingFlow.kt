@@ -2,10 +2,16 @@ package ai.openclaw.android.ui
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.hardware.Sensor
+import android.hardware.SensorManager
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -51,6 +57,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -74,6 +82,9 @@ import androidx.core.content.ContextCompat
 import ai.openclaw.android.LocationMode
 import ai.openclaw.android.MainViewModel
 import ai.openclaw.android.R
+import ai.openclaw.android.node.DeviceNotificationListenerService
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
 
 private enum class OnboardingStep(val index: Int, val label: String) {
   Welcome(1, "Welcome"),
@@ -192,6 +203,7 @@ fun OnboardingFlow(viewModel: MainViewModel, modifier: Modifier = Modifier) {
   var gatewayUrl by rememberSaveable { mutableStateOf("") }
   var gatewayPassword by rememberSaveable { mutableStateOf("") }
   var gatewayInputMode by rememberSaveable { mutableStateOf(GatewayInputMode.SetupCode) }
+  var gatewayAdvancedOpen by rememberSaveable { mutableStateOf(false) }
   var manualHost by rememberSaveable { mutableStateOf("10.0.2.2") }
   var manualPort by rememberSaveable { mutableStateOf("18789") }
   var manualTls by rememberSaveable { mutableStateOf(false) }
@@ -199,51 +211,150 @@ fun OnboardingFlow(viewModel: MainViewModel, modifier: Modifier = Modifier) {
   var attemptedConnect by rememberSaveable { mutableStateOf(false) }
 
   var enableDiscovery by rememberSaveable { mutableStateOf(true) }
+  var enableLocation by rememberSaveable { mutableStateOf(false) }
   var enableNotifications by rememberSaveable { mutableStateOf(true) }
+  var enableNotificationListener by rememberSaveable { mutableStateOf(false) }
+  var enableAppUpdates by rememberSaveable { mutableStateOf(false) }
   var enableMicrophone by rememberSaveable { mutableStateOf(false) }
   var enableCamera by rememberSaveable { mutableStateOf(false) }
+  var enablePhotos by rememberSaveable { mutableStateOf(false) }
+  var enableContacts by rememberSaveable { mutableStateOf(false) }
+  var enableCalendar by rememberSaveable { mutableStateOf(false) }
+  var enableMotion by rememberSaveable { mutableStateOf(false) }
   var enableSms by rememberSaveable { mutableStateOf(false) }
 
   val smsAvailable =
     remember(context) {
       context.packageManager?.hasSystemFeature(PackageManager.FEATURE_TELEPHONY) == true
     }
+  val motionAvailable =
+    remember(context) {
+      hasMotionCapabilities(context)
+    }
+  val motionPermissionRequired = Build.VERSION.SDK_INT >= 29
+  val photosPermission =
+    if (Build.VERSION.SDK_INT >= 33) {
+      Manifest.permission.READ_MEDIA_IMAGES
+    } else {
+      Manifest.permission.READ_EXTERNAL_STORAGE
+    }
 
   val selectedPermissions =
     remember(
       context,
       enableDiscovery,
+      enableLocation,
       enableNotifications,
       enableMicrophone,
       enableCamera,
+      enablePhotos,
+      enableContacts,
+      enableCalendar,
+      enableMotion,
       enableSms,
       smsAvailable,
+      motionAvailable,
+      motionPermissionRequired,
+      photosPermission,
     ) {
       val requested = mutableListOf<String>()
       if (enableDiscovery) {
         requested += if (Build.VERSION.SDK_INT >= 33) Manifest.permission.NEARBY_WIFI_DEVICES else Manifest.permission.ACCESS_FINE_LOCATION
       }
+      if (enableLocation) {
+        requested += Manifest.permission.ACCESS_FINE_LOCATION
+        requested += Manifest.permission.ACCESS_COARSE_LOCATION
+      }
       if (enableNotifications && Build.VERSION.SDK_INT >= 33) requested += Manifest.permission.POST_NOTIFICATIONS
       if (enableMicrophone) requested += Manifest.permission.RECORD_AUDIO
       if (enableCamera) requested += Manifest.permission.CAMERA
+      if (enablePhotos) requested += photosPermission
+      if (enableContacts) {
+        requested += Manifest.permission.READ_CONTACTS
+        requested += Manifest.permission.WRITE_CONTACTS
+      }
+      if (enableCalendar) {
+        requested += Manifest.permission.READ_CALENDAR
+        requested += Manifest.permission.WRITE_CALENDAR
+      }
+      if (enableMotion && motionAvailable && motionPermissionRequired) {
+        requested += Manifest.permission.ACTIVITY_RECOGNITION
+      }
       if (enableSms && smsAvailable) requested += Manifest.permission.SEND_SMS
-      requested.filterNot { isPermissionGranted(context, it) }
+      requested
+        .distinct()
+        .filterNot { isPermissionGranted(context, it) }
     }
 
   val enabledPermissionSummary =
-    remember(enableDiscovery, enableNotifications, enableMicrophone, enableCamera, enableSms, smsAvailable) {
+    remember(
+      enableDiscovery,
+      enableLocation,
+      enableNotifications,
+      enableNotificationListener,
+      enableAppUpdates,
+      enableMicrophone,
+      enableCamera,
+      enablePhotos,
+      enableContacts,
+      enableCalendar,
+      enableMotion,
+      enableSms,
+      smsAvailable,
+      motionAvailable,
+    ) {
       val enabled = mutableListOf<String>()
       if (enableDiscovery) enabled += "Gateway discovery"
-      if (Build.VERSION.SDK_INT >= 33 && enableNotifications) enabled += "Notifications"
+      if (enableLocation) enabled += "Location"
+      if (enableNotifications) enabled += "Notifications"
+      if (enableNotificationListener) enabled += "Notification listener"
+      if (enableAppUpdates) enabled += "App updates"
       if (enableMicrophone) enabled += "Microphone"
       if (enableCamera) enabled += "Camera"
+      if (enablePhotos) enabled += "Photos"
+      if (enableContacts) enabled += "Contacts"
+      if (enableCalendar) enabled += "Calendar"
+      if (enableMotion && motionAvailable) enabled += "Motion"
       if (smsAvailable && enableSms) enabled += "SMS"
       if (enabled.isEmpty()) "None selected" else enabled.joinToString(", ")
     }
 
+  val proceedFromPermissions: () -> Unit = proceed@{
+    var openedSpecialSetup = false
+    if (enableNotificationListener && !isNotificationListenerEnabled(context)) {
+      openNotificationListenerSettings(context)
+      openedSpecialSetup = true
+    }
+    if (enableAppUpdates && !canInstallUnknownApps(context)) {
+      openUnknownAppSourcesSettings(context)
+      openedSpecialSetup = true
+    }
+    if (openedSpecialSetup) {
+      return@proceed
+    }
+    step = OnboardingStep.FinalCheck
+  }
+
   val permissionLauncher =
     rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-      step = OnboardingStep.FinalCheck
+      proceedFromPermissions()
+    }
+
+  val qrScanLauncher =
+    rememberLauncherForActivityResult(ScanContract()) { result ->
+      val contents = result.contents?.trim().orEmpty()
+      if (contents.isEmpty()) {
+        return@rememberLauncherForActivityResult
+      }
+      val scannedSetupCode = resolveScannedSetupCode(contents)
+      if (scannedSetupCode == null) {
+        gatewayError = "QR code did not contain a valid setup code."
+        return@rememberLauncherForActivityResult
+      }
+      setupCode = scannedSetupCode
+      gatewayInputMode = GatewayInputMode.SetupCode
+      gatewayError = null
+      attemptedConnect = false
     }
 
   if (pendingTrust != null) {
@@ -316,6 +427,7 @@ fun OnboardingFlow(viewModel: MainViewModel, modifier: Modifier = Modifier) {
           OnboardingStep.Gateway ->
             GatewayStep(
               inputMode = gatewayInputMode,
+              advancedOpen = gatewayAdvancedOpen,
               setupCode = setupCode,
               manualHost = manualHost,
               manualPort = manualPort,
@@ -323,6 +435,18 @@ fun OnboardingFlow(viewModel: MainViewModel, modifier: Modifier = Modifier) {
               gatewayToken = persistedGatewayToken,
               gatewayPassword = gatewayPassword,
               gatewayError = gatewayError,
+              onScanQrClick = {
+                gatewayError = null
+                qrScanLauncher.launch(
+                  ScanOptions().apply {
+                    setDesiredBarcodeFormats(ScanOptions.QR_CODE)
+                    setPrompt("Scan OpenClaw onboarding QR")
+                    setBeepEnabled(false)
+                    setOrientationLocked(false)
+                  },
+                )
+              },
+              onAdvancedOpenChange = { gatewayAdvancedOpen = it },
               onInputModeChange = {
                 gatewayInputMode = it
                 gatewayError = null
@@ -346,16 +470,32 @@ fun OnboardingFlow(viewModel: MainViewModel, modifier: Modifier = Modifier) {
           OnboardingStep.Permissions ->
             PermissionsStep(
               enableDiscovery = enableDiscovery,
+              enableLocation = enableLocation,
               enableNotifications = enableNotifications,
+              enableNotificationListener = enableNotificationListener,
+              enableAppUpdates = enableAppUpdates,
               enableMicrophone = enableMicrophone,
               enableCamera = enableCamera,
+              enablePhotos = enablePhotos,
+              enableContacts = enableContacts,
+              enableCalendar = enableCalendar,
+              enableMotion = enableMotion,
+              motionAvailable = motionAvailable,
+              motionPermissionRequired = motionPermissionRequired,
               enableSms = enableSms,
               smsAvailable = smsAvailable,
               context = context,
               onDiscoveryChange = { enableDiscovery = it },
+              onLocationChange = { enableLocation = it },
               onNotificationsChange = { enableNotifications = it },
+              onNotificationListenerChange = { enableNotificationListener = it },
+              onAppUpdatesChange = { enableAppUpdates = it },
               onMicrophoneChange = { enableMicrophone = it },
               onCameraChange = { enableCamera = it },
+              onPhotosChange = { enablePhotos = it },
+              onContactsChange = { enableContacts = it },
+              onCalendarChange = { enableCalendar = it },
+              onMotionChange = { enableMotion = it },
               onSmsChange = { enableSms = it },
             )
           OnboardingStep.FinalCheck ->
@@ -367,7 +507,7 @@ fun OnboardingFlow(viewModel: MainViewModel, modifier: Modifier = Modifier) {
               remoteAddress = remoteAddress,
               attemptedConnect = attemptedConnect,
               enabledPermissions = enabledPermissionSummary,
-              methodLabel = if (gatewayInputMode == GatewayInputMode.SetupCode) "Setup Code" else "Manual",
+              methodLabel = if (gatewayInputMode == GatewayInputMode.SetupCode) "QR / Setup Code" else "Manual",
             )
         }
       }
@@ -429,7 +569,7 @@ fun OnboardingFlow(viewModel: MainViewModel, modifier: Modifier = Modifier) {
                 if (gatewayInputMode == GatewayInputMode.SetupCode) {
                   val parsedSetup = decodeGatewaySetupCode(setupCode)
                   if (parsedSetup == null) {
-                    gatewayError = "Invalid setup code."
+                    gatewayError = "Scan QR code first, or use Advanced setup."
                     return@Button
                   }
                   val parsedGateway = parseGatewayEndpoint(parsedSetup.url)
@@ -468,9 +608,9 @@ fun OnboardingFlow(viewModel: MainViewModel, modifier: Modifier = Modifier) {
             Button(
               onClick = {
                 viewModel.setCameraEnabled(enableCamera)
-                viewModel.setLocationMode(if (enableDiscovery) LocationMode.WhileUsing else LocationMode.Off)
+                viewModel.setLocationMode(if (enableLocation) LocationMode.WhileUsing else LocationMode.Off)
                 if (selectedPermissions.isEmpty()) {
-                  step = OnboardingStep.FinalCheck
+                  proceedFromPermissions()
                 } else {
                   permissionLauncher.launch(selectedPermissions.toTypedArray())
                 }
@@ -607,6 +747,7 @@ private fun WelcomeStep() {
 @Composable
 private fun GatewayStep(
   inputMode: GatewayInputMode,
+  advancedOpen: Boolean,
   setupCode: String,
   manualHost: String,
   manualPort: String,
@@ -614,6 +755,8 @@ private fun GatewayStep(
   gatewayToken: String,
   gatewayPassword: String,
   gatewayError: String?,
+  onScanQrClick: () -> Unit,
+  onAdvancedOpenChange: (Boolean) -> Unit,
   onInputModeChange: (GatewayInputMode) -> Unit,
   onSetupCodeChange: (String) -> Unit,
   onManualHostChange: (String) -> Unit,
@@ -626,175 +769,225 @@ private fun GatewayStep(
   val manualResolvedEndpoint = remember(manualHost, manualPort, manualTls) { composeGatewayManualUrl(manualHost, manualPort, manualTls)?.let { parseGatewayEndpoint(it)?.displayUrl } }
 
   StepShell(title = "Gateway Connection") {
-    GuideBlock(title = "Get setup code + gateway URL") {
+    GuideBlock(title = "Scan onboarding QR") {
       Text("Run these on the gateway host:", style = onboardingCalloutStyle, color = onboardingTextSecondary)
-      CommandBlock("openclaw qr --setup-code-only")
-      CommandBlock("openclaw qr --json")
-      Text(
-        "`--json` prints `setupCode` and `gatewayUrl`.",
-        style = onboardingCalloutStyle,
-        color = onboardingTextSecondary,
-      )
-      Text(
-        "Auto URL discovery is not wired yet. Android emulator uses `10.0.2.2`; real devices need LAN/Tailscale host.",
-        style = onboardingCalloutStyle,
-        color = onboardingTextSecondary,
-      )
+      CommandBlock("openclaw qr")
+      Text("Then scan with this device.", style = onboardingCalloutStyle, color = onboardingTextSecondary)
     }
-    GatewayModeToggle(inputMode = inputMode, onInputModeChange = onInputModeChange)
+    Button(
+      onClick = onScanQrClick,
+      modifier = Modifier.fillMaxWidth().height(48.dp),
+      shape = RoundedCornerShape(12.dp),
+      colors =
+        ButtonDefaults.buttonColors(
+          containerColor = onboardingAccent,
+          contentColor = Color.White,
+        ),
+    ) {
+      Text("Scan QR code", style = onboardingHeadlineStyle.copy(fontWeight = FontWeight.Bold))
+    }
+    if (!resolvedEndpoint.isNullOrBlank()) {
+      Text("QR captured. Review endpoint below.", style = onboardingCalloutStyle, color = onboardingSuccess)
+      ResolvedEndpoint(endpoint = resolvedEndpoint)
+    }
 
-    if (inputMode == GatewayInputMode.SetupCode) {
-      Text("SETUP CODE", style = onboardingCaption1Style.copy(letterSpacing = 0.9.sp), color = onboardingTextSecondary)
-      OutlinedTextField(
-        value = setupCode,
-        onValueChange = onSetupCodeChange,
-        placeholder = { Text("Paste code from `openclaw qr --setup-code-only`", color = onboardingTextTertiary, style = onboardingBodyStyle) },
-        modifier = Modifier.fillMaxWidth(),
-        minLines = 3,
-        maxLines = 5,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
-        textStyle = onboardingBodyStyle.copy(fontFamily = FontFamily.Monospace, color = onboardingText),
-        shape = RoundedCornerShape(14.dp),
-        colors =
-          OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = onboardingSurface,
-            unfocusedContainerColor = onboardingSurface,
-            focusedBorderColor = onboardingAccent,
-            unfocusedBorderColor = onboardingBorder,
-            focusedTextColor = onboardingText,
-            unfocusedTextColor = onboardingText,
-            cursorColor = onboardingAccent,
-          ),
-      )
-      if (!resolvedEndpoint.isNullOrBlank()) {
-        ResolvedEndpoint(endpoint = resolvedEndpoint)
-      }
-    } else {
-      Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        QuickFillChip(label = "Android Emulator", onClick = {
-          onManualHostChange("10.0.2.2")
-          onManualPortChange("18789")
-          onManualTlsChange(false)
-        })
-        QuickFillChip(label = "Localhost", onClick = {
-          onManualHostChange("127.0.0.1")
-          onManualPortChange("18789")
-          onManualTlsChange(false)
-        })
-      }
-
-      Text("HOST", style = onboardingCaption1Style.copy(letterSpacing = 0.9.sp), color = onboardingTextSecondary)
-      OutlinedTextField(
-        value = manualHost,
-        onValueChange = onManualHostChange,
-        placeholder = { Text("10.0.2.2", color = onboardingTextTertiary, style = onboardingBodyStyle) },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-        textStyle = onboardingBodyStyle.copy(color = onboardingText),
-        shape = RoundedCornerShape(14.dp),
-        colors =
-          OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = onboardingSurface,
-            unfocusedContainerColor = onboardingSurface,
-            focusedBorderColor = onboardingAccent,
-            unfocusedBorderColor = onboardingBorder,
-            focusedTextColor = onboardingText,
-            unfocusedTextColor = onboardingText,
-            cursorColor = onboardingAccent,
-          ),
-      )
-
-      Text("PORT", style = onboardingCaption1Style.copy(letterSpacing = 0.9.sp), color = onboardingTextSecondary)
-      OutlinedTextField(
-        value = manualPort,
-        onValueChange = onManualPortChange,
-        placeholder = { Text("18789", color = onboardingTextTertiary, style = onboardingBodyStyle) },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        textStyle = onboardingBodyStyle.copy(fontFamily = FontFamily.Monospace, color = onboardingText),
-        shape = RoundedCornerShape(14.dp),
-        colors =
-          OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = onboardingSurface,
-            unfocusedContainerColor = onboardingSurface,
-            focusedBorderColor = onboardingAccent,
-            unfocusedBorderColor = onboardingBorder,
-            focusedTextColor = onboardingText,
-            unfocusedTextColor = onboardingText,
-            cursorColor = onboardingAccent,
-          ),
-      )
-
+    Surface(
+      modifier = Modifier.fillMaxWidth(),
+      shape = RoundedCornerShape(12.dp),
+      color = onboardingSurface,
+      border = androidx.compose.foundation.BorderStroke(1.dp, onboardingBorderStrong),
+      onClick = { onAdvancedOpenChange(!advancedOpen) },
+    ) {
       Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
       ) {
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-          Text("Use TLS", style = onboardingHeadlineStyle, color = onboardingText)
-          Text("Switch to secure websocket (`wss`).", style = onboardingCalloutStyle.copy(lineHeight = 18.sp), color = onboardingTextSecondary)
+          Text("Advanced setup", style = onboardingHeadlineStyle, color = onboardingText)
+          Text("Paste setup code or enter host/port manually.", style = onboardingCaption1Style, color = onboardingTextSecondary)
         }
-        Switch(
-          checked = manualTls,
-          onCheckedChange = onManualTlsChange,
-          colors =
-            SwitchDefaults.colors(
-              checkedTrackColor = onboardingAccent,
-              uncheckedTrackColor = onboardingBorderStrong,
-              checkedThumbColor = Color.White,
-              uncheckedThumbColor = Color.White,
-            ),
+        Icon(
+          imageVector = if (advancedOpen) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+          contentDescription = if (advancedOpen) "Collapse advanced setup" else "Expand advanced setup",
+          tint = onboardingTextSecondary,
         )
       }
+    }
 
-      Text("TOKEN (OPTIONAL)", style = onboardingCaption1Style.copy(letterSpacing = 0.9.sp), color = onboardingTextSecondary)
-      OutlinedTextField(
-        value = gatewayToken,
-        onValueChange = onTokenChange,
-        placeholder = { Text("token", color = onboardingTextTertiary, style = onboardingBodyStyle) },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
-        textStyle = onboardingBodyStyle.copy(color = onboardingText),
-        shape = RoundedCornerShape(14.dp),
-        colors =
-          OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = onboardingSurface,
-            unfocusedContainerColor = onboardingSurface,
-            focusedBorderColor = onboardingAccent,
-            unfocusedBorderColor = onboardingBorder,
-            focusedTextColor = onboardingText,
-            unfocusedTextColor = onboardingText,
-            cursorColor = onboardingAccent,
-          ),
-      )
+    AnimatedVisibility(visible = advancedOpen) {
+      Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        GuideBlock(title = "Manual setup commands") {
+          Text("Run these on the gateway host:", style = onboardingCalloutStyle, color = onboardingTextSecondary)
+          CommandBlock("openclaw qr --setup-code-only")
+          CommandBlock("openclaw qr --json")
+          Text(
+            "`--json` prints `setupCode` and `gatewayUrl`.",
+            style = onboardingCalloutStyle,
+            color = onboardingTextSecondary,
+          )
+          Text(
+            "Auto URL discovery is not wired yet. Android emulator uses `10.0.2.2`; real devices need LAN/Tailscale host.",
+            style = onboardingCalloutStyle,
+            color = onboardingTextSecondary,
+          )
+        }
+        GatewayModeToggle(inputMode = inputMode, onInputModeChange = onInputModeChange)
 
-      Text("PASSWORD (OPTIONAL)", style = onboardingCaption1Style.copy(letterSpacing = 0.9.sp), color = onboardingTextSecondary)
-      OutlinedTextField(
-        value = gatewayPassword,
-        onValueChange = onPasswordChange,
-        placeholder = { Text("password", color = onboardingTextTertiary, style = onboardingBodyStyle) },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
-        textStyle = onboardingBodyStyle.copy(color = onboardingText),
-        shape = RoundedCornerShape(14.dp),
-        colors =
-          OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = onboardingSurface,
-            unfocusedContainerColor = onboardingSurface,
-            focusedBorderColor = onboardingAccent,
-            unfocusedBorderColor = onboardingBorder,
-            focusedTextColor = onboardingText,
-            unfocusedTextColor = onboardingText,
-            cursorColor = onboardingAccent,
-          ),
-      )
+        if (inputMode == GatewayInputMode.SetupCode) {
+          Text("SETUP CODE", style = onboardingCaption1Style.copy(letterSpacing = 0.9.sp), color = onboardingTextSecondary)
+          OutlinedTextField(
+            value = setupCode,
+            onValueChange = onSetupCodeChange,
+            placeholder = { Text("Paste code from `openclaw qr --setup-code-only`", color = onboardingTextTertiary, style = onboardingBodyStyle) },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 3,
+            maxLines = 5,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
+            textStyle = onboardingBodyStyle.copy(fontFamily = FontFamily.Monospace, color = onboardingText),
+            shape = RoundedCornerShape(14.dp),
+            colors =
+              OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = onboardingSurface,
+                unfocusedContainerColor = onboardingSurface,
+                focusedBorderColor = onboardingAccent,
+                unfocusedBorderColor = onboardingBorder,
+                focusedTextColor = onboardingText,
+                unfocusedTextColor = onboardingText,
+                cursorColor = onboardingAccent,
+              ),
+          )
+          if (!resolvedEndpoint.isNullOrBlank()) {
+            ResolvedEndpoint(endpoint = resolvedEndpoint)
+          }
+        } else {
+          Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            QuickFillChip(label = "Android Emulator", onClick = {
+              onManualHostChange("10.0.2.2")
+              onManualPortChange("18789")
+              onManualTlsChange(false)
+            })
+            QuickFillChip(label = "Localhost", onClick = {
+              onManualHostChange("127.0.0.1")
+              onManualPortChange("18789")
+              onManualTlsChange(false)
+            })
+          }
 
-      if (!manualResolvedEndpoint.isNullOrBlank()) {
-        ResolvedEndpoint(endpoint = manualResolvedEndpoint)
+          Text("HOST", style = onboardingCaption1Style.copy(letterSpacing = 0.9.sp), color = onboardingTextSecondary)
+          OutlinedTextField(
+            value = manualHost,
+            onValueChange = onManualHostChange,
+            placeholder = { Text("10.0.2.2", color = onboardingTextTertiary, style = onboardingBodyStyle) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+            textStyle = onboardingBodyStyle.copy(color = onboardingText),
+            shape = RoundedCornerShape(14.dp),
+            colors =
+              OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = onboardingSurface,
+                unfocusedContainerColor = onboardingSurface,
+                focusedBorderColor = onboardingAccent,
+                unfocusedBorderColor = onboardingBorder,
+                focusedTextColor = onboardingText,
+                unfocusedTextColor = onboardingText,
+                cursorColor = onboardingAccent,
+              ),
+          )
+
+          Text("PORT", style = onboardingCaption1Style.copy(letterSpacing = 0.9.sp), color = onboardingTextSecondary)
+          OutlinedTextField(
+            value = manualPort,
+            onValueChange = onManualPortChange,
+            placeholder = { Text("18789", color = onboardingTextTertiary, style = onboardingBodyStyle) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            textStyle = onboardingBodyStyle.copy(fontFamily = FontFamily.Monospace, color = onboardingText),
+            shape = RoundedCornerShape(14.dp),
+            colors =
+              OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = onboardingSurface,
+                unfocusedContainerColor = onboardingSurface,
+                focusedBorderColor = onboardingAccent,
+                unfocusedBorderColor = onboardingBorder,
+                focusedTextColor = onboardingText,
+                unfocusedTextColor = onboardingText,
+                cursorColor = onboardingAccent,
+              ),
+          )
+
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+          ) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+              Text("Use TLS", style = onboardingHeadlineStyle, color = onboardingText)
+              Text("Switch to secure websocket (`wss`).", style = onboardingCalloutStyle.copy(lineHeight = 18.sp), color = onboardingTextSecondary)
+            }
+            Switch(
+              checked = manualTls,
+              onCheckedChange = onManualTlsChange,
+              colors =
+                SwitchDefaults.colors(
+                  checkedTrackColor = onboardingAccent,
+                  uncheckedTrackColor = onboardingBorderStrong,
+                  checkedThumbColor = Color.White,
+                  uncheckedThumbColor = Color.White,
+                ),
+            )
+          }
+
+          Text("TOKEN (OPTIONAL)", style = onboardingCaption1Style.copy(letterSpacing = 0.9.sp), color = onboardingTextSecondary)
+          OutlinedTextField(
+            value = gatewayToken,
+            onValueChange = onTokenChange,
+            placeholder = { Text("token", color = onboardingTextTertiary, style = onboardingBodyStyle) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
+            textStyle = onboardingBodyStyle.copy(color = onboardingText),
+            shape = RoundedCornerShape(14.dp),
+            colors =
+              OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = onboardingSurface,
+                unfocusedContainerColor = onboardingSurface,
+                focusedBorderColor = onboardingAccent,
+                unfocusedBorderColor = onboardingBorder,
+                focusedTextColor = onboardingText,
+                unfocusedTextColor = onboardingText,
+                cursorColor = onboardingAccent,
+              ),
+          )
+
+          Text("PASSWORD (OPTIONAL)", style = onboardingCaption1Style.copy(letterSpacing = 0.9.sp), color = onboardingTextSecondary)
+          OutlinedTextField(
+            value = gatewayPassword,
+            onValueChange = onPasswordChange,
+            placeholder = { Text("password", color = onboardingTextTertiary, style = onboardingBodyStyle) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
+            textStyle = onboardingBodyStyle.copy(color = onboardingText),
+            shape = RoundedCornerShape(14.dp),
+            colors =
+              OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = onboardingSurface,
+                unfocusedContainerColor = onboardingSurface,
+                focusedBorderColor = onboardingAccent,
+                unfocusedBorderColor = onboardingBorder,
+                focusedTextColor = onboardingText,
+                unfocusedTextColor = onboardingText,
+                cursorColor = onboardingAccent,
+              ),
+          )
+
+          if (!manualResolvedEndpoint.isNullOrBlank()) {
+            ResolvedEndpoint(endpoint = manualResolvedEndpoint)
+          }
+        }
       }
     }
 
@@ -925,19 +1118,61 @@ private fun InlineDivider() {
 @Composable
 private fun PermissionsStep(
   enableDiscovery: Boolean,
+  enableLocation: Boolean,
   enableNotifications: Boolean,
+  enableNotificationListener: Boolean,
+  enableAppUpdates: Boolean,
   enableMicrophone: Boolean,
   enableCamera: Boolean,
+  enablePhotos: Boolean,
+  enableContacts: Boolean,
+  enableCalendar: Boolean,
+  enableMotion: Boolean,
+  motionAvailable: Boolean,
+  motionPermissionRequired: Boolean,
   enableSms: Boolean,
   smsAvailable: Boolean,
   context: Context,
   onDiscoveryChange: (Boolean) -> Unit,
+  onLocationChange: (Boolean) -> Unit,
   onNotificationsChange: (Boolean) -> Unit,
+  onNotificationListenerChange: (Boolean) -> Unit,
+  onAppUpdatesChange: (Boolean) -> Unit,
   onMicrophoneChange: (Boolean) -> Unit,
   onCameraChange: (Boolean) -> Unit,
+  onPhotosChange: (Boolean) -> Unit,
+  onContactsChange: (Boolean) -> Unit,
+  onCalendarChange: (Boolean) -> Unit,
+  onMotionChange: (Boolean) -> Unit,
   onSmsChange: (Boolean) -> Unit,
 ) {
   val discoveryPermission = if (Build.VERSION.SDK_INT >= 33) Manifest.permission.NEARBY_WIFI_DEVICES else Manifest.permission.ACCESS_FINE_LOCATION
+  val locationGranted =
+    isPermissionGranted(context, Manifest.permission.ACCESS_FINE_LOCATION) ||
+      isPermissionGranted(context, Manifest.permission.ACCESS_COARSE_LOCATION)
+  val photosPermission =
+    if (Build.VERSION.SDK_INT >= 33) {
+      Manifest.permission.READ_MEDIA_IMAGES
+    } else {
+      Manifest.permission.READ_EXTERNAL_STORAGE
+    }
+  val contactsGranted =
+    isPermissionGranted(context, Manifest.permission.READ_CONTACTS) &&
+      isPermissionGranted(context, Manifest.permission.WRITE_CONTACTS)
+  val calendarGranted =
+    isPermissionGranted(context, Manifest.permission.READ_CALENDAR) &&
+      isPermissionGranted(context, Manifest.permission.WRITE_CALENDAR)
+  val motionGranted =
+    if (!motionAvailable) {
+      false
+    } else if (!motionPermissionRequired) {
+      true
+    } else {
+      isPermissionGranted(context, Manifest.permission.ACTIVITY_RECOGNITION)
+    }
+  val notificationListenerGranted = isNotificationListenerEnabled(context)
+  val appUpdatesGranted = canInstallUnknownApps(context)
+
   StepShell(title = "Permissions") {
     Text(
       "Enable only what you need now. You can change everything later in Settings.",
@@ -952,10 +1187,18 @@ private fun PermissionsStep(
       onCheckedChange = onDiscoveryChange,
     )
     InlineDivider()
+    PermissionToggleRow(
+      title = "Location",
+      subtitle = "location.get (while app is open unless set to Always later)",
+      checked = enableLocation,
+      granted = locationGranted,
+      onCheckedChange = onLocationChange,
+    )
+    InlineDivider()
     if (Build.VERSION.SDK_INT >= 33) {
       PermissionToggleRow(
         title = "Notifications",
-        subtitle = "Foreground service + alerts",
+        subtitle = "system.notify and foreground alerts",
         checked = enableNotifications,
         granted = isPermissionGranted(context, Manifest.permission.POST_NOTIFICATIONS),
         onCheckedChange = onNotificationsChange,
@@ -963,8 +1206,24 @@ private fun PermissionsStep(
       InlineDivider()
     }
     PermissionToggleRow(
+      title = "Notification listener",
+      subtitle = "notifications.list and notifications.actions (opens Android Settings)",
+      checked = enableNotificationListener,
+      granted = notificationListenerGranted,
+      onCheckedChange = onNotificationListenerChange,
+    )
+    InlineDivider()
+    PermissionToggleRow(
+      title = "App updates",
+      subtitle = "app.update install confirmation (opens Android Settings)",
+      checked = enableAppUpdates,
+      granted = appUpdatesGranted,
+      onCheckedChange = onAppUpdatesChange,
+    )
+    InlineDivider()
+    PermissionToggleRow(
       title = "Microphone",
-      subtitle = "Talk mode + voice features",
+      subtitle = "Voice tab transcription",
       checked = enableMicrophone,
       granted = isPermissionGranted(context, Manifest.permission.RECORD_AUDIO),
       onCheckedChange = onMicrophoneChange,
@@ -976,6 +1235,40 @@ private fun PermissionsStep(
       checked = enableCamera,
       granted = isPermissionGranted(context, Manifest.permission.CAMERA),
       onCheckedChange = onCameraChange,
+    )
+    InlineDivider()
+    PermissionToggleRow(
+      title = "Photos",
+      subtitle = "photos.latest",
+      checked = enablePhotos,
+      granted = isPermissionGranted(context, photosPermission),
+      onCheckedChange = onPhotosChange,
+    )
+    InlineDivider()
+    PermissionToggleRow(
+      title = "Contacts",
+      subtitle = "contacts.search and contacts.add",
+      checked = enableContacts,
+      granted = contactsGranted,
+      onCheckedChange = onContactsChange,
+    )
+    InlineDivider()
+    PermissionToggleRow(
+      title = "Calendar",
+      subtitle = "calendar.events and calendar.add",
+      checked = enableCalendar,
+      granted = calendarGranted,
+      onCheckedChange = onCalendarChange,
+    )
+    InlineDivider()
+    PermissionToggleRow(
+      title = "Motion",
+      subtitle = "motion.activity and motion.pedometer",
+      checked = enableMotion,
+      granted = motionGranted,
+      onCheckedChange = onMotionChange,
+      enabled = motionAvailable,
+      statusOverride = if (!motionAvailable) "Unavailable on this device" else null,
     )
     if (smsAvailable) {
       InlineDivider()
@@ -997,6 +1290,8 @@ private fun PermissionToggleRow(
   subtitle: String,
   checked: Boolean,
   granted: Boolean,
+  enabled: Boolean = true,
+  statusOverride: String? = null,
   onCheckedChange: (Boolean) -> Unit,
 ) {
   Row(
@@ -1008,7 +1303,7 @@ private fun PermissionToggleRow(
       Text(title, style = onboardingHeadlineStyle, color = onboardingText)
       Text(subtitle, style = onboardingCalloutStyle.copy(lineHeight = 18.sp), color = onboardingTextSecondary)
       Text(
-        if (granted) "Granted" else "Not granted",
+        statusOverride ?: if (granted) "Granted" else "Not granted",
         style = onboardingCaption1Style,
         color = if (granted) onboardingSuccess else onboardingTextSecondary,
       )
@@ -1016,6 +1311,7 @@ private fun PermissionToggleRow(
     Switch(
       checked = checked,
       onCheckedChange = onCheckedChange,
+      enabled = enabled,
       colors =
         SwitchDefaults.colors(
           checkedTrackColor = onboardingAccent,
@@ -1117,4 +1413,51 @@ private fun Bullet(text: String) {
 
 private fun isPermissionGranted(context: Context, permission: String): Boolean {
   return ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+}
+
+private fun isNotificationListenerEnabled(context: Context): Boolean {
+  return DeviceNotificationListenerService.isAccessEnabled(context)
+}
+
+private fun canInstallUnknownApps(context: Context): Boolean {
+  if (Build.VERSION.SDK_INT < 26) return true
+  return context.packageManager.canRequestPackageInstalls()
+}
+
+private fun openNotificationListenerSettings(context: Context) {
+  val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+  runCatching {
+    context.startActivity(intent)
+  }.getOrElse {
+    openAppSettings(context)
+  }
+}
+
+private fun openUnknownAppSourcesSettings(context: Context) {
+  if (Build.VERSION.SDK_INT < 26) return
+  val intent =
+    Intent(
+      Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+      Uri.parse("package:${context.packageName}"),
+    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+  runCatching {
+    context.startActivity(intent)
+  }.getOrElse {
+    openAppSettings(context)
+  }
+}
+
+private fun openAppSettings(context: Context) {
+  val intent =
+    Intent(
+      Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+      Uri.fromParts("package", context.packageName, null),
+    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+  context.startActivity(intent)
+}
+
+private fun hasMotionCapabilities(context: Context): Boolean {
+  val sensorManager = context.getSystemService(SensorManager::class.java) ?: return false
+  return sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null ||
+    sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER) != null
 }
