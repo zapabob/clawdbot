@@ -1,5 +1,6 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { ImageContent } from "@mariozechner/pi-ai";
 import { resolveUserPath } from "../../../utils.js";
 import { loadWebMedia } from "../../../web/media.js";
@@ -488,4 +489,51 @@ export async function detectAndLoadPromptImages(params: {
     loadedCount,
     skippedCount,
   };
+}
+
+/**
+ * Injects history images into their original message positions.
+ * Returns true if any messages were mutated.
+ */
+export function injectHistoryImagesIntoMessages(
+  messages: AgentMessage[],
+  historyImagesByIndex: Map<number, ImageContent[]>,
+): boolean {
+  if (historyImagesByIndex.size === 0) {
+    return false;
+  }
+
+  let didMutate = false;
+  for (const [index, images] of historyImagesByIndex) {
+    const msg = messages[index] as AgentMessage & { content: unknown };
+    if (!msg) {
+      continue;
+    }
+
+    // Convert string content to block array if needed
+    if (typeof msg.content === "string") {
+      (msg as Record<string, unknown>).content = [{ type: "text", text: msg.content }];
+    } else if (!Array.isArray(msg.content)) {
+      (msg as Record<string, unknown>).content = [];
+    }
+
+    // Add images to content blocks
+    for (const image of images) {
+      // Check if image is already there (crude check)
+      const contentArr = msg.content as Array<Record<string, unknown>>;
+      const hasImage = contentArr.some(
+        (block: Record<string, unknown>) =>
+          typeof block === "object" &&
+          block !== null &&
+          block.type === "image" &&
+          block.data === image.data,
+      );
+      if (!hasImage) {
+        contentArr.push(image as Record<string, unknown>);
+        didMutate = true;
+      }
+    }
+  }
+
+  return didMutate;
 }

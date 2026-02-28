@@ -112,7 +112,7 @@ import {
   selectCompactionTimeoutSnapshot,
   shouldFlagCompactionTimeout,
 } from "./compaction-timeout.js";
-import { detectAndLoadPromptImages } from "./images.js";
+import { detectAndLoadPromptImages, injectHistoryImagesIntoMessages } from "./images.js";
 import type { EmbeddedRunAttemptParams, EmbeddedRunAttemptResult } from "./types.js";
 
 type PromptBuildHookRunner = {
