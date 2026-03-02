@@ -1,0 +1,6 @@
+tree 26c927ebdd344d8a9ebb3ccf232c812bed45d53b
+parent 7ed49a656919473fb38bc33403ffc2493dd5d712
+author Peter Steinberger <steipete@gmail.com> 1763996456 +0100
+committer Peter Steinberger <steipete@gmail.com> 1763996456 +0100
+
+Add claude auto-reply allowlist and verbose hooks
