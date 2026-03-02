@@ -59,7 +59,14 @@ export class OSCClient {
   sendChatbox(text: string, immediate: boolean = true): void {
     this.send({
       address: "/chatbox/input",
-      args: [text, immediate],
+      args: [text, immediate, false], // [text, immediate, notification_only]
+    });
+  }
+
+  sendViseme(viseme: number): void {
+    this.send({
+      address: "/avatar/parameters/Viseme",
+      args: [viseme],
     });
   }
 

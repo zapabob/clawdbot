@@ -7,7 +7,7 @@ import { synthesizeSpeech, getTTSConfig, playAudio, playAudioData } from "./src/
 
 type LocalVoiceConfig = {
   sttProvider: "openai-realtime" | "whisper";
-  ttsProvider: "style-bert-vits2" | "elevenlabs" | "openai";
+  ttsProvider: "style-bert-vits2" | "elevenlabs" | "openai" | "voicevox";
   vrchatOscEnabled: boolean;
   vrchatOscPort: number;
   vadThreshold: number;
@@ -15,8 +15,8 @@ type LocalVoiceConfig = {
 };
 
 const DEFAULT_CONFIG: LocalVoiceConfig = {
-  sttProvider: "openai-realtime",
-  ttsProvider: "style-bert-vits2",
+  sttProvider: "whisper",
+  ttsProvider: "voicevox",
   vrchatOscEnabled: true,
   vrchatOscPort: 9000,
   vadThreshold: 0.5,
@@ -97,6 +97,7 @@ export default function register(api: OpenClawPluginApi): void {
     session = new VoiceSession(
       api,
       {
+        sttProvider: cfg.sttProvider,
         stt: {
           vadThreshold: cfg.vadThreshold,
           silenceDurationMs: cfg.silenceDurationMs,

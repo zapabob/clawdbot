@@ -14,9 +14,19 @@
       },
       "ttsProvider": {
         "type": "string",
-        "enum": ["style-bert-vits2", "elevenlabs", "openai"],
+        "enum": ["style-bert-vits2", "elevenlabs", "openai", "voicevox"],
         "description": "Text-to-speech provider",
-        "default": "style-bert-vits2"
+        "default": "voicevox"
+      },
+      "vvEndpoint": {
+        "type": "string",
+        "description": "VOICEVOX API endpoint",
+        "default": "http://localhost:50021"
+      },
+      "vvSpeakerId": {
+        "type": "number",
+        "description": "VOICEVOX speaker ID",
+        "default": 2
       },
       "sbv2Endpoint": {
         "type": "string",

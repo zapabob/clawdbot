@@ -1,7 +1,7 @@
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
 import { getOSCClient, type OSCConfig } from "./osc.js";
-import { OpenAIRealtimeSTT, type STTConfig, type STTEventHandlers } from "./stt.js";
-import { getTTSConfig, synthesizeSpeech, playAudio, playAudioData } from "./tts.js";
+import { OpenAIRealtimeSTT, LocalWhisperSTT, type STTConfig, type STTEventHandlers, type STTSession } from "./stt.js";
+import { getTTSConfig, synthesizeSpeech, playAudio, playAudioData, mapPhonemeToViseme } from "./tts.js";
 
 export type VoiceSessionState =
   | "idle"
@@ -15,6 +15,7 @@ export type VoiceSessionConfig = {
   stt: Partial<STTConfig>;
   osc: Partial<OSCConfig>;
   gatewayPort: number;
+  sttProvider?: "openai-realtime" | "whisper";
 };
 
 export type VoiceSessionEventHandlers = {
@@ -29,7 +30,7 @@ export class VoiceSession {
   private config: VoiceSessionConfig;
   private handlers: VoiceSessionEventHandlers;
   private state: VoiceSessionState = "idle";
-  private sttSession: OpenAIRealtimeSTT | null = null;
+  private sttSession: STTSession | null = null;
   private audioInput: AudioInput | null = null;
   private running = false;
 
@@ -86,7 +87,11 @@ export class VoiceSession {
         },
       };
 
-      this.sttSession = new OpenAIRealtimeSTT(this.config.stt, sttHandlers);
+      if (this.config.sttProvider === "whisper") {
+        this.sttSession = new LocalWhisperSTT(this.config.stt, sttHandlers);
+      } else {
+        this.sttSession = new OpenAIRealtimeSTT(this.config.stt, sttHandlers);
+      }
       await this.sttSession.connect();
 
       this.audioInput = new AudioInput();
@@ -153,22 +158,41 @@ export class VoiceSession {
     const oscClient = getOSCClient(this.config.osc);
 
     oscClient.sendAvatarParameter("Speaking", true);
+    oscClient.sendChatbox(text);
 
     try {
       const result = await synthesizeSpeech(text, ttsConfig);
 
       if (result.success) {
+        // Start Lip-Sync Sequence if phonemes are available
+        const visemePromise = result.phonemes 
+          ? this.runVisemeSequence(result.phonemes) 
+          : Promise.resolve();
+
         if (result.audioUrl) {
           await playAudio(result.audioUrl);
         } else if (result.audioData) {
           await playAudioData(result.audioData);
         }
+        
+        await visemePromise;
       } else {
         this.api.logger.error(`TTS failed: ${result.error}`);
       }
     } finally {
       oscClient.sendAvatarParameter("Speaking", false);
+      oscClient.sendViseme(0); // Ensure mouth is closed
     }
+  }
+
+  private async runVisemeSequence(phonemes: any[]): Promise<void> {
+    const oscClient = getOSCClient(this.config.osc);
+    for (const p of phonemes) {
+      const viseme = mapPhonemeToViseme(p.phoneme);
+      oscClient.sendViseme(viseme);
+      await new Promise(resolve => setTimeout(resolve, p.duration * 1000));
+    }
+    oscClient.sendViseme(0);
   }
 
   private handleError(error: Error): void {

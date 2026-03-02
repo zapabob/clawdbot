@@ -1,6 +1,6 @@
 import type { OpenClawConfig } from "../../../src/config/config.js";
 
-export type TTSProvider = "style-bert-vits2" | "elevenlabs" | "openai";
+export type TTSProvider = "style-bert-vits2" | "elevenlabs" | "openai" | "voicevox";
 
 export type StyleBertVITS2Config = {
   endpoint: string;
@@ -11,17 +11,29 @@ export type StyleBertVITS2Config = {
   speed: number;
 };
 
+export type VoiceVoxConfig = {
+  endpoint: string;
+  speakerId: number;
+};
+
 export type TTSConfig = {
   provider: TTSProvider;
   styleBertVits2: StyleBertVITS2Config;
+  voicevox: VoiceVoxConfig;
   openaiApiKey?: string;
   elevenLabsApiKey?: string;
+};
+
+export type PhonemeData = {
+  phoneme: string;
+  duration: number; // in seconds
 };
 
 export type TTSResult = {
   success: boolean;
   audioUrl?: string;
   audioData?: Buffer;
+  phonemes?: PhonemeData[];
   error?: string;
 };
 
@@ -34,6 +46,11 @@ const DEFAULT_SBV2_CONFIG: StyleBertVITS2Config = {
   speed: 1.0,
 };
 
+const DEFAULT_VV_CONFIG: VoiceVoxConfig = {
+  endpoint: "http://localhost:50021",
+  speakerId: 2, // Default "四国めたん" (Metan) or similar, can be adjusted
+};
+
 export function getTTSConfig(globalConfig: OpenClawConfig): TTSConfig {
   const talkVoiceCfg = globalConfig.plugins?.entries?.["talk-voice"]?.config as {
     provider?: TTSProvider;
@@ -44,6 +61,8 @@ export function getTTSConfig(globalConfig: OpenClawConfig): TTSConfig {
     ttsProvider?: TTSProvider;
     sbv2Endpoint?: string;
     sbv2ModelId?: string;
+    vvEndpoint?: string;
+    vvSpeakerId?: number;
     openaiApiKey?: string;
   } | null;
 
@@ -63,9 +82,16 @@ export function getTTSConfig(globalConfig: OpenClawConfig): TTSConfig {
     ...sbv2Partial,
   };
 
+  const voicevox: VoiceVoxConfig = {
+    ...DEFAULT_VV_CONFIG,
+    endpoint: localVoiceCfg?.vvEndpoint ?? DEFAULT_VV_CONFIG.endpoint,
+    speakerId: localVoiceCfg?.vvSpeakerId ?? DEFAULT_VV_CONFIG.speakerId,
+  };
+
   return {
     provider,
     styleBertVits2,
+    voicevox,
     openaiApiKey: localVoiceCfg?.openaiApiKey,
   };
 }
@@ -81,6 +107,8 @@ export async function synthesizeSpeech(text: string, config: TTSConfig): Promise
         return await synthesizeWithSBV2(text, config.styleBertVits2);
       case "openai":
         return await synthesizeWithOpenAI(text, config.openaiApiKey);
+      case "voicevox":
+        return await synthesizeWithVoiceVox(text, config.voicevox);
       default:
         return { success: false, error: `Unsupported TTS provider: ${config.provider}` };
     }
@@ -139,6 +167,74 @@ async function synthesizeWithOpenAI(text: string, apiKey?: string): Promise<TTSR
   return { success: true, audioData };
 }
 
+async function synthesizeWithVoiceVox(text: string, config: VoiceVoxConfig): Promise<TTSResult> {
+  const base = config.endpoint.replace(/\/$/, "");
+  
+  // 1. Audio Query
+  const queryUrl = `${base}/audio_query?text=${encodeURIComponent(text)}&speaker=${config.speakerId}`;
+  const queryRes = await fetch(queryUrl, { method: "POST" });
+  if (!queryRes.ok) {
+    return { success: false, error: `VoiceVox AudioQuery error: ${queryRes.status}` };
+  }
+  const queryData = await queryRes.json();
+
+  // 2. Synthesis
+  const synthUrl = `${base}/synthesis?speaker=${config.speakerId}`;
+  const synthRes = await fetch(synthUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(queryData),
+  });
+
+  if (!synthRes.ok) {
+    return { success: false, error: `VoiceVox Synthesis error: ${synthRes.status}` };
+  }
+
+  const audioData = Buffer.from(await synthRes.arrayBuffer());
+  
+  // 3. Extract Phonemes for OSC
+  const phonemes: PhonemeData[] = [];
+  if (queryData.accent_phrases) {
+    for (const phrase of queryData.accent_phrases) {
+      if (phrase.moras) {
+        for (const mora of phrase.moras) {
+          if (mora.consonant && mora.consonant_length) {
+            phonemes.push({ phoneme: mora.consonant, duration: mora.consonant_length });
+          }
+          if (mora.vowel && mora.vowel_length) {
+            phonemes.push({ phoneme: mora.vowel, duration: mora.vowel_length });
+          }
+        }
+      }
+      if (phrase.pause_mora) {
+        phonemes.push({ phoneme: "pau", duration: phrase.pause_mora.vowel_length || 0.1 });
+      }
+    }
+  }
+
+  return { success: true, audioData, phonemes };
+}
+
+export function mapPhonemeToViseme(phoneme: string): number {
+  const p = phoneme.toLowerCase();
+  // VRChat Standard Visemes (approximate mapping)
+  if (["p", "b", "m"].includes(p)) return 1;
+  if (["f", "v"].includes(p)) return 2;
+  if (["th"].includes(p)) return 3;
+  if (["d", "t", "n"].includes(p)) return 4;
+  if (["k", "g"].includes(p)) return 5;
+  if (["ch", "j", "sh"].includes(p)) return 6;
+  if (["s", "z"].includes(p)) return 7;
+  if (["nn"].includes(p)) return 8;
+  if (["r"].includes(p)) return 9;
+  if (p === "a") return 10;
+  if (p === "e") return 11;
+  if (p === "i") return 12;
+  if (p === "o") return 13;
+  if (p === "u") return 14;
+  return 0; // silence/pau
+}
+
 export async function playAudio(url: string): Promise<void> {
   const { exec } = require("child_process");
   const platform = process.platform;
@@ -159,7 +255,7 @@ export async function playAudioData(data: Buffer): Promise<void> {
   const { tmpdir } = require("os");
   const { join } = require("path");
 
-  const tmpFile = join(tmpdir(), `tts-${Date.now()}.mp3`);
+  const tmpFile = join(tmpdir(), `tts-${Date.now()}.wav`);
   writeFileSync(tmpFile, data);
 
   const command = getPlayCommand(tmpFile, process.platform);
@@ -179,7 +275,7 @@ function getPlayCommand(source: string, platform: string): string | null {
     case "darwin":
       return `afplay "${source}"`;
     case "win32":
-      return `powershell -c (New-Object Media.SoundPlayer "${source}").PlaySync()`;
+      return `powershell -c "(New-Object Media.SoundPlayer '${source}').PlaySync()"`;
     case "linux":
       return `mpv "${source}"`;
     default:
