@@ -127,3 +127,5 @@ src/agents/tools/web-search.ts
 
 Qwen2.5-VL-7B-Instruct
 *.nul
+# Ignore windows nul device file
+nul

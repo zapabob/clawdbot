@@ -15,7 +15,10 @@ import { formatError } from "../server-utils.js";
 import { logWs } from "../ws-log.js";
 import { getHealthVersion, incrementPresenceVersion } from "./health-state.js";
 import { broadcastPresenceSnapshot } from "./presence-events.js";
-import { attachGatewayWsMessageHandler } from "./ws-connection/message-handler.js";
+import {
+  attachGatewayWsMessageHandler,
+  type WsOriginCheckMetrics,
+} from "./ws-connection/message-handler.js";
 import type { GatewayWsClient } from "./ws-types.js";
 
 type SubsystemLogger = ReturnType<typeof createSubsystemLogger>;
@@ -99,6 +102,7 @@ export function attachGatewayWsConnectionHandler(params: {
     broadcast,
     buildRequestContext,
   } = params;
+  const originCheckMetrics: WsOriginCheckMetrics = { hostHeaderFallbackAccepted: 0 };
 
   wss.on("connection", (socket, upgradeReq) => {
     let client: GatewayWsClient | null = null;
@@ -296,6 +300,7 @@ export function attachGatewayWsConnectionHandler(params: {
       },
       setCloseCause,
       setLastFrameMeta,
+      originCheckMetrics,
       logGateway,
       logHealth,
       logWsControl,

@@ -32,6 +32,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -69,6 +70,11 @@ private enum class StatusVisual {
 fun PostOnboardingTabs(viewModel: MainViewModel, modifier: Modifier = Modifier) {
   var activeTab by rememberSaveable { mutableStateOf(HomeTab.Connect) }
   val imeVisible = WindowInsets.isImeVisible
+
+  // Stop TTS when user navigates away from voice tab
+  LaunchedEffect(activeTab) {
+    viewModel.setVoiceScreenActive(activeTab == HomeTab.Voice)
+  }
 
   val statusText by viewModel.statusText.collectAsState()
   val isConnected by viewModel.isConnected.collectAsState()

@@ -14,7 +14,7 @@ const ANTHROPIC_1M_MODEL_PREFIXES = ["claude-opus-4", "claude-sonnet-4"] as cons
 // NOTE: We only force `store=true` for *direct* OpenAI Responses.
 // Codex responses (chatgpt.com/backend-api/codex/responses) require `store=false`.
 const OPENAI_RESPONSES_APIS = new Set(["openai-responses"]);
-const OPENAI_RESPONSES_PROVIDERS = new Set(["openai"]);
+const OPENAI_RESPONSES_PROVIDERS = new Set(["openai", "azure-openai-responses"]);
 
 /**
  * Resolve provider-specific extra params from model config.
@@ -46,6 +46,7 @@ export function resolveExtraParams(params: {
 type CacheRetention = "none" | "short" | "long";
 type CacheRetentionStreamOptions = Partial<SimpleStreamOptions> & {
   cacheRetention?: CacheRetention;
+  openaiWsWarmup?: boolean;
 };
 
 /**
@@ -117,6 +118,16 @@ function createStreamFnWithExtraParams(
   if (typeof extraParams.maxTokens === "number") {
     streamParams.maxTokens = extraParams.maxTokens;
   }
+  const transport = extraParams.transport;
+  if (transport === "sse" || transport === "websocket" || transport === "auto") {
+    streamParams.transport = transport;
+  } else if (transport != null) {
+    const transportSummary = typeof transport === "string" ? transport : typeof transport;
+    log.warn(`ignoring invalid transport param: ${transportSummary}`);
+  }
+  if (typeof extraParams.openaiWsWarmup === "boolean") {
+    streamParams.openaiWsWarmup = extraParams.openaiWsWarmup;
+  }
   const cacheRetention = resolveCacheRetention(extraParams, provider);
   if (cacheRetention) {
     streamParams.cacheRetention = cacheRetention;
@@ -184,10 +195,16 @@ function isDirectOpenAIBaseUrl(baseUrl: unknown): boolean {
 
   try {
     const host = new URL(baseUrl).hostname.toLowerCase();
-    return host === "api.openai.com" || host === "chatgpt.com";
+    return (
+      host === "api.openai.com" || host === "chatgpt.com" || host.endsWith(".openai.azure.com")
+    );
   } catch {
     const normalized = baseUrl.toLowerCase();
-    return normalized.includes("api.openai.com") || normalized.includes("chatgpt.com");
+    return (
+      normalized.includes("api.openai.com") ||
+      normalized.includes("chatgpt.com") ||
+      normalized.includes(".openai.azure.com")
+    );
   }
 }
 
@@ -294,6 +311,33 @@ function createOpenAIResponsesContextManagementWrapper(
         originalOnPayload?.(payload);
       },
     });
+  };
+}
+
+function createCodexDefaultTransportWrapper(baseStreamFn: StreamFn | undefined): StreamFn {
+  const underlying = baseStreamFn ?? streamSimple;
+  return (model, context, options) =>
+    underlying(model, context, {
+      ...options,
+      transport: options?.transport ?? "auto",
+    });
+}
+
+function createOpenAIDefaultTransportWrapper(baseStreamFn: StreamFn | undefined): StreamFn {
+  const underlying = baseStreamFn ?? streamSimple;
+  return (model, context, options) => {
+    const typedOptions = options as
+      | (SimpleStreamOptions & { openaiWsWarmup?: boolean })
+      | undefined;
+    const mergedOptions = {
+      ...options,
+      transport: options?.transport ?? "auto",
+      // Warm-up is optional in OpenAI docs; enabled by default here for lower
+      // first-turn latency on WebSocket sessions. Set params.openaiWsWarmup=false
+      // to disable per model.
+      openaiWsWarmup: typedOptions?.openaiWsWarmup ?? true,
+    } as SimpleStreamOptions;
+    return underlying(model, context, mergedOptions);
   };
 }
 
@@ -474,6 +518,9 @@ function mapThinkingLevelToOpenRouterReasoningEffort(
   if (thinkingLevel === "off") {
     return "none";
   }
+  if (thinkingLevel === "adaptive") {
+    return "medium";
+  }
   return thinkingLevel;
 }
 
@@ -587,6 +634,7 @@ function mapThinkLevelToGoogleThinkingLevel(
     case "low":
       return "LOW";
     case "medium":
+    case "adaptive":
       return "MEDIUM";
     case "high":
     case "xhigh":
@@ -715,6 +763,13 @@ export function applyExtraParamsToAgent(
     modelId,
     agentId,
   });
+  if (provider === "openai-codex") {
+    // Default Codex to WebSocket-first when nothing else specifies transport.
+    agent.streamFn = createCodexDefaultTransportWrapper(agent.streamFn);
+  } else if (provider === "openai") {
+    // Default OpenAI Responses to WebSocket-first with transparent SSE fallback.
+    agent.streamFn = createOpenAIDefaultTransportWrapper(agent.streamFn);
+  }
   const override =
     extraParamsOverride && Object.keys(extraParamsOverride).length > 0
       ? Object.fromEntries(

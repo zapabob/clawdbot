@@ -1,3 +1,4 @@
+import { CONTEXT_WINDOW_HARD_MIN_TOKENS } from "../agents/context-window-guard.js";
 import { DEFAULT_PROVIDER } from "../agents/defaults.js";
 import { buildModelAliasIndex, modelKey } from "../agents/model-selection.js";
 import type { OpenClawConfig } from "../config/config.js";
@@ -9,9 +10,14 @@ import { applyPrimaryModel } from "./model-picker.js";
 import { normalizeAlias } from "./models/shared.js";
 
 const DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434/v1";
-const DEFAULT_CONTEXT_WINDOW = 4096;
+const DEFAULT_CONTEXT_WINDOW = CONTEXT_WINDOW_HARD_MIN_TOKENS;
 const DEFAULT_MAX_TOKENS = 4096;
 const VERIFY_TIMEOUT_MS = 30_000;
+
+function normalizeContextWindowForCustomModel(value: unknown): number {
+  const parsed = typeof value === "number" && Number.isFinite(value) ? Math.floor(value) : 0;
+  return parsed >= CONTEXT_WINDOW_HARD_MIN_TOKENS ? parsed : CONTEXT_WINDOW_HARD_MIN_TOKENS;
+}
 
 /**
  * Detects if a URL is from Azure AI Foundry or Azure OpenAI.
@@ -204,6 +210,14 @@ function resolveAliasError(params: {
   return `Alias ${normalized} already points to ${existingKey}.`;
 }
 
+function buildAzureOpenAiHeaders(apiKey: string) {
+  const headers: Record<string, string> = {};
+  if (apiKey) {
+    headers["api-key"] = apiKey;
+  }
+  return headers;
+}
+
 function buildOpenAiHeaders(apiKey: string) {
   const headers: Record<string, string> = {};
   if (apiKey) {
@@ -297,16 +311,32 @@ async function requestOpenAiVerification(params: {
     modelId: params.modelId,
     endpointPath: "chat/completions",
   });
-  return await requestVerification({
-    endpoint,
-    headers: buildOpenAiHeaders(params.apiKey),
-    body: {
-      model: params.modelId,
-      messages: [{ role: "user", content: "Hi" }],
-      max_tokens: 1,
-      stream: false,
-    },
-  });
+  const isBaseUrlAzureUrl = isAzureUrl(params.baseUrl);
+  const headers = isBaseUrlAzureUrl
+    ? buildAzureOpenAiHeaders(params.apiKey)
+    : buildOpenAiHeaders(params.apiKey);
+  if (isBaseUrlAzureUrl) {
+    return await requestVerification({
+      endpoint,
+      headers,
+      body: {
+        messages: [{ role: "user", content: "Hi" }],
+        max_completion_tokens: 5,
+        stream: false,
+      },
+    });
+  } else {
+    return await requestVerification({
+      endpoint,
+      headers,
+      body: {
+        model: params.modelId,
+        messages: [{ role: "user", content: "Hi" }],
+        max_tokens: 1,
+        stream: false,
+      },
+    });
+  }
 }
 
 async function requestAnthropicVerification(params: {
@@ -540,7 +570,16 @@ export function applyCustomApiConfig(params: ApplyCustomApiConfigParams): Custom
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
     reasoning: false,
   };
-  const mergedModels = hasModel ? existingModels : [...existingModels, nextModel];
+  const mergedModels = hasModel
+    ? existingModels.map((model) =>
+        model.id === modelId
+          ? {
+              ...model,
+              contextWindow: normalizeContextWindowForCustomModel(model.contextWindow),
+            }
+          : model,
+      )
+    : [...existingModels, nextModel];
   const { apiKey: existingApiKey, ...existingProviderRest } = existingProvider ?? {};
   const normalizedApiKey =
     params.apiKey?.trim() || (existingApiKey ? existingApiKey.trim() : undefined);

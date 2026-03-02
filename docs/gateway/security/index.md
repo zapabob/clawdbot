@@ -535,6 +535,11 @@ Guidance:
 - Only enable temporarily for tightly scoped debugging.
 - If enabled, isolate that agent (sandbox + minimal tools + dedicated session namespace).
 
+Hooks risk note:
+
+- Hook payloads are untrusted content, even when delivery comes from systems you control (mail/docs/web content can carry prompt injection).
+- Weak model tiers increase this risk. For hook-driven automation, prefer strong modern model tiers and keep tool policy tight (`tools.profile: "messaging"` or stricter), plus sandboxing where possible.
+
 ### Prompt injection does not require public DMs
 
 Even if **only you** can message the bot, prompt injection can still happen via
@@ -686,6 +691,8 @@ Doctor can generate one for you: `openclaw doctor --generate-gateway-token`.
 Note: `gateway.remote.token` is **only** for remote CLI calls; it does not
 protect local WS access.
 Optional: pin remote TLS with `gateway.remote.tlsFingerprint` when using `wss://`.
+Plaintext `ws://` is loopback-only by default. For trusted private-network
+paths, set `OPENCLAW_ALLOW_INSECURE_PRIVATE_WS=1` on the client process as break-glass.
 
 Local device pairing:
 
@@ -718,6 +725,12 @@ and include `x-forwarded-for`, `x-forwarded-proto`, and `x-forwarded-host` as
 injected by Tailscale.
 HTTP API endpoints (for example `/v1/*`, `/tools/invoke`, and `/api/channels/*`)
 still require token/password auth.
+
+Important boundary note:
+
+- Gateway HTTP bearer auth is effectively all-or-nothing operator access.
+- Treat credentials that can call `/v1/chat/completions`, `/v1/responses`, `/tools/invoke`, or `/api/channels/*` as full-access operator secrets for that gateway.
+- Do not share these credentials with untrusted callers; prefer separate gateways per trust boundary.
 
 **Trust assumption:** tokenless Serve auth assumes the gateway host is trusted.
 Do not treat this as protection against hostile same-host processes. If untrusted
@@ -884,6 +897,15 @@ Also consider agent workspace access inside the sandbox:
 - `agents.defaults.sandbox.workspaceAccess: "rw"` mounts the agent workspace read/write at `/workspace`
 
 Important: `tools.elevated` is the global baseline escape hatch that runs exec on the host. Keep `tools.elevated.allowFrom` tight and don’t enable it for strangers. You can further restrict elevated per agent via `agents.list[].tools.elevated`. See [Elevated Mode](/tools/elevated).
+
+### Sub-agent delegation guardrail
+
+If you allow session tools, treat delegated sub-agent runs as another boundary decision:
+
+- Deny `sessions_spawn` unless the agent truly needs delegation.
+- Keep `agents.list[].subagents.allowAgents` restricted to known-safe target agents.
+- For any workflow that must remain sandboxed, call `sessions_spawn` with `sandbox: "require"` (default is `inherit`).
+- `sandbox: "require"` fails fast when the target child runtime is not sandboxed.
 
 ## Browser control risks
 
