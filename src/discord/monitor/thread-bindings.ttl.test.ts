@@ -50,8 +50,9 @@ const {
   autoBindSpawnedDiscordSubagent,
   createThreadBindingManager,
   resolveThreadBindingIntroText,
-  setThreadBindingTtlBySessionKey,
+  setThreadBindingIdleTimeoutBySessionKey,
   unbindThreadBindingsBySessionKey,
+  resolveThreadBindingInactivityExpiresAt,
 } = await import("./thread-bindings.js");
 
 describe("thread binding ttl", () => {
@@ -71,7 +72,7 @@ describe("thread binding ttl", () => {
       accountId: "default",
       persist: false,
       enableSweeper: true,
-      sessionTtlMs: 24 * 60 * 60 * 1000,
+      idleTimeoutMs: 24 * 60 * 60 * 1000,
     });
 
   const bindDefaultThreadTarget = async (
@@ -92,9 +93,9 @@ describe("thread binding ttl", () => {
     const intro = resolveThreadBindingIntroText({
       agentId: "main",
       label: "worker",
-      sessionTtlMs: 24 * 60 * 60 * 1000,
+      idleTimeoutMs: 24 * 60 * 60 * 1000,
     });
-    expect(intro).toContain("auto-unfocus in 24h");
+    expect(intro).toContain("idle auto-unfocus after 24h inactivity");
   });
 
   it("auto-unfocuses expired bindings and sends a ttl-expired message", async () => {
@@ -104,7 +105,7 @@ describe("thread binding ttl", () => {
         accountId: "default",
         persist: false,
         enableSweeper: true,
-        sessionTtlMs: 60_000,
+        idleTimeoutMs: 60_000,
       });
 
       const binding = await manager.bindTarget({
@@ -179,7 +180,7 @@ describe("thread binding ttl", () => {
         accountId: "default",
         persist: false,
         enableSweeper: false,
-        sessionTtlMs: 24 * 60 * 60 * 1000,
+        idleTimeoutMs: 24 * 60 * 60 * 1000,
       });
 
       await manager.bindTarget({
@@ -193,18 +194,21 @@ describe("thread binding ttl", () => {
       });
       vi.setSystemTime(new Date("2026-02-20T23:15:00.000Z"));
 
-      const updated = setThreadBindingTtlBySessionKey({
+      const updated = setThreadBindingIdleTimeoutBySessionKey({
         accountId: "default",
         targetSessionKey: "agent:main:subagent:child",
-        ttlMs: 2 * 60 * 60 * 1000,
+        idleTimeoutMs: 2 * 60 * 60 * 1000,
       });
 
       expect(updated).toHaveLength(1);
-      expect(updated[0]?.boundAt).toBe(new Date("2026-02-20T23:15:00.000Z").getTime());
-      expect(updated[0]?.expiresAt).toBe(new Date("2026-02-21T01:15:00.000Z").getTime());
-      expect(manager.getByThreadId("thread-1")?.expiresAt).toBe(
-        new Date("2026-02-21T01:15:00.000Z").getTime(),
-      );
+      expect(updated[0]?.lastActivityAt).toBe(new Date("2026-02-20T23:15:00.000Z").getTime());
+      
+      const record = manager.getByThreadId("thread-1")!;
+      const expiresAt = resolveThreadBindingInactivityExpiresAt({
+        record,
+        defaultIdleTimeoutMs: manager.getIdleTimeoutMs(),
+      });
+      expect(expiresAt).toBe(new Date("2026-02-21T01:15:00.000Z").getTime());
     } finally {
       vi.useRealTimers();
     }
@@ -217,7 +221,7 @@ describe("thread binding ttl", () => {
         accountId: "default",
         persist: false,
         enableSweeper: true,
-        sessionTtlMs: 60_000,
+        idleTimeoutMs: 60_000,
       });
 
       await manager.bindTarget({
@@ -230,13 +234,13 @@ describe("thread binding ttl", () => {
         webhookToken: "tok-1",
       });
 
-      const updated = setThreadBindingTtlBySessionKey({
+      const updated = setThreadBindingIdleTimeoutBySessionKey({
         accountId: "default",
         targetSessionKey: "agent:main:subagent:child",
-        ttlMs: 0,
+        idleTimeoutMs: 0,
       });
       expect(updated).toHaveLength(1);
-      expect(updated[0]?.expiresAt).toBe(0);
+      expect(updated[0]?.idleTimeoutMs).toBe(0);
       hoisted.sendWebhookMessageDiscord.mockClear();
 
       await vi.advanceTimersByTimeAsync(240_000);
@@ -253,7 +257,7 @@ describe("thread binding ttl", () => {
       accountId: "default",
       persist: false,
       enableSweeper: false,
-      sessionTtlMs: 24 * 60 * 60 * 1000,
+      idleTimeoutMs: 24 * 60 * 60 * 1000,
     });
 
     const first = await manager.bindTarget({
@@ -289,7 +293,7 @@ describe("thread binding ttl", () => {
       accountId: "default",
       persist: false,
       enableSweeper: false,
-      sessionTtlMs: 24 * 60 * 60 * 1000,
+      idleTimeoutMs: 24 * 60 * 60 * 1000,
     });
 
     await manager.bindTarget({
@@ -329,7 +333,7 @@ describe("thread binding ttl", () => {
       accountId: "default",
       persist: false,
       enableSweeper: false,
-      sessionTtlMs: 24 * 60 * 60 * 1000,
+      idleTimeoutMs: 24 * 60 * 60 * 1000,
     });
 
     hoisted.restGet.mockClear();
@@ -365,7 +369,7 @@ describe("thread binding ttl", () => {
       token: "runtime-token",
       persist: false,
       enableSweeper: false,
-      sessionTtlMs: 24 * 60 * 60 * 1000,
+      idleTimeoutMs: 24 * 60 * 60 * 1000,
     });
 
     hoisted.createDiscordRestClient.mockClear();
@@ -402,14 +406,14 @@ describe("thread binding ttl", () => {
       token: "token-old",
       persist: false,
       enableSweeper: false,
-      sessionTtlMs: 24 * 60 * 60 * 1000,
+      idleTimeoutMs: 24 * 60 * 60 * 1000,
     });
     const manager = createThreadBindingManager({
       accountId: "runtime",
       token: "token-new",
       persist: false,
       enableSweeper: false,
-      sessionTtlMs: 24 * 60 * 60 * 1000,
+      idleTimeoutMs: 24 * 60 * 60 * 1000,
     });
 
     hoisted.createThreadDiscord.mockClear();
@@ -441,13 +445,13 @@ describe("thread binding ttl", () => {
       accountId: "a",
       persist: false,
       enableSweeper: false,
-      sessionTtlMs: 24 * 60 * 60 * 1000,
+      idleTimeoutMs: 24 * 60 * 60 * 1000,
     });
     const b = createThreadBindingManager({
       accountId: "b",
       persist: false,
       enableSweeper: false,
-      sessionTtlMs: 24 * 60 * 60 * 1000,
+      idleTimeoutMs: 24 * 60 * 60 * 1000,
     });
 
     const aBinding = await a.bindTarget({
@@ -503,7 +507,8 @@ describe("thread binding ttl", () => {
                 agentId: "main",
                 boundBy: "system",
                 boundAt: now,
-                expiresAt: now + 60_000,
+                lastActivityAt: now,
+                idleTimeoutMs: 60_000,
               },
             },
           },

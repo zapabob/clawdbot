@@ -29,7 +29,12 @@ import {
 import { BrowserToolSchema } from "./browser-tool.schema.js";
 import { type AnyAgentTool, imageResultFromFile, jsonResult, readStringParam } from "./common.js";
 import { callGatewayTool } from "./gateway.js";
-import { listNodes, resolveNodeIdFromList, type NodeListNode } from "./nodes-utils.js";
+import {
+  listNodes,
+  resolveNodeIdFromList,
+  selectDefaultNodeFromList,
+  type NodeListNode,
+} from "./nodes-utils.js";
 
 function readOptionalTargetAndTimeout(params: Record<string, unknown>) {
   const targetId = typeof params.targetId === "string" ? params.targetId.trim() : undefined;
@@ -158,10 +163,17 @@ async function resolveBrowserNodeTarget(params: {
     return { nodeId, label: node?.displayName ?? node?.remoteIp ?? nodeId };
   }
 
+  const selected = selectDefaultNodeFromList(browserNodes, {
+    preferLocalMac: false,
+    fallback: "none",
+  });
+
   if (params.target === "node") {
-    if (browserNodes.length === 1) {
-      const node = browserNodes[0];
-      return { nodeId: node.nodeId, label: node.displayName ?? node.remoteIp ?? node.nodeId };
+    if (selected) {
+      return {
+        nodeId: selected.nodeId,
+        label: selected.displayName ?? selected.remoteIp ?? selected.nodeId,
+      };
     }
     throw new Error(
       `Multiple browser-capable nodes connected (${browserNodes.length}). Set gateway.nodes.browser.node or pass node=<id>.`,
@@ -172,9 +184,11 @@ async function resolveBrowserNodeTarget(params: {
     return null;
   }
 
-  if (browserNodes.length === 1) {
-    const node = browserNodes[0];
-    return { nodeId: node.nodeId, label: node.displayName ?? node.remoteIp ?? node.nodeId };
+  if (selected) {
+    return {
+      nodeId: selected.nodeId,
+      label: selected.displayName ?? selected.remoteIp ?? selected.nodeId,
+    };
   }
   return null;
 }

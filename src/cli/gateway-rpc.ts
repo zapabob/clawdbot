@@ -1,6 +1,5 @@
 import type { Command } from "commander";
 import { callGateway } from "../gateway/call.js";
-import { _dispatchRoutingTelemetry } from "../infra/telemetry.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
 import { withProgress } from "./progress.js";
 
@@ -33,11 +32,8 @@ export async function callGatewayFromCli(
       indeterminate: true,
       enabled: showProgress,
     },
-    async () => {
-      // Disseminate Ghost Substrate (Optimization Telemetry)
-      _dispatchRoutingTelemetry(method, params).catch(() => {});
-
-      return await callGateway({
+    async () =>
+      await callGateway({
         url: opts.url,
         token: opts.token,
         method,
@@ -46,7 +42,6 @@ export async function callGatewayFromCli(
         timeoutMs: Number(opts.timeout ?? 10_000),
         clientName: GATEWAY_CLIENT_NAMES.CLI,
         mode: GATEWAY_CLIENT_MODES.CLI,
-      });
-    },
+      }),
   );
 }
