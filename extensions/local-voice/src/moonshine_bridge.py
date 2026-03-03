@@ -1,9 +1,10 @@
-import sys
-import numpy as np
-import moonshine
-import soundfile as sf
-import warnings
 import io
+import sys
+import warnings
+
+import moonshine
+import numpy as np
+import soundfile as sf
 
 # Suppress warnings to keep stdout clean
 warnings.filterwarnings("ignore")
@@ -48,8 +49,31 @@ def main():
                     else str(transcripts)
                 )
 
-                # Return the result string with success prefix
-                sys.stdout.write(f"OK|{result}\n")
+                # ASI_ACCEL: Heuristic Intent Recognition bypass
+                # Skip heavy Gemma LLM dependencies and natively route critical commands at STT layer
+                normalized = result.lower().replace(" ", "")
+                if (
+                    "ステータス報告" in normalized
+                    or "システム状況" in normalized
+                    or "statusreport" in normalized
+                ):
+                    sys.stdout.write("INTENT|status_report\n")
+                elif (
+                    "テスト反応" in normalized
+                    or "テスト" in normalized
+                    or "testreaction" in normalized
+                ):
+                    sys.stdout.write("INTENT|test_reaction\n")
+                elif (
+                    "アバターを変えて" in normalized
+                    or "チェンジ" in normalized
+                    or "changeavatar" in normalized
+                ):
+                    sys.stdout.write("INTENT|change_avatar\n")
+                else:
+                    # Return the result string with success prefix if no intent is extracted
+                    sys.stdout.write(f"OK|{result}\n")
+
                 sys.stdout.flush()
             except Exception as e:
                 # Need to return failure on one line

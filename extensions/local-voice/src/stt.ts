@@ -21,6 +21,7 @@ export type STTEventHandlers = {
   onError?: (error: Error) => void;
   onConnect?: () => void;
   onDisconnect?: () => void;
+  onIntent?: (intentName: string) => void;
 };
 
 export type STTSessionState = "disconnected" | "connecting" | "connected" | "error";

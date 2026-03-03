@@ -1,6 +1,6 @@
-tree 26c927ebdd344d8a9ebb3ccf232c812bed45d53b
-parent 7ed49a656919473fb38bc33403ffc2493dd5d712
-author Peter Steinberger <steipete@gmail.com> 1763996456 +0100
-committer Peter Steinberger <steipete@gmail.com> 1763996456 +0100
+tree f36bc83034248fc59aaa666eebeb382d401ffdca
+parent d66a05dc418e59a2f6e1a25eb752c6ed017138bb
+author Peter Steinberger <steipete@gmail.com> 1765254965 +0000
+committer Peter Steinberger <steipete@gmail.com> 1765254965 +0000
 
-Add claude auto-reply allowlist and verbose hooks
+Relay: force app to run relay via system node

@@ -68,7 +68,12 @@ export class LocalMoonshineSTT implements STTSession {
               if (transcript) {
                 this.handlers.onTranscript(transcript);
               }
-              // Reset state back to connected after processing
+              this.state = "connected";
+            } else if (trimmed.startsWith("INTENT|")) {
+              const intentName = trimmed.substring(7).trim();
+              if (intentName) {
+                this.handlers.onIntent?.(intentName);
+              }
               this.state = "connected";
             } else if (trimmed.startsWith("ERR|")) {
               const errorMsg = trimmed.substring(4).trim();

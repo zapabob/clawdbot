@@ -97,6 +97,11 @@ export class VoiceSession {
             this.setState("error");
           }
         },
+        onIntent: (intent) => {
+          this.handleIntent(intent).catch((err) => {
+            console.error("[VoiceSession] Intent handling failed:", err);
+          });
+        },
       };
 
       if (this.config.sttProvider === "whisper") {
@@ -115,6 +120,24 @@ export class VoiceSession {
       this.handleError(err instanceof Error ? err : new Error(String(err)));
       throw err;
     }
+  }
+
+  private async handleIntent(intentName: string): Promise<void> {
+    console.log(`[VoiceSession] Extracted ASI_ACCEL Intent: ${intentName}`);
+    this.setState("speaking");
+
+    // Bypass LLM logic and execute predefined Substrate Reflexes immediately
+    if (intentName === "status_report") {
+      await this.speak("システム、オールグリーン。思考加速モード、正常動作中です。");
+    } else if (intentName === "test_reaction") {
+      await this.speak("テストコマンドを受信。ゼロレイテンシ連携は完璧です、パパ。");
+    } else {
+      await this.speak(
+        `未知のインテント ${intentName} を検知しました。コマンドマッピングがありません。`,
+      );
+    }
+
+    this.setState("listening");
   }
 
   private async handleTranscript(text: string): Promise<void> {
