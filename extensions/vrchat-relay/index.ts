@@ -64,6 +64,38 @@ const plugin = {
   register(api: { registerTool: (tool: unknown) => void }) {
     console.log("[vrchat-relay] Registering VRChat Relay plugin (Pro Edition)...");
 
+    // /chatbox command - Direct access for the Parent
+    api.registerCommand({
+      name: "chatbox",
+      description: "Send a message directly to the VRChat chatbox",
+      parameters: Type.Object({
+        message: Type.String({ description: "Message to send" }),
+      }),
+      execute(params: { message: string }) {
+        sendChatboxMessage({ message: params.message });
+        return { text: `Sent to VRChat Chatbox: ${params.message}` };
+      },
+    });
+
+    // /osc command - Raw packet transmission
+    api.registerCommand({
+      name: "osc",
+      description: "Send a raw OSC message to VRChat",
+      parameters: Type.Object({
+        address: Type.String({ description: "OSC address (e.g., /avatar/parameters/Example)" }),
+        value: Type.Union([Type.String(), Type.Number(), Type.Boolean()], {
+          description: "Value to send",
+        }),
+      }),
+      execute(params: { address: string; value: string | number | boolean }) {
+        sendOSCMessage({
+          address: params.address,
+          args: [params.value],
+        });
+        return { text: `Sent OSC: ${params.address} -> ${params.value}` };
+      },
+    });
+
     // Auto-start OSC Listener for Reactive Manifestation Telemetry
     const listenerResult = startOSCListener();
     if (listenerResult.success) {
