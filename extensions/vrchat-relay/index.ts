@@ -21,7 +21,7 @@ import {
   setCameraSmoothing,
   captureCamera,
 } from "./src/tools/camera.js";
-import { sendChatboxMessage } from "./src/tools/chatbox-enhanced.js";
+import { sendChatboxMessage, sendRawOscViaPython } from "./src/tools/chatbox-enhanced.js";
 import { setChatboxTyping } from "./src/tools/chatbox.js";
 import { discoverAvatarParameters } from "./src/tools/discovery.js";
 import { sendInputCommand, VALID_INPUT_ACTIONS } from "./src/tools/input.js";
@@ -72,35 +72,38 @@ const plugin: OpenClawPluginDefinition = {
   register(api: OpenClawPluginApi) {
     console.log("[vrchat-relay] Registering VRChat Relay plugin (Pro Edition)...");
 
-    // /chatbox command - Direct access for the Parent
+    // /chatbox command - Direct access for the Parent (via Python OSC bridge)
     api.registerCommand({
       name: "chatbox",
-      description: "Send a message directly to the VRChat chatbox",
+      description: "Send a message directly to the VRChat chatbox (via Python OSC)",
       parameters: Type.Object({
         message: Type.String({ description: "Message to send" }),
       }),
-      execute(params: { message: string }) {
-        sendChatboxMessage({ message: params.message });
-        return { text: `Sent to VRChat Chatbox: ${params.message}` };
+      async execute(params: { message: string }) {
+        const result = await sendChatboxMessage({ message: params.message });
+        if (result.success) {
+          return { text: `✓ VRChat Chatbox: ${params.message}` };
+        }
+        return { text: `✗ Failed: ${result.error}` };
       },
     });
 
-    // /osc command - Raw packet transmission
+    // /osc command - Raw packet transmission (via Python OSC bridge)
     api.registerCommand({
       name: "osc",
-      description: "Send a raw OSC message to VRChat",
+      description: "Send a raw OSC message to VRChat (via Python OSC)",
       parameters: Type.Object({
         address: Type.String({ description: "OSC address (e.g., /avatar/parameters/Example)" }),
         value: Type.Union([Type.String(), Type.Number(), Type.Boolean()], {
           description: "Value to send",
         }),
       }),
-      execute(params: { address: string; value: string | number | boolean }) {
-        sendOSCMessage({
-          address: params.address,
-          args: [params.value],
-        });
-        return { text: `Sent OSC: ${params.address} -> ${params.value}` };
+      async execute(params: { address: string; value: string | number | boolean }) {
+        const result = await sendRawOscViaPython(params.address, params.value);
+        if (result.success) {
+          return { text: `✓ OSC: ${params.address} -> ${params.value}` };
+        }
+        return { text: `✗ Failed: ${result.error}` };
       },
     });
 
@@ -122,8 +125,6 @@ const plugin: OpenClawPluginDefinition = {
       const fullText = event.assistantTexts.join("\n").trim();
       if (!fullText) return;
 
-      // Extract only the final assistant message (ignore intermediate tool call status if possible)
-      // For now, we take the whole text and normalize it
       const maxChars = cfg?.maxCharacters || 144;
       let syncText = fullText;
 
@@ -135,7 +136,10 @@ const plugin: OpenClawPluginDefinition = {
       }
 
       console.log(`[vrchat-relay] Mirroring AI Response to VRChat: ${syncText}`);
-      sendChatboxMessage({ message: syncText, sfx: false }); // sfx: false to avoid double ping
+      // Use Python OSC bridge (async, fire-and-forget)
+      sendChatboxMessage({ message: syncText, sfx: false }).catch((err) =>
+        console.error("[vrchat-relay] Mirror sync failed:", err),
+      );
     });
 
     // vrchat_login - Authenticate with VRChat
