@@ -521,8 +521,6 @@ ${paramList}`,
       },
     });
 
-    });
-
     // vrchat_send_osc - Send raw OSC message
     api.registerTool({
       name: "vrchat_send_osc",
