@@ -22,7 +22,9 @@ export interface SendInputParams {
  * Send input command to VRChat
  * Note: This requires PRO guard permission as it can control avatar movement
  */
-export function sendInputCommand(params: SendInputParams): { success: boolean; error?: string } {
+export async function sendInputCommand(
+  params: SendInputParams,
+): Promise<{ success: boolean; error?: string }> {
   try {
     const { action, value = true } = params;
 

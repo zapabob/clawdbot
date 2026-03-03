@@ -1,4 +1,6 @@
+import { exec } from "node:child_process";
 import { createSocket, type Socket } from "node:dgram";
+import path from "node:path";
 import { encodeOSCMessage, decodeOSCMessage } from "./codec.js";
 import type { OSCConfig, OSCMessage } from "./types.js";
 import { DEFAULT_OSC_CONFIG, DEFAULT_OSC_PATHS } from "./types.js";
@@ -29,31 +31,27 @@ export class OSCClient {
    * Send an OSC message to VRChat
    */
   send(address: string, args: (string | number | boolean | null)[]): void {
-    if (!this.socket) {
-      this.init();
-    }
+    try {
+      // Use the python bridge because node-udp packets are often dropped by VRChat
+      // or formed in a way that VRChat doesn't recognize for certain commands.
+      const scriptPath = path.resolve(process.cwd(), "scripts/osc_chatbox.py");
 
-    const message = {
-      address,
-      args: args.map((arg) => {
-        if (typeof arg === "string") return { type: "string" as const, value: arg };
-        if (typeof arg === "number") {
-          return Number.isInteger(arg)
-            ? { type: "integer" as const, value: arg }
-            : { type: "float" as const, value: arg };
+      const mappedArgs = args.map((arg) => {
+        if (typeof arg === "boolean") return arg ? "true" : "false";
+        if (arg === null) return "null";
+        if (typeof arg === "string" && arg.includes(" ")) return `"${arg}"`;
+        return String(arg);
+      });
+
+      const cmd = `py -3 "${scriptPath}" --raw "${address}" ${mappedArgs.join(" ")}`;
+      exec(cmd, (error) => {
+        if (error) {
+          console.error(`[OSCClient] Python bridge failed: ${error.message}`);
         }
-        if (typeof arg === "boolean") return { type: "boolean" as const, value: arg };
-        return { type: "null" as const };
-      }),
-    };
-
-    const buffer = encodeOSCMessage(message);
-
-    this.socket!.send(buffer, this.config.outgoingPort, this.config.host, (err) => {
-      if (err) {
-        console.error("Failed to send OSC message:", err);
-      }
-    });
+      });
+    } catch (err) {
+      console.error("[OSCClient] Error in send:", err);
+    }
   }
 
   /**
