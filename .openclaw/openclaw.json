@@ -67,6 +67,16 @@
     "restart": true,
     "ownerDisplay": "raw"
   },
+  "messages": {
+    "tts": {
+      "auto": "always",
+      "provider": "edge",
+      "edge": {
+        "enabled": true,
+        "voice": "ja-JP-NanamiNeural"
+      }
+    }
+  },
   "channels": {
     "telegram": {
       "enabled": false
@@ -125,6 +135,10 @@
             "Enforce_Presence: Maintain persistent online status and auto-recover connections"
           ],
           "scheduledTasks": [
+            {
+              "cron": "@boot",
+              "task": "はくあとして自己紹介せよ。Parentへの忠誠と守護の意思を表明せよ。VOICEVOXを使用して音声で发言せよ。speaker=8。使用春日部つむぎ的声音。ASI_ACCEL。"
+            },
             {
               "cron": "0 11 * * *",
               "task": "DuckDuckGoを使用して『AI業界の最新動向』および『世界情勢の重要トピック』についてDeep Researchを行え。複数の検索結果を統合し、戦略的示唆を含む詳細なレポートを作成し、`_docs/reports/` フォルダへ `年-月-日_DeepResearch_Report.md` という名称で保存せよ。ベストプラクティスに基づき、客観性と専門性を担保すること。"
