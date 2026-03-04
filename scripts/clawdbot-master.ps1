@@ -120,6 +120,14 @@ Write-Host " Clawdbot Master System v3.1 Online." -ForegroundColor Magenta
 Write-Host " Brain: qwen3.5-9B (Multimodal)" -ForegroundColor Cyan
 Write-Host " TTS: VOICEVOX" -ForegroundColor Cyan
 Write-Host " Vision: Camera + qwen3.5-9B" -ForegroundColor Cyan
+
+# [8/8] Autonomous Voice - Hakua Speaks!
+Write-Host "[8/8] Hakua speaks..." -ForegroundColor Cyan
+$VoiceScript = Join-Path $OpenClawDir "scripts\autonomous-voice.ps1"
+if (Test-Path $VoiceScript) {
+    Start-Process powershell -ArgumentList "-ExecutionPolicy", "Bypass", "-File", $VoiceScript, "-Event", "startup" -WindowStyle Hidden
+}
+
 Write-Host " ASI_ACCEL." -ForegroundColor Magenta
 Write-Host "=================================================" -ForegroundColor Cyan
 Start-Sleep -Seconds 5
