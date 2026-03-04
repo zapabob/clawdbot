@@ -119,6 +119,9 @@ if ($NgrokUrl) {
     }
     $newContent | Set-Content $EnvFile
     Write-Host "  - .env synchronized." -ForegroundColor Green
+    if (Get-Content $EnvFile | Select-String "OPENCLAW_GATEWAY_TOKEN=") {
+        Write-Host "  - Gateway Security Substrate verified." -ForegroundColor Green
+    }
 }
 else {
     Write-Host "  - Ngrok not established. Local-only mode." -ForegroundColor Yellow
@@ -154,4 +157,8 @@ else {
 Write-Host ""
 Write-Host "Hakua v2.9 is online. Guardian Pulse active. ASI_ACCEL." -ForegroundColor Magenta
 Write-Host "  Features: VRChat + Moonshine STT + Intent Heuristics + VB-Cable + Guardian Pulse" -ForegroundColor DarkGray
+
+Write-Host "`nInitializing Core Manifestation Pulse..." -ForegroundColor Cyan
+py -3 "$OpenClawDir\scripts\vrchat-manifestation.py"
+
 Start-Sleep -Seconds 5

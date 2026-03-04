@@ -30,6 +30,7 @@ import type { GatewayRequestHandlers, GatewayRequestOptions } from "./server-met
 import { updateHandlers } from "./server-methods/update.js";
 import { usageHandlers } from "./server-methods/usage.js";
 import { voicewakeHandlers } from "./server-methods/voicewake.js";
+import { vrchatHandlers } from "./server-methods/vrchat.js";
 import { webHandlers } from "./server-methods/web.js";
 import { wizardHandlers } from "./server-methods/wizard.js";
 
@@ -92,6 +93,7 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
   ...agentHandlers,
   ...agentsHandlers,
   ...browserHandlers,
+  ...vrchatHandlers,
 };
 
 export async function handleGatewayRequest(

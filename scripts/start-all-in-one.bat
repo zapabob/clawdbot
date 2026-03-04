@@ -12,11 +12,11 @@ echo ---------------------------------------------------
 
 REM 0. Generate Token if not exists
 if not exist ".env" goto :NOENV
-findstr /C:"CLAWDBOT_GATEWAY_TOKEN=" .env >nul
+findstr /C:"OPENCLAW_GATEWAY_TOKEN=" .env >nul
 if %errorlevel%==0 goto :ENVOK
 :NOENV
 echo Generating gateway token...
-powershell -Command "$t=-join((65..90)+(97..122)+(48..57)|Get-Random -Count 32|%{[char]$_});Add-Content '.env' -Value \"CLAWDBOT_GATEWAY_TOKEN=$t\";Write-Host \"Token: $t\""
+powershell -Command "$t=-join((65..90)+(97..122)+(48..57)|Get-Random -Count 32|%{[char]$_});Add-Content '.env' -Value \"OPENCLAW_GATEWAY_TOKEN=$t\";Write-Host \"Token: $t\""
 :ENVOK
 call .env 2>nul
 

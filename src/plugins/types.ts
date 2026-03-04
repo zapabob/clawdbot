@@ -244,6 +244,8 @@ export type OpenClawPluginDefinition = {
   version?: string;
   kind?: PluginKind;
   configSchema?: OpenClawPluginConfigSchema;
+  workspaceDir?: string;
+  executable?: string;
   register?: (api: OpenClawPluginApi) => void | Promise<void>;
   activate?: (api: OpenClawPluginApi) => void | Promise<void>;
 };

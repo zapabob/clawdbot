@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import { join } from "node:path";
+import { getOSCClient } from "../osc/client.js";
 import { logInfo, logSkip, logError } from "./audit.js";
 import { checkPermission } from "./permissions.js";
 import { rateLimiters } from "./rate-limiter.js";
@@ -69,7 +70,16 @@ export function sendRawOscViaPython(
   const { host = "127.0.0.1", port = 9000 } = options;
   const scriptPath = join(process.cwd(), "scripts", "osc_chatbox.py");
 
-  const args = [scriptPath, "--raw", address, String(value), "--host", host, "--port", String(port)];
+  const args = [
+    scriptPath,
+    "--raw",
+    address,
+    String(value),
+    "--host",
+    host,
+    "--port",
+    String(port),
+  ];
 
   return new Promise((resolve) => {
     execFile("py", ["-3", ...args], { timeout: 10000 }, (error) => {

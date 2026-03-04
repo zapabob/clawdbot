@@ -27,6 +27,7 @@ import {
   resolveControlUiRootSync,
 } from "../infra/control-ui-assets.js";
 import { isDiagnosticsEnabled } from "../infra/diagnostic-events.js";
+import { upsertSharedEnvVar } from "../infra/env-file.js";
 import { logAcceptedEnvOption } from "../infra/env.js";
 import { createExecApprovalForwarder } from "../infra/exec-approval-forwarder.js";
 import { onHeartbeatEvent } from "../infra/heartbeat-events.js";
@@ -362,6 +363,23 @@ export async function startGatewayServer(
       log.warn(
         "Gateway auth token was missing. Generated a runtime token for this startup without changing config; restart will generate a different token. Persist one with `openclaw config set gateway.auth.mode token` and `openclaw config set gateway.auth.token <token>`.",
       );
+    }
+  }
+
+  // Inject gateway token into environment for dynamic discovery by other processes/layers
+  const activeToken = authBootstrap.auth.token;
+  if (activeToken) {
+    try {
+      const envSync = upsertSharedEnvVar({
+        key: "OPENCLAW_GATEWAY_TOKEN",
+        value: activeToken,
+        env: process.env,
+      });
+      if (envSync.updated) {
+        log.info(`gateway: synchronized OPENCLAW_GATEWAY_TOKEN to ${envSync.path}`);
+      }
+    } catch (err) {
+      log.warn(`gateway: failed to synchronize token to .env: ${String(err)}`);
     }
   }
   cfgAtStart = (

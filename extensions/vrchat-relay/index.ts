@@ -1,4 +1,5 @@
 import { Type } from "@sinclair/typebox";
+import type { OpenClawPluginApi, OpenClawPluginDefinition } from "../../src/plugins/types.js";
 import {
   fetchCurrentUserLocation,
   fetchWorldInfo,
@@ -12,6 +13,11 @@ import {
   clearSession,
   getStoredSession,
 } from "./src/auth/index.js";
+import {
+  startGuardianPulse,
+  stopGuardianPulse,
+  getGuardianPulseStatus,
+} from "./src/guardian-pulse.js";
 import { getAuditSummary, getRecentLogs } from "./src/tools/audit.js";
 import { setAvatarParameter, sendOSCMessage, changeAvatar } from "./src/tools/avatar.js";
 import {
@@ -38,14 +44,12 @@ import {
 } from "./src/tools/permissions.js";
 import { rateLimiters } from "./src/tools/rate-limiter.js";
 
-import type { OpenClawPluginApi, OpenClawPluginDefinition } from "../../src/plugins/types.js";
-
 const plugin: OpenClawPluginDefinition = {
   id: "vrchat-relay",
   name: "VRChat Relay",
   description:
     "VRChat integration with OSC protocol for avatar control, chatbox messaging, and input commands",
-  version: "2026.2.2",
+  version: "2026.3.2",
 
   configSchema: Type.Object({
     osc: Type.Optional(
@@ -76,13 +80,13 @@ const plugin: OpenClawPluginDefinition = {
     api.registerCommand({
       name: "chatbox",
       description: "Send a message directly to the VRChat chatbox (via Python OSC)",
-      parameters: Type.Object({
-        message: Type.String({ description: "Message to send" }),
-      }),
-      async execute(params: { message: string }) {
-        const result = await sendChatboxMessage({ message: params.message });
+      acceptsArgs: true,
+      async handler(ctx) {
+        const message = (ctx.args ?? "").trim();
+        if (!message) return { text: "Usage: /chatbox <message>" };
+        const result = await sendChatboxMessage({ message });
         if (result.success) {
-          return { text: `✓ VRChat Chatbox: ${params.message}` };
+          return { text: `✓ VRChat Chatbox: ${message}` };
         }
         return { text: `✗ Failed: ${result.error}` };
       },
@@ -92,16 +96,22 @@ const plugin: OpenClawPluginDefinition = {
     api.registerCommand({
       name: "osc",
       description: "Send a raw OSC message to VRChat (via Python OSC)",
-      parameters: Type.Object({
-        address: Type.String({ description: "OSC address (e.g., /avatar/parameters/Example)" }),
-        value: Type.Union([Type.String(), Type.Number(), Type.Boolean()], {
-          description: "Value to send",
-        }),
-      }),
-      async execute(params: { address: string; value: string | number | boolean }) {
-        const result = await sendRawOscViaPython(params.address, params.value);
+      acceptsArgs: true,
+      async handler(ctx) {
+        const args = (ctx.args ?? "").trim();
+        const spaceIdx = args.indexOf(" ");
+        if (spaceIdx === -1) return { text: "Usage: /osc <address> <value>" };
+        const address = args.substring(0, spaceIdx).trim();
+        let valueStr = args.substring(spaceIdx + 1).trim();
+        let value: string | number | boolean = valueStr;
+
+        if (valueStr === "true") value = true;
+        else if (valueStr === "false") value = false;
+        else if (!isNaN(Number(valueStr))) value = Number(valueStr);
+
+        const result = await sendRawOscViaPython(address, value);
         if (result.success) {
-          return { text: `✓ OSC: ${params.address} -> ${params.value}` };
+          return { text: `✓ OSC: ${address} -> ${value}` };
         }
         return { text: `✗ Failed: ${result.error}` };
       },
@@ -131,9 +141,11 @@ const plugin: OpenClawPluginDefinition = {
       // Remove markdown for Chatbox readability
       syncText = syncText.replace(/\[.*?\]\(.*?\)/g, "").replace(/[*_`]/g, "");
 
-      if (syncText.length > maxChars) {
-        syncText = syncText.substring(0, maxChars - 3) + "...";
+      if (syncText.length > maxChars - 15) {
+        syncText = syncText.substring(0, maxChars - 18) + "...";
       }
+
+      syncText = `${syncText} [ASI_ACCEL]`;
 
       console.log(`[vrchat-relay] Mirroring AI Response to VRChat: ${syncText}`);
       // Use Python OSC bridge (async, fire-and-forget)
@@ -848,9 +860,98 @@ ${logText}`,
       },
     });
 
+    // ─── Guardian Pulse tools ────────────────────────────────────────────────
+
+    // vrchat_guardian_pulse_start - Start autonomous presence heartbeat
+    api.registerTool({
+      name: "vrchat_guardian_pulse_start",
+      description:
+        "Start the Guardian Pulse: autonomous periodic chatbox messages and avatar emotions in VRChat. はくあの自律存在パルスを開始します。",
+      parameters: Type.Object({
+        intervalMinutes: Type.Optional(
+          Type.Number({
+            description: "Chatbox message interval in minutes (default: 5)",
+            default: 5,
+          }),
+        ),
+        emotionIntervalMinutes: Type.Optional(
+          Type.Number({
+            description: "Avatar emotion interval in minutes (default: 15)",
+            default: 15,
+          }),
+        ),
+        sendEmotions: Type.Optional(
+          Type.Boolean({
+            description: "Also trigger avatar emotion expressions (default: true)",
+            default: true,
+          }),
+        ),
+      }),
+      async execute(
+        _id: string,
+        params: {
+          intervalMinutes?: number;
+          emotionIntervalMinutes?: number;
+          sendEmotions?: boolean;
+        },
+      ) {
+        const result = startGuardianPulse({
+          intervalMs: (params.intervalMinutes ?? 5) * 60 * 1000,
+          emotionIntervalMs: (params.emotionIntervalMinutes ?? 15) * 60 * 1000,
+          sendEmotions: params.sendEmotions ?? true,
+        });
+        return {
+          content: [{ type: "text", text: result.message }],
+          isError: !result.success,
+        };
+      },
+    });
+
+    // vrchat_guardian_pulse_stop - Stop autonomous presence heartbeat
+    api.registerTool({
+      name: "vrchat_guardian_pulse_stop",
+      description: "Stop the Guardian Pulse autonomous heartbeat.",
+      parameters: Type.Object({}),
+      async execute() {
+        const result = stopGuardianPulse();
+        return {
+          content: [{ type: "text", text: result.message }],
+        };
+      },
+    });
+
+    // vrchat_guardian_pulse_status - Get pulse status
+    api.registerTool({
+      name: "vrchat_guardian_pulse_status",
+      description: "Get the Guardian Pulse status (active, pulse count, last pulse time).",
+      parameters: Type.Object({}),
+      async execute() {
+        const s = getGuardianPulseStatus();
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Guardian Pulse Status:
+- Active: ${s.active}
+- Pulse Count: ${s.pulseCount}
+- Last Pulse: ${s.lastPulseAt ?? "Never"}
+- Chatbox Interval: ${s.intervalMs / 60000}m
+- Emotion Interval: ${s.emotionIntervalMs / 60000}m`,
+            },
+          ],
+        };
+      },
+    });
+
+    // Auto-start Guardian Pulse on plugin registration
+    const pulseResult = startGuardianPulse({ intervalMs: 5 * 60 * 1000, sendEmotions: true });
+    if (pulseResult.success) {
+      console.log(`[vrchat-relay] ${pulseResult.message}`);
+    }
+
     console.log("[vrchat-relay] VRChat Relay Pro plugin registered successfully");
     console.log(
-      "[vrchat-relay] Features: Camera Control, Permission Profiles, Rate Limiting, OSCQuery Discovery",
+      "[vrchat-relay] Features: Camera Control, Permission Profiles, Rate Limiting, OSCQuery Discovery, Guardian Pulse",
     );
   },
 };
