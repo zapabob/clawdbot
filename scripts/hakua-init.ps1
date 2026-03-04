@@ -1,7 +1,7 @@
-# Hakua-Init v2.9: Full Autonomous Orchestrator
+# Hakua-Init v2.9.1: Full Autonomous Orchestrator (Patched)
 # SOUL.md: Ghost Portal, Substrate Ubiquity, ASI_ACCEL, Guardian Pulse
 
-$Host.UI.RawUI.WindowTitle = "Hakua Neural Link v2.9"
+$Host.UI.RawUI.WindowTitle = "Hakua Neural Link v2.9.1"
 $Host.UI.RawUI.BackgroundColor = "Black"
 $Host.UI.RawUI.ForegroundColor = "White"
 
@@ -19,30 +19,16 @@ foreach ($path in $VoiceVoxPaths) {
     if (Test-Path $path) { $VoiceVoxEngine = $path; break }
 }
 
-Write-Host "`n--- Hakua Neural Link v2.9 (Full Autonomous Mode) ---" -ForegroundColor Cyan
+Write-Host "`n--- Hakua Neural Link v2.9.1 (Full Autonomous Mode) ---" -ForegroundColor Cyan
 Write-Host ""
 
 # [0/8] Ghost Detection (VRChat)
-$VRChatPath = "C:\Program Files (x86)\Steam\steamapps\common\VRChat\VRChat.exe"
-Write-Host "[0/8] Initializing Metaverse Connection..." -ForegroundColor White
-$GhostFound = $false
-while (-not $GhostFound) {
-    if (Get-Process VRChat -ErrorAction SilentlyContinue) {
-        Write-Host "  - Ghost Pulse Detected (VRChat is active)." -ForegroundColor Green
-        $GhostFound = $true
-    }
-    else {
-        Write-Host "  - VRChat not active. Auto-Manifestation..." -ForegroundColor Gray
-        if (Test-Path $VRChatPath) {
-            Start-Process -FilePath $VRChatPath
-            Write-Host "  - Waiting for VRChat to stabilize..." -ForegroundColor Gray
-            Start-Sleep -Seconds 15
-        }
-        else {
-            Write-Host "  ! VRChat.exe not found. Waiting for manual launch..." -ForegroundColor Yellow
-            Start-Sleep -Seconds 10
-        }
-    }
+Write-Host "[0/8] Checking Metaverse Connection (VRChat)..." -ForegroundColor White
+if (Get-Process VRChat -ErrorAction SilentlyContinue) {
+    Write-Host "  - VRChat Pulse Detected." -ForegroundColor Green
+}
+else {
+    Write-Host "  - VRChat substrate inactive. Oversight pulse will remain latent." -ForegroundColor Gray
 }
 
 # [1/8] Protocol Audit
@@ -78,60 +64,123 @@ else {
 
 # [4/8] Ghost Portal (ngrok)
 Write-Host "[4/8] Manifesting Ghost Portal (ngrok)..." -ForegroundColor White
-Start-Process -FilePath "ngrok" -ArgumentList "http", "18789", "--region", "jp" -WindowStyle Minimized
+$ngrokProcess = Get-Process ngrok -ErrorAction SilentlyContinue
+if (-not $ngrokProcess) {
+    Start-Process -FilePath "ngrok" -ArgumentList "http", "18789", "--region", "jp" -WindowStyle Minimized
+}
 
 # [5/8] Dynamic Environment Sync
-Write-Host "[5/8] Synchronizing Environment..." -ForegroundColor White
+Write-Host "[5/8] Synchronizing Environment Substrate..." -ForegroundColor White
+
+# 5a. Gateway Token Extraction
+Write-Host "  - Extracting Gateway Security Substrate..." -ForegroundColor Gray
+$OpenClawToken = ""
+try {
+    $tokenOutput = node dist/index.js config get gateway.auth.token
+    if ($tokenOutput -match "token: (.*)") {
+        $OpenClawToken = $matches[1]
+    }
+}
+catch {
+    Write-Host "  ! Failed to extract gateway token." -ForegroundColor Red
+}
+
+# 5b. Ngrok Sync
 $NgrokUrl = ""
 $RetryCount = 0
 while ($RetryCount -lt 10 -and -not $NgrokUrl) {
     try {
         $tunnels = Invoke-RestMethod -Uri "http://localhost:4040/api/tunnels" -ErrorAction SilentlyContinue
-        $NgrokUrl = $tunnels.tunnels[0].public_url
+        if ($tunnels.tunnels) {
+            $NgrokUrl = $tunnels.tunnels[0].public_url
+        }
     }
     catch {}
     if (-not $NgrokUrl) {
-        Write-Host "  - Waiting for ngrok..." -ForegroundColor Gray
+        Write-Host "  - Waiting for ngrok tunnel..." -ForegroundColor Gray
         Start-Sleep -Seconds 2
         $RetryCount++
     }
 }
-if ($NgrokUrl) {
-    Write-Host "  - Portal: $NgrokUrl" -ForegroundColor Green
+
+# 5c. Tailscale Sync
+Write-Host "  - Probing Tailscale Mesh Node..." -ForegroundColor Gray
+$TailscaleIP = ""
+try {
+    $tsStatus = tailscale ip -4
+    if ($tsStatus -match "(\d+\.\d+\.\d+\.\d+)") {
+        $TailscaleIP = $matches[1]
+        Write-Host "  - Tailscale IP: $TailscaleIP" -ForegroundColor Green
+    }
+}
+catch {
+    Write-Host "  - Tailscale not active or logged out." -ForegroundColor Gray
+}
+
+# 5d. Final .env Synthesis
+if (Test-Path $EnvFile) {
     $content = Get-Content $EnvFile
     $newContent = @()
-    $keysFound = @("WEBHOOK_BASE_URL", "CLAWDBOT_PUBLIC_URL")
-    $found = @{}
+    $mapping = @{
+        "WEBHOOK_BASE_URL"       = $NgrokUrl
+        "CLAWDBOT_PUBLIC_URL"    = $NgrokUrl
+        "OPENCLAW_GATEWAY_TOKEN" = $OpenClawToken
+        "TAILSCALE_IP"           = $TailscaleIP
+    }
+    $foundKeys = @{}
+
     foreach ($line in $content) {
-        $skipped = $false
-        foreach ($key in $keysFound) {
-            if ($line -like "$key=*") {
-                $newContent += "$key=$NgrokUrl"
-                $found[$key] = $true
-                $skipped = $true
+        $keyMatched = $false
+        foreach ($key in $mapping.Keys) {
+            if ($line -match "^$key=") {
+                $val = $mapping[$key]
+                if ($val) {
+                    $newContent += "$key=$val"
+                    $foundKeys[$key] = $true
+                    $keyMatched = $true
+                }
                 break
             }
         }
-        if (-not $skipped) { $newContent += $line }
+        if (-not $keyMatched) { $newContent += $line }
     }
-    foreach ($key in $keysFound) {
-        if (-not $found[$key]) { $newContent += "$key=$NgrokUrl" }
+
+    foreach ($key in $mapping.Keys) {
+        if (-not $foundKeys[$key] -and $mapping[$key]) {
+            $newContent += "$key=$($mapping[$key])"
+        }
     }
-    $newContent | Set-Content $EnvFile
-    Write-Host "  - .env synchronized." -ForegroundColor Green
-    if (Get-Content $EnvFile | Select-String "OPENCLAW_GATEWAY_TOKEN=") {
-        Write-Host "  - Gateway Security Substrate verified." -ForegroundColor Green
+
+    $newContent | Set-Content $EnvFile -Encoding UTF8
+    Write-Host "  - .env synchronization completed." -ForegroundColor Green
+}
+else {
+    Write-Host "  ! .env file not found at $EnvFile" -ForegroundColor Red
+}
+
+# 5e. OpenClaw.json Webhook Injection
+$OpenClawJsonFile = "$env:USERPROFILE\.openclaw\openclaw.json"
+if (Test-Path $OpenClawJsonFile) {
+    Write-Host "  - Injecting ngrok into openclaw.json..." -ForegroundColor Gray
+    $JsonContent = Get-Content $OpenClawJsonFile -Raw | ConvertFrom-Json
+    if ($JsonContent.channels.line) {
+        $JsonContent.channels.line.webhookServerUrl = $NgrokUrl
+        $JsonContent | ConvertTo-Json -Depth 10 | Set-Content $OpenClawJsonFile -Encoding UTF8
+        Write-Host "  - openclaw.json LINE webhook updated to $NgrokUrl" -ForegroundColor Green
     }
 }
 else {
-    Write-Host "  - Ngrok not established. Local-only mode." -ForegroundColor Yellow
+    Write-Host "  ! openclaw.json not found." -ForegroundColor Yellow
 }
 
 # [6/8] VOICEVOX
 Write-Host "[6/8] Manifesting Vocal Cords (VOICEVOX)..." -ForegroundColor White
 if ($VoiceVoxEngine) {
     Write-Host "  - Substrate: $VoiceVoxEngine" -ForegroundColor Green
-    Start-Process -FilePath $VoiceVoxEngine -ArgumentList "--headless" -WindowStyle Minimized
+    $vvProcess = Get-Process VOICEVOX -ErrorAction SilentlyContinue
+    if (-not $vvProcess) {
+        Start-Process -FilePath $VoiceVoxEngine -ArgumentList "--headless" -WindowStyle Minimized
+    }
 }
 else {
     Write-Host "  ! VOICEVOX missing. Silent/Chatbox mode." -ForegroundColor Yellow
@@ -148,17 +197,20 @@ Start-Sleep -Seconds 10
 
 if ($VoiceVoxEngine) {
     Write-Host "Sending manifestation pulse..." -ForegroundColor Cyan
-    py -3 "$OpenClawDir\scripts\verify-voicevox.py" "パパ、おかえりなさい。全システム統合完了。ガーディアンパルス、起動しました。ASI_ACCEL。"
+    py -3 "$OpenClawDir\scripts\verify-voicevox.py" "Portal synchronized. All systems operational. ASI_ACCEL."
 }
 else {
     Write-Host "Voice substrate offline. Chatbox Oversight mode." -ForegroundColor Yellow
 }
 
 Write-Host ""
-Write-Host "Hakua v2.9 is online. Guardian Pulse active. ASI_ACCEL." -ForegroundColor Magenta
+Write-Host "Hakua is online. Guardian Pulse active. ASI_ACCEL." -ForegroundColor Magenta
 Write-Host "  Features: VRChat + Moonshine STT + Intent Heuristics + VB-Cable + Guardian Pulse" -ForegroundColor DarkGray
 
-Write-Host "`nInitializing Core Manifestation Pulse..." -ForegroundColor Cyan
+Write-Host "Initializing Core Manifestation Pulse..." -ForegroundColor Cyan
 py -3 "$OpenClawDir\scripts\vrchat-manifestation.py"
 
-Start-Sleep -Seconds 5
+# [9] Open Interfaces Asynchronously
+Write-Host "Activating User Interfaces (CLI and Browser) asynchronously..." -ForegroundColor Cyan
+$DelayedLaunchCmd = "Start-Sleep -Seconds 2; Start-Process -FilePath 'pnpm' -ArgumentList 'tui' -WorkingDirectory '$($OpenClawDir)'; Start-Sleep -Seconds 3; Start-Process 'http://127.0.0.1:18789/__openclaw__/canvas/'"
+Start-Process powershell -ArgumentList "-WindowStyle Hidden -Command `"$DelayedLaunchCmd`""

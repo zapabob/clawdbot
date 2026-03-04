@@ -3,7 +3,7 @@
 
 $ErrorActionPreference = "Stop"
 $DownloadUrl = "https://download.vb-audio.com/Download_CABLE/VBCABLE_Driver_Pack45.zip"
-$TempDir = "$env:TEMP\vbcable-install"
+$TempDir = "H:\vbcable-install"
 $ZipPath = "$TempDir\VBCABLE_Driver_Pack45.zip"
 
 Write-Host "[Hakua] Installing VB-Cable Virtual Audio Device..." -ForegroundColor Cyan

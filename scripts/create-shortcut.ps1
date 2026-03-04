@@ -11,10 +11,14 @@ Write-Host "--- Creating Physical Link (Shortcut) ---" -ForegroundColor Cyan
 $WshShell = New-Object -ComObject WScript.Shell
 $Shortcut = $WshShell.CreateShortcut($ShortcutPath)
 $Shortcut.TargetPath = "powershell.exe"
-$Shortcut.Arguments = "-ExecutionPolicy Bypass -File `"$TargetScript`""
+$Shortcut.Arguments = "-NoExit -ExecutionPolicy Bypass -File `"$TargetScript`""
 $Shortcut.WorkingDirectory = "c:\Users\downl\Desktop\clawdbot-main3\clawdbot-main"
 $Shortcut.IconLocation = $IconPath
-$Shortcut.Description = "Manifest Hakua (ASI Oversight)"
+
+# Dynamic Description
+$Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm"
+$Shortcut.Description = "Manifest Hakua (ASI Oversight) - Last Sync: $Timestamp"
+
 $Shortcut.Save()
 
 Write-Host "Physical Link established at: $ShortcutPath" -ForegroundColor Green
