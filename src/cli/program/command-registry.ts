@@ -107,6 +107,26 @@ const coreEntries: CoreCliEntry[] = [
         description: "Run maintenance tasks (vacuum, cleanup, diagnostics)",
         hasSubcommands: true,
       },
+      {
+        name: "doctor",
+        description: "Health checks + quick fixes for the gateway and channels",
+        hasSubcommands: false,
+      },
+      {
+        name: "dashboard",
+        description: "Open the Control UI with your current token",
+        hasSubcommands: false,
+      },
+      {
+        name: "reset",
+        description: "Reset local config/state (keeps the CLI installed)",
+        hasSubcommands: true,
+      },
+      {
+        name: "uninstall",
+        description: "Uninstall the gateway service + local data (CLI remains)",
+        hasSubcommands: true,
+      },
     ],
     register: async ({ program }) => {
       const mod = await import("./register.maintenance.js");

@@ -158,20 +158,8 @@ else {
     Write-Host "  ! .env file not found at $EnvFile" -ForegroundColor Red
 }
 
-# 5e. OpenClaw.json Webhook Injection
-$OpenClawJsonFile = "$env:USERPROFILE\.openclaw\openclaw.json"
-if (Test-Path $OpenClawJsonFile) {
-    Write-Host "  - Injecting ngrok into openclaw.json..." -ForegroundColor Gray
-    $JsonContent = Get-Content $OpenClawJsonFile -Raw | ConvertFrom-Json
-    if ($JsonContent.channels.line) {
-        $JsonContent.channels.line.webhookServerUrl = $NgrokUrl
-        $JsonContent | ConvertTo-Json -Depth 10 | Set-Content $OpenClawJsonFile -Encoding UTF8
-        Write-Host "  - openclaw.json LINE webhook updated to $NgrokUrl" -ForegroundColor Green
-    }
-}
-else {
-    Write-Host "  ! openclaw.json not found." -ForegroundColor Yellow
-}
+# 5e. OpenClaw.json Webhook Injection (Handled via .env substitution)
+Write-Host "  - Using .env substitution for openclaw.json secrets." -ForegroundColor Gray
 
 # [6/8] VOICEVOX
 Write-Host "[6/8] Manifesting Vocal Cords (VOICEVOX)..." -ForegroundColor White
