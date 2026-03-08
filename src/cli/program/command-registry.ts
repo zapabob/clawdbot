@@ -11,6 +11,11 @@ type CommandRegisterParams = {
   argv: string[];
 };
 
+export type CommandRegistration = {
+  id: string;
+  register: (params: CommandRegisterParams) => void;
+};
+
 type CoreCliCommandDescriptor = {
   name: string;
   description: string;
@@ -90,24 +95,6 @@ const coreEntries: CoreCliEntry[] = [
   {
     commands: [
       {
-        name: "evo",
-        description: "Self-evolution and self-repair commands (health/repair/evolve/status)",
-        hasSubcommands: true,
-      },
-    ],
-    register: async ({ program }) => {
-      const { registerEvoCommands } = await import("../evo-cli.js");
-      registerEvoCommands(program);
-    },
-  },
-  {
-    commands: [
-      {
-        name: "maintenance",
-        description: "Run maintenance tasks (vacuum, cleanup, diagnostics)",
-        hasSubcommands: true,
-      },
-      {
         name: "doctor",
         description: "Health checks + quick fixes for the gateway and channels",
         hasSubcommands: false,
@@ -120,12 +107,12 @@ const coreEntries: CoreCliEntry[] = [
       {
         name: "reset",
         description: "Reset local config/state (keeps the CLI installed)",
-        hasSubcommands: true,
+        hasSubcommands: false,
       },
       {
         name: "uninstall",
         description: "Uninstall the gateway service + local data (CLI remains)",
-        hasSubcommands: true,
+        hasSubcommands: false,
       },
     ],
     register: async ({ program }) => {

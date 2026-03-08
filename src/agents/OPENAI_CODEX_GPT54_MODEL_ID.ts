@@ -1,1 +1,0 @@
-const OPENAI_CODEX_GPT54_MODEL_ID = "gpt-5.4";

@@ -7,7 +7,7 @@ export type TemporalDecayConfig = {
 };
 
 export const DEFAULT_TEMPORAL_DECAY_CONFIG: TemporalDecayConfig = {
-  enabled: true,
+  enabled: false,
   halfLifeDays: 30,
 };
 
@@ -68,11 +68,15 @@ function parseMemoryDateFromPath(filePath: string): Date | null {
   return parsed;
 }
 
-function isEvergreenMemoryPath(_filePath: string): boolean {
-  // If user wants decay for Agent.md and MEMORY.md, we should return false here.
-  // The original implementation protected MEMORY.md and topic files.
-  // We'll disable this protection to let them decay.
-  return false;
+function isEvergreenMemoryPath(filePath: string): boolean {
+  const normalized = filePath.replaceAll("\\", "/").replace(/^\.\//, "");
+  if (normalized === "MEMORY.md" || normalized === "memory.md") {
+    return true;
+  }
+  if (!normalized.startsWith("memory/")) {
+    return false;
+  }
+  return !DATED_MEMORY_PATH_RE.test(normalized);
 }
 
 async function extractTimestamp(params: {

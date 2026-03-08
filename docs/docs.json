@@ -137,7 +137,7 @@
     },
     {
       "source": "/providers/grammy",
-      "destination": "/channels/grammy"
+      "destination": "/channels/telegram"
     },
     {
       "source": "/providers/imessage",
@@ -365,7 +365,11 @@
     },
     {
       "source": "/grammy",
-      "destination": "/channels/grammy"
+      "destination": "/channels/telegram"
+    },
+    {
+      "source": "/channels/grammy",
+      "destination": "/channels/telegram"
     },
     {
       "source": "/group-messages",
@@ -990,6 +994,7 @@
                   "brave-search",
                   "perplexity",
                   "tools/diffs",
+                  "tools/pdf",
                   "tools/elevated",
                   "tools/exec",
                   "tools/exec-approvals",
@@ -1013,7 +1018,12 @@
               },
               {
                 "group": "Agent coordination",
-                "pages": ["tools/agent-send", "tools/subagents", "tools/multi-agent-sandbox-tools"]
+                "pages": [
+                  "tools/agent-send",
+                  "tools/subagents",
+                  "tools/acp-agents",
+                  "tools/multi-agent-sandbox-tools"
+                ]
               },
               {
                 "group": "Skills",
@@ -1172,6 +1182,9 @@
                       "gateway/configuration-reference",
                       "gateway/configuration-examples",
                       "gateway/authentication",
+                      "auth-credential-semantics",
+                      "gateway/secrets",
+                      "gateway/secrets-plan-contract",
                       "gateway/trusted-proxy-auth",
                       "gateway/health",
                       "gateway/heartbeat",
@@ -1273,6 +1286,7 @@
                   "cli/qr",
                   "cli/reset",
                   "cli/sandbox",
+                  "cli/secrets",
                   "cli/security",
                   "cli/sessions",
                   "cli/setup",
@@ -1309,8 +1323,8 @@
                 "pages": [
                   "reference/wizard",
                   "reference/token-use",
+                  "reference/secretref-credential-surface",
                   "reference/prompt-caching",
-                  "channels/grammy",
                   "reference/api-usage-costs",
                   "reference/transcript-hygiene",
                   "date-time"

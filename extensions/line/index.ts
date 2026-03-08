@@ -1,8 +1,7 @@
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
-import { emptyPluginConfigSchema } from "openclaw/plugin-sdk";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/line";
+import { emptyPluginConfigSchema } from "openclaw/plugin-sdk/line";
 import { registerLineCardCommand } from "./src/card-command.js";
 import { linePlugin } from "./src/channel.js";
-import { registerLinePushCommand } from "./src/push-command.js";
 import { setLineRuntime } from "./src/runtime.js";
 
 const plugin = {
@@ -14,7 +13,6 @@ const plugin = {
     setLineRuntime(api.runtime);
     api.registerChannel({ plugin: linePlugin });
     registerLineCardCommand(api);
-    registerLinePushCommand(api);
   },
 };
 

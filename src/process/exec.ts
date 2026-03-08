@@ -58,7 +58,13 @@ function resolveNpmArgvForWindows(argv: string[]): string[] | null {
   const nodeDir = path.dirname(process.execPath);
   const cliPath = path.join(nodeDir, "node_modules", "npm", "bin", cliName);
   if (!fs.existsSync(cliPath)) {
-    return null;
+    // Bun-based runs don't ship npm-cli.js next to process.execPath.
+    // Fall back to npm.cmd/npx.cmd so we still route through cmd wrapper
+    // (avoids direct .cmd spawn EINVAL on patched Node).
+    const command = argv[0] ?? "";
+    const ext = path.extname(command).toLowerCase();
+    const shimmedCommand = ext ? command : `${command}.cmd`;
+    return [shimmedCommand, ...argv.slice(1)];
   }
   return [process.execPath, cliPath, ...argv.slice(1)];
 }
@@ -93,15 +99,7 @@ export function shouldSpawnWithShell(params: {
   // (like chat prompts passed as CLI args) into command-injection primitives.
   // If you need a shell, use an explicit shell-wrapper argv (e.g. `cmd.exe /c ...`)
   // and validate/escape at the call site.
-  // EXCEPTIONS: Node.js >= 20.x throws EINVAL when spawning .cmd/.bat files without
-  // shell: true (CVE-2024-27980). We must enable shell for these specific extensions,
-  // relying on Node's default argument escaping.
-  if (params.platform === "win32") {
-    const ext = path.extname(params.resolvedCommand).toLowerCase();
-    if (ext === ".cmd" || ext === ".bat") {
-      return true;
-    }
-  }
+  void params;
   return false;
 }
 
@@ -109,7 +107,7 @@ export function shouldSpawnWithShell(params: {
 export async function runExec(
   command: string,
   args: string[],
-  opts: number | { timeoutMs?: number; maxBuffer?: number } = 10_000,
+  opts: number | { timeoutMs?: number; maxBuffer?: number; cwd?: string } = 10_000,
 ): Promise<{ stdout: string; stderr: string }> {
   const options =
     typeof opts === "number"
@@ -117,6 +115,7 @@ export async function runExec(
       : {
           timeout: opts.timeoutMs,
           maxBuffer: opts.maxBuffer,
+          cwd: opts.cwd,
           encoding: "utf8" as const,
         };
   try {

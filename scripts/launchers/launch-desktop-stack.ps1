@@ -123,16 +123,16 @@ $token = Get-OrCreateGatewayToken -EnvFile $envFile
 $localGatewayUrl = "http://127.0.0.1:$GatewayPort"
 
 Set-EnvValues -EnvFile $envFile -Values @{
-    OPENCLAW_GATEWAY_PORT = $GatewayPort
-    CLAWDBOT_GATEWAY_PORT = $GatewayPort
-    OPENCLAW_GATEWAY_BIND = $GatewayBind
-    CLAWDBOT_GATEWAY_BIND = $GatewayBind
-    OPENCLAW_GATEWAY_MODE = $GatewayMode
-    CLAWDBOT_GATEWAY_MODE = $GatewayMode
-    OPENCLAW_GATEWAY_TOKEN = $token
-    OPENCLAW_LOCAL_URL = $localGatewayUrl
-    OPENCLAW_BROWSER_URL = $localGatewayUrl
-    OPENCLAW_DESKTOP_LAUNCHER = "scripts/launchers/launch-desktop-stack.ps1"
+    OPENCLAW_GATEWAY_PORT      = $GatewayPort
+    CLAWDBOT_GATEWAY_PORT      = $GatewayPort
+    OPENCLAW_GATEWAY_BIND      = $GatewayBind
+    CLAWDBOT_GATEWAY_BIND      = $GatewayBind
+    OPENCLAW_GATEWAY_MODE      = $GatewayMode
+    CLAWDBOT_GATEWAY_MODE      = $GatewayMode
+    OPENCLAW_GATEWAY_TOKEN     = $token
+    OPENCLAW_LOCAL_URL         = $localGatewayUrl
+    OPENCLAW_BROWSER_URL       = $localGatewayUrl
+    OPENCLAW_DESKTOP_LAUNCHER  = "scripts/launchers/launch-desktop-stack.ps1"
 }
 
 Write-Host ""
@@ -176,19 +176,19 @@ if (-not $SkipNgrok) {
             $lineWebhookPath = "/$lineWebhookPath"
         }
         Set-EnvValues -EnvFile $envFile -Values @{
-            LINE_WEBHOOK_URL = "$publicUrl$lineWebhookPath"
+            LINE_WEBHOOK_URL            = "$publicUrl$lineWebhookPath"
             OPENCLAW_PUBLIC_GATEWAY_URL = $publicUrl
         }
     }
 }
 
 $processEnv = @{
-    OPENCLAW_GATEWAY_PORT = [string]$GatewayPort
-    CLAWDBOT_GATEWAY_PORT = [string]$GatewayPort
-    OPENCLAW_GATEWAY_BIND = $GatewayBind
-    CLAWDBOT_GATEWAY_BIND = $GatewayBind
-    OPENCLAW_GATEWAY_MODE = $GatewayMode
-    CLAWDBOT_GATEWAY_MODE = $GatewayMode
+    OPENCLAW_GATEWAY_PORT  = [string]$GatewayPort
+    CLAWDBOT_GATEWAY_PORT  = [string]$GatewayPort
+    OPENCLAW_GATEWAY_BIND  = $GatewayBind
+    CLAWDBOT_GATEWAY_BIND  = $GatewayBind
+    OPENCLAW_GATEWAY_MODE  = $GatewayMode
+    CLAWDBOT_GATEWAY_MODE  = $GatewayMode
     OPENCLAW_GATEWAY_TOKEN = $token
 }
 

@@ -414,6 +414,7 @@ NODE
     # Seed a remote config to exercise reset path.
 	    cat > "$OPENCLAW_CONFIG_PATH" <<'"'"'JSON'"'"'
 {
+  "meta": {},
   "agents": { "defaults": { "workspace": "/root/old" } },
   "gateway": {
     "mode": "remote",
@@ -508,6 +509,7 @@ NODE
     # Seed skills config to ensure it survives the wizard.
 	    cat > "$OPENCLAW_CONFIG_PATH" <<'"'"'JSON'"'"'
 {
+  "meta": {},
   "skills": {
     "allowBundled": ["__none__"],
     "install": { "nodeManager": "bun" }
