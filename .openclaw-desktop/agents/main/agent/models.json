@@ -7,36 +7,6 @@
       "api": "ollama",
       "models": [
         {
-          "id": "rnj-1-instruct:latest",
-          "name": "RNJ-1 Instruct (Local)",
-          "reasoning": false,
-          "input": ["text"],
-          "contextWindow": 32000,
-          "maxTokens": 4096,
-          "cost": {
-            "input": 0,
-            "output": 0,
-            "cacheRead": 0,
-            "cacheWrite": 0
-          },
-          "api": "ollama"
-        },
-        {
-          "id": "dolphin-llama3:latest",
-          "name": "Dolphin Llama3 (Local)",
-          "reasoning": true,
-          "input": ["text"],
-          "contextWindow": 32000,
-          "maxTokens": 4096,
-          "cost": {
-            "input": 0,
-            "output": 0,
-            "cacheRead": 0,
-            "cacheWrite": 0
-          },
-          "api": "ollama"
-        },
-        {
           "id": "qwen3.5:9b",
           "name": "Qwen 3.5 9B (GPU)",
           "reasoning": false,

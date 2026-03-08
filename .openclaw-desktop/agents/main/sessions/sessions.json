@@ -1,7 +1,7 @@
 {
   "agent:main:main": {
     "sessionId": "8555a0a4-0b79-459d-939c-e17cdbbf4fe2",
-    "updatedAt": 1772978822268,
+    "updatedAt": 1772979210956,
     "systemSent": true,
     "abortedLastRun": false,
     "chatType": "direct",
@@ -10,7 +10,7 @@
     },
     "lastChannel": "webchat",
     "origin": {
-      "label": "heartbeat",
+      "label": "openclaw-tui",
       "provider": "webchat",
       "surface": "webchat",
       "chatType": "direct",
@@ -256,7 +256,7 @@
     "contextTokens": 200000,
     "systemPromptReport": {
       "source": "run",
-      "generatedAt": 1772978818292,
+      "generatedAt": 1772979207819,
       "sessionId": "8555a0a4-0b79-459d-939c-e17cdbbf4fe2",
       "sessionKey": "agent:main:main",
       "provider": "openai-codex",
@@ -588,11 +588,11 @@
         ]
       }
     },
-    "inputTokens": 22285,
-    "outputTokens": 109,
-    "cacheRead": 2560,
+    "inputTokens": 805,
+    "outputTokens": 86,
+    "cacheRead": 24832,
     "cacheWrite": 0,
-    "totalTokens": 24845,
+    "totalTokens": 25637,
     "totalTokensFresh": true
   }
 }
