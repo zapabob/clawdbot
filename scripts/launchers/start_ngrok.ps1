@@ -11,7 +11,8 @@ param (
 
 $ErrorActionPreference = "Stop"
 $ProjectDir = (Get-Item $PSScriptRoot).Parent.Parent.FullName
-$EnvFile = Join-Path $ProjectDir ".env"
+. "$PSScriptRoot\env-tools.ps1"
+$EnvFile = Ensure-ProjectEnvFile -ProjectDir $ProjectDir
 
 Write-Host "[Ngrok] Establishing Webhook Tunnel on Port $Port..." -ForegroundColor Cyan
 
@@ -75,31 +76,12 @@ if (-not $publicUrl) {
 
 Write-Host "[Ngrok] Public Webhook URL: $publicUrl" -ForegroundColor Green
 
-# 4. Inject into .env
-if (Test-Path $EnvFile) {
-    Write-Host "  -> Injecting URL into .env (WEBHOOK_BASE_URL)..." -ForegroundColor Yellow
-    $envContent = Get-Content $EnvFile
-    $updatedContent = @()
-    $replaced = $false
-    
-    foreach ($line in $envContent) {
-        if ($line -match "^WEBHOOK_BASE_URL=") {
-            $updatedContent += "WEBHOOK_BASE_URL=$publicUrl"
-            $replaced = $true
-        }
-        else {
-            $updatedContent += $line
-        }
-    }
-    
-    if (-not $replaced) {
-        # If it wasn't there, append it
-        $updatedContent += "WEBHOOK_BASE_URL=$publicUrl"
-    }
-    
-    Set-Content -Path $EnvFile -Value $updatedContent -Encoding UTF8
-    Write-Host "[Ngrok] Injection complete." -ForegroundColor Green
+Write-Host "  -> Injecting dynamic URLs into .env..." -ForegroundColor Yellow
+Set-EnvValues -EnvFile $EnvFile -Values @{
+    WEBHOOK_BASE_URL      = $publicUrl
+    CLAWDBOT_PUBLIC_URL   = $publicUrl
+    OPENCLAW_PUBLIC_URL   = $publicUrl
+    NGROK_TUNNEL_URL      = $publicUrl
+    OPENCLAW_GATEWAY_PORT = $Port
 }
-else {
-    Write-Host "[Ngrok] No .env file found to update." -ForegroundColor Yellow
-}
+Write-Host "[Ngrok] Injection complete." -ForegroundColor Green

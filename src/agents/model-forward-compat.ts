@@ -4,8 +4,9 @@ import { DEFAULT_CONTEXT_TOKENS } from "./defaults.js";
 import { normalizeModelCompat } from "./model-compat.js";
 import { normalizeProviderId } from "./model-selection.js";
 
+const OPENAI_CODEX_GPT_54_MODEL_ID = "gpt-5.4";
 const OPENAI_CODEX_GPT_53_MODEL_ID = "gpt-5.3-codex";
-const OPENAI_CODEX_TEMPLATE_MODEL_IDS = ["gpt-5.2-codex"] as const;
+const OPENAI_CODEX_TEMPLATE_MODEL_IDS = ["gpt-5.4", "gpt-5.3-codex", "gpt-5.2-codex"] as const;
 
 const ANTHROPIC_OPUS_46_MODEL_ID = "claude-opus-4-6";
 const ANTHROPIC_OPUS_46_DOT_MODEL_ID = "claude-opus-4.6";
@@ -60,7 +61,10 @@ function resolveOpenAICodexGpt53FallbackModel(
   if (!CODEX_GPT53_ELIGIBLE_PROVIDERS.has(normalizedProvider)) {
     return undefined;
   }
-  if (trimmedModelId.toLowerCase() !== OPENAI_CODEX_GPT_53_MODEL_ID) {
+  if (
+    trimmedModelId.toLowerCase() !== OPENAI_CODEX_GPT_54_MODEL_ID &&
+    trimmedModelId.toLowerCase() !== OPENAI_CODEX_GPT_53_MODEL_ID
+  ) {
     return undefined;
   }
 
