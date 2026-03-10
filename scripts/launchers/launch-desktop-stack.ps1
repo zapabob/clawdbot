@@ -52,6 +52,38 @@ function Resolve-LaunchCommand {
     throw "Neither pnpm.cmd nor corepack.cmd was found in PATH."
 }
 
+function Assert-DependenciesReady {
+    param([string]$ProjectDir)
+
+    $nodeModulesBin  = Join-Path $ProjectDir "node_modules" ".bin"
+    $nodeModulesPnpm = Join-Path $ProjectDir "node_modules" ".pnpm"
+
+    if (-not (Test-Path $nodeModulesBin) -or -not (Test-Path $nodeModulesPnpm)) {
+        Write-Host ""
+        Write-Host "ERROR: Local dependencies are missing or incomplete." -ForegroundColor Red
+        Write-Host "       node_modules/.bin or node_modules/.pnpm was not found under:" -ForegroundColor Red
+        Write-Host "       $ProjectDir" -ForegroundColor Red
+        Write-Host ""
+        Write-Host "  Restore dependencies by running in the project root:" -ForegroundColor Yellow
+        Write-Host "    corepack pnpm install" -ForegroundColor Yellow
+        Write-Host ""
+        throw "Dependencies are not installed. Run 'corepack pnpm install' in '$ProjectDir'."
+    }
+
+    $tsdownCmd = Join-Path $nodeModulesBin "tsdown.cmd"
+    $tsdownBin = Join-Path $nodeModulesBin "tsdown"
+    if (-not (Test-Path $tsdownCmd) -and -not (Test-Path $tsdownBin)) {
+        Write-Host ""
+        Write-Host "ERROR: Build tool 'tsdown' is not present in node_modules/.bin." -ForegroundColor Red
+        Write-Host "       Dependencies may be partially installed." -ForegroundColor Red
+        Write-Host ""
+        Write-Host "  Restore dependencies by running in the project root:" -ForegroundColor Yellow
+        Write-Host "    corepack pnpm install" -ForegroundColor Yellow
+        Write-Host ""
+        throw "Build tool 'tsdown' is missing. Run 'corepack pnpm install' in '$ProjectDir'."
+    }
+}
+
 function Test-PortListening {
     param([int]$Port)
 
@@ -104,7 +136,8 @@ function Start-StackProcess {
         [string]$WorkingDirectory,
         [hashtable]$EnvironmentOverrides = @{},
         [ValidateSet("Normal", "Minimized", "Hidden")]
-        [string]$WindowStyle = "Normal"
+        [string]$WindowStyle = "Normal",
+        [string]$LogFile = ""
     )
 
     $quotedCommandParts = $CommandParts | ForEach-Object {
@@ -123,6 +156,10 @@ function Start-StackProcess {
         "`$host.UI.RawUI.WindowTitle = '$($Title.Replace("'", "''"))'",
         "Set-Location -Path '$($WorkingDirectory.Replace("'", "''"))'"
     )
+    if ($LogFile -ne "") {
+        $escapedLogFile = $LogFile.Replace("'", "''")
+        $scriptLines += "Start-Transcript -Path '$escapedLogFile' -Append | Out-Null"
+    }
     if ($envAssignments.Count -gt 0) {
         $scriptLines += ($envAssignments -join "; ")
     }
@@ -233,10 +270,17 @@ foreach ($entry in $processEnv.GetEnumerator()) {
 
 if (-not $SkipGateway) {
     Write-Step "[3/5] Ensuring gateway is running..."
+
+    $logsDir = Join-Path $desktopStateDir "logs"
+    New-Item -ItemType Directory -Path $logsDir -Force | Out-Null
+    $gatewayLogFile = Join-Path $logsDir ("gateway-" + (Get-Date -Format "yyyyMMdd-HHmmss") + ".log")
+
+    Assert-DependenciesReady -ProjectDir $ProjectDir
+
     if (Test-PortListening -Port $GatewayPort) {
         Write-Host "Gateway already listening on $GatewayPort. Restarting to sync auth token." -ForegroundColor Yellow
     }
-    Start-StackProcess -Title "OpenClaw Gateway" -WorkingDirectory $ProjectDir -WindowStyle "Minimized" -EnvironmentOverrides $processEnv -CommandParts (@($launcher.FilePath) + $launcher.Prefix + @(
+    Start-StackProcess -Title "OpenClaw Gateway" -WorkingDirectory $ProjectDir -WindowStyle "Minimized" -EnvironmentOverrides $processEnv -LogFile $gatewayLogFile -CommandParts (@($launcher.FilePath) + $launcher.Prefix + @(
         "openclaw",
         "--profile",
         $Profile,
@@ -252,7 +296,16 @@ if (-not $SkipGateway) {
         $token
     ))
     if (-not (Wait-PortListening -Port $GatewayPort -TimeoutSeconds 75)) {
-        throw "Gateway did not begin listening on port $GatewayPort"
+        Write-Host ""
+        Write-Host "ERROR: Gateway did not begin listening on port $GatewayPort within 75 seconds." -ForegroundColor Red
+        Write-Host "       Startup log: $gatewayLogFile" -ForegroundColor Yellow
+        if (Test-Path $gatewayLogFile) {
+            Write-Host ""
+            Write-Host "--- Last 20 lines of gateway log ---" -ForegroundColor DarkGray
+            Get-Content $gatewayLogFile -Tail 20 | ForEach-Object { Write-Host $_ -ForegroundColor DarkGray }
+            Write-Host "--- End of log ---" -ForegroundColor DarkGray
+        }
+        throw "Gateway did not begin listening on port $GatewayPort. See log: $gatewayLogFile"
     }
     Start-Sleep -Seconds 2
 }
