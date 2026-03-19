@@ -306,6 +306,9 @@ export async function launchOpenClawChrome(
     if (process.platform === "linux") {
       args.push("--disable-dev-shm-usage");
     }
+    if (process.platform === "win32") {
+      args.push("--disable-gpu-shader-disk-cache");
+    }
 
     // Append user-configured extra arguments (e.g., stealth flags, window size)
     if (resolved.extraArgs.length > 0) {

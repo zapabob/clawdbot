@@ -95,6 +95,10 @@ ipcMain.handle("discover-model", async () => {
   return found[0] ?? null;
 });
 
+if (process.platform === "win32") {
+  app.commandLine.appendSwitch("disable-gpu-shader-disk-cache");
+}
+
 app.whenReady().then(() => {
   createWindow();
 
