@@ -27,7 +27,6 @@ import {
   resolveControlUiRootSync,
 } from "../infra/control-ui-assets.js";
 import { isDiagnosticsEnabled } from "../infra/diagnostic-events.js";
-import { upsertSharedEnvVar } from "../infra/env-file.js";
 import { logAcceptedEnvOption } from "../infra/env.js";
 import { createExecApprovalForwarder } from "../infra/exec-approval-forwarder.js";
 import { onHeartbeatEvent } from "../infra/heartbeat-events.js";
@@ -55,7 +54,6 @@ import {
   getActiveSecretsRuntimeSnapshot,
   prepareSecretsRuntimeSnapshot,
 } from "../secrets/runtime.js";
-import { runOnboardingWizard } from "../wizard/onboarding.js";
 import { createAuthRateLimiter, type AuthRateLimiter } from "./auth-rate-limit.js";
 import { startChannelHealthMonitor } from "./channel-health-monitor.js";
 import { startGatewayConfigReloader } from "./config-reload.js";
@@ -366,22 +364,6 @@ export async function startGatewayServer(
     }
   }
 
-  // Inject gateway token into environment for dynamic discovery by other processes/layers
-  const activeToken = authBootstrap.auth.token;
-  if (activeToken) {
-    try {
-      const envSync = upsertSharedEnvVar({
-        key: "OPENCLAW_GATEWAY_TOKEN",
-        value: activeToken,
-        env: process.env,
-      });
-      if (envSync.updated) {
-        log.info(`gateway: synchronized OPENCLAW_GATEWAY_TOKEN to ${envSync.path}`);
-      }
-    } catch (err) {
-      log.warn(`gateway: failed to synchronize token to .env: ${String(err)}`);
-    }
-  }
   cfgAtStart = (
     await activateRuntimeSecrets(cfgAtStart, {
       reason: "startup",
@@ -491,7 +473,7 @@ export async function startGatewayServer(
       : { kind: "missing" };
   }
 
-  const wizardRunner = opts.wizardRunner ?? runOnboardingWizard;
+  const wizardRunner = opts.wizardRunner;
   const { wizardSessions, findRunningWizard, purgeWizardSession } = createWizardSessionTracker();
 
   const deps = createDefaultDeps();
