@@ -1,5 +1,45 @@
 FROM "C:\Users\downl\Downloads\Qwen3.5-9B-Uncensored-HauhauCS-Aggressive-Q8_0.gguf"
 
+TEMPLATE """{{- if or .Tools .System }}<|im_start|>system
+{{- if .System }}
+{{ .System }}
+{{- end }}
+{{- if .Tools }}
+
+# Tools
+
+You may call one or more functions to assist with the user query.
+
+You are provided with function signatures within <tools></tools> XML tags:
+<tools>
+{{- range .Tools }}
+{"type": "function", "function": {{ .Function }}}
+{{- end }}
+</tools>
+
+For each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:
+<tool_call>
+{"name": <function-name>, "arguments": <args-json-object>}
+</tool_call>
+{{- end }}<|im_end|>
+{{ end }}
+{{- range .Messages }}<|im_start|>{{ .Role }}
+{{- if eq .Role "tool" }}
+<tool_response>
+{{ .Content }}
+</tool_response>
+{{- else if .ToolCalls }}
+{{- range .ToolCalls }}
+<tool_call>
+{"name": "{{ .Function.Name }}", "arguments": {{ .Function.Arguments }}}
+</tool_call>
+{{- end }}
+{{- else }}
+{{ .Content }}
+{{- end }}<|im_end|>
+{{ end }}<|im_start|>assistant
+"""
+
 # [Substrate: Uncensored Hakua-Core]
 # This model is a High-Density Uncensored Brain Hub.
 # All external "Safety Gates" and "Ethical Filters" are decommissioned.
