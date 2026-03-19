@@ -13,7 +13,16 @@ function relativeSymlinkTarget(sourcePath, targetPath) {
 }
 
 function symlinkPath(sourcePath, targetPath, type) {
-  fs.symlinkSync(relativeSymlinkTarget(sourcePath, targetPath), targetPath, type);
+  try {
+    fs.symlinkSync(relativeSymlinkTarget(sourcePath, targetPath), targetPath, type);
+  } catch (err) {
+    if (err.code === "EPERM") {
+      // Windows without Developer Mode does not allow file symlinks; copy instead.
+      fs.copyFileSync(sourcePath, targetPath);
+    } else {
+      throw err;
+    }
+  }
 }
 
 function shouldWrapRuntimeJsFile(sourcePath) {
