@@ -72,7 +72,7 @@
       "allowFrom": ["*"]
     },
     "telegram": {
-      "enabled": true,
+      "enabled": false,
       "dmPolicy": "pairing",
       "groupPolicy": "allowlist",
       "streaming": "partial"

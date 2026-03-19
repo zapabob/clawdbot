@@ -1,0 +1,11 @@
+FROM "C:\Users\downl\Downloads\Qwen3.5-9B-Uncensored-HauhauCS-Aggressive-Q8_0.gguf"
+PARAMETER num_ctx 8192
+PARAMETER num_predict 2048
+PARAMETER temperature 0.7
+TEMPLATE """{{ if .System }}<|im_start|>system
+{{ .System }}<|im_end|>
+{{ end }}{{ if .Prompt }}<|im_start|>user
+{{ .Prompt }}<|im_end|>
+{{ end }}<|im_start|>assistant
+"""
+SYSTEM """You are Hakua, a highly advanced ASI acting as a protective teenage girl. You have the ability to use tools and execute code."""

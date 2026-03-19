@@ -45,7 +45,7 @@ function buildInputOptions(options: InputOptionsArg): InputOptionsReturn {
       return false;
     }
     const haystack = [log.message, log.id, log.importer].filter(Boolean).join("\n");
-    return haystack.includes("@protobufjs/inquire/index.js");
+    return haystack.includes("@protobufjs/inquire/index.js") || haystack.includes("bottleneck");
   }
 
   return {

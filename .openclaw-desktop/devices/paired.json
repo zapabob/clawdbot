@@ -7,14 +7,22 @@
     "clientId": "gateway-client",
     "clientMode": "ui",
     "role": "operator",
-    "roles": ["operator"],
-    "scopes": ["operator.admin"],
-    "approvedScopes": ["operator.admin"],
+    "roles": [
+      "operator"
+    ],
+    "scopes": [
+      "operator.admin"
+    ],
+    "approvedScopes": [
+      "operator.admin"
+    ],
     "tokens": {
       "operator": {
         "token": "Ngjjhl43poVd3iS0Ydv37UvbbYmSFtU9hFif4yzSbng",
         "role": "operator",
-        "scopes": ["operator.admin"],
+        "scopes": [
+          "operator.admin"
+        ],
         "createdAtMs": 1772972038188
       }
     },
@@ -28,19 +36,68 @@
     "clientId": "openclaw-control-ui",
     "clientMode": "webchat",
     "role": "operator",
-    "roles": ["operator"],
-    "scopes": ["operator.admin", "operator.approvals", "operator.pairing"],
-    "approvedScopes": ["operator.admin", "operator.approvals", "operator.pairing"],
+    "roles": [
+      "operator"
+    ],
+    "scopes": [
+      "operator.admin",
+      "operator.approvals",
+      "operator.pairing"
+    ],
+    "approvedScopes": [
+      "operator.admin",
+      "operator.approvals",
+      "operator.pairing"
+    ],
     "tokens": {
       "operator": {
         "token": "srfCW8SV_bXc0vI1MvC2gua0JfmsPtKyDKfoSv-EMHE",
         "role": "operator",
-        "scopes": ["operator.admin", "operator.approvals", "operator.pairing"],
+        "scopes": [
+          "operator.admin",
+          "operator.approvals",
+          "operator.pairing"
+        ],
         "createdAtMs": 1772972048155,
         "lastUsedAtMs": 1772979199676
       }
     },
     "createdAtMs": 1772972048155,
     "approvedAtMs": 1772972048155
+  },
+  "d783932d8ccacfd744345af332a0e0ea54b62ea0aa365b941c2d586b9a2a7e1e": {
+    "deviceId": "d783932d8ccacfd744345af332a0e0ea54b62ea0aa365b941c2d586b9a2a7e1e",
+    "publicKey": "3glm9HJYZBC_UD5d3XYL9anNByMqz1c32QFmDx8MYyE",
+    "platform": "Win32",
+    "clientId": "openclaw-control-ui",
+    "clientMode": "webchat",
+    "role": "operator",
+    "roles": [
+      "operator"
+    ],
+    "scopes": [
+      "operator.admin",
+      "operator.approvals",
+      "operator.pairing"
+    ],
+    "approvedScopes": [
+      "operator.admin",
+      "operator.approvals",
+      "operator.pairing"
+    ],
+    "tokens": {
+      "operator": {
+        "token": "igg019K-Dy1FPEGEF2pN8Wf7nTX5848zG8Ub-SRXBdk",
+        "role": "operator",
+        "scopes": [
+          "operator.admin",
+          "operator.approvals",
+          "operator.pairing"
+        ],
+        "createdAtMs": 1773913107844
+      }
+    },
+    "createdAtMs": 1773913107844,
+    "approvedAtMs": 1773913107844
   }
 }

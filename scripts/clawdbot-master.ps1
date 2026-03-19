@@ -1,5 +1,5 @@
 # Clawdbot-Master v3.2: Unified Orchestrator
-# Brain: qwen3.5:9b (Ollama) | Fallback: openai-codex/gpt-5.4
+# Brain: qwen-hakua-core (Ollama) | Fallback: openai-codex/gpt-5.4
 # Delegates core stack to launch-desktop-stack.ps1
 
 param(
@@ -15,14 +15,14 @@ $LauncherPs1 = Join-Path $ProjectDir "scripts\launchers\launch-desktop-stack.ps1
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host " Clawdbot Master System v3.2"            -ForegroundColor Magenta
-Write-Host " Brain  : ollama/qwen3.5:9b"             -ForegroundColor Cyan
+Write-Host " Brain  : ollama/qwen-hakua-core"        -ForegroundColor Cyan
 Write-Host " Fallbk : openai-codex/gpt-5.4"          -ForegroundColor Cyan
 Write-Host " TTS    : VOICEVOX"                       -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
 # [Pre] Ensure Ollama is running
-Write-Host "[Pre] Checking Ollama (qwen3.5:9b brain)..." -ForegroundColor White
+Write-Host "[Pre] Checking Ollama (qwen-hakua-core brain)..." -ForegroundColor White
 $ollamaProc = Get-Process ollama -ErrorAction SilentlyContinue
 if (-not $ollamaProc) {
     $ollamaCmd = Get-Command "ollama" -ErrorAction SilentlyContinue

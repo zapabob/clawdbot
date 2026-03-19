@@ -195,6 +195,31 @@ if (-not $SkipNgrok) {
         "-Port",
         [string]$GatewayPort
     ) -WorkingDirectory $ProjectDir -WindowStyle Minimized | Out-Null
+    
+    Write-Step "Fetching dynamic Ngrok URL..."
+    $ngrokUrl = $null
+    for ($i = 0; $i -lt 15; $i++) {
+        try {
+            $tunnels = (Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels" -ErrorAction Stop).tunnels
+            if ($tunnels.Count -gt 0) {
+                $ngrokUrl = $tunnels[0].public_url
+                break
+            }
+        } catch {}
+        Start-Sleep -Seconds 1
+    }
+    
+    if ($ngrokUrl) {
+        Write-Host "  -> Injected Ngrok URL: $ngrokUrl" -ForegroundColor Green
+        Set-EnvValues -EnvFile $envFile -Values @{
+            WEBHOOK_BASE_URL    = $ngrokUrl
+            OPENCLAW_PUBLIC_URL = $ngrokUrl
+            LINE_WEBHOOK_URL    = "$ngrokUrl/line/webhook"
+            NGROK_TUNNEL_URL    = $ngrokUrl
+        }
+    } else {
+        Write-Host "  -> WARNING: Failed to fetch Ngrok URL." -ForegroundColor Yellow
+    }
 }
 
 $envMap = Get-EnvMap -EnvFile $envFile
@@ -250,11 +275,36 @@ if (-not $SkipGateway) {
         [string]$GatewayPort,
         "--token",
         $token
-    ))
-    if (-not (Wait-PortListening -Port $GatewayPort -TimeoutSeconds 75)) {
-        throw "Gateway did not begin listening on port $GatewayPort"
+    )) -LogPath $gatewayStartupLogPath
+    
+    Write-Host "Gateway launched asynchronously. Handing off to TUI." -ForegroundColor Cyan
+}
+
+if (-not $SkipNgrok) {
+    Write-Step "Fetching dynamic Ngrok URL..."
+    $ngrokUrl = $null
+    for ($i = 0; $i -lt 15; $i++) {
+        try {
+            $tunnels = (Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels" -ErrorAction Stop).tunnels
+            if ($tunnels.Count -gt 0) {
+                $ngrokUrl = $tunnels[0].public_url
+                break
+            }
+        } catch {}
+        Start-Sleep -Seconds 1
     }
-    Start-Sleep -Seconds 2
+    
+    if ($ngrokUrl) {
+        Write-Host "  -> Injected Ngrok URL: $ngrokUrl" -ForegroundColor Green
+        Set-EnvValues -EnvFile $envFile -Values @{
+            WEBHOOK_BASE_URL    = $ngrokUrl
+            OPENCLAW_PUBLIC_URL = $ngrokUrl
+            LINE_WEBHOOK_URL    = "$ngrokUrl/line/webhook"
+            NGROK_TUNNEL_URL    = $ngrokUrl
+        }
+    } else {
+        Write-Host "  -> WARNING: Failed to fetch Ngrok URL." -ForegroundColor Yellow
+    }
 }
 
 if (-not $SkipTui) {

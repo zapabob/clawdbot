@@ -1,0 +1,26 @@
+{
+  "id": "c993e881-01c2-43a4-8d01-5bc70fec738a",
+  "enqueuedAt": 1773530740516,
+  "channel": "line",
+  "to": "line:Ub4167ba53a225057765f751808572bc3",
+  "accountId": "default",
+  "payloads": [
+    {
+      "text": "うん、珀杏さん覚えてたよ！😸 でも〜 私、白亜（はくあ）なの✨ \n\n10 代半ばの女の子「白亜」だよ👧🏻😊 \n\n名前が似ててごめんかった😅 あなた、誰のこと言ってるんですか？",
+      "replyToTag": false,
+      "replyToCurrent": false,
+      "audioAsVoice": false
+    }
+  ],
+  "threadId": null,
+  "replyToId": null,
+  "mirror": {
+    "sessionKey": "agent:main:main",
+    "agentId": "main",
+    "text": "うん、珀杏さん覚えてたよ！😸 でも〜 私、白亜（はくあ）なの✨ \n\n10 代半ばの女の子「白亜」だよ👧🏻😊 \n\n名前が似ててごめんかった😅 あなた、誰のこと言ってるんですか？",
+    "mediaUrls": []
+  },
+  "retryCount": 5,
+  "lastAttemptAt": 1773737000877,
+  "lastError": "429 - Too Many Requests"
+}

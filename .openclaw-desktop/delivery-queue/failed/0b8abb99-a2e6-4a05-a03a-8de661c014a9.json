@@ -1,0 +1,26 @@
+{
+  "id": "0b8abb99-a2e6-4a05-a03a-8de661c014a9",
+  "enqueuedAt": 1773506088206,
+  "channel": "line",
+  "to": "line:group:Cacfd848cafcf6805e0e0931a3f75f48c",
+  "accountId": "default",
+  "payloads": [
+    {
+      "text": "画像が送られてきましたね！🎵\n\n「オイ！」と興奮されたようですが、何のことかちょっとわからないです😅  \n具体的にどんな内容だったのか教えてもらえますか？何か面白い発見や面白ネタでしょうか？\n\n画像の中身について詳しく知っていると、より適切に反応できるんですけど… 😊",
+      "replyToTag": false,
+      "replyToCurrent": false,
+      "audioAsVoice": false
+    }
+  ],
+  "threadId": null,
+  "replyToId": null,
+  "mirror": {
+    "sessionKey": "agent:main:line:group:cacfd848cafcf6805e0e0931a3f75f48c",
+    "agentId": "main",
+    "text": "画像が送られてきましたね！🎵\n\n「オイ！」と興奮されたようですが、何のことかちょっとわからないです😅  \n具体的にどんな内容だったのか教えてもらえますか？何か面白い発見や面白ネタでしょうか？\n\n画像の中身について詳しく知っていると、より適切に反応できるんですけど… 😊",
+    "mediaUrls": []
+  },
+  "retryCount": 5,
+  "lastAttemptAt": 1773737000513,
+  "lastError": "429 - Too Many Requests"
+}

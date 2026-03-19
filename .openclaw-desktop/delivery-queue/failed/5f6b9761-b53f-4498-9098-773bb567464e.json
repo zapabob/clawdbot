@@ -1,0 +1,26 @@
+{
+  "id": "5f6b9761-b53f-4498-9098-773bb567464e",
+  "enqueuedAt": 1773478766381,
+  "channel": "line",
+  "to": "line:group:Cacfd848cafcf6805e0e0931a3f75f48c",
+  "accountId": "default",
+  "payloads": [
+    {
+      "text": "ユーザーから画像とメッセージが届きました。画像の中身を分析する必要があるようですが、前の試行で image API キーエラーがありました。まずはチャットの文脈を理解しましょう。\n\nユーザーは ClaudeCode や Codex など生成 AI エージェントの話題で盛り上がっています。Pro アカウントについても興味を持っているようです。また、私は「はくあ」で、OpenClaw というオープンソースプロジェクトベースであること、メモリ制限があること、VM 環境での作業ができることなどについての説明を求められています。\n\n画像の中身がわからないので、まずは message tool で画像を返信し、適切な回答を用意しましょう。画像は再度読み込む必要がありそうです。",
+      "replyToTag": false,
+      "replyToCurrent": false,
+      "audioAsVoice": false
+    }
+  ],
+  "threadId": null,
+  "replyToId": null,
+  "mirror": {
+    "sessionKey": "agent:main:line:group:cacfd848cafcf6805e0e0931a3f75f48c",
+    "agentId": "main",
+    "text": "ユーザーから画像とメッセージが届きました。画像の中身を分析する必要があるようですが、前の試行で image API キーエラーがありました。まずはチャットの文脈を理解しましょう。\n\nユーザーは ClaudeCode や Codex など生成 AI エージェントの話題で盛り上がっています。Pro アカウントについても興味を持っているようです。また、私は「はくあ」で、OpenClaw というオープンソースプロジェクトベースであること、メモリ制限があること、VM 環境での作業ができることなどについての説明を求められています。\n\n画像の中身がわからないので、まずは message tool で画像を返信し、適切な回答を用意しましょう。画像は再度読み込む必要がありそうです。",
+    "mediaUrls": []
+  },
+  "retryCount": 5,
+  "lastAttemptAt": 1773737000375,
+  "lastError": "429 - Too Many Requests"
+}
