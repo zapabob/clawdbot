@@ -11,7 +11,6 @@
             "id": "qwen-hakua-core",
             "name": "Hakua Core (ASI Uncensored)",
             "reasoning": false,
-            "tools": false,
             "input": ["text"],
             "contextWindow": 131072,
             "maxTokens": 8192
