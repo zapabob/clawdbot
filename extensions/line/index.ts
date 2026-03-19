@@ -5,8 +5,8 @@ import { linePlugin } from "./src/channel.js";
 import { registerLinePushCommand } from "./src/push-command.js";
 import { setLineRuntime } from "./src/runtime.js";
 
-export { linePlugin } from "./src/channel.js";
-export { setLineRuntime } from "./src/runtime.js";
+export { linePlugin };
+export { setLineRuntime };
 
 const plugin = {
   id: "line",
