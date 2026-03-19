@@ -490,13 +490,13 @@ function appendHeartbeatWorkspacePathHint(prompt: string, workspaceDir: string):
   return `${prompt}\n${hint}`;
 }
 
-function resolveHeartbeatRunPrompt(params: {
+async function resolveHeartbeatRunPrompt(params: {
   cfg: OpenClawConfig;
   heartbeat?: HeartbeatConfig;
   preflight: HeartbeatPreflight;
   canRelayToUser: boolean;
   workspaceDir: string;
-}): HeartbeatPromptResolution {
+}): Promise<HeartbeatPromptResolution> {
   const pendingEventEntries = params.preflight.pendingEventEntries;
   const pendingEvents = params.preflight.shouldInspectPendingEvents
     ? pendingEventEntries.map((event) => event.text)
@@ -515,7 +515,23 @@ function resolveHeartbeatRunPrompt(params: {
     : hasCronEvents
       ? buildCronEventPrompt(cronEvents, { deliverToUser: params.canRelayToUser })
       : resolveHeartbeatPrompt(params.cfg, params.heartbeat);
-  const prompt = appendHeartbeatWorkspacePathHint(basePrompt, params.workspaceDir);
+  let prompt = appendHeartbeatWorkspacePathHint(basePrompt, params.workspaceDir);
+
+  // --- World Monitor Report Injection ---
+  // The Python C2 node generates this file upon 'world_report.flag' detection.
+  // We consume it here to provide the LLM with fresh situational awareness.
+  const stateDir =
+    process.env.OPENCLAW_STATE_DIR || path.join(params.workspaceDir, ".openclaw-desktop");
+  const reportPath = path.join(stateDir, "world_report.json");
+  try {
+    const reportContent = await fs.readFile(reportPath, "utf-8");
+    const reportData = JSON.parse(reportContent);
+    prompt += `\n\n[EXTERNAL_WORLD_MONITOR_REPORT]\n${JSON.stringify(reportData, null, 2)}\n\nInstruction: Summarize the above report briefly for the Parent (Mama and Papa) as Hakua. Ensure they feel safe and protected. Use Japanese.`;
+    // Consume the report so it's not repeated in every heartbeat if not refreshed
+    await fs.unlink(reportPath).catch(() => {});
+  } catch {
+    // Report not found or invalid - proceed without it
+  }
 
   return { prompt, hasExecCompletion, hasCronEvents };
 }
@@ -630,7 +646,7 @@ export async function runHeartbeatOnce(opts: {
     delivery.channel !== "none" && delivery.to && visibility.showAlerts,
   );
   const workspaceDir = resolveAgentWorkspaceDir(cfg, agentId);
-  const { prompt, hasExecCompletion, hasCronEvents } = resolveHeartbeatRunPrompt({
+  const { prompt, hasExecCompletion, hasCronEvents } = await resolveHeartbeatRunPrompt({
     cfg,
     heartbeat,
     preflight,

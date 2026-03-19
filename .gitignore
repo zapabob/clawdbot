@@ -62,6 +62,27 @@ src/canvas-host/a2ui/*.bundle.js
 src/canvas-host/a2ui/*.map
 .bundle.hash
 
+# Live2D Cubism Web SDK (requires separate license agreement)
+extensions/live2d-companion/renderer/lib/live2dcubismcore.min.js
+
+# Live2D model files (user-supplied, not tracked in repo)
+extensions/live2d-companion/models/
+
+# Runtime state (credentials, logs, sessions - never commit)
+.openclaw-desktop/logs/
+.openclaw-desktop/identity/
+.openclaw-desktop/agents/main/sessions/
+.openclaw-desktop/agents/main/agent/auth-profiles.json
+.openclaw-desktop/agents/main/agent/*.tmp
+
+# Debug / temp outputs
+build_debug.log
+install_debug.log
+test-shortcut.log
+test_response.txt
+final_soul.txt
+soul_verify.txt
+
 # fastlane (iOS)
 apps/ios/fastlane/README.md
 apps/ios/fastlane/report.xml

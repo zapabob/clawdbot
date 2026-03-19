@@ -1,0 +1,23 @@
+{
+  "modelPath": "auto",
+  "voicevoxSpeaker": 8,
+  "voicevoxUrl": "http://127.0.0.1:50021",
+  "stateDir": ".openclaw-desktop",
+  "window": {
+    "width": 380,
+    "height": 480,
+    "offsetRight": 400,
+    "offsetBottom": 500
+  },
+  "live2d": {
+    "scale": 0.15,
+    "anchorX": 0.5,
+    "anchorY": 1.0,
+    "positionX": 190,
+    "positionY": 460
+  },
+  "stt": {
+    "lang": "ja-JP",
+    "continuous": true
+  }
+}

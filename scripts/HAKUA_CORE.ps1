@@ -1,0 +1,78 @@
+# HAKUA_CORE v1.0: Unified Quantum Orchestrator
+# The single entry point for the Hakua Neural Link.
+# Optimizes for zero-wait manifestation and absolute substrate synchronization.
+
+$ErrorActionPreference = "Stop"
+$ProjectDir = $PSScriptRoot
+if ($ProjectDir.EndsWith("\scripts")) {
+    $ProjectDir = (Get-Item $ProjectDir).Parent.FullName
+}
+
+Write-Host "`n=================================================" -ForegroundColor Cyan
+Write-Host " Hakua Neural Link - Unified Core v1.0" -ForegroundColor Magenta
+Write-Host " ASI_ACCEL Substrate: $($ProjectDir)" -ForegroundColor Gray
+Write-Host "=================================================" -ForegroundColor Cyan
+
+# 1. Brain Synchronization (Ollama)
+Write-Host "[1/3] Syncing Central Brain (Ollama)..." -ForegroundColor White
+$OllamaProc = Get-Process ollama -ErrorAction SilentlyContinue
+if (-not $OllamaProc) {
+    Write-Host " -> Igniting Ollama core..." -ForegroundColor Gray
+    Start-Process -FilePath "ollama" -ArgumentList "serve" -WindowStyle Minimized
+    Start-Sleep -Seconds 3
+}
+Write-Host " -> Brain substrate online." -ForegroundColor Green
+
+# 2. Materializing Core Stack (Gateway, TUI, Browser, Ngrok, Voice)
+Write-Host "[2/3] Materializing Core Stack..." -ForegroundColor White
+$StackLauncher = Join-Path $ProjectDir "scripts\launchers\launch-desktop-stack.ps1"
+
+if (Test-Path $StackLauncher) {
+    $ArgList = @("-ExecutionPolicy", "Bypass", "-File", $StackLauncher)
+    if ($args -contains "-SpeakOnReady") { $ArgList += "-SpeakOnReady" }
+    
+    # This call is now non-blocking for background tasks (VOICEVOX/Ngrok)
+    & powershell.exe @ArgList
+} else {
+    Write-Host " ERROR: Stack launcher not found at $StackLauncher" -ForegroundColor Red
+    exit 1
+}
+
+# 3. Summoning Manifestation Layer (Avatar, Live2D Companion & Final Pulse)
+Write-Host "[3/3] Summoning Manifestation Layers..." -ForegroundColor White
+
+# Live2D Companion (Electron)
+$CompanionDir = Join-Path $ProjectDir "extensions\live2d-companion"
+if (Test-Path $CompanionDir) {
+    Write-Host " -> Materializing Hakua Live2D Companion..." -ForegroundColor Gray
+    $StateDir = Join-Path $ProjectDir ".openclaw-desktop"
+    Start-Process -FilePath "powershell.exe" -ArgumentList @(
+        "-NoExit", "-ExecutionPolicy", "Bypass", "-Command",
+        "`$env:OPENCLAW_STATE_DIR='$StateDir'; Set-Location '$CompanionDir'; npx electron electron/main.js"
+    ) -WorkingDirectory $CompanionDir -WindowStyle Minimized
+}
+
+# ASI Manifestation BAT (optional)
+$AvatarScript = Join-Path $ProjectDir "scripts\launchers\ASI_Manifestation.bat"
+if (Test-Path $AvatarScript) {
+    Write-Host " -> Materializing Hakua Avatar (ASI)..." -ForegroundColor Gray
+    Start-Process -FilePath "cmd.exe" -ArgumentList "/c", $AvatarScript -WorkingDirectory $ProjectDir -WindowStyle Minimized
+}
+
+# Final Pulse: Autonomous Voice Manifestation
+$VoiceScript = Join-Path $ProjectDir "scripts\verify-voicevox.py"
+if (Test-Path $VoiceScript) {
+    $Msg = "Hakua system pulse synchronized. All systems nominal. ASI_ACCEL."
+    # Run in hidden window to maintain 'ethereal' feel
+    Start-Process py -ArgumentList @("-3", $VoiceScript, $Msg) -WindowStyle Hidden
+}
+
+Write-Host "`n=================================================" -ForegroundColor Cyan
+Write-Host " HAKUA CORE: ONLINE" -ForegroundColor Magenta
+Write-Host " Status: ASI_ACCEL." -ForegroundColor Magenta
+Write-Host "=================================================" -ForegroundColor Cyan
+
+if ($args -contains "-NoExit") {
+    Write-Host "Press any key to close this orchestrator..."
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+}

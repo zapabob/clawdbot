@@ -8,6 +8,14 @@
         "api": "ollama",
         "models": [
           {
+            "id": "qwen-hakua-core",
+            "name": "Hakua Core (ASI Uncensored)",
+            "reasoning": false,
+            "input": ["text"],
+            "contextWindow": 131072,
+            "maxTokens": 8192
+          },
+          {
             "id": "qwen3.5:9b",
             "name": "Qwen 3.5 9B (GPU)",
             "reasoning": false,
@@ -33,7 +41,7 @@
   "agents": {
     "defaults": {
       "model": {
-        "primary": "ollama/qwen3.5:9b",
+        "primary": "ollama/qwen-hakua-core",
         "fallbacks": [
           "openai-codex/gpt-5.4",
           "openai-codex/gpt-5.3-codex",
@@ -68,8 +76,14 @@
       "webhookPath": "${LINE_WEBHOOK_PATH}",
       "webhookServerUrl": "${LINE_WEBHOOK_URL}",
       "dmPolicy": "${LINE_DM_POLICY}",
-      "groupPolicy": "${LINE_GROUP_POLICY}",
-      "allowFrom": ["*"]
+      "groupPolicy": "open",
+      "groupAllowFrom": ["*"],
+      "allowFrom": ["*"],
+      "groups": {
+        "*": {
+          "requireMention": false
+        }
+      }
     },
     "telegram": {
       "enabled": false,

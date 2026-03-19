@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hakua Companion</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      overflow: hidden;
+    }
+
+    /* ── canvas area ─────────────────────────── */
+    #canvas-container {
+      position: absolute;
+      inset: 0;
+    }
+
+    /* ── mic button ──────────────────────────── */
+    #mic-btn {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(255, 100, 150, 0.75);
+      border: 2px solid rgba(255, 200, 220, 0.8);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      transition: background 0.2s;
+      -webkit-app-region: no-drag;
+      z-index: 10;
+    }
+    #mic-btn.active {
+      background: rgba(220, 50, 80, 0.9);
+      box-shadow: 0 0 10px rgba(255, 50, 80, 0.6);
+    }
+    #mic-btn:hover { background: rgba(255, 130, 170, 0.9); }
+
+    /* ── status text ─────────────────────────── */
+    #status-text {
+      position: absolute;
+      bottom: 52px;
+      right: 4px;
+      font-size: 10px;
+      color: rgba(255, 200, 220, 0.85);
+      font-family: sans-serif;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+      max-width: 140px;
+      text-align: right;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    /* ── DD drop overlay ─────────────────────── */
+    #drop-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 180, 220, 0.0);
+      border: 3px dashed transparent;
+      border-radius: 12px;
+      pointer-events: none;
+      transition: background 0.15s, border-color 0.15s;
+      z-index: 20;
+    }
+    body.drag-active #drop-overlay {
+      background: rgba(255, 150, 200, 0.18);
+      border-color: rgba(255, 130, 180, 0.85);
+      pointer-events: none;
+    }
+    #drop-hint {
+      padding: 8px 14px;
+      background: rgba(40, 20, 30, 0.75);
+      color: rgba(255, 200, 230, 0.95);
+      font-size: 12px;
+      font-family: sans-serif;
+      border-radius: 8px;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.15s;
+      pointer-events: none;
+      user-select: none;
+    }
+    body.drag-active #drop-hint {
+      opacity: 1;
+    }
+
+    /* ── model name badge (shown after DD swap) ── */
+    #model-badge {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      font-size: 10px;
+      color: rgba(255, 200, 230, 0.7);
+      font-family: sans-serif;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+      pointer-events: none;
+      z-index: 10;
+      max-width: 160px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+
+  <!-- DD overlay (pointer-events: none — canvas handles drops) -->
+  <div id="drop-overlay">
+    <div id="drop-hint">📦 .model3.json をドロップ</div>
+  </div>
+
+  <div id="model-badge"></div>
+  <div id="status-text"></div>
+  <button id="mic-btn" title="音声入力 (STT)">🎤</button>
+
+  <!--
+    Live2D Cubism Web SDK core:
+    Place renderer/lib/live2dcubismcore.min.js
+    or run: powershell -File scripts/setup-live2d-sdk.ps1
+  -->
+  <script src="./lib/live2dcubismcore.min.js" onerror="console.warn('[Hakua] live2dcubismcore not found — run setup-live2d-sdk.ps1')"></script>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
