@@ -248,11 +248,18 @@ ipcMain.handle("capture-screen", async (_event, opts = {}) => {
 // ── IPC: native file dialog (open Windows Explorer) ──────────────────────────
 ipcMain.handle("open-file-dialog", async (_event, opts = {}) => {
   if (!mainWindow) return { ok: false, error: "no window" };
-  const result = await dialog.showOpenDialog(mainWindow, {
-    title: opts.title ?? "モデルを選択",
-    filters: opts.filters ?? [{ name: "All Files", extensions: ["*"] }],
-    properties: ["openFile"],
-  });
+  // Temporarily lower always-on-top so the dialog is not hidden behind the companion window
+  mainWindow.setAlwaysOnTop(false);
+  let result;
+  try {
+    result = await dialog.showOpenDialog({
+      title: opts.title ?? "モデルを選択",
+      filters: opts.filters ?? [{ name: "All Files", extensions: ["*"] }],
+      properties: ["openFile"],
+    });
+  } finally {
+    mainWindow?.setAlwaysOnTop(true, "screen-saver");
+  }
   if (result.canceled || result.filePaths.length === 0) {
     return { ok: false, canceled: true };
   }
