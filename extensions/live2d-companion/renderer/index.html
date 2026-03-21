@@ -316,6 +316,21 @@
   <button id="mic-btn" title="音声入力 (STT)">🎤</button>
 
   <!--
+    Import map: resolves bare module specifiers in the Electron renderer.
+    "three" and "three/" cover Three.js core + all examples/jsm paths.
+    "@pixiv/three-vrm" covers the VRM controller.
+  -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "../node_modules/three/build/three.module.js",
+      "three/": "../node_modules/three/",
+      "@pixiv/three-vrm": "../node_modules/@pixiv/three-vrm/lib/three-vrm.module.js"
+    }
+  }
+  </script>
+
+  <!--
     Live2D Cubism Web SDK core (optional — VRM/FBX do not require this):
     Place renderer/lib/live2dcubismcore.min.js
     or run: powershell -File scripts/setup-live2d-sdk.ps1
