@@ -1,6 +1,11 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { IPC_CHANNELS } from "../bridge/event-types.js";
-import type { CompanionLineEvent, CompanionEmotionEvent } from "../bridge/event-types.js";
+import type {
+  CompanionLineEvent,
+  CompanionEmotionEvent,
+  CompanionStateUpdate,
+  TtsProvider,
+} from "../bridge/event-types.js";
 
 contextBridge.exposeInMainWorld("companionBridge", {
   onLineEvent: (callback: (event: CompanionLineEvent) => void) => {
@@ -25,6 +30,22 @@ contextBridge.exposeInMainWorld("companionBridge", {
   discoverModel: (): Promise<string | null> => {
     return ipcRenderer.invoke("discover-model");
   },
+  // ── New: speak-text from main process ────────────────────────────────────
+  onSpeakText: (callback: (text: string) => void) => {
+    ipcRenderer.on(IPC_CHANNELS.SPEAK_TEXT, (_ipcEvent, text: string) => {
+      callback(text);
+    });
+  },
+  // ── New: control events (agentId, ttsProvider, visible) ──────────────────
+  onControlEvent: (callback: (cmd: Record<string, unknown>) => void) => {
+    ipcRenderer.on(IPC_CHANNELS.CONTROL, (_ipcEvent, cmd: Record<string, unknown>) => {
+      callback(cmd);
+    });
+  },
+  // ── New: renderer sends state updates back to main ────────────────────────
+  sendStateUpdate: (update: Partial<CompanionStateUpdate>) => {
+    ipcRenderer.send(IPC_CHANNELS.STATE_UPDATE, update);
+  },
 });
 
 // Type declaration for renderer-side TypeScript
@@ -37,6 +58,13 @@ declare global {
       startStt: () => void;
       stopStt: () => void;
       discoverModel: () => Promise<string | null>;
+      onSpeakText: (cb: (text: string) => void) => void;
+      onControlEvent: (cb: (cmd: Record<string, unknown>) => void) => void;
+      sendStateUpdate: (update: {
+        speaking?: boolean;
+        agentId?: string;
+        ttsProvider?: TtsProvider;
+      }) => void;
     };
   }
 }

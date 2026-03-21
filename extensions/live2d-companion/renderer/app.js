@@ -50,6 +50,37 @@ async function main() {
         if (statusText) statusText.textContent = event.text.slice(0, 40);
       }
     });
+    // Speak-text from main process (triggered via HTTP control API)
+    window.companionBridge.onSpeakText?.((text) => {
+      if (!text) return;
+      const emotion = detectEmotion(text);
+      applyEmotion(live2d, emotion);
+      void lipSync.speak(text);
+      if (statusText) statusText.textContent = text.slice(0, 40);
+    });
+    // Control events: agentId / ttsProvider changes
+    window.companionBridge.onControlEvent?.((cmd) => {
+      if (cmd.ttsProvider === "voicevox" || cmd.ttsProvider === "web-speech") {
+        lipSync.ttsProvider = cmd.ttsProvider;
+        window.companionBridge?.sendStateUpdate?.({ ttsProvider: lipSync.ttsProvider });
+        if (statusText) {
+          const label = lipSync.ttsProvider === "voicevox" ? "VOICEVOX" : "Web Speech (無料)";
+          statusText.textContent = `TTS: ${label}`;
+          setTimeout(() => {
+            if (statusText) statusText.textContent = "";
+          }, 2000);
+        }
+      }
+      if (typeof cmd.agentId === "string" && cmd.agentId) {
+        window.companionBridge?.sendStateUpdate?.({ agentId: cmd.agentId });
+        if (statusText) {
+          statusText.textContent = `エージェント: ${cmd.agentId}`;
+          setTimeout(() => {
+            if (statusText) statusText.textContent = "";
+          }, 2000);
+        }
+      }
+    });
   }
   // ── Live2D Model Drag-and-Drop ────────────────────────────────────────────
   // Accepts .model3.json dropped directly onto the window.

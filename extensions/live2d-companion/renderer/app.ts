@@ -1,4 +1,8 @@
-import type { CompanionLineEvent, CompanionEmotionEvent } from "../bridge/event-types.js";
+import type {
+  CompanionLineEvent,
+  CompanionEmotionEvent,
+  TtsProvider,
+} from "../bridge/event-types.js";
 import { detectEmotion, applyEmotion } from "./emotion-mapper.js";
 import { LipSyncController } from "./lip-sync.js";
 import { Live2DController } from "./live2d-controller.js";
@@ -12,14 +16,14 @@ async function main(): Promise<void> {
 
   if (!container) return;
 
-  // ── Initialize Live2D ───────────────────────────────────────────────────
+  // ── Initialize Live2D ────────────────────────────────────────────────────
   const live2d = new Live2DController();
   await live2d.init(container);
 
-  // ── Lip sync ─────────────────────────────────────────────────────────────
+  // ── Lip sync ──────────────────────────────────────────────────────────────
   const lipSync = new LipSyncController(live2d);
 
-  // ── STT Handler ──────────────────────────────────────────────────────────
+  // ── STT Handler ───────────────────────────────────────────────────────────
   const stt = new SttHandler((transcript: string) => {
     if (statusText) statusText.textContent = `🎤 ${transcript}`;
     window.companionBridge?.sendSttResult(transcript);
@@ -41,8 +45,9 @@ async function main(): Promise<void> {
     }
   });
 
-  // ── IPC events from main process ─────────────────────────────────────────
+  // ── IPC events from main process ──────────────────────────────────────────
   if (window.companionBridge) {
+    // LINE / chat messages → speak + emotion
     window.companionBridge.onLineEvent((event: CompanionLineEvent) => {
       const text = event.text ?? "";
       if (!text) return;
@@ -52,6 +57,7 @@ async function main(): Promise<void> {
       if (statusText) statusText.textContent = `LINE: ${text.slice(0, 30)}`;
     });
 
+    // Emotion events
     window.companionBridge.onEmotionEvent((event: CompanionEmotionEvent) => {
       applyEmotion(live2d, event.emotion);
       if (event.text) {
@@ -59,13 +65,42 @@ async function main(): Promise<void> {
         if (statusText) statusText.textContent = event.text.slice(0, 40);
       }
     });
+
+    // Speak-text from main process (triggered via HTTP control API)
+    window.companionBridge.onSpeakText?.((text: string) => {
+      if (!text) return;
+      const emotion = detectEmotion(text);
+      applyEmotion(live2d, emotion);
+      void lipSync.speak(text);
+      if (statusText) statusText.textContent = text.slice(0, 40);
+    });
+
+    // Control events: agentId / ttsProvider changes
+    window.companionBridge.onControlEvent?.((cmd: Record<string, unknown>) => {
+      if (cmd.ttsProvider === "voicevox" || cmd.ttsProvider === "web-speech") {
+        lipSync.ttsProvider = cmd.ttsProvider as TtsProvider;
+        window.companionBridge?.sendStateUpdate?.({ ttsProvider: lipSync.ttsProvider });
+        if (statusText) {
+          const label = lipSync.ttsProvider === "voicevox" ? "VOICEVOX" : "Web Speech (無料)";
+          statusText.textContent = `TTS: ${label}`;
+          setTimeout(() => {
+            if (statusText) statusText.textContent = "";
+          }, 2000);
+        }
+      }
+      if (typeof cmd.agentId === "string" && cmd.agentId) {
+        window.companionBridge?.sendStateUpdate?.({ agentId: cmd.agentId });
+        if (statusText) {
+          statusText.textContent = `エージェント: ${cmd.agentId}`;
+          setTimeout(() => {
+            if (statusText) statusText.textContent = "";
+          }, 2000);
+        }
+      }
+    });
   }
 
   // ── Live2D Model Drag-and-Drop ────────────────────────────────────────────
-  // Accepts .model3.json dropped directly onto the window.
-  // In Electron renderer, File objects have a non-standard `.path` property
-  // containing the real filesystem path — used to build a file:// URL.
-
   function setDragActive(active: boolean): void {
     document.body.classList.toggle("drag-active", active);
   }
@@ -83,7 +118,6 @@ async function main(): Promise<void> {
   });
 
   document.addEventListener("dragleave", (e) => {
-    // Only clear when leaving the document root
     if (!e.relatedTarget) setDragActive(false);
   });
 
@@ -94,13 +128,11 @@ async function main(): Promise<void> {
     const file = e.dataTransfer?.files[0];
     if (!file) return;
 
-    // Accept .model3.json directly, or scan a directory entry for one
     let modelPath: string | null = null;
 
     if (file.name.endsWith(".model3.json")) {
       modelPath = (file as File & { path?: string }).path ?? null;
     } else {
-      // Electron DataTransferItem can expose directory entries
       const item = e.dataTransfer?.items[0];
       if (item) {
         const entry = item.webkitGetAsEntry?.();
@@ -128,7 +160,6 @@ async function main(): Promise<void> {
   });
 }
 
-/** Returns true when the dragged item looks like a model file or folder. */
 function hasModeFile(e: DragEvent): boolean {
   if (!e.dataTransfer) return false;
   for (const item of Array.from(e.dataTransfer.items)) {
@@ -137,7 +168,6 @@ function hasModeFile(e: DragEvent): boolean {
   return false;
 }
 
-/** Recursively find first .model3.json in a dropped directory entry. */
 async function findModelInDirectory(dir: FileSystemDirectoryEntry): Promise<string | null> {
   return new Promise((resolve) => {
     const reader = dir.createReader();
@@ -148,7 +178,6 @@ async function findModelInDirectory(dir: FileSystemDirectoryEntry): Promise<stri
           return;
         }
       }
-      // Recurse into subdirectories
       for (const entry of entries) {
         if (entry.isDirectory) {
           const found = await findModelInDirectory(entry as FileSystemDirectoryEntry);
@@ -163,7 +192,6 @@ async function findModelInDirectory(dir: FileSystemDirectoryEntry): Promise<stri
   });
 }
 
-/** Extract filesystem path from a FileSystemFileEntry via Electron File.path. */
 function entryToPath(entry: FileSystemFileEntry): Promise<string | null> {
   return new Promise((resolve) => {
     entry.file(

@@ -79,6 +79,7 @@ import {
   updateSkillEnabled,
 } from "./controllers/skills.ts";
 import "./components/dashboard-header.ts";
+import "./components/companion-panel.ts";
 import { buildExternalLinkRel, EXTERNAL_LINK_TARGET } from "./external-link.ts";
 import { icons } from "./icons.ts";
 import { normalizeBasePath, TAB_GROUPS, subtitleForTab, titleForTab } from "./navigation.ts";
@@ -521,6 +522,15 @@ export function renderApp(state: AppViewState) {
               </nav>
             </div>
             <div class="sidebar-shell__footer">
+              ${
+                !navCollapsed
+                  ? html`
+                      <companion-panel
+                        .agentsList=${state.agentsList}
+                      ></companion-panel>
+                    `
+                  : nothing
+              }
               <div class="sidebar-utility-group">
                 <a
                   class="nav-item nav-item--external sidebar-utility-link"

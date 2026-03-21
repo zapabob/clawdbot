@@ -2,6 +2,13 @@
   "modelPath": "auto",
   "voicevoxSpeaker": 8,
   "voicevoxUrl": "http://127.0.0.1:50021",
+  "ttsProvider": "voicevox",
+  "webSpeechLang": "ja-JP",
+  "webSpeechRate": 1.0,
+  "webSpeechPitch": 1.1,
+  "agentId": "main",
+  "gatewayUrl": "http://127.0.0.1:18789",
+  "controlPort": 18791,
   "stateDir": ".openclaw-desktop",
   "window": {
     "width": 380,

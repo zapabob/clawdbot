@@ -1,4 +1,5 @@
 export type EmotionType = "happy" | "sad" | "surprised" | "angry" | "embarrassed" | "neutral";
+export type TtsProvider = "voicevox" | "web-speech";
 
 export interface CompanionLineEvent {
   type: "line_message";
@@ -20,7 +21,28 @@ export interface CompanionSttResult {
   timestamp: number;
 }
 
-export type CompanionEvent = CompanionLineEvent | CompanionEmotionEvent | CompanionSttResult;
+export interface CompanionControlCommand {
+  type: "control";
+  visible?: boolean;
+  agentId?: string;
+  ttsProvider?: TtsProvider;
+  speakText?: string;
+  timestamp: number;
+}
+
+export interface CompanionStateUpdate {
+  visible: boolean;
+  agentId: string;
+  ttsProvider: TtsProvider;
+  speaking: boolean;
+  timestamp: number;
+}
+
+export type CompanionEvent =
+  | CompanionLineEvent
+  | CompanionEmotionEvent
+  | CompanionSttResult
+  | CompanionControlCommand;
 
 // IPC channel names
 export const IPC_CHANNELS = {
@@ -30,6 +52,8 @@ export const IPC_CHANNELS = {
   STT_START: "stt-start",
   STT_STOP: "stt-stop",
   SPEAK_TEXT: "companion:speak-text",
+  CONTROL: "companion:control",
+  STATE_UPDATE: "companion:state-update",
 } as const;
 
 // Flag file names (relative to stateDir)
@@ -37,4 +61,6 @@ export const FLAG_FILES = {
   LINE_EVENT: "companion_line_event.json",
   EMOTION: "companion_emotion.json",
   STT_RESULT: "companion_stt_result.json",
+  CONTROL: "companion_control.json",
+  STATE: "companion_state.json",
 } as const;
