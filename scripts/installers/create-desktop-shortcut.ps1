@@ -1,26 +1,36 @@
 # ============================================================
 #  create-desktop-shortcut.ps1
 #  デスクトップショートカットを作成する
-#  ・Clawdbot.lnk       — フルスタック起動 (clawdbot-master.ps1)
-#  ・Hakua Companion.lnk — コンパニオン単体起動 (Electron)
+#
+#  作成されるショートカット:
+#    Clawdbot.lnk            — フルスタック起動 (clawdbot-master.ps1)
+#    Hakua Companion.lnk     — コンパニオン単体起動 (Electron)
+#    Hakua Companion Only.lnk — コンパニオン + VOICEVOXのみ (stack無し)
+#    Install Shortcuts.lnk   — このスクリプト自体の再実行用
+#
 #  旧ショートカットは全て削除する
 # ============================================================
 
 $ProjectDir      = (Get-Item $PSScriptRoot).Parent.Parent.FullName
 $LauncherPs1     = Join-Path $ProjectDir "scripts\clawdbot-master.ps1"
 $CompanionDir    = Join-Path $ProjectDir "extensions\live2d-companion"
-$NodeModulesElec = Join-Path $CompanionDir "node_modules\.bin\electron.cmd"
-$MainJs          = Join-Path $CompanionDir "electron\main.js"
+$LaunchStackPs1  = Join-Path $ProjectDir "scripts\launchers\launch-desktop-stack.ps1"
+$ThisScript      = $PSCommandPath
 $IconPath        = Join-Path $ProjectDir "assets\clawdbot.ico"
 $DesktopPath     = [System.Environment]::GetFolderPath("Desktop")
 
-# ── ショートカット名 ─────────────────────────────────────────────────────
-$PrimaryName    = "Clawdbot.lnk"
-$CompanionName  = "Hakua Companion.lnk"
-$PrimaryPath    = Join-Path $DesktopPath $PrimaryName
-$CompanionPath  = Join-Path $DesktopPath $CompanionName
+# ── ショートカット名 ─────────────────────────────────────────────────────────
+$PrimaryName      = "Clawdbot.lnk"
+$CompanionName    = "Hakua Companion.lnk"
+$CompanionSoloName = "Hakua Companion Only.lnk"
+$InstallerName    = "Install Shortcuts.lnk"
 
-# ── 削除する旧ショートカット/バッチ一覧 ──────────────────────────────────
+$PrimaryPath       = Join-Path $DesktopPath $PrimaryName
+$CompanionPath     = Join-Path $DesktopPath $CompanionName
+$CompanionSoloPath = Join-Path $DesktopPath $CompanionSoloName
+$InstallerPath     = Join-Path $DesktopPath $InstallerName
+
+# ── 削除する旧ショートカット/バッチ一覧 ──────────────────────────────────────
 $LegacyNames = @(
     "Clawdbot-Master.lnk",
     "OpenClaw Desktop Stack.lnk",
@@ -30,14 +40,18 @@ $LegacyNames = @(
     "Hakua.lnk",
     "Hakua Neural Link.lnk",
     "Hakua Link.lnk",
-    "ASI_Manifestation.bat"
+    "ASI_Manifestation.bat",
+    "HAKUA_CORE.lnk"
 )
 
 Write-Host ""
-Write-Host "=== Clawdbot Desktop Shortcut Installer ===" -ForegroundColor Cyan
+Write-Host "==========================================" -ForegroundColor Magenta
+Write-Host "  Clawdbot Desktop Shortcut Installer"     -ForegroundColor Cyan
+Write-Host "  iDOLM@STER Stage Edition"                -ForegroundColor DarkMagenta
+Write-Host "==========================================" -ForegroundColor Magenta
 Write-Host ""
 
-# ── 旧ショートカット削除 ───────────────────────────────────────────────────
+# ── 旧ショートカット削除 ──────────────────────────────────────────────────────
 $removedCount = 0
 foreach ($name in $LegacyNames) {
     $path = Join-Path $DesktopPath $name
@@ -47,59 +61,93 @@ foreach ($name in $LegacyNames) {
         $removedCount++
     }
 }
-if ($removedCount -eq 0) {
-    Write-Host "  (no legacy shortcuts found)" -ForegroundColor DarkGray
+if ($removedCount -gt 0) {
+    Write-Host ""
 }
-Write-Host ""
 
 $WshShell = New-Object -ComObject WScript.Shell
 
-# ── 1. フルスタックショートカット (Clawdbot.lnk) ─────────────────────────
-$Shortcut = $WshShell.CreateShortcut($PrimaryPath)
-$Shortcut.TargetPath       = "powershell.exe"
-$Shortcut.Arguments        = "-NoExit -ExecutionPolicy Bypass -File `"$LauncherPs1`" -SpeakOnReady"
-$Shortcut.WorkingDirectory = $ProjectDir
-$Shortcut.Description      = "Clawdbot — Gateway / TUI / VRM+Live2D+VOICEVOX / VRChat Relay / X Poster / Web UI"
-$Shortcut.WindowStyle      = 1  # Normal
-
-if (Test-Path $IconPath) {
-    $Shortcut.IconLocation = "$IconPath,0"
-} else {
-    $Shortcut.IconLocation = "powershell.exe,0"
+# ── アイコン解決ヘルパー ─────────────────────────────────────────────────────
+function Resolve-Icon {
+    param([string]$Primary, [string]$Fallback = "powershell.exe,0")
+    if (Test-Path $Primary) { return "$Primary,0" }
+    return $Fallback
 }
-$Shortcut.Save()
+$iconLoc = Resolve-Icon -Primary $IconPath
 
+# ── 1. フルスタックショートカット (Clawdbot.lnk) ──────────────────────────────
+$sc = $WshShell.CreateShortcut($PrimaryPath)
+$sc.TargetPath       = "powershell.exe"
+$sc.Arguments        = "-NoExit -ExecutionPolicy Bypass -File `"$LauncherPs1`" -SpeakOnReady"
+$sc.WorkingDirectory = $ProjectDir
+$sc.Description      = "Clawdbot — フルスタック起動 (Gateway / TUI / Live2D + VOICEVOX / VRChat / Web UI)"
+$sc.WindowStyle      = 1  # Normal
+$sc.IconLocation     = $iconLoc
+$sc.Save()
 Write-Host "  [created] $PrimaryName" -ForegroundColor Green
-Write-Host "            -> $LauncherPs1" -ForegroundColor Gray
+Write-Host "            $LauncherPs1 -SpeakOnReady" -ForegroundColor DarkGray
 
-# ── 2. コンパニオン単体ショートカット (Hakua Companion.lnk) ──────────────
-# electron.cmd が node_modules にあれば使う、なければ npx electron にフォールバック
-if (Test-Path $NodeModulesElec) {
-    $CompTarget = $NodeModulesElec
-    $CompArgs   = "`"$MainJs`""
-} else {
-    $CompTarget = "powershell.exe"
-    $CompArgs   = "-NoProfile -ExecutionPolicy Bypass -Command `"cd '$CompanionDir'; npx electron electron/main.js`""
-}
-
-$Companion = $WshShell.CreateShortcut($CompanionPath)
-$Companion.TargetPath       = $CompTarget
-$Companion.Arguments        = $CompArgs
-$Companion.WorkingDirectory = $CompanionDir
-$Companion.Description      = "Hakua Companion — Cyberpunk AI Avatar (VRM / FBX / Live2D) + VOICEVOX"
-$Companion.WindowStyle      = 7  # Minimized (Electron 自身はウィンドウレス透過)
-
-if (Test-Path $IconPath) {
-    $Companion.IconLocation = "$IconPath,0"
-} else {
-    $Companion.IconLocation = "powershell.exe,0"
-}
-$Companion.Save()
-
+# ── 2. コンパニオン + StackショートカットHakua Companion.lnk) ─────────────────
+#    Gateway + コンパニオン + VOICEVOX のみ (TUI/Browser/Ngrok をスキップ)
+$sc2 = $WshShell.CreateShortcut($CompanionPath)
+$sc2.TargetPath       = "powershell.exe"
+$sc2.Arguments        = "-NoExit -ExecutionPolicy Bypass -File `"$LaunchStackPs1`" -SkipTui -SkipBrowser -SkipNgrok -SpeakOnReady"
+$sc2.WorkingDirectory = $ProjectDir
+$sc2.Description      = "Hakua Companion — iDOLM@STER AI Avatar + VOICEVOX + Gateway (TUI/Browser省略)"
+$sc2.WindowStyle      = 1
+$sc2.IconLocation     = $iconLoc
+$sc2.Save()
 Write-Host "  [created] $CompanionName" -ForegroundColor Green
-Write-Host "            -> Hakua VRM/Live2D Companion (Electron)" -ForegroundColor Gray
+Write-Host "            launch-desktop-stack.ps1 -SkipTui -SkipBrowser -SkipNgrok" -ForegroundColor DarkGray
+
+# ── 3. コンパニオン単体 (Hakua Companion Only.lnk) ────────────────────────────
+#    Electron 直接起動 — Gateway/TUI 不要な場合
+$MainJs  = Join-Path $CompanionDir "electron\main.js"
+$eBin1   = Join-Path $ProjectDir  "node_modules\.bin\electron.cmd"
+$eBin2   = Join-Path $CompanionDir "node_modules\.bin\electron.cmd"
+$resolvedElectron = ""
+if ($eBin1 -and (Test-Path $eBin1)) { $resolvedElectron = $eBin1 }
+elseif ($eBin2 -and (Test-Path $eBin2)) { $resolvedElectron = $eBin2 }
+
+if ($resolvedElectron) {
+    $soloTarget = $resolvedElectron
+    $soloArgs   = "`"$MainJs`""
+} else {
+    $soloTarget = "powershell.exe"
+    $soloArgs   = "-NoProfile -ExecutionPolicy Bypass -Command `"Set-Location '$CompanionDir'; npx electron electron/main.js`""
+}
+
+$sc3 = $WshShell.CreateShortcut($CompanionSoloPath)
+$sc3.TargetPath       = $soloTarget
+$sc3.Arguments        = $soloArgs
+$sc3.WorkingDirectory = $CompanionDir
+$sc3.Description      = "Hakua Companion Only — iDOLM@STER Live2D/VRM/FBX アバター単体起動 (Gateway不要)"
+$sc3.WindowStyle      = 7  # Minimized (Electron はウィンドウレス透過)
+$sc3.IconLocation     = $iconLoc
+$sc3.Save()
+Write-Host "  [created] $CompanionSoloName" -ForegroundColor Green
+Write-Host "            Electron direct (companion only, no gateway)" -ForegroundColor DarkGray
+
+# ── 4. ショートカット再インストール用 (Install Shortcuts.lnk) ─────────────────
+$sc4 = $WshShell.CreateShortcut($InstallerPath)
+$sc4.TargetPath       = "powershell.exe"
+$sc4.Arguments        = "-ExecutionPolicy Bypass -File `"$ThisScript`""
+$sc4.WorkingDirectory = $ProjectDir
+$sc4.Description      = "Clawdbot ショートカット再インストール (create-desktop-shortcut.ps1)"
+$sc4.WindowStyle      = 1
+$sc4.IconLocation     = "powershell.exe,0"
+$sc4.Save()
+Write-Host "  [created] $InstallerName" -ForegroundColor Green
+Write-Host "            create-desktop-shortcut.ps1 (再実行用)" -ForegroundColor DarkGray
+
+# ── 完了表示 ─────────────────────────────────────────────────────────────────
 Write-Host ""
-Write-Host "Done." -ForegroundColor Yellow
-Write-Host "  Clawdbot.lnk       — フルスタック起動" -ForegroundColor White
-Write-Host "  Hakua Companion.lnk — コンパニオン単体起動" -ForegroundColor White
+Write-Host "==========================================" -ForegroundColor Magenta
+Write-Host "  Done! 4 shortcuts installed." -ForegroundColor Yellow
+Write-Host ""
+Write-Host "  Clawdbot.lnk              - Full stack + VOICEVOX" -ForegroundColor White
+Write-Host "  Hakua Companion.lnk       - Gateway + Companion + VOICEVOX" -ForegroundColor White
+Write-Host "  Hakua Companion Only.lnk  - Companion solo (Electron direct)" -ForegroundColor White
+Write-Host "  Install Shortcuts.lnk     - Re-run this installer" -ForegroundColor White
+Write-Host "==========================================" -ForegroundColor Magenta
 Write-Host ""

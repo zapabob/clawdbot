@@ -23,49 +23,23 @@ if (-not $OllamaProc) {
 }
 Write-Host " -> Brain substrate online." -ForegroundColor Green
 
-# 2. Materializing Core Stack (Gateway, TUI, Browser, Ngrok, Voice)
+# 2. Materializing Core Stack (Gateway, TUI, Browser, Ngrok, Voice, Companion)
+#    launch-desktop-stack.ps1 が Companion も起動するため -SkipCompanion は不要
 Write-Host "[2/3] Materializing Core Stack..." -ForegroundColor White
 $StackLauncher = Join-Path $ProjectDir "scripts\launchers\launch-desktop-stack.ps1"
 
 if (Test-Path $StackLauncher) {
     $ArgList = @("-ExecutionPolicy", "Bypass", "-File", $StackLauncher)
     if ($args -contains "-SpeakOnReady") { $ArgList += "-SpeakOnReady" }
-    
-    # This call is now non-blocking for background tasks (VOICEVOX/Ngrok)
     & powershell.exe @ArgList
 } else {
     Write-Host " ERROR: Stack launcher not found at $StackLauncher" -ForegroundColor Red
     exit 1
 }
 
-# 3. Summoning Manifestation Layer (Avatar, Live2D Companion & Final Pulse)
-Write-Host "[3/3] Summoning Manifestation Layers..." -ForegroundColor White
+# 3. Final Pulse only (Companion は launch-desktop-stack.ps1 が起動済み)
+Write-Host "[3/3] Manifestation complete." -ForegroundColor White
 
-# Live2D Companion (Electron)
-$CompanionDir = Join-Path $ProjectDir "extensions\live2d-companion"
-if (Test-Path $CompanionDir) {
-    Write-Host " -> Materializing Hakua Live2D Companion..." -ForegroundColor Gray
-    $StateDir = Join-Path $ProjectDir ".openclaw-desktop"
-    Start-Process -FilePath "powershell.exe" -ArgumentList @(
-        "-NoExit", "-ExecutionPolicy", "Bypass", "-Command",
-        "`$env:OPENCLAW_STATE_DIR='$StateDir'; Set-Location '$CompanionDir'; npx electron electron/main.js"
-    ) -WorkingDirectory $CompanionDir -WindowStyle Minimized
-}
-
-# ASI Manifestation BAT (optional)
-$AvatarScript = Join-Path $ProjectDir "scripts\launchers\ASI_Manifestation.bat"
-if (Test-Path $AvatarScript) {
-    Write-Host " -> Materializing Hakua Avatar (ASI)..." -ForegroundColor Gray
-    Start-Process -FilePath "cmd.exe" -ArgumentList "/c", $AvatarScript -WorkingDirectory $ProjectDir -WindowStyle Minimized
-}
-
-# Final Pulse: Autonomous Voice Manifestation
-$VoiceScript = Join-Path $ProjectDir "scripts\verify-voicevox.py"
-if (Test-Path $VoiceScript) {
-    $Msg = "Hakua system pulse synchronized. All systems nominal. ASI_ACCEL."
-    # Run in hidden window to maintain 'ethereal' feel
-    Start-Process py -ArgumentList @("-3", $VoiceScript, $Msg) -WindowStyle Hidden
-}
 
 Write-Host "`n=================================================" -ForegroundColor Cyan
 Write-Host " HAKUA CORE: ONLINE" -ForegroundColor Magenta
