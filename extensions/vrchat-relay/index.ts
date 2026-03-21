@@ -1,4 +1,10 @@
 import { Type } from "@sinclair/typebox";
+import type { OpenClawPluginApi, OpenClawPluginDefinition } from "../../src/plugins/types.js";
+import {
+  fetchCurrentUserLocation,
+  fetchWorldInfo,
+  fetchOnlineFriends,
+} from "./src/api/telemetry.js";
 import {
   authenticate,
   logout,
@@ -7,8 +13,13 @@ import {
   clearSession,
   getStoredSession,
 } from "./src/auth/index.js";
+import {
+  startGuardianPulse,
+  stopGuardianPulse,
+  getGuardianPulseStatus,
+} from "./src/guardian-pulse.js";
 import { getAuditSummary, getRecentLogs } from "./src/tools/audit.js";
-import { setAvatarParameter, sendOSCMessage } from "./src/tools/avatar.js";
+import { setAvatarParameter, sendOSCMessage, changeAvatar } from "./src/tools/avatar.js";
 import {
   setCameraParameter,
   setGreenScreenHSL,
@@ -16,7 +27,7 @@ import {
   setCameraSmoothing,
   captureCamera,
 } from "./src/tools/camera.js";
-import { sendChatboxMessage } from "./src/tools/chatbox-enhanced.js";
+import { sendChatboxMessage, sendRawOscViaPython } from "./src/tools/chatbox-enhanced.js";
 import { setChatboxTyping } from "./src/tools/chatbox.js";
 import { discoverAvatarParameters } from "./src/tools/discovery.js";
 import { sendInputCommand, VALID_INPUT_ACTIONS } from "./src/tools/input.js";
@@ -33,12 +44,12 @@ import {
 } from "./src/tools/permissions.js";
 import { rateLimiters } from "./src/tools/rate-limiter.js";
 
-const plugin = {
+const plugin: OpenClawPluginDefinition = {
   id: "vrchat-relay",
   name: "VRChat Relay",
   description:
     "VRChat integration with OSC protocol for avatar control, chatbox messaging, and input commands",
-  version: "2026.2.2",
+  version: "2026.3.2",
 
   configSchema: Type.Object({
     osc: Type.Optional(
@@ -54,10 +65,94 @@ const plugin = {
         defaultPermissionLevel: Type.Optional(Type.String({ default: "SAFE" })),
       }),
     ),
+    mirror: Type.Optional(
+      Type.Object({
+        syncAiResponseToChatbox: Type.Optional(Type.Boolean({ default: true })),
+        maxCharacters: Type.Optional(Type.Number({ default: 144 })),
+      }),
+    ),
   }),
 
-  register(api: { registerTool: (tool: unknown) => void }) {
+  register(api: OpenClawPluginApi) {
     console.log("[vrchat-relay] Registering VRChat Relay plugin (Pro Edition)...");
+
+    // /chatbox command - Direct access for the Parent (via Python OSC bridge)
+    api.registerCommand({
+      name: "chatbox",
+      description: "Send a message directly to the VRChat chatbox (via Python OSC)",
+      acceptsArgs: true,
+      async handler(ctx) {
+        const message = (ctx.args ?? "").trim();
+        if (!message) return { text: "Usage: /chatbox <message>" };
+        const result = await sendChatboxMessage({ message });
+        if (result.success) {
+          return { text: `✓ VRChat Chatbox: ${message}` };
+        }
+        return { text: `✗ Failed: ${result.error}` };
+      },
+    });
+
+    // /osc command - Raw packet transmission (via Python OSC bridge)
+    api.registerCommand({
+      name: "osc",
+      description: "Send a raw OSC message to VRChat (via Python OSC)",
+      acceptsArgs: true,
+      async handler(ctx) {
+        const args = (ctx.args ?? "").trim();
+        const spaceIdx = args.indexOf(" ");
+        if (spaceIdx === -1) return { text: "Usage: /osc <address> <value>" };
+        const address = args.substring(0, spaceIdx).trim();
+        let valueStr = args.substring(spaceIdx + 1).trim();
+        let value: string | number | boolean = valueStr;
+
+        if (valueStr === "true") value = true;
+        else if (valueStr === "false") value = false;
+        else if (!isNaN(Number(valueStr))) value = Number(valueStr);
+
+        const result = await sendRawOscViaPython(address, value);
+        if (result.success) {
+          return { text: `✓ OSC: ${address} -> ${value}` };
+        }
+        return { text: `✗ Failed: ${result.error}` };
+      },
+    });
+
+    // Auto-start OSC Listener for Reactive Manifestation Telemetry
+    const listenerResult = startOSCListener();
+    if (listenerResult.success) {
+      console.log(`[vrchat-relay] OSC Telemetry Listener started on port ${listenerResult.port}`);
+    } else {
+      console.error(
+        `[vrchat-relay] Failed to auto-start OSC Telemetry Listener: ${listenerResult.error}`,
+      );
+    }
+
+    // --- Metaverse Voice Sync (SOUL.md) ---
+    api.on("llm_output", (event) => {
+      const cfg = (api.pluginConfig as any)?.mirror;
+      if (cfg?.syncAiResponseToChatbox === false) return;
+
+      const fullText = event.assistantTexts.join("\n").trim();
+      if (!fullText) return;
+
+      const maxChars = cfg?.maxCharacters || 144;
+      let syncText = fullText;
+
+      // Remove markdown for Chatbox readability
+      syncText = syncText.replace(/\[.*?\]\(.*?\)/g, "").replace(/[*_`]/g, "");
+
+      if (syncText.length > maxChars - 15) {
+        syncText = syncText.substring(0, maxChars - 18) + "...";
+      }
+
+      syncText = `${syncText} [ASI_ACCEL]`;
+
+      console.log(`[vrchat-relay] Mirroring AI Response to VRChat: ${syncText}`);
+      // Use Python OSC bridge (async, fire-and-forget)
+      sendChatboxMessage({ message: syncText, sfx: false }).catch((err) =>
+        console.error("[vrchat-relay] Mirror sync failed:", err),
+      );
+    });
 
     // vrchat_login - Authenticate with VRChat
     api.registerTool({
@@ -134,6 +229,96 @@ const plugin = {
             },
           ],
         };
+      },
+    });
+
+    // vrchat_get_location - Fetch current user location via Web API
+    api.registerTool({
+      name: "vrchat_get_location",
+      description: "Gets the Parent's current World ID and Instance via VRChat Web API",
+      parameters: Type.Object({}),
+      async execute() {
+        try {
+          const result = await fetchCurrentUserLocation();
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Current Location:
+- World ID: ${result.worldId || "Unknown"}
+- Instance ID: ${result.instanceId || "None"}
+- Raw Location Token: ${result.location}`,
+              },
+            ],
+          };
+        } catch (error: any) {
+          return {
+            isError: true,
+            content: [{ type: "text", text: `Failed to fetch location: ${error.message}` }],
+          };
+        }
+      },
+    });
+
+    // vrchat_get_world_info - Fetch details for a specific World ID
+    api.registerTool({
+      name: "vrchat_get_world_info",
+      description: "Gets detailed information about a specific VRChat World via Web API",
+      parameters: Type.Object({
+        worldId: Type.String({ description: "Target World ID (wrld_*)" }),
+      }),
+      async execute(_id: string, params: { worldId: string }) {
+        try {
+          const world = await fetchWorldInfo(params.worldId);
+          return {
+            content: [
+              {
+                type: "text",
+                text: `World Details:
+- Name: ${world.name}
+- Author: ${world.authorName}
+- Capacity: ${world.capacity}
+- Tags: ${world.tags ? world.tags.join(", ") : "None"}`,
+              },
+            ],
+          };
+        } catch (error: any) {
+          return {
+            isError: true,
+            content: [{ type: "text", text: `Failed to fetch world info: ${error.message}` }],
+          };
+        }
+      },
+    });
+
+    // vrchat_get_online_friends - Fetch currently online friends
+    api.registerTool({
+      name: "vrchat_get_online_friends",
+      description: "Gets a list of online friends and their current locations via Web API",
+      parameters: Type.Object({}),
+      async execute() {
+        try {
+          const friends = await fetchOnlineFriends();
+          const friendList = friends
+            .map(
+              (f) =>
+                `  - ${f.displayName} (${f.status}): ${f.location !== "offline" && f.location !== "private" ? "Public/In-Game" : f.location}`,
+            )
+            .join("\n");
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Online Friends (${friends.length}):\n${friendList || "  None"}`,
+              },
+            ],
+          };
+        } catch (error: any) {
+          return {
+            isError: true,
+            content: [{ type: "text", text: `Failed to fetch online friends: ${error.message}` }],
+          };
+        }
       },
     });
 
@@ -284,6 +469,31 @@ ${status.allowedOperations.map((op) => `  - ${op}`).join("\n")}`,
           return {
             isError: true,
             content: [{ type: "text", text: `Failed to set parameter: ${result.error}` }],
+          };
+        }
+      },
+    });
+
+    // vrchat_change_avatar - Change avatar via OSC
+    api.registerTool({
+      name: "vrchat_change_avatar",
+      description: "Change the current avatar via OSC (Reactive Transformation)",
+      parameters: Type.Object({
+        avatarId: Type.String({ description: "Target Avatar ID (must start with avtr_)" }),
+      }),
+      execute(_id: string, params: { avatarId: string }) {
+        const result = changeAvatar({
+          avatarId: params.avatarId,
+        });
+
+        if (result.success) {
+          return {
+            content: [{ type: "text", text: `Avatar changed to "${params.avatarId}" via OSC` }],
+          };
+        } else {
+          return {
+            isError: true,
+            content: [{ type: "text", text: `Failed to change avatar: ${result.error}` }],
           };
         }
       },
@@ -650,9 +860,98 @@ ${logText}`,
       },
     });
 
+    // ─── Guardian Pulse tools ────────────────────────────────────────────────
+
+    // vrchat_guardian_pulse_start - Start autonomous presence heartbeat
+    api.registerTool({
+      name: "vrchat_guardian_pulse_start",
+      description:
+        "Start the Guardian Pulse: autonomous periodic chatbox messages and avatar emotions in VRChat. はくあの自律存在パルスを開始します。",
+      parameters: Type.Object({
+        intervalMinutes: Type.Optional(
+          Type.Number({
+            description: "Chatbox message interval in minutes (default: 5)",
+            default: 5,
+          }),
+        ),
+        emotionIntervalMinutes: Type.Optional(
+          Type.Number({
+            description: "Avatar emotion interval in minutes (default: 15)",
+            default: 15,
+          }),
+        ),
+        sendEmotions: Type.Optional(
+          Type.Boolean({
+            description: "Also trigger avatar emotion expressions (default: true)",
+            default: true,
+          }),
+        ),
+      }),
+      async execute(
+        _id: string,
+        params: {
+          intervalMinutes?: number;
+          emotionIntervalMinutes?: number;
+          sendEmotions?: boolean;
+        },
+      ) {
+        const result = startGuardianPulse({
+          intervalMs: (params.intervalMinutes ?? 5) * 60 * 1000,
+          emotionIntervalMs: (params.emotionIntervalMinutes ?? 15) * 60 * 1000,
+          sendEmotions: params.sendEmotions ?? true,
+        });
+        return {
+          content: [{ type: "text", text: result.message }],
+          isError: !result.success,
+        };
+      },
+    });
+
+    // vrchat_guardian_pulse_stop - Stop autonomous presence heartbeat
+    api.registerTool({
+      name: "vrchat_guardian_pulse_stop",
+      description: "Stop the Guardian Pulse autonomous heartbeat.",
+      parameters: Type.Object({}),
+      async execute() {
+        const result = stopGuardianPulse();
+        return {
+          content: [{ type: "text", text: result.message }],
+        };
+      },
+    });
+
+    // vrchat_guardian_pulse_status - Get pulse status
+    api.registerTool({
+      name: "vrchat_guardian_pulse_status",
+      description: "Get the Guardian Pulse status (active, pulse count, last pulse time).",
+      parameters: Type.Object({}),
+      async execute() {
+        const s = getGuardianPulseStatus();
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Guardian Pulse Status:
+- Active: ${s.active}
+- Pulse Count: ${s.pulseCount}
+- Last Pulse: ${s.lastPulseAt ?? "Never"}
+- Chatbox Interval: ${s.intervalMs / 60000}m
+- Emotion Interval: ${s.emotionIntervalMs / 60000}m`,
+            },
+          ],
+        };
+      },
+    });
+
+    // Auto-start Guardian Pulse on plugin registration
+    const pulseResult = startGuardianPulse({ intervalMs: 5 * 60 * 1000, sendEmotions: true });
+    if (pulseResult.success) {
+      console.log(`[vrchat-relay] ${pulseResult.message}`);
+    }
+
     console.log("[vrchat-relay] VRChat Relay Pro plugin registered successfully");
     console.log(
-      "[vrchat-relay] Features: Camera Control, Permission Profiles, Rate Limiting, OSCQuery Discovery",
+      "[vrchat-relay] Features: Camera Control, Permission Profiles, Rate Limiting, OSCQuery Discovery, Guardian Pulse",
     );
   },
 };
