@@ -161,9 +161,84 @@ async function main(): Promise<void> {
   const vrmInput = document.getElementById("input-vrm") as HTMLInputElement | null;
   const fbxInput = document.getElementById("input-fbx") as HTMLInputElement | null;
 
-  live2dPickBtn?.addEventListener("click", () => live2dInput?.click());
-  vrmPickBtn?.addEventListener("click", () => vrmInput?.click());
-  fbxPickBtn?.addEventListener("click", () => fbxInput?.click());
+  // ── Native file dialog helper ─────────────────────────────────────────────
+  async function handleFileDirect(
+    filePath: string,
+    buffer: ArrayBuffer | null,
+    type: AvatarType,
+  ): Promise<void> {
+    if (statusText) statusText.textContent = "モデル読み込み中…";
+    try {
+      const currentType = avatar.avatarType;
+      if (type !== currentType) {
+        if (statusText) statusText.textContent = "アバター切替中…";
+        avatar.destroy();
+        const newCtrl = await createAvatarController(type);
+        await newCtrl.init(container!);
+        avatar = newCtrl;
+        (lipSync as unknown as { live2d: IAvatarController }).live2d = newCtrl;
+      }
+      if (
+        buffer &&
+        typeof (avatar as unknown as Record<string, unknown>).reloadModelFromBuffer === "function"
+      ) {
+        await (
+          avatar as unknown as {
+            reloadModelFromBuffer: (buf: ArrayBuffer, path: string) => Promise<void>;
+          }
+        ).reloadModelFromBuffer(buffer, filePath);
+      } else {
+        await avatar.reloadModel(filePath);
+      }
+      const name = filePath.split(/[/\\]/).pop() ?? filePath;
+      if (modelBadge) modelBadge.textContent = name;
+      if (statusText) statusText.textContent = "";
+    } catch (err) {
+      console.error("[FileDialog]", err);
+      if (statusText) statusText.textContent = `⚠ 読み込み失敗: ${String(err).slice(0, 60)}`;
+    }
+  }
+
+  async function openWithDialog(type: AvatarType): Promise<void> {
+    const bridge = window.companionBridge as typeof window.companionBridge & {
+      openFileDialog?: (opts: {
+        filters: Array<{ name: string; extensions: string[] }>;
+        title: string;
+      }) => Promise<{
+        ok: boolean;
+        filePath?: string;
+        buffer?: ArrayBuffer;
+        canceled?: boolean;
+        error?: string;
+      }>;
+    };
+    if (!bridge?.openFileDialog) {
+      // Fallback: HTML5 input (non-Electron context)
+      if (type === "live2d") live2dInput?.click();
+      else if (type === "vrm") vrmInput?.click();
+      else fbxInput?.click();
+      return;
+    }
+    const filters =
+      type === "live2d"
+        ? [{ name: "Live2D Model", extensions: ["model3.json", "model.json"] }]
+        : type === "vrm"
+          ? [{ name: "VRM Avatar", extensions: ["vrm"] }]
+          : [{ name: "FBX Model", extensions: ["fbx"] }];
+    const title =
+      type === "live2d"
+        ? "Live2Dモデルを選択"
+        : type === "vrm"
+          ? "VRMアバターを選択"
+          : "FBXモデルを選択";
+    const result = await bridge.openFileDialog({ filters, title });
+    if (!result.ok || !result.filePath) return;
+    await handleFileDirect(result.filePath, result.buffer ?? null, type);
+  }
+
+  live2dPickBtn?.addEventListener("click", () => void openWithDialog("live2d"));
+  vrmPickBtn?.addEventListener("click", () => void openWithDialog("vrm"));
+  fbxPickBtn?.addEventListener("click", () => void openWithDialog("fbx"));
 
   async function handleFileInput(file: File, type: AvatarType): Promise<void> {
     if (!file) return;

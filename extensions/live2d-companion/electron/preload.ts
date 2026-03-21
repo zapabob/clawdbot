@@ -71,6 +71,17 @@ contextBridge.exposeInMainWorld("companionBridge", {
       callback(opts ?? {});
     });
   },
+  // ── Native file dialog (opens Windows Explorer) ───────────────────────────
+  openFileDialog: (opts?: {
+    filters?: Array<{ name: string; extensions: string[] }>;
+    title?: string;
+  }): Promise<{
+    ok: boolean;
+    filePath?: string;
+    buffer?: Buffer;
+    canceled?: boolean;
+    error?: string;
+  }> => ipcRenderer.invoke("open-file-dialog", opts ?? {}),
 });
 
 // Type declaration for renderer-side TypeScript
@@ -101,6 +112,16 @@ declare global {
         error?: string;
       }>;
       onScreenshotRequest: (cb: (opts: Record<string, unknown>) => void) => void;
+      openFileDialog: (opts?: {
+        filters?: Array<{ name: string; extensions: string[] }>;
+        title?: string;
+      }) => Promise<{
+        ok: boolean;
+        filePath?: string;
+        buffer?: Buffer;
+        canceled?: boolean;
+        error?: string;
+      }>;
     };
   }
 }

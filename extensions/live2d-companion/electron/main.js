@@ -3,7 +3,7 @@ import http from "node:http";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { app, BrowserWindow, screen, ipcMain, desktopCapturer } from "electron";
+import { app, BrowserWindow, screen, ipcMain, desktopCapturer, dialog } from "electron";
 import { IPC_CHANNELS, FLAG_FILES } from "../bridge/event-types.js";
 import { startFlagWatcher } from "../bridge/flag-watcher.js";
 const companionConfig = createRequire(import.meta.url)("../companion.config.json");
@@ -244,6 +244,26 @@ ipcMain.handle("capture-screen", async (_event, opts = {}) => {
     return { ok: false, error: String(err) };
   }
 });
+// ── IPC: native file dialog (open Windows Explorer) ──────────────────────────
+ipcMain.handle("open-file-dialog", async (_event, opts = {}) => {
+  if (!mainWindow) return { ok: false, error: "no window" };
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: opts.title ?? "モデルを選択",
+    filters: opts.filters ?? [{ name: "All Files", extensions: ["*"] }],
+    properties: ["openFile"],
+  });
+  if (result.canceled || result.filePaths.length === 0) {
+    return { ok: false, canceled: true };
+  }
+  const filePath = result.filePaths[0];
+  try {
+    const buffer = await fs.readFile(filePath);
+    return { ok: true, filePath, buffer };
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+});
+
 // ── IPC: model discovery ──────────────────────────────────────────────────────
 async function scanModels(dir) {
   const results = [];

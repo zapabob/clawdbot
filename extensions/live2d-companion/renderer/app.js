@@ -137,9 +137,62 @@ async function main() {
   const vrmInput = document.getElementById("input-vrm");
   const fbxInput = document.getElementById("input-fbx");
 
-  live2dPickBtn?.addEventListener("click", () => live2dInput?.click());
-  vrmPickBtn?.addEventListener("click", () => vrmInput?.click());
-  fbxPickBtn?.addEventListener("click", () => fbxInput?.click());
+  // ── Native file dialog helper ─────────────────────────────────────────────
+  async function handleFileDirect(filePath, buffer, type) {
+    if (statusText) statusText.textContent = "モデル読み込み中…";
+    try {
+      const currentType = avatar.avatarType;
+      if (type !== currentType) {
+        if (statusText) statusText.textContent = "アバター切替中…";
+        avatar.destroy();
+        const newCtrl = await createAvatarController(type);
+        await newCtrl.init(container);
+        avatar = newCtrl;
+        lipSync.live2d = newCtrl;
+      }
+      if (buffer && typeof avatar.reloadModelFromBuffer === "function") {
+        await avatar.reloadModelFromBuffer(buffer, filePath);
+      } else {
+        await avatar.reloadModel(filePath);
+      }
+      const name = filePath.split(/[/\\]/).pop() ?? filePath;
+      if (modelBadge) modelBadge.textContent = name;
+      if (statusText) statusText.textContent = "";
+    } catch (err) {
+      console.error("[FileDialog]", err);
+      if (statusText) statusText.textContent = `⚠ 読み込み失敗: ${String(err).slice(0, 60)}`;
+    }
+  }
+
+  async function openWithDialog(type) {
+    const bridge = window.companionBridge;
+    if (!bridge?.openFileDialog) {
+      // Fallback: HTML5 input (non-Electron context)
+      if (type === "live2d") live2dInput?.click();
+      else if (type === "vrm") vrmInput?.click();
+      else fbxInput?.click();
+      return;
+    }
+    const filters =
+      type === "live2d"
+        ? [{ name: "Live2D Model", extensions: ["model3.json", "model.json"] }]
+        : type === "vrm"
+          ? [{ name: "VRM Avatar", extensions: ["vrm"] }]
+          : [{ name: "FBX Model", extensions: ["fbx"] }];
+    const title =
+      type === "live2d"
+        ? "Live2Dモデルを選択"
+        : type === "vrm"
+          ? "VRMアバターを選択"
+          : "FBXモデルを選択";
+    const result = await bridge.openFileDialog({ filters, title });
+    if (!result.ok || !result.filePath) return;
+    await handleFileDirect(result.filePath, result.buffer ?? null, type);
+  }
+
+  live2dPickBtn?.addEventListener("click", () => void openWithDialog("live2d"));
+  vrmPickBtn?.addEventListener("click", () => void openWithDialog("vrm"));
+  fbxPickBtn?.addEventListener("click", () => void openWithDialog("fbx"));
 
   async function handleFileInput(file, type) {
     if (!file) return;

@@ -52,4 +52,6 @@ contextBridge.exposeInMainWorld("companionBridge", {
       callback(opts ?? {});
     });
   },
+  // ── Native file dialog (opens Windows Explorer) ───────────────────────────
+  openFileDialog: (opts) => ipcRenderer.invoke("open-file-dialog", opts ?? {}),
 });
