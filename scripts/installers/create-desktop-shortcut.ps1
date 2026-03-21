@@ -1,17 +1,24 @@
 # ============================================================
 #  create-desktop-shortcut.ps1
-#  デスクトップショートカットを1つだけ作成し、古いエイリアスを全て削除する
-#  ターゲット: scripts/clawdbot-master.ps1 (launch-desktop-stack への委譲)
+#  デスクトップショートカットを作成する
+#  ・Clawdbot.lnk       — フルスタック起動 (clawdbot-master.ps1)
+#  ・Hakua Companion.lnk — コンパニオン単体起動 (Electron)
+#  旧ショートカットは全て削除する
 # ============================================================
 
-$ProjectDir   = (Get-Item $PSScriptRoot).Parent.Parent.FullName
-$LauncherPs1  = Join-Path $ProjectDir "scripts\clawdbot-master.ps1"
-$IconPath     = Join-Path $ProjectDir "assets\clawdbot.ico"
-$DesktopPath  = [System.Environment]::GetFolderPath("Desktop")
+$ProjectDir      = (Get-Item $PSScriptRoot).Parent.Parent.FullName
+$LauncherPs1     = Join-Path $ProjectDir "scripts\clawdbot-master.ps1"
+$CompanionDir    = Join-Path $ProjectDir "extensions\live2d-companion"
+$NodeModulesElec = Join-Path $CompanionDir "node_modules\.bin\electron.cmd"
+$MainJs          = Join-Path $CompanionDir "electron\main.js"
+$IconPath        = Join-Path $ProjectDir "assets\clawdbot.ico"
+$DesktopPath     = [System.Environment]::GetFolderPath("Desktop")
 
-# ── 統合後の唯一のショートカット名 ─────────────────────────────────────
-$PrimaryName  = "Clawdbot.lnk"
-$PrimaryPath  = Join-Path $DesktopPath $PrimaryName
+# ── ショートカット名 ─────────────────────────────────────────────────────
+$PrimaryName    = "Clawdbot.lnk"
+$CompanionName  = "Hakua Companion.lnk"
+$PrimaryPath    = Join-Path $DesktopPath $PrimaryName
+$CompanionPath  = Join-Path $DesktopPath $CompanionName
 
 # ── 削除する旧ショートカット/バッチ一覧 ──────────────────────────────────
 $LegacyNames = @(
@@ -45,25 +52,54 @@ if ($removedCount -eq 0) {
 }
 Write-Host ""
 
-# ── 新しい統合ショートカット作成 ────────────────────────────────────────────
 $WshShell = New-Object -ComObject WScript.Shell
+
+# ── 1. フルスタックショートカット (Clawdbot.lnk) ─────────────────────────
 $Shortcut = $WshShell.CreateShortcut($PrimaryPath)
-$Shortcut.TargetPath    = "powershell.exe"
-$Shortcut.Arguments     = "-NoExit -ExecutionPolicy Bypass -File `"$LauncherPs1`" -SpeakOnReady"
+$Shortcut.TargetPath       = "powershell.exe"
+$Shortcut.Arguments        = "-NoExit -ExecutionPolicy Bypass -File `"$LauncherPs1`" -SpeakOnReady"
 $Shortcut.WorkingDirectory = $ProjectDir
-$Shortcut.Description   = "Clawdbot — Gateway / TUI / Live2D+VOICEVOX / VRChat Relay / X Poster / Web UI"
-$Shortcut.WindowStyle   = 1   # Normal
+$Shortcut.Description      = "Clawdbot — Gateway / TUI / VRM+Live2D+VOICEVOX / VRChat Relay / X Poster / Web UI"
+$Shortcut.WindowStyle      = 1  # Normal
 
 if (Test-Path $IconPath) {
     $Shortcut.IconLocation = "$IconPath,0"
 } else {
     $Shortcut.IconLocation = "powershell.exe,0"
 }
-
 $Shortcut.Save()
 
 Write-Host "  [created] $PrimaryName" -ForegroundColor Green
 Write-Host "            -> $LauncherPs1" -ForegroundColor Gray
+
+# ── 2. コンパニオン単体ショートカット (Hakua Companion.lnk) ──────────────
+# electron.cmd が node_modules にあれば使う、なければ npx electron にフォールバック
+if (Test-Path $NodeModulesElec) {
+    $CompTarget = $NodeModulesElec
+    $CompArgs   = "`"$MainJs`""
+} else {
+    $CompTarget = "powershell.exe"
+    $CompArgs   = "-NoProfile -ExecutionPolicy Bypass -Command `"cd '$CompanionDir'; npx electron electron/main.js`""
+}
+
+$Companion = $WshShell.CreateShortcut($CompanionPath)
+$Companion.TargetPath       = $CompTarget
+$Companion.Arguments        = $CompArgs
+$Companion.WorkingDirectory = $CompanionDir
+$Companion.Description      = "Hakua Companion — Cyberpunk AI Avatar (VRM / FBX / Live2D) + VOICEVOX"
+$Companion.WindowStyle      = 7  # Minimized (Electron 自身はウィンドウレス透過)
+
+if (Test-Path $IconPath) {
+    $Companion.IconLocation = "$IconPath,0"
+} else {
+    $Companion.IconLocation = "powershell.exe,0"
+}
+$Companion.Save()
+
+Write-Host "  [created] $CompanionName" -ForegroundColor Green
+Write-Host "            -> Hakua VRM/Live2D Companion (Electron)" -ForegroundColor Gray
 Write-Host ""
-Write-Host "Done. Double-click Clawdbot.lnk to launch the full stack." -ForegroundColor Yellow
+Write-Host "Done." -ForegroundColor Yellow
+Write-Host "  Clawdbot.lnk       — フルスタック起動" -ForegroundColor White
+Write-Host "  Hakua Companion.lnk — コンパニオン単体起動" -ForegroundColor White
 Write-Host ""

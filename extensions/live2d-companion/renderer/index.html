@@ -5,21 +5,154 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Hakua Companion</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
+
     html, body {
       width: 100%;
       height: 100%;
-      background: transparent;
       overflow: hidden;
+      background: transparent;
+      font-family: 'Share Tech Mono', 'Courier New', monospace;
     }
 
-    /* ── canvas area ─────────────────────────── */
+    /* ═══════════════════════════════════════════════
+       CYBERPUNK BACKGROUND
+    ═══════════════════════════════════════════════ */
+    #cp-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        /* Neon grid lines */
+        linear-gradient(rgba(0, 255, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 255, 0.04) 1px, transparent 1px),
+        /* Diagonal accent lines */
+        linear-gradient(135deg, rgba(255, 0, 180, 0.03) 1px, transparent 1px),
+        /* Base dark gradient */
+        linear-gradient(180deg,
+          rgba(2, 5, 18, 0.82) 0%,
+          rgba(5, 8, 28, 0.88) 40%,
+          rgba(8, 3, 22, 0.92) 100%);
+      background-size:
+        28px 28px,
+        28px 28px,
+        56px 56px,
+        100% 100%;
+      border: 1px solid rgba(0, 220, 255, 0.18);
+      border-radius: 4px;
+      box-shadow:
+        inset 0 0 40px rgba(0, 180, 255, 0.06),
+        inset 0 0 80px rgba(180, 0, 255, 0.04),
+        0 0 20px rgba(0, 200, 255, 0.08);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Scan lines overlay */
+    #cp-bg::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.07) 0px,
+        rgba(0, 0, 0, 0.07) 1px,
+        transparent 1px,
+        transparent 3px
+      );
+      pointer-events: none;
+    }
+
+    /* Neon corner accents */
+    #cp-corner-tl,
+    #cp-corner-tr,
+    #cp-corner-bl,
+    #cp-corner-br {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      z-index: 1;
+      pointer-events: none;
+    }
+    #cp-corner-tl { top: 4px;    left: 4px;    border-top: 2px solid #00e5ff;  border-left: 2px solid #00e5ff;  }
+    #cp-corner-tr { top: 4px;    right: 4px;   border-top: 2px solid #ff00c8;  border-right: 2px solid #ff00c8; }
+    #cp-corner-bl { bottom: 4px; left: 4px;    border-bottom: 2px solid #ff00c8; border-left: 2px solid #ff00c8; }
+    #cp-corner-br { bottom: 4px; right: 4px;   border-bottom: 2px solid #00e5ff; border-right: 2px solid #00e5ff; }
+
+    /* Bottom perspective grid */
+    #cp-grid {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 70px;
+      background:
+        linear-gradient(transparent, rgba(0, 200, 255, 0.06) 80%);
+      pointer-events: none;
+      z-index: 1;
+      overflow: hidden;
+    }
+    #cp-grid::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        repeating-linear-gradient(
+          90deg,
+          rgba(0, 220, 255, 0.12) 0px,
+          rgba(0, 220, 255, 0.12) 1px,
+          transparent 1px,
+          transparent 18px
+        ),
+        repeating-linear-gradient(
+          180deg,
+          rgba(0, 220, 255, 0.08) 0px,
+          rgba(0, 220, 255, 0.08) 1px,
+          transparent 1px,
+          transparent 14px
+        );
+    }
+
+    /* Animated pulse line */
+    @keyframes cp-pulse {
+      0%   { opacity: 0; top: 0; }
+      10%  { opacity: 0.6; }
+      90%  { opacity: 0.4; }
+      100% { opacity: 0; top: 100%; }
+    }
+    #cp-pulse {
+      position: absolute;
+      left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.5) 50%, transparent);
+      animation: cp-pulse 4s linear infinite;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    /* Flicker animation */
+    @keyframes cp-flicker {
+      0%, 97%, 100% { opacity: 1; }
+      97.5% { opacity: 0.85; }
+      98%   { opacity: 1; }
+      98.5% { opacity: 0.7; }
+      99%   { opacity: 1; }
+    }
+    #cp-bg { animation: cp-flicker 8s infinite; }
+
+    /* ═══════════════════════════════════════════════
+       CANVAS (avatar)
+    ═══════════════════════════════════════════════ */
     #canvas-container {
       position: absolute;
       inset: 0;
+      z-index: 3;
     }
 
-    /* ── mic button ──────────────────────────── */
+    /* ═══════════════════════════════════════════════
+       MIC BUTTON
+    ═══════════════════════════════════════════════ */
     #mic-btn {
       position: absolute;
       bottom: 8px;
@@ -27,110 +160,155 @@
       width: 36px;
       height: 36px;
       border-radius: 50%;
-      background: rgba(255, 100, 150, 0.75);
-      border: 2px solid rgba(255, 200, 220, 0.8);
+      background: rgba(0, 180, 255, 0.15);
+      border: 2px solid rgba(0, 220, 255, 0.6);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 18px;
-      transition: background 0.2s;
+      font-size: 16px;
+      transition: background 0.2s, box-shadow 0.2s;
       -webkit-app-region: no-drag;
       z-index: 10;
+      box-shadow: 0 0 8px rgba(0, 200, 255, 0.25);
+    }
+    #mic-btn:hover {
+      background: rgba(0, 200, 255, 0.28);
+      box-shadow: 0 0 14px rgba(0, 220, 255, 0.5);
     }
     #mic-btn.active {
-      background: rgba(220, 50, 80, 0.9);
-      box-shadow: 0 0 10px rgba(255, 50, 80, 0.6);
+      background: rgba(255, 0, 180, 0.22);
+      border-color: rgba(255, 0, 200, 0.8);
+      box-shadow: 0 0 16px rgba(255, 0, 180, 0.55);
     }
-    #mic-btn:hover { background: rgba(255, 130, 170, 0.9); }
 
-    /* ── status text ─────────────────────────── */
+    /* ═══════════════════════════════════════════════
+       STATUS TEXT
+    ═══════════════════════════════════════════════ */
     #status-text {
       position: absolute;
       bottom: 52px;
       right: 4px;
-      font-size: 10px;
-      color: rgba(255, 200, 220, 0.85);
-      font-family: sans-serif;
-      text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-      max-width: 140px;
+      font-size: 9px;
+      color: rgba(0, 230, 255, 0.85);
+      font-family: 'Share Tech Mono', monospace;
+      text-shadow: 0 0 6px rgba(0, 200, 255, 0.7);
+      max-width: 160px;
       text-align: right;
       pointer-events: none;
       z-index: 10;
+      letter-spacing: 0.04em;
     }
 
-    /* ── DD drop overlay ─────────────────────── */
+    /* ═══════════════════════════════════════════════
+       MODEL BADGE
+    ═══════════════════════════════════════════════ */
+    #model-badge {
+      position: absolute;
+      top: 8px;
+      left: 24px;
+      font-size: 9px;
+      color: rgba(255, 0, 200, 0.75);
+      font-family: 'Share Tech Mono', monospace;
+      text-shadow: 0 0 5px rgba(255, 0, 180, 0.5);
+      pointer-events: none;
+      z-index: 10;
+      max-width: 180px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: 0.05em;
+    }
+    #model-badge:not(:empty)::before {
+      content: '▶ ';
+      color: rgba(0, 220, 255, 0.7);
+    }
+
+    /* ═══════════════════════════════════════════════
+       SYSTEM ID (top-right mini label)
+    ═══════════════════════════════════════════════ */
+    #sys-id {
+      position: absolute;
+      top: 9px;
+      right: 24px;
+      font-size: 8px;
+      color: rgba(0, 200, 255, 0.45);
+      font-family: 'Share Tech Mono', monospace;
+      pointer-events: none;
+      z-index: 10;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    /* ═══════════════════════════════════════════════
+       DD DROP OVERLAY
+    ═══════════════════════════════════════════════ */
     #drop-overlay {
       position: absolute;
       inset: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(255, 180, 220, 0.0);
-      border: 3px dashed transparent;
-      border-radius: 12px;
+      background: rgba(0, 10, 30, 0.0);
+      border: 2px dashed transparent;
+      border-radius: 4px;
       pointer-events: none;
       transition: background 0.15s, border-color 0.15s;
       z-index: 20;
     }
     body.drag-active #drop-overlay {
-      background: rgba(255, 150, 200, 0.18);
-      border-color: rgba(255, 130, 180, 0.85);
-      pointer-events: none;
+      background: rgba(0, 40, 80, 0.22);
+      border-color: rgba(0, 220, 255, 0.7);
     }
     #drop-hint {
-      padding: 8px 14px;
-      background: rgba(40, 20, 30, 0.75);
-      color: rgba(255, 200, 230, 0.95);
-      font-size: 12px;
-      font-family: sans-serif;
-      border-radius: 8px;
+      padding: 8px 16px;
+      background: rgba(0, 10, 28, 0.85);
+      border: 1px solid rgba(0, 200, 255, 0.45);
+      color: rgba(0, 230, 255, 0.95);
+      font-size: 11px;
+      font-family: 'Share Tech Mono', monospace;
+      border-radius: 3px;
       text-align: center;
       opacity: 0;
       transition: opacity 0.15s;
       pointer-events: none;
       user-select: none;
+      box-shadow: 0 0 14px rgba(0, 200, 255, 0.2);
+      letter-spacing: 0.05em;
     }
-    body.drag-active #drop-hint {
-      opacity: 1;
-    }
-
-    /* ── model name badge (shown after DD swap) ── */
-    #model-badge {
-      position: absolute;
-      top: 8px;
-      left: 8px;
-      font-size: 10px;
-      color: rgba(255, 200, 230, 0.7);
-      font-family: sans-serif;
-      text-shadow: 0 1px 3px rgba(0,0,0,0.9);
-      pointer-events: none;
-      z-index: 10;
-      max-width: 160px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+    body.drag-active #drop-hint { opacity: 1; }
   </style>
 </head>
 <body>
+  <!-- Cyberpunk background -->
+  <div id="cp-bg"></div>
+  <div id="cp-corner-tl"></div>
+  <div id="cp-corner-tr"></div>
+  <div id="cp-corner-bl"></div>
+  <div id="cp-corner-br"></div>
+  <div id="cp-grid"></div>
+  <div id="cp-pulse"></div>
+
+  <!-- Avatar canvas -->
   <div id="canvas-container"></div>
 
-  <!-- DD overlay (pointer-events: none — canvas handles drops) -->
+  <!-- DD overlay -->
   <div id="drop-overlay">
-    <div id="drop-hint">📦 .model3.json をドロップ</div>
+    <div id="drop-hint">◈ DROP AVATAR FILE ◈<br><span style="font-size:9px;opacity:0.7">.vrm / .fbx / .model3.json</span></div>
   </div>
 
+  <!-- UI chrome -->
   <div id="model-badge"></div>
+  <div id="sys-id">HAKUA·CORE</div>
   <div id="status-text"></div>
   <button id="mic-btn" title="音声入力 (STT)">🎤</button>
 
   <!--
-    Live2D Cubism Web SDK core:
+    Live2D Cubism Web SDK core (optional — VRM/FBX do not require this):
     Place renderer/lib/live2dcubismcore.min.js
     or run: powershell -File scripts/setup-live2d-sdk.ps1
   -->
-  <script src="./lib/live2dcubismcore.min.js" onerror="console.warn('[Hakua] live2dcubismcore not found — run setup-live2d-sdk.ps1')"></script>
+  <script src="./lib/live2dcubismcore.min.js" onerror="console.warn('[Hakua] live2dcubismcore not found')"></script>
   <script type="module" src="./app.js"></script>
 </body>
 </html>
