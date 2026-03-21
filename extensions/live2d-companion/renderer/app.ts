@@ -353,35 +353,64 @@ async function main(): Promise<void> {
 
     const droppedType = inferAvatarType(modelPath);
 
+    // Pre-read file as ArrayBuffer for Three.js loaders (avoids file:// XHR issues in Electron)
+    let fileBuffer: ArrayBuffer | null = null;
+    if ((droppedType === "fbx" || droppedType === "vrm") && file.size > 0) {
+      try {
+        fileBuffer = await file.arrayBuffer();
+      } catch {
+        /* fallback to URL */
+      }
+    }
+
+    /** Helper: load model using buffer (preferred) or path fallback */
+    async function loadModel(ctrl: IAvatarController): Promise<void> {
+      if (
+        fileBuffer &&
+        typeof (ctrl as unknown as Record<string, unknown>).reloadModelFromBuffer === "function"
+      ) {
+        await (
+          ctrl as unknown as {
+            reloadModelFromBuffer: (buf: ArrayBuffer, path: string) => Promise<void>;
+          }
+        ).reloadModelFromBuffer(fileBuffer, (file as File & { path?: string }).path ?? modelPath!);
+      } else {
+        await ctrl.reloadModel(modelPath!);
+      }
+    }
+
     // If the dropped type differs from the running controller type, we need to
     // destroy the current controller and create a new one of the correct type.
     const currentType = avatar.avatarType;
 
     if (droppedType !== currentType) {
       if (statusText) statusText.textContent = "アバター切替中…";
-      avatar.destroy();
-      const newCtrl = await createAvatarController(droppedType);
-      await newCtrl.init(container!);
-      // Rebind avatar variable and lipSync to the new controller
-      avatar = newCtrl;
-      (lipSync as unknown as { live2d: IAvatarController }).live2d = newCtrl;
-      // Load the dropped model in the new controller
-      await avatar.reloadModel(modelPath);
-      const fname = modelPath.split(/[/\\]/).pop() ?? modelPath;
-      if (modelBadge) modelBadge.textContent = fname;
-      if (statusText) statusText.textContent = "";
+      try {
+        avatar.destroy();
+        const newCtrl = await createAvatarController(droppedType);
+        await newCtrl.init(container!);
+        avatar = newCtrl;
+        (lipSync as unknown as { live2d: IAvatarController }).live2d = newCtrl;
+        await loadModel(avatar);
+        const fname = modelPath.split(/[/\\]/).pop() ?? modelPath;
+        if (modelBadge) modelBadge.textContent = fname;
+        if (statusText) statusText.textContent = "";
+      } catch (err) {
+        console.error("[DD] controller-switch load failed:", err);
+        if (statusText) statusText.textContent = `⚠ 読み込み失敗: ${String(err).slice(0, 60)}`;
+      }
       return;
     }
 
     if (statusText) statusText.textContent = "モデル読み込み中…";
     try {
-      await avatar.reloadModel(modelPath);
+      await loadModel(avatar);
       const fname = modelPath.split(/[/\\]/).pop() ?? modelPath;
       if (modelBadge) modelBadge.textContent = fname;
       if (statusText) statusText.textContent = "";
     } catch (err) {
       console.error("[DD] model load failed:", err);
-      if (statusText) statusText.textContent = "⚠ モデル読み込み失敗";
+      if (statusText) statusText.textContent = `⚠ 読み込み失敗: ${String(err).slice(0, 60)}`;
     }
   });
 }
