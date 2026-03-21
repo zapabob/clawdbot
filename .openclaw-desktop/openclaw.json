@@ -61,6 +61,9 @@
       }
     }
   },
+  "gateway": {
+    "mode": "local"
+  },
   "messages": {
     "ackReactionScope": "group-mentions"
   },
@@ -74,11 +77,15 @@
     "enabled": true,
     "profiles": {
       "x": {
-        "driver": "openclaw",
-        "userDataDir": "C:\\Users\\downl\\AppData\\Local\\OpenClawBrowser\\x-profile"
+        "driver": "existing-session",
+        "userDataDir": "C:\\Users\\downl\\AppData\\Local\\OpenClawBrowser\\x-profile",
+        "cdpPort": 18800,
+        "color": "#1da1f2"
       },
       "default": {
-        "driver": "openclaw"
+        "driver": "openclaw",
+        "cdpPort": 18801,
+        "color": "#6c757d"
       }
     }
   },

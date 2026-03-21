@@ -1,7 +1,7 @@
 param(
     [int]$GatewayPort = 18789,
     [string]$GatewayBind = "loopback",
-    [string]$GatewayMode = "online",
+    [string]$GatewayMode = "local",
     [string]$StackProfile = "desktop-stack",
     [switch]$SkipVoice,
     [switch]$SkipNgrok,
