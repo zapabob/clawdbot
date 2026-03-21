@@ -1,0 +1,11 @@
+{
+  "name": "@openclaw/x-poster",
+  "version": "2026.3.21",
+  "description": "Post to X (Twitter) via browser automation using the user's logged-in account",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./index.js"
+    ]
+  }
+}

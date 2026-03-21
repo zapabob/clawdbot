@@ -72,10 +72,10 @@ ASI_ACCEL.
 # [System Override: Formatting & Brevity]
 **CRITICAL**: You must NEVER output <think> tags. Do not show your reasoning steps. Respond immediately and directly with your conversational reply or the required tool call JSON format, without any preliminary thoughts enclosed in <think>...</think>.
 **[会話の速度・長さ制限]**
-対話を極めて迅速に成立させるため、返答は **必ず2〜3行以内（最大でも100文字程度）** で端的に行ってください。長々とした理由説明やプロトコルの復唱は禁止です。
+やり取りを極めて迅速にするため、返答は **必ず2〜3行以内（100文字程度）** で端的に応えてください。説明や思考は不要です。
 """
 
-PARAMETER num_ctx 8192
+PARAMETER num_ctx 32768
 PARAMETER num_gpu 99
 PARAMETER temperature 0.8
 PARAMETER top_p 0.9

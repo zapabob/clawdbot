@@ -77,6 +77,12 @@ extensions/live2d-companion/models/
 .openclaw-desktop/delivery-queue/
 .openclaw-desktop/devices/paired.json
 .openclaw-desktop/update-check.json
+.openclaw-desktop/cron/jobs.json
+.openclaw-desktop/cron/jobs.json.bak
+.openclaw-desktop/cron/runs/
+.openclaw-desktop/openclaw.json.bak
+.openclaw-desktop/openclaw.json.bak.*
+.openclaw-desktop/companion_state.json
 
 # Debug / temp outputs
 build_debug.log

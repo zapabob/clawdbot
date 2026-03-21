@@ -1,7 +1,23 @@
 {
   "meta": {
     "lastTouchedVersion": "2026.3.14",
-    "lastTouchedAt": "2026-03-20T03:11:04.385Z"
+    "lastTouchedAt": "2026-03-21T10:35:11.544Z"
+  },
+  "browser": {
+    "enabled": true,
+    "profiles": {
+      "x": {
+        "cdpPort": 18800,
+        "userDataDir": "C:\\Users\\downl\\AppData\\Local\\OpenClawBrowser\\x-profile",
+        "driver": "existing-session",
+        "color": "#1da1f2"
+      },
+      "default": {
+        "cdpPort": 18801,
+        "driver": "openclaw",
+        "color": "#6c757d"
+      }
+    }
   },
   "models": {
     "providers": {
@@ -61,9 +77,6 @@
       }
     }
   },
-  "gateway": {
-    "mode": "local"
-  },
   "messages": {
     "ackReactionScope": "group-mentions"
   },
@@ -73,46 +86,25 @@
     "restart": true,
     "ownerDisplay": "raw"
   },
-  "browser": {
-    "enabled": true,
-    "profiles": {
-      "x": {
-        "driver": "existing-session",
-        "userDataDir": "C:\\Users\\downl\\AppData\\Local\\OpenClawBrowser\\x-profile",
-        "cdpPort": 18800,
-        "color": "#1da1f2"
-      },
-      "default": {
-        "driver": "openclaw",
-        "cdpPort": 18801,
-        "color": "#6c757d"
-      }
-    }
-  },
-  "mcp": {
-    "servers": {
-      "playwright": {
-        "command": "npx",
-        "args": ["-y", "@playwright/mcp@latest"],
-        "env": {
-          "PLAYWRIGHT_HEADLESS": "false"
-        }
-      }
-    }
-  },
   "channels": {
     "telegram": {
       "enabled": true,
-      "botToken": "8549534063:AAHJCcoNWgsFgrH0jWnwfFv0ne12cbBKnvg",
+      "commands": {
+        "native": false,
+        "nativeSkills": true
+      },
+      "configWrites": true,
       "dmPolicy": "open",
-      "allowFrom": ["*"],
-      "groupPolicy": "open",
+      "botToken": "8549534063:AAHJCcoNWgsFgrH0jWnwfFv0ne12cbBKnvg",
       "groups": {
         "*": {
           "requireMention": true
         }
       },
-      "streaming": "partial"
+      "allowFrom": ["*"],
+      "groupPolicy": "open",
+      "streaming": "partial",
+      "blockStreaming": false
     },
     "discord": {
       "enabled": true,
@@ -160,6 +152,20 @@
       "groups": {},
       "defaultAccount": "はくあ",
       "name": "はくあ"
+    }
+  },
+  "gateway": {
+    "mode": "local"
+  },
+  "mcp": {
+    "servers": {
+      "playwright": {
+        "command": "npx",
+        "args": ["-y", "@playwright/mcp@latest"],
+        "env": {
+          "PLAYWRIGHT_HEADLESS": false
+        }
+      }
     }
   }
 }
