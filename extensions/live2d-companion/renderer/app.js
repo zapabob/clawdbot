@@ -8,6 +8,7 @@ async function main() {
   const statusText = document.getElementById("status-text");
   const modelBadge = document.getElementById("model-badge");
   const micBtn = document.getElementById("mic-btn");
+  const screenshotBtn = document.getElementById("screenshot-btn");
   if (!container) return;
   // ── Initialize avatar via factory ────────────────────────────────────────
   const configType = companionConfig.avatarType ?? "auto";
@@ -128,6 +129,25 @@ async function main() {
     const bridge = window.companionBridge;
     bridge.onAvatarCommand?.((cmd) => void handleAvatarCommand(cmd));
   }
+  // ── Screen capture button ─────────────────────────────────────────────────
+  screenshotBtn?.addEventListener("click", async () => {
+    if (!window.companionBridge?.captureScreen) return;
+    if (statusText) statusText.textContent = "📸 キャプチャ中…";
+    try {
+      const result = await window.companionBridge.captureScreen();
+      if (result?.ok) {
+        if (statusText) statusText.textContent = "📸 保存完了";
+        setTimeout(() => {
+          if (statusText) statusText.textContent = "";
+        }, 2000);
+      } else {
+        if (statusText) statusText.textContent = `⚠ キャプチャ失敗: ${result?.error ?? "不明"}`;
+      }
+    } catch (err) {
+      if (statusText) statusText.textContent = "⚠ キャプチャエラー";
+      console.error("[Screenshot]", err);
+    }
+  });
   // ── Avatar Model Drag-and-Drop (.model3.json / .vrm / .fbx) ──────────────
   function setDragActive(active) {
     document.body.classList.toggle("drag-active", active);
@@ -172,33 +192,54 @@ async function main() {
       return;
     }
     const droppedType = inferAvatarType(modelPath);
+    // Pre-read file as ArrayBuffer for Three.js loaders (avoids file:// XHR issues in Electron)
+    let fileBuffer = null;
+    if ((droppedType === "fbx" || droppedType === "vrm") && file.size > 0) {
+      try {
+        fileBuffer = await file.arrayBuffer();
+      } catch {
+        /* fallback to URL */
+      }
+    }
+    /** Helper: load model using buffer (preferred) or path fallback */
+    async function loadModel(ctrl) {
+      if (fileBuffer && typeof ctrl.reloadModelFromBuffer === "function") {
+        await ctrl.reloadModelFromBuffer(fileBuffer, file.path ?? modelPath);
+      } else {
+        await ctrl.reloadModel(modelPath);
+      }
+    }
     // If the dropped type differs from the running controller type, we need to
     // destroy the current controller and create a new one of the correct type.
     const currentType = avatar.avatarType;
     if (droppedType !== currentType) {
       if (statusText) statusText.textContent = "アバター切替中…";
-      avatar.destroy();
-      const newCtrl = await createAvatarController(droppedType);
-      await newCtrl.init(container);
-      // Rebind avatar variable and lipSync to the new controller
-      avatar = newCtrl;
-      lipSync.live2d = newCtrl;
-      // Load the dropped model in the new controller
-      await avatar.reloadModel(modelPath);
-      const fname = modelPath.split(/[/\\]/).pop() ?? modelPath;
-      if (modelBadge) modelBadge.textContent = fname;
-      if (statusText) statusText.textContent = "";
+      try {
+        avatar.destroy();
+        const newCtrl = await createAvatarController(droppedType);
+        await newCtrl.init(container);
+        // Rebind avatar variable and lipSync to the new controller
+        avatar = newCtrl;
+        lipSync.live2d = newCtrl;
+        await loadModel(avatar);
+        const fname = modelPath.split(/[/\\]/).pop() ?? modelPath;
+        if (modelBadge) modelBadge.textContent = fname;
+        if (statusText) statusText.textContent = "";
+      } catch (err) {
+        console.error("[DD] controller-switch load failed:", err);
+        if (statusText) statusText.textContent = `⚠ 読み込み失敗: ${String(err).slice(0, 60)}`;
+      }
       return;
     }
     if (statusText) statusText.textContent = "モデル読み込み中…";
     try {
-      await avatar.reloadModel(modelPath);
+      await loadModel(avatar);
       const fname = modelPath.split(/[/\\]/).pop() ?? modelPath;
       if (modelBadge) modelBadge.textContent = fname;
       if (statusText) statusText.textContent = "";
     } catch (err) {
       console.error("[DD] model load failed:", err);
-      if (statusText) statusText.textContent = "⚠ モデル読み込み失敗";
+      if (statusText) statusText.textContent = `⚠ 読み込み失敗: ${String(err).slice(0, 60)}`;
     }
   });
 }

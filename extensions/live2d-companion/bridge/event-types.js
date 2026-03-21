@@ -9,6 +9,9 @@ export const IPC_CHANNELS = {
   CONTROL: "companion:control",
   STATE_UPDATE: "companion:state-update",
   AVATAR_COMMAND: "companion:avatar-command",
+  // Screen capture
+  SCREENSHOT_REQUEST: "companion:screenshot-request",
+  SCREENSHOT_RESULT: "companion:screenshot-result",
 };
 // Flag file names (relative to stateDir)
 export const FLAG_FILES = {
@@ -17,4 +20,6 @@ export const FLAG_FILES = {
   STT_RESULT: "companion_stt_result.json",
   CONTROL: "companion_control.json",
   STATE: "companion_state.json",
+  // Screen capture output
+  SCREENSHOT_META: "companion_screenshot_meta.json",
 };

@@ -53,6 +53,20 @@ export class FbxController {
   }
   async reloadModel(pathOrUrl) {
     if (!this.three || !this.scene) return;
+    // Try ArrayBuffer approach first (more reliable in Electron renderer)
+    try {
+      const url = pathOrUrl.startsWith("file://")
+        ? pathOrUrl
+        : "file:///" + pathOrUrl.replace(/\\/g, "/");
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`fetch failed: ${res.status}`);
+      const buffer = await res.arrayBuffer();
+      const resourceDir = url.replace(/\/[^/]+$/, "/");
+      await this._loadFromBuffer(buffer, resourceDir);
+      return;
+    } catch (_fetchErr) {
+      // Fall through to XHR-based loader
+    }
     if (this.model) {
       this.scene.remove(this.model);
       this.model = null;
@@ -68,9 +82,35 @@ export class FbxController {
     });
     this.scene.add(fbx);
     this.model = fbx;
-    // Set up AnimationMixer for skeletal animations
     this.mixer = new this.three.AnimationMixer(fbx);
-    // Discover lip-sync morph targets
+    this.resolveLipMeshes(fbx);
+  }
+  /**
+   * Load FBX from an ArrayBuffer — works reliably in Electron renderer without
+   * URL/XHR restrictions. Called by the drag-and-drop handler.
+   */
+  async reloadModelFromBuffer(buffer, filePath) {
+    if (!this.three || !this.scene) return;
+    const resourceDir = filePath
+      ? "file:///" + filePath.replace(/\\/g, "/").replace(/\/[^/]+$/, "/")
+      : "./";
+    await this._loadFromBuffer(buffer, resourceDir);
+  }
+  async _loadFromBuffer(buffer, resourceDir) {
+    if (!this.three || !this.scene) return;
+    if (this.model) {
+      this.scene.remove(this.model);
+      this.model = null;
+      this.lipMeshes = [];
+      this.lipMorphIdx = null;
+    }
+    const { FBXLoader } = await import("three/examples/jsm/loaders/FBXLoader.js");
+    const loader = new FBXLoader();
+    // parse() accepts ArrayBuffer and skips XHR entirely
+    const fbx = loader.parse(buffer, resourceDir);
+    this.scene.add(fbx);
+    this.model = fbx;
+    this.mixer = new this.three.AnimationMixer(fbx);
     this.resolveLipMeshes(fbx);
   }
   playMotion(_group, _index = 0, _loop = false) {

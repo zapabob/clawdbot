@@ -53,6 +53,24 @@ contextBridge.exposeInMainWorld("companionBridge", {
       callback(cmd);
     });
   },
+  // ── Screen capture (AI desktop companion — AI sees browser/game screen) ───
+  captureScreen: (opts?: {
+    width?: number;
+    height?: number;
+  }): Promise<{
+    ok: boolean;
+    path?: string;
+    base64?: string;
+    width?: number;
+    height?: number;
+    timestamp?: number;
+    error?: string;
+  }> => ipcRenderer.invoke("capture-screen", opts ?? {}),
+  onScreenshotRequest: (callback: (opts: Record<string, unknown>) => void) => {
+    ipcRenderer.on(IPC_CHANNELS.SCREENSHOT_REQUEST, (_ipcEvent, opts) => {
+      callback(opts ?? {});
+    });
+  },
 });
 
 // Type declaration for renderer-side TypeScript
@@ -73,6 +91,16 @@ declare global {
         ttsProvider?: TtsProvider;
       }) => void;
       onAvatarCommand: (cb: (cmd: AvatarCommand) => void) => void;
+      captureScreen: (opts?: { width?: number; height?: number }) => Promise<{
+        ok: boolean;
+        path?: string;
+        base64?: string;
+        width?: number;
+        height?: number;
+        timestamp?: number;
+        error?: string;
+      }>;
+      onScreenshotRequest: (cb: (opts: Record<string, unknown>) => void) => void;
     };
   }
 }

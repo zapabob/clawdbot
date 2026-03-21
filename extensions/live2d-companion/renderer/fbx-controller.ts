@@ -68,31 +68,63 @@ export class FbxController implements IAvatarController {
 
   async reloadModel(pathOrUrl: string): Promise<void> {
     if (!this.three || !this.scene) return;
-
+    // Try ArrayBuffer approach first (more reliable in Electron renderer)
+    try {
+      const url = pathOrUrl.startsWith("file://")
+        ? pathOrUrl
+        : "file:///" + pathOrUrl.replace(/\\/g, "/");
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`fetch failed: ${res.status}`);
+      const buffer = await res.arrayBuffer();
+      const resourceDir = url.replace(/\/[^/]+$/, "/");
+      await this._loadFromBuffer(buffer, resourceDir);
+      return;
+    } catch (_fetchErr) {
+      // Fall through to XHR-based loader
+    }
     if (this.model) {
       this.scene.remove(this.model);
       this.model = null;
       this.lipMeshes = [];
       this.lipMorphIdx = null;
     }
-
     const { FBXLoader } = await import("three/examples/jsm/loaders/FBXLoader.js");
-
     const url = pathOrUrl.startsWith("file://")
       ? pathOrUrl
       : "file:///" + pathOrUrl.replace(/\\/g, "/");
-
     const fbx = await new Promise<import("three").Group>((resolve, reject) => {
       new FBXLoader().load(url, resolve, undefined, reject);
     });
-
     this.scene.add(fbx);
     this.model = fbx;
-
-    // Set up AnimationMixer for skeletal animations
     this.mixer = new this.three.AnimationMixer(fbx);
+    this.resolveLipMeshes(fbx);
+  }
 
-    // Discover lip-sync morph targets
+  /** Load FBX from an ArrayBuffer — works reliably without URL/XHR restrictions. */
+  async reloadModelFromBuffer(buffer: ArrayBuffer, filePath?: string): Promise<void> {
+    if (!this.three || !this.scene) return;
+    const resourceDir = filePath
+      ? "file:///" + filePath.replace(/\\/g, "/").replace(/\/[^/]+$/, "/")
+      : "./";
+    await this._loadFromBuffer(buffer, resourceDir);
+  }
+
+  private async _loadFromBuffer(buffer: ArrayBuffer, resourceDir: string): Promise<void> {
+    if (!this.three || !this.scene) return;
+    if (this.model) {
+      this.scene.remove(this.model);
+      this.model = null;
+      this.lipMeshes = [];
+      this.lipMorphIdx = null;
+    }
+    const { FBXLoader } = await import("three/examples/jsm/loaders/FBXLoader.js");
+    const loader = new FBXLoader();
+    // parse() accepts ArrayBuffer and skips XHR entirely
+    const fbx = loader.parse(buffer, resourceDir) as import("three").Group;
+    this.scene.add(fbx);
+    this.model = fbx;
+    this.mixer = new this.three.AnimationMixer(fbx);
     this.resolveLipMeshes(fbx);
   }
 

@@ -153,10 +153,8 @@
     /* ═══════════════════════════════════════════════
        MIC BUTTON
     ═══════════════════════════════════════════════ */
-    #mic-btn {
+    #mic-btn, #screenshot-btn {
       position: absolute;
-      bottom: 8px;
-      right: 8px;
       width: 36px;
       height: 36px;
       border-radius: 50%;
@@ -172,7 +170,16 @@
       z-index: 10;
       box-shadow: 0 0 8px rgba(0, 200, 255, 0.25);
     }
-    #mic-btn:hover {
+    #mic-btn {
+      bottom: 8px;
+      right: 8px;
+    }
+    #screenshot-btn {
+      bottom: 8px;
+      right: 52px;
+      font-size: 14px;
+    }
+    #mic-btn:hover, #screenshot-btn:hover {
       background: rgba(0, 200, 255, 0.28);
       box-shadow: 0 0 14px rgba(0, 220, 255, 0.5);
     }
@@ -180,6 +187,10 @@
       background: rgba(255, 0, 180, 0.22);
       border-color: rgba(255, 0, 200, 0.8);
       box-shadow: 0 0 16px rgba(255, 0, 180, 0.55);
+    }
+    #screenshot-btn:active {
+      background: rgba(0, 255, 180, 0.22);
+      border-color: rgba(0, 255, 180, 0.8);
     }
 
     /* ═══════════════════════════════════════════════
@@ -301,6 +312,7 @@
   <div id="model-badge"></div>
   <div id="sys-id">HAKUA·CORE</div>
   <div id="status-text"></div>
+  <button id="screenshot-btn" title="スクリーンキャプチャ (AIに画面を見せる)">📸</button>
   <button id="mic-btn" title="音声入力 (STT)">🎤</button>
 
   <!--

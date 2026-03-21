@@ -45,4 +45,11 @@ contextBridge.exposeInMainWorld("companionBridge", {
       callback(cmd);
     });
   },
+  // ── Screen capture (AI desktop companion — AI sees browser/game screen) ───
+  captureScreen: (opts) => ipcRenderer.invoke("capture-screen", opts ?? {}),
+  onScreenshotRequest: (callback) => {
+    ipcRenderer.on(IPC_CHANNELS.SCREENSHOT_REQUEST, (_ipcEvent, opts) => {
+      callback(opts ?? {});
+    });
+  },
 });

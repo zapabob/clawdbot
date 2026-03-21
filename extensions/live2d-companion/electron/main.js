@@ -3,7 +3,7 @@ import http from "node:http";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { app, BrowserWindow, screen, ipcMain } from "electron";
+import { app, BrowserWindow, screen, ipcMain, desktopCapturer } from "electron";
 import { IPC_CHANNELS, FLAG_FILES } from "../bridge/event-types.js";
 import { startFlagWatcher } from "../bridge/flag-watcher.js";
 const companionConfig = createRequire(import.meta.url)("../companion.config.json");
@@ -125,6 +125,54 @@ function startControlServer() {
       res.end(JSON.stringify(companionState));
       return;
     }
+    if (req.method === "GET" && url.startsWith("/screenshot")) {
+      // AI agent can call GET /screenshot to get the latest captured image
+      // Optional ?capture=1 query param triggers a fresh capture
+      const doCapture = url.includes("capture=1");
+      const respond = (data) => {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(data));
+      };
+      if (doCapture) {
+        ipcMain.emit("__internal-capture__");
+        // Capture fresh screenshot
+        desktopCapturer
+          .getSources({ types: ["screen"], thumbnailSize: { width: 1280, height: 720 } })
+          .then(async (sources) => {
+            if (!sources.length) {
+              respond({ ok: false, error: "no sources" });
+              return;
+            }
+            const pngBuffer = sources[0].thumbnail.toPNG();
+            await fs.mkdir(stateDir, { recursive: true });
+            const p = path.join(stateDir, "companion_screenshot.png");
+            await fs.writeFile(p, pngBuffer);
+            const size = sources[0].thumbnail.getSize();
+            const meta = { path: p, width: size.width, height: size.height, timestamp: Date.now() };
+            await fs.writeFile(
+              path.join(stateDir, "companion_screenshot_meta.json"),
+              JSON.stringify(meta, null, 2),
+              "utf-8",
+            );
+            respond({ ok: true, base64: pngBuffer.toString("base64"), ...meta });
+          })
+          .catch((err) => respond({ ok: false, error: String(err) }));
+      } else {
+        // Return the last saved screenshot if available
+        const metaPath = path.join(stateDir, "companion_screenshot_meta.json");
+        const imgPath = path.join(stateDir, "companion_screenshot.png");
+        (async () => {
+          try {
+            const meta = JSON.parse(await fs.readFile(metaPath, "utf-8"));
+            const pngBuffer = await fs.readFile(imgPath);
+            respond({ ok: true, base64: pngBuffer.toString("base64"), ...meta });
+          } catch {
+            respond({ ok: false, error: "no screenshot yet — call GET /screenshot?capture=1" });
+          }
+        })();
+      }
+      return;
+    }
     if (req.method === "POST" && url === "/control") {
       let body = "";
       req.on("data", (chunk) => {
@@ -157,6 +205,45 @@ function startControlServer() {
     }
   });
 }
+// ── IPC: screen capture (AI desktop companion) ────────────────────────────────
+ipcMain.handle("capture-screen", async (_event, opts = {}) => {
+  try {
+    // Capture primary screen at 1920x1080 (downscaled to reduce payload size)
+    const captureWidth = opts.width ?? 1280;
+    const captureHeight = opts.height ?? 720;
+    const sources = await desktopCapturer.getSources({
+      types: ["screen"],
+      thumbnailSize: { width: captureWidth, height: captureHeight },
+    });
+    if (sources.length === 0) return { ok: false, error: "no screen sources found" };
+    const primary = sources[0];
+    const img = primary.thumbnail;
+    const pngBuffer = img.toPNG();
+    // Save PNG to stateDir so AI agent can read it via flag files
+    await fs.mkdir(stateDir, { recursive: true });
+    const screenshotPath = path.join(stateDir, "companion_screenshot.png");
+    await fs.writeFile(screenshotPath, pngBuffer);
+    const size = img.getSize();
+    const meta = {
+      path: screenshotPath,
+      width: size.width,
+      height: size.height,
+      source: primary.name,
+      timestamp: Date.now(),
+    };
+    await fs.writeFile(
+      path.join(stateDir, "companion_screenshot_meta.json"),
+      JSON.stringify(meta, null, 2),
+      "utf-8",
+    );
+    // Return base64 for direct use by the renderer or HTTP callers
+    const base64 = pngBuffer.toString("base64");
+    return { ok: true, path: screenshotPath, base64, ...meta };
+  } catch (err) {
+    console.error("[Companion] capture-screen error:", err);
+    return { ok: false, error: String(err) };
+  }
+});
 // ── IPC: model discovery ──────────────────────────────────────────────────────
 async function scanModels(dir) {
   const results = [];

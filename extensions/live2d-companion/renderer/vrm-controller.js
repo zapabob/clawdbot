@@ -59,6 +59,20 @@ export class VrmController {
   }
   async reloadModel(pathOrUrl) {
     if (!this.three || !this.vrmMod || !this.scene) return;
+    // Try ArrayBuffer approach first (more reliable in Electron renderer)
+    try {
+      const url = pathOrUrl.startsWith("file://")
+        ? pathOrUrl
+        : "file:///" + pathOrUrl.replace(/\\/g, "/");
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`fetch failed: ${res.status}`);
+      const buffer = await res.arrayBuffer();
+      const resourcePath = url.replace(/\/[^/]+$/, "/");
+      await this._loadFromBuffer(buffer, resourcePath);
+      return;
+    } catch (_fetchErr) {
+      // Fall through to URL loader
+    }
     // Remove previous VRM
     if (this.vrm) {
       this.scene.remove(this.vrm.scene);
@@ -79,8 +93,43 @@ export class VrmController {
       return;
     }
     this.vrmMod.VRMUtils.removeUnnecessaryVertices(gltf.scene);
-    // combineSkeletons was removed in @pixiv/three-vrm v2; removeUnnecessaryVertices is sufficient
     vrm.scene.rotation.y = Math.PI; // face the camera
+    this.scene.add(vrm.scene);
+    this.vrm = vrm;
+  }
+  /**
+   * Load VRM from an ArrayBuffer — works reliably in Electron renderer without
+   * URL/XHR restrictions. Called by the drag-and-drop handler.
+   */
+  async reloadModelFromBuffer(buffer, filePath) {
+    if (!this.three || !this.vrmMod || !this.scene) return;
+    const resourcePath = filePath
+      ? "file:///" + filePath.replace(/\\/g, "/").replace(/\/[^/]+$/, "/")
+      : "./";
+    await this._loadFromBuffer(buffer, resourcePath);
+  }
+  async _loadFromBuffer(buffer, resourcePath) {
+    if (!this.three || !this.vrmMod || !this.scene) return;
+    if (this.vrm) {
+      this.scene.remove(this.vrm.scene);
+      this.vrmMod.VRMUtils.deepDispose(this.vrm.scene);
+      this.vrm = null;
+    }
+    const { GLTFLoader } = await import("three/examples/jsm/loaders/GLTFLoader.js");
+    const { VRMLoaderPlugin } = this.vrmMod;
+    const loader = new GLTFLoader();
+    loader.register((parser) => new VRMLoaderPlugin(parser));
+    // parse() accepts ArrayBuffer and skips XHR entirely
+    const gltf = await new Promise((resolve, reject) => {
+      loader.parse(buffer, resourcePath, resolve, reject);
+    });
+    const vrm = gltf.userData["vrm"];
+    if (!vrm) {
+      console.error("[VrmController] VRM data not found in GLTF");
+      return;
+    }
+    this.vrmMod.VRMUtils.removeUnnecessaryVertices(gltf.scene);
+    vrm.scene.rotation.y = Math.PI;
     this.scene.add(vrm.scene);
     this.vrm = vrm;
   }
