@@ -30,9 +30,9 @@
           {
             "id": "qwen-hakua-core",
             "name": "Hakua Core (ASI Uncensored)",
-            "reasoning": true,
+            "reasoning": false,
             "input": ["text", "image"],
-            "contextWindow": 131072,
+            "contextWindow": 32768,
             "maxTokens": 8192
           },
           {
