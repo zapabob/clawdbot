@@ -8,7 +8,7 @@
       "enabled": true,
       "deleteAfterRun": true,
       "createdAtMs": 1773964398478,
-      "updatedAtMs": 1773981788649,
+      "updatedAtMs": 1774061927969,
       "schedule": {
         "kind": "every",
         "everyMs": 1800000,
@@ -24,11 +24,11 @@
         "mode": "none"
       },
       "state": {
-        "nextRunAtMs": 1773983584229,
-        "lastRunAtMs": 1773981784229,
+        "nextRunAtMs": 1774063607722,
+        "lastRunAtMs": 1774061807722,
         "lastRunStatus": "ok",
         "lastStatus": "ok",
-        "lastDurationMs": 4420,
+        "lastDurationMs": 120247,
         "lastDeliveryStatus": "not-requested",
         "consecutiveErrors": 0
       }

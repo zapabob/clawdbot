@@ -74,6 +74,9 @@ extensions/live2d-companion/models/
 .openclaw-desktop/agents/main/sessions/
 .openclaw-desktop/agents/main/agent/auth-profiles.json
 .openclaw-desktop/agents/main/agent/*.tmp
+.openclaw-desktop/delivery-queue/
+.openclaw-desktop/devices/paired.json
+.openclaw-desktop/update-check.json
 
 # Debug / temp outputs
 build_debug.log
