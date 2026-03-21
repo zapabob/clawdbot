@@ -54,6 +54,4 @@ contextBridge.exposeInMainWorld("companionBridge", {
   },
   // ── Native file dialog (opens Windows Explorer) ───────────────────────────
   openFileDialog: (opts) => ipcRenderer.invoke("open-file-dialog", opts ?? {}),
-  // ── Click-through toggle (renderer → main, avoids HiDPI DPI mismatch) ─────
-  setIgnoreMouseEvents: (ignore) => ipcRenderer.send("set-ignore-mouse-events", ignore),
 });

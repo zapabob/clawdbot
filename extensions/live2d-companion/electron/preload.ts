@@ -82,10 +82,6 @@ contextBridge.exposeInMainWorld("companionBridge", {
     canceled?: boolean;
     error?: string;
   }> => ipcRenderer.invoke("open-file-dialog", opts ?? {}),
-  // ── Click-through toggle (renderer → main, avoids HiDPI DPI mismatch) ─────
-  setIgnoreMouseEvents: (ignore: boolean): void => {
-    ipcRenderer.send("set-ignore-mouse-events", ignore);
-  },
 });
 
 // Type declaration for renderer-side TypeScript
@@ -126,7 +122,6 @@ declare global {
         canceled?: boolean;
         error?: string;
       }>;
-      setIgnoreMouseEvents: (ignore: boolean) => void;
     };
   }
 }

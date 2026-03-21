@@ -18,6 +18,7 @@ const stateDir = process.env.OPENCLAW_STATE_DIR
   : path.resolve(path.join(__dirname, "../../..", companionConfig.stateDir));
 
 let mainWindow: BrowserWindow | null = null;
+let ignoreMouseTimer: ReturnType<typeof setInterval> | null = null;
 
 // ── Companion runtime state ───────────────────────────────────────────────────
 const companionState: CompanionStateUpdate = {
@@ -66,9 +67,23 @@ function createWindow(): void {
   mainWindow.setAlwaysOnTop(true, "screen-saver");
   mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
 
-  // Start in click-through mode; renderer toggles via IPC when cursor enters UI
-  // (avoids HiDPI DPI mismatch in the old polling-timer approach)
   mainWindow.setIgnoreMouseEvents(true, { forward: true });
+
+  // ── DPI-correct click-through polling ──────────────────────────────────────
+  // getCursorScreenPoint() returns physical pixels on Windows;
+  // getBounds() returns logical pixels. Multiply bounds by scaleFactor to match.
+  ignoreMouseTimer = setInterval(() => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    const pos = screen.getCursorScreenPoint();
+    const sf = screen.getDisplayNearestPoint(pos).scaleFactor;
+    const b = mainWindow.getBounds();
+    const inBounds =
+      pos.x >= b.x * sf &&
+      pos.x <= (b.x + b.width) * sf &&
+      pos.y >= b.y * sf &&
+      pos.y <= (b.y + b.height) * sf;
+    mainWindow.setIgnoreMouseEvents(!inBounds, { forward: true });
+  }, 50);
 
   const rendererPath = path.join(__dirname, "../renderer/index.html");
   void mainWindow.loadFile(rendererPath);
@@ -79,6 +94,7 @@ function createWindow(): void {
   });
 
   mainWindow.on("closed", () => {
+    if (ignoreMouseTimer) clearInterval(ignoreMouseTimer);
     mainWindow = null;
   });
 
@@ -328,11 +344,6 @@ ipcMain.handle("discover-model", async () => {
 ipcMain.on(IPC_CHANNELS.STATE_UPDATE, (_event, update: Partial<CompanionStateUpdate>) => {
   Object.assign(companionState, update, { timestamp: Date.now() });
   void writeState();
-});
-
-// ── IPC: click-through toggle (renderer-driven, avoids HiDPI DPI mismatch) ───
-ipcMain.on("set-ignore-mouse-events", (_e, ignore: boolean) => {
-  mainWindow?.setIgnoreMouseEvents(ignore, { forward: true });
 });
 
 // ── Bootstrap ────────────────────────────────────────────────────────────────
