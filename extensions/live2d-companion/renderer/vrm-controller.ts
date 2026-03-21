@@ -103,7 +103,7 @@ export class VrmController implements IAvatarController {
     }
 
     this.vrmMod.VRMUtils.removeUnnecessaryVertices(gltf.scene);
-    this.vrmMod.VRMUtils.combineSkeletons(gltf.scene);
+    // combineSkeletons was removed in @pixiv/three-vrm v2; removeUnnecessaryVertices is sufficient
 
     vrm.scene.rotation.y = Math.PI; // face the camera
     this.scene.add(vrm.scene);

@@ -147,9 +147,10 @@ async function main(): Promise<void> {
     });
 
     // Dedicated avatar command channel
-    (window.companionBridge as Record<string, unknown>).onAvatarCommand?.(
-      (cmd: AvatarCommand) => void handleAvatarCommand(cmd),
-    );
+    const bridge = window.companionBridge as typeof window.companionBridge & {
+      onAvatarCommand?: (cb: (cmd: AvatarCommand) => void) => void;
+    };
+    bridge.onAvatarCommand?.((cmd: AvatarCommand) => void handleAvatarCommand(cmd));
   }
 
   // ── Avatar Model Drag-and-Drop (.model3.json / .vrm / .fbx) ──────────────

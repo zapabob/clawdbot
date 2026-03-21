@@ -11,6 +11,6 @@
     "skipLibCheck": true,
     "lib": ["ES2022", "DOM"]
   },
-  "include": ["index.ts", "electron/**/*.ts", "renderer/**/*.ts", "bridge/**/*.ts"],
+  "include": ["electron/**/*.ts", "renderer/**/*.ts", "bridge/**/*.ts"],
   "exclude": ["node_modules"]
 }
