@@ -27,7 +27,26 @@ export interface CompanionControlCommand {
   agentId?: string;
   ttsProvider?: TtsProvider;
   speakText?: string;
+  /** Avatar commands sent by the AI agent */
+  avatarCommand?: AvatarCommand;
   timestamp: number;
+}
+
+/**
+ * Commands the AI agent can issue to control the desktop avatar.
+ * Dispatched via the HTTP control API (/control) or IPC.
+ */
+export interface AvatarCommand {
+  /** Load a new avatar model (.vrm / .fbx / .model3.json) */
+  loadModel?: string;
+  /** Play a named emotion expression */
+  expression?: string;
+  /** Play a named motion group */
+  motion?: string;
+  /** Speak text via TTS (triggers lip sync) */
+  speakText?: string;
+  /** Eye gaze direction: normalised [-1,1] per axis */
+  lookAt?: { x: number; y: number };
 }
 
 export interface CompanionStateUpdate {
@@ -54,6 +73,7 @@ export const IPC_CHANNELS = {
   SPEAK_TEXT: "companion:speak-text",
   CONTROL: "companion:control",
   STATE_UPDATE: "companion:state-update",
+  AVATAR_COMMAND: "companion:avatar-command",
 } as const;
 
 // Flag file names (relative to stateDir)

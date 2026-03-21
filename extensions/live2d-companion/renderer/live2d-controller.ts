@@ -1,11 +1,12 @@
 import { Live2DModel } from "pixi-live2d-display";
 import * as PIXI from "pixi.js";
 import companionConfig from "../companion.config.json" assert { type: "json" };
+import type { IAvatarController } from "./avatar-controller.js";
 
 // Bind PIXI ticker for pixi-live2d-display
 Live2DModel.registerTicker(PIXI.Ticker);
 
-export class Live2DController {
+export class Live2DController implements IAvatarController {
   private app: PIXI.Application | null = null;
   private model: Live2DModel | null = null;
   private lipSyncValue = 0;
@@ -116,6 +117,10 @@ export class Live2DController {
 
   setLipSyncValue(value: number): void {
     this.lipSyncValue = Math.max(0, Math.min(1, value));
+  }
+
+  lookAt(_x: number, _y: number): void {
+    // Live2D eye-tracking is handled internally by pixi-live2d-display focus
   }
 
   destroy(): void {

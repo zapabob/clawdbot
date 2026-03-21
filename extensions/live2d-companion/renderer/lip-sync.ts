@@ -1,7 +1,7 @@
 import type { TtsProvider } from "../bridge/event-types.js";
 import companionConfig from "../companion.config.json" assert { type: "json" };
+import type { IAvatarController } from "./avatar-controller.js";
 import type { EmotionProfile } from "./emotion-mapper.js";
-import type { Live2DController } from "./live2d-controller.js";
 
 type MoraData = { vowel_length?: number };
 type AccentPhrase = { moras?: MoraData[] };
@@ -21,7 +21,7 @@ export class LipSyncController {
   private lipAnimFrame: number | null = null;
   ttsProvider: TtsProvider = (companionConfig.ttsProvider as TtsProvider) ?? "voicevox";
 
-  constructor(private readonly live2d: Live2DController) {}
+  constructor(private readonly live2d: IAvatarController) {}
 
   async speak(
     text: string,

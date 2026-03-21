@@ -5,6 +5,7 @@ import type {
   CompanionEmotionEvent,
   CompanionStateUpdate,
   TtsProvider,
+  AvatarCommand,
 } from "../bridge/event-types.js";
 
 contextBridge.exposeInMainWorld("companionBridge", {
@@ -46,6 +47,12 @@ contextBridge.exposeInMainWorld("companionBridge", {
   sendStateUpdate: (update: Partial<CompanionStateUpdate>) => {
     ipcRenderer.send(IPC_CHANNELS.STATE_UPDATE, update);
   },
+  // ── Avatar command (AI agent → avatar control) ────────────────────────────
+  onAvatarCommand: (callback: (cmd: AvatarCommand) => void) => {
+    ipcRenderer.on(IPC_CHANNELS.AVATAR_COMMAND, (_ipcEvent, cmd: AvatarCommand) => {
+      callback(cmd);
+    });
+  },
 });
 
 // Type declaration for renderer-side TypeScript
@@ -65,6 +72,7 @@ declare global {
         agentId?: string;
         ttsProvider?: TtsProvider;
       }) => void;
+      onAvatarCommand: (cb: (cmd: AvatarCommand) => void) => void;
     };
   }
 }

@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { app, BrowserWindow, screen, ipcMain } from "electron";
 import { IPC_CHANNELS, FLAG_FILES } from "../bridge/event-types.js";
-import type { CompanionStateUpdate, TtsProvider } from "../bridge/event-types.js";
+import type { CompanionStateUpdate, TtsProvider, AvatarCommand } from "../bridge/event-types.js";
 import { startFlagWatcher } from "../bridge/flag-watcher.js";
 import companionConfig from "../companion.config.json" assert { type: "json" };
 
@@ -114,6 +114,10 @@ function handleControlCommand(cmd: Record<string, unknown>): void {
   if (typeof cmd.speakText === "string" && cmd.speakText) {
     mainWindow?.webContents.send(IPC_CHANNELS.SPEAK_TEXT, cmd.speakText);
   }
+  if (cmd.avatarCommand) {
+    // Forward avatar command to renderer via dedicated IPC channel
+    mainWindow?.webContents.send(IPC_CHANNELS.AVATAR_COMMAND, cmd.avatarCommand as AvatarCommand);
+  }
   companionState.timestamp = Date.now();
   void writeState();
 }
@@ -185,7 +189,11 @@ async function scanModels(dir: string): Promise<string[]> {
       const fullPath = path.join(dir, entry.name);
       if (entry.isDirectory()) {
         results.push(...(await scanModels(fullPath)));
-      } else if (entry.name.endsWith(".model3.json")) {
+      } else if (
+        entry.name.endsWith(".model3.json") ||
+        entry.name.endsWith(".vrm") ||
+        entry.name.endsWith(".fbx")
+      ) {
         results.push(fullPath);
       }
     }

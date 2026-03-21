@@ -1,5 +1,5 @@
 import type { EmotionType } from "../bridge/event-types.js";
-import type { Live2DController } from "./live2d-controller.js";
+import type { IAvatarController } from "./avatar-controller.js";
 
 export interface EmotionProfile {
   motion: { group: string; index: number };
@@ -73,7 +73,7 @@ export function detectEmotion(text: string): EmotionType {
   return "neutral";
 }
 
-export function applyEmotion(controller: Live2DController, emotion: EmotionType): EmotionProfile {
+export function applyEmotion(controller: IAvatarController, emotion: EmotionType): EmotionProfile {
   const profile = EMOTION_MAP[emotion] ?? EMOTION_MAP.neutral;
   controller.playMotion(profile.motion.group, profile.motion.index);
   if (profile.expression) {

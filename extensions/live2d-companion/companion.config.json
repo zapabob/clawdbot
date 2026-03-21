@@ -1,4 +1,6 @@
 {
+  "avatarType": "auto",
+  "avatarPath": "auto",
   "modelPath": "auto",
   "voicevoxSpeaker": 8,
   "voicevoxUrl": "http://127.0.0.1:50021",
