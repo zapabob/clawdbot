@@ -24,6 +24,8 @@ const VOWEL_TO_VISEME: Record<string, string> = {
 };
 
 export class VrmController implements IAvatarController {
+  readonly avatarType = "vrm" as const;
+
   private three: ThreeModule | null = null;
   private vrmMod: VrmModule | null = null;
 

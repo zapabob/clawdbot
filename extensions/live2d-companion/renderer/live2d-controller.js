@@ -4,6 +4,7 @@ import companionConfig from "../companion.config.json" with { type: "json" };
 // Bind PIXI ticker for pixi-live2d-display
 Live2DModel.registerTicker(PIXI.Ticker);
 export class Live2DController {
+  avatarType = "live2d";
   app = null;
   model = null;
   lipSyncValue = 0;

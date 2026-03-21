@@ -22,7 +22,7 @@ async function main(): Promise<void> {
   // ── Initialize avatar via factory ────────────────────────────────────────
   const configType =
     ((companionConfig as Record<string, unknown>).avatarType as AvatarType) ?? "auto";
-  const avatar: IAvatarController = await createAvatarController(
+  let avatar: IAvatarController = await createAvatarController(
     configType === "auto" ? "live2d" : configType,
   );
   await avatar.init(container);
@@ -210,22 +210,18 @@ async function main(): Promise<void> {
 
     // If the dropped type differs from the running controller type, we need to
     // destroy the current controller and create a new one of the correct type.
-    const currentType =
-      avatar.constructor.name === "VrmController"
-        ? "vrm"
-        : avatar.constructor.name === "FbxController"
-          ? "fbx"
-          : "live2d";
+    const currentType = avatar.avatarType;
 
     if (droppedType !== currentType) {
       if (statusText) statusText.textContent = "アバター切替中…";
       avatar.destroy();
       const newCtrl = await createAvatarController(droppedType);
       await newCtrl.init(container!);
-      // Rebind the lipSync to the new controller
+      // Rebind avatar variable and lipSync to the new controller
+      avatar = newCtrl;
       (lipSync as unknown as { live2d: IAvatarController }).live2d = newCtrl;
-      // Update the badge and reload model in new controller
-      await newCtrl.reloadModel(modelPath);
+      // Load the dropped model in the new controller
+      await avatar.reloadModel(modelPath);
       const fname = modelPath.split(/[/\\]/).pop() ?? modelPath;
       if (modelBadge) modelBadge.textContent = fname;
       if (statusText) statusText.textContent = "";

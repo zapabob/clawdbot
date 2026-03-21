@@ -19,6 +19,8 @@ const MOUTH_OPEN_KEYS = [
 ];
 
 export class FbxController implements IAvatarController {
+  readonly avatarType = "fbx" as const;
+
   private three: ThreeModule | null = null;
 
   private renderer: import("three").WebGLRenderer | null = null;

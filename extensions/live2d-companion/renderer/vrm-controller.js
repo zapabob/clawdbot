@@ -14,6 +14,7 @@ const VOWEL_TO_VISEME = {
   o: "oh",
 };
 export class VrmController {
+  avatarType = "vrm";
   three = null;
   vrmMod = null;
   renderer = null;

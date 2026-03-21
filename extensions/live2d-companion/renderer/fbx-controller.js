@@ -13,6 +13,7 @@ const MOUTH_OPEN_KEYS = [
   "JawOpen",
 ];
 export class FbxController {
+  avatarType = "fbx";
   three = null;
   renderer = null;
   scene = null;

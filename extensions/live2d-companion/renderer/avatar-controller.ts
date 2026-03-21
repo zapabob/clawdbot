@@ -4,6 +4,9 @@
  * and app.ts can work with any avatar type.
  */
 export interface IAvatarController {
+  /** Identifies the backend type — used instead of constructor.name to be minification-safe. */
+  readonly avatarType: "live2d" | "vrm" | "fbx";
+
   /** Mount the rendering canvas into the given DOM container and load the default model. */
   init(container: HTMLElement): Promise<void>;
 

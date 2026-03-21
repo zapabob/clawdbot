@@ -7,6 +7,8 @@ import type { IAvatarController } from "./avatar-controller.js";
 Live2DModel.registerTicker(PIXI.Ticker);
 
 export class Live2DController implements IAvatarController {
+  readonly avatarType = "live2d" as const;
+
   private app: PIXI.Application | null = null;
   private model: Live2DModel | null = null;
   private lipSyncValue = 0;
