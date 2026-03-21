@@ -201,3 +201,20 @@
 - For manual `openclaw message send` messages that include `!`, use the heredoc pattern noted below to avoid the Bash tool’s escaping.
 - Release guardrails: do not change version numbers without operator’s explicit consent; always ask permission before running any npm publish/release step.
 - Beta release guardrail: when using a beta Git tag (for example `vYYYY.M.D-beta.N`), publish npm with a matching beta version suffix (for example `YYYY.M.D-beta.N`) rather than a plain version on `--tag beta`; otherwise the plain version name gets consumed/blocked.
+
+## Clawdbot Active Extensions and Available Tools
+
+Extensions enabled for this deployment (`.openclaw-desktop/openclaw.json` → `plugins.entries`):
+
+| Extension          | Tools                                     | Purpose                                                                 |
+| ------------------ | ----------------------------------------- | ----------------------------------------------------------------------- |
+| `live2d-companion` | `voicevox_speak`, `voicevox_speak_direct` | Desktop Live2D companion TTS via VOICEVOX                               |
+| `duckduckgo`       | `web_search`                              | Web search — no API key required                                        |
+| `memory-core`      | `memory_search`, `memory_get`             | File-backed persistent memory across sessions                           |
+| `lobster`          | `lobster`                                 | JSON-first shell workflow pipelines (requires `lobster` binary on PATH) |
+| `llm-task`         | `llm_task`                                | Structured subtask execution in a separate LLM session                  |
+| `vrchat-relay`     | `vrchat_*` (27 tools)                     | VRChat OSC control — chatbox, avatar params, camera, Guardian Pulse     |
+
+- Memory slot: `memory-core` (`plugins.slots.memory`). Use `memory_search` before answering questions about past context.
+- All extensions inject MD guidance via `before_prompt_build` (`appendSystemContext`). See `extensions/<id>/index.ts`.
+- Docs: `docs/tools/lobster`, `docs/tools/llm-task`, `docs/tools/memory-core`, `docs/tools/vrchat-relay`.

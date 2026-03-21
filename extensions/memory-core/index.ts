@@ -30,5 +30,16 @@ export default definePluginEntry({
       },
       { commands: ["memory"] },
     );
+
+    // Inject MD guidance so the agent uses memory tools autonomously
+    api.on("before_prompt_build", () => ({
+      appendSystemContext: [
+        "## メモリ検索ツール (memory-core)",
+        "",
+        "- **`memory_search`** — キーワードでファイルバックアップメモリを検索。",
+        "  過去の会話・事実・ユーザー設定を思い出す際に **積極的に** 使用する。",
+        "- **`memory_get`** — エントリ ID を指定してメモリを取得。",
+      ].join("\n"),
+    }));
   },
 });

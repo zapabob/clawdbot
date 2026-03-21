@@ -156,6 +156,9 @@
   },
   "plugins": {
     "enabled": true,
+    "slots": {
+      "memory": "memory-core"
+    },
     "entries": {
       "live2d-companion": {
         "enabled": true,
@@ -175,6 +178,30 @@
         }
       },
       "duckduckgo": {
+        "enabled": true,
+        "hooks": {
+          "allowPromptInjection": true
+        }
+      },
+      "memory-core": {
+        "enabled": true,
+        "hooks": {
+          "allowPromptInjection": true
+        }
+      },
+      "lobster": {
+        "enabled": true,
+        "hooks": {
+          "allowPromptInjection": true
+        }
+      },
+      "llm-task": {
+        "enabled": true,
+        "hooks": {
+          "allowPromptInjection": true
+        }
+      },
+      "vrchat-relay": {
         "enabled": true,
         "hooks": {
           "allowPromptInjection": true

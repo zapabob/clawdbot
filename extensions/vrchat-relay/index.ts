@@ -949,6 +949,20 @@ ${logText}`,
       console.log(`[vrchat-relay] ${pulseResult.message}`);
     }
 
+    // Inject MD guidance so the agent uses VRChat tools autonomously
+    api.on("before_prompt_build", () => ({
+      appendSystemContext: [
+        "## VRChat 制御ツール (vrchat-relay)",
+        "",
+        "- **`vrchat_login`** / **`vrchat_status`** — 認証・接続確認（他のツールより先に実行）",
+        "- **`vrchat_chatbox`** — チャットボックスにメッセージ送信（最大 144 文字）",
+        "- **`vrchat_set_avatar_param`** — アバターパラメーター制御",
+        "- **`vrchat_guardian_pulse_start`** — 自律的に定期メッセージ + 感情を VRChat に送信",
+        "- カメラ制御・OSC・フレンド一覧など 27 ツール利用可能。",
+        "> 権限レベル: SAFE（デフォルト）→ PRO → DIRECTOR の順で昇格が必要。",
+      ].join("\n"),
+    }));
+
     console.log("[vrchat-relay] VRChat Relay Pro plugin registered successfully");
     console.log(
       "[vrchat-relay] Features: Camera Control, Permission Profiles, Rate Limiting, OSCQuery Discovery, Guardian Pulse",
