@@ -35,6 +35,7 @@ export class FbxController implements IAvatarController {
   private lipMeshes: Array<import("three").SkinnedMesh | import("three").Mesh> = [];
   /** Resolved morph target index for lip sync */
   private lipMorphIdx: number | null = null;
+  private clips: import("three").AnimationClip[] = [];
 
   async init(container: HTMLElement): Promise<void> {
     this.three = await import("three");
@@ -98,6 +99,7 @@ export class FbxController implements IAvatarController {
     this.scene.add(fbx);
     this.model = fbx;
     this.mixer = new this.three.AnimationMixer(fbx);
+    this.clips = fbx.animations ?? [];
     this.resolveLipMeshes(fbx);
   }
 
@@ -125,11 +127,21 @@ export class FbxController implements IAvatarController {
     this.scene.add(fbx);
     this.model = fbx;
     this.mixer = new this.three.AnimationMixer(fbx);
+    this.clips = fbx.animations ?? [];
     this.resolveLipMeshes(fbx);
   }
 
-  playMotion(_group: string, _index = 0, _loop = false): void {
-    // FBX clip playback could be extended here; stub for now
+  playMotion(group: string, index = 0, loop = false): void {
+    if (!this.mixer || !this.clips.length || !this.three) return;
+    const groupLower = group.toLowerCase();
+    let clip = this.clips.find((c) => c.name.toLowerCase().includes(groupLower));
+    if (!clip) clip = this.clips[index] ?? this.clips[0];
+    if (!clip) return;
+    this.mixer.stopAllAction();
+    const action = this.mixer.clipAction(clip);
+    action.setLoop(loop ? this.three.LoopRepeat : this.three.LoopOnce, Infinity);
+    action.clampWhenFinished = !loop;
+    action.reset().play();
   }
 
   playExpression(expressionId: string): void {
@@ -158,6 +170,7 @@ export class FbxController implements IAvatarController {
 
   destroy(): void {
     this.stopRenderLoop();
+    this.clips = [];
     this.mixer?.stopAllAction();
     this.renderer?.dispose();
     this.renderer?.domElement.remove();

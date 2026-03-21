@@ -26,6 +26,7 @@ export class FbxController {
   lipMeshes = [];
   /** Resolved morph target index for lip sync */
   lipMorphIdx = null;
+  clips = [];
   async init(container) {
     this.three = await import("three");
     const THREE = this.three;
@@ -83,6 +84,7 @@ export class FbxController {
     this.scene.add(fbx);
     this.model = fbx;
     this.mixer = new this.three.AnimationMixer(fbx);
+    this.clips = fbx.animations ?? [];
     this.resolveLipMeshes(fbx);
   }
   /**
@@ -111,10 +113,20 @@ export class FbxController {
     this.scene.add(fbx);
     this.model = fbx;
     this.mixer = new this.three.AnimationMixer(fbx);
+    this.clips = fbx.animations ?? [];
     this.resolveLipMeshes(fbx);
   }
-  playMotion(_group, _index = 0, _loop = false) {
-    // FBX clip playback could be extended here; stub for now
+  playMotion(group, index = 0, loop = false) {
+    if (!this.mixer || !this.clips.length || !this.three) return;
+    const groupLower = group.toLowerCase();
+    let clip = this.clips.find((c) => c.name.toLowerCase().includes(groupLower));
+    if (!clip) clip = this.clips[index] ?? this.clips[0];
+    if (!clip) return;
+    this.mixer.stopAllAction();
+    const action = this.mixer.clipAction(clip);
+    action.setLoop(loop ? this.three.LoopRepeat : this.three.LoopOnce, Infinity);
+    action.clampWhenFinished = !loop;
+    action.reset().play();
   }
   playExpression(expressionId) {
     // Drive a morph target by expression name directly
@@ -139,6 +151,7 @@ export class FbxController {
   }
   destroy() {
     this.stopRenderLoop();
+    this.clips = [];
     this.mixer?.stopAllAction();
     this.renderer?.dispose();
     this.renderer?.domElement.remove();

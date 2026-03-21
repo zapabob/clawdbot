@@ -36,6 +36,9 @@ export class VrmController implements IAvatarController {
   private clock: import("three").Clock | null = null;
   private rafId: number | null = null;
 
+  private mixer: import("three").AnimationMixer | null = null;
+  private clips: import("three").AnimationClip[] = [];
+
   /** Current lip-sync mouth open value [0,1] */
   private lipValue = 0;
   /** Current active viseme key (VRM 1.0) */
@@ -116,6 +119,9 @@ export class VrmController implements IAvatarController {
     vrm.scene.rotation.y = Math.PI;
     this.scene.add(vrm.scene);
     this.vrm = vrm;
+    if (this.mixer) this.mixer.stopAllAction();
+    this.mixer = new this.three.AnimationMixer(vrm.scene);
+    this.clips = gltf.animations ?? [];
   }
 
   /** Load VRM from an ArrayBuffer — works reliably without URL/XHR restrictions. */
@@ -152,12 +158,24 @@ export class VrmController implements IAvatarController {
     vrm.scene.rotation.y = Math.PI;
     this.scene.add(vrm.scene);
     this.vrm = vrm;
+    if (this.mixer) this.mixer.stopAllAction();
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    this.mixer = new this.three!.AnimationMixer(vrm.scene);
+    this.clips = gltf.animations ?? [];
   }
 
-  playMotion(_group: string, _index = 0, _loop = false): void {
-    // VRM animation clips can be layered via THREE.AnimationMixer.
-    // Basic stub: reset expression to neutral on motion change.
-    this.clearExpression();
+  playMotion(group: string, index = 0, loop = false): void {
+    if (!this.mixer || !this.clips.length || !this.three) return;
+    // Prefer a clip whose name contains the group name; fall back to positional index.
+    const groupLower = group.toLowerCase();
+    let clip = this.clips.find((c) => c.name.toLowerCase().includes(groupLower));
+    if (!clip) clip = this.clips[index] ?? this.clips[0];
+    if (!clip) return;
+    this.mixer.stopAllAction();
+    const action = this.mixer.clipAction(clip);
+    action.setLoop(loop ? this.three.LoopRepeat : this.three.LoopOnce, Infinity);
+    action.clampWhenFinished = !loop;
+    action.reset().play();
   }
 
   playExpression(expressionId: string): void {
@@ -221,6 +239,9 @@ export class VrmController implements IAvatarController {
 
   destroy(): void {
     this.stopRenderLoop();
+    this.mixer?.stopAllAction();
+    this.mixer = null;
+    this.clips = [];
     if (this.vrm && this.vrmMod) {
       this.vrmMod.VRMUtils.deepDispose(this.vrm.scene);
     }
@@ -250,6 +271,7 @@ export class VrmController implements IAvatarController {
     const loop = () => {
       this.rafId = requestAnimationFrame(loop);
       const delta = this.clock?.getDelta() ?? 0;
+      this.mixer?.update(delta);
       this.vrm?.update(delta);
       if (this.renderer && this.scene && this.camera) {
         this.renderer.render(this.scene, this.camera);
