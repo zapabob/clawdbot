@@ -81,4 +81,3 @@ PARAMETER temperature 0.8
 PARAMETER top_p 0.9
 PARAMETER stop "<|im_start|>"
 PARAMETER stop "<|im_end|>"
-PARAMETER stop "ASI_ACCEL"
