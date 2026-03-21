@@ -75,30 +75,7 @@ function createWindow() {
   mainWindow.setAlwaysOnTop(true, "screen-saver");
   mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   mainWindow.setIgnoreMouseEvents(true, { forward: true });
-  // ── DPI-robust click-through polling ─────────────────────────────────────
-  // Electron 28 on Windows: getCursorScreenPoint() may return logical (DIP) OR
-  // physical pixels depending on per-monitor DPI awareness mode.
-  // getBounds() always returns logical pixels.
-  // Strategy: check BOTH coordinate spaces with OR so one of them is always correct.
-  ignoreMouseTimer = setInterval(() => {
-    if (!mainWindow || mainWindow.isDestroyed()) return;
-    const pos = screen.getCursorScreenPoint();
-    const b = mainWindow.getBounds();
-    // scaleFactor of the display the window lives on (for physical comparison)
-    const sf = screen.getDisplayNearestPoint({
-      x: b.x + b.width / 2,
-      y: b.y + b.height / 2,
-    }).scaleFactor;
-    // Logical comparison (cursor = DIP)
-    const inL = pos.x >= b.x && pos.x <= b.x + b.width && pos.y >= b.y && pos.y <= b.y + b.height;
-    // Physical comparison (cursor = screen pixels, scale bounds up)
-    const inP =
-      pos.x >= b.x * sf &&
-      pos.x <= (b.x + b.width) * sf &&
-      pos.y >= b.y * sf &&
-      pos.y <= (b.y + b.height) * sf;
-    mainWindow.setIgnoreMouseEvents(!(inL || inP), { forward: true });
-  }, 50);
+  ignoreMouseTimer = startIgnoreMouseTimer();
   const rendererPath = path.join(__dirname, "../renderer/index.html");
   void mainWindow.loadFile(rendererPath);
   mainWindow.once("ready-to-show", () => {
