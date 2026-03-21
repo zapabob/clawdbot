@@ -154,6 +154,31 @@
       "name": "はくあ"
     }
   },
+  "plugins": {
+    "enabled": true,
+    "entries": {
+      "live2d-companion": {
+        "enabled": true,
+        "hooks": {
+          "allowPromptInjection": true
+        },
+        "config": {
+          "llmMirror": {
+            "enabled": true,
+            "maxChars": 120,
+            "companionUrl": "http://127.0.0.1:18791/control"
+          },
+          "voicevox": {
+            "speaker": 8,
+            "url": "http://127.0.0.1:50021"
+          }
+        }
+      },
+      "duckduckgo": {
+        "enabled": true
+      }
+    }
+  },
   "gateway": {
     "mode": "local"
   },

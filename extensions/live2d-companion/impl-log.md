@@ -6,6 +6,66 @@
 
 ## 2026-03-22
 
+### feat(companion): OpenClaw エージェントが自律的に自作エクステンションを使用できるように設定
+
+**問題**
+`openclaw.json` に `plugins` セクションが存在しなかったため、エクステンションがロードされておらず
+エージェントはツール (`voicevox_speak` 等) を認識・使用できなかった。
+
+**変更1: `.openclaw-desktop/openclaw.json` — `plugins` セクション追加**
+
+```json
+"plugins": {
+  "enabled": true,
+  "entries": {
+    "live2d-companion": {
+      "enabled": true,
+      "hooks": { "allowPromptInjection": true },
+      "config": {
+        "llmMirror": { "enabled": true, "maxChars": 120, "companionUrl": "http://127.0.0.1:18791/control" },
+        "voicevox": { "speaker": 8, "url": "http://127.0.0.1:50021" }
+      }
+    },
+    "duckduckgo": { "enabled": true }
+  }
+}
+```
+
+- `allowPromptInjection: true` — `before_prompt_build` フックによるシステムプロンプト注入を許可
+- `duckduckgo` — ウェブ検索プロバイダーも同時に有効化
+
+**変更2: `extensions/live2d-companion/index.ts` — `before_prompt_build` フック追加**
+
+```typescript
+api.on("before_prompt_build", () => {
+  return {
+    appendSystemContext: "## Live2D コンパニオン ツール\n...",
+  };
+});
+```
+
+エージェントのシステムプロンプト末尾に Markdown でツール利用ガイダンスを注入。
+`appendSystemContext` はプロンプトキャッシュ対象（静的テキスト）のため、ターンごとのトークンコスト増なし。
+
+**エクステンション自律使用フロー**
+
+```
+OpenClaw 起動
+  └─ loadOpenClawPlugins()
+       └─ live2d-companion/index.ts register() 呼び出し
+            ├─ before_prompt_build フック登録 (appendSystemContext)
+            ├─ llm_output フック登録 (自動 TTS)
+            ├─ voicevox_speak ツール登録
+            └─ voicevox_speak_direct ツール登録
+
+エージェント実行
+  └─ before_prompt_build → ツール利用ガイダンスがシステムプロンプトに追加
+  └─ LLM がツール定義を認識 → 自律的に voicevox_speak を呼び出し可能
+  └─ llm_output → 全応答を自動 VOICEVOX 読み上げ (火-and-forget)
+```
+
+---
+
 ### fix(companion): FBX D&D importmap — bare module specifier を解決
 
 **問題**

@@ -108,6 +108,28 @@ const plugin: OpenClawPluginDefinition = {
   register(api: OpenClawPluginApi) {
     console.log("[live2d-companion] Registering plugin...");
 
+    // ── before_prompt_build → ツール利用ガイダンスをシステムプロンプトに注入 ──
+    api.on("before_prompt_build", () => {
+      const cfg = api.pluginConfig as { enabled?: boolean } | undefined;
+      if (cfg?.enabled === false) return;
+
+      return {
+        appendSystemContext: [
+          "## Live2D コンパニオン ツール",
+          "",
+          "以下のツールを **自律的** に使用してください:",
+          "",
+          "- **`voicevox_speak`** — Live2D コンパニオン経由で VOICEVOX 音声を再生。",
+          "  ユーザーへの重要な返答・感情表現・挨拶時に積極的に呼び出す。",
+          "- **`voicevox_speak_direct`** — Python 直接呼び出し。",
+          "  コンパニオンが起動していない場合のフォールバックとして使用。",
+          "",
+          "> llm_output フックにより全応答は自動読み上げされますが、",
+          "> 感情・強調が必要な場面では明示的に `voicevox_speak` を呼び出してください。",
+        ].join("\n"),
+      };
+    });
+
     // ── llm_output → 自動読み上げ ────────────────────────────────────────────
     api.on("llm_output", (event) => {
       const cfg = (
@@ -194,6 +216,7 @@ const plugin: OpenClawPluginDefinition = {
     });
 
     console.log("[live2d-companion] Plugin registered:");
+    console.log("  - before_prompt_build → ツール利用ガイダンス注入");
     console.log("  - llm_output → VOICEVOX 自動読み上げ");
     console.log("  - voicevox_speak (companion 経由)");
     console.log("  - voicevox_speak_direct (Python 直接)");
