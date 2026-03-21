@@ -1,0 +1,27 @@
+{
+  "name": "@openclaw/live2d-companion",
+  "version": "2026.3.20",
+  "private": true,
+  "description": "Hakua Live2D Desktop Companion - transparent Electron window with pixi-live2d-display",
+  "type": "module",
+  "main": "electron/main.js",
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "dev": "tsc --watch",
+    "start": "electron electron/main.js"
+  },
+  "dependencies": {
+    "pixi-live2d-display": "^0.4.0",
+    "pixi.js": "^7.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "electron": "^28.0.0",
+    "typescript": "^5.3.0"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.js"
+    ]
+  }
+}
