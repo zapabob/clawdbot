@@ -51,7 +51,7 @@ $Shortcut = $WshShell.CreateShortcut($PrimaryPath)
 $Shortcut.TargetPath    = "powershell.exe"
 $Shortcut.Arguments     = "-NoExit -ExecutionPolicy Bypass -File `"$LauncherPs1`" -SpeakOnReady"
 $Shortcut.WorkingDirectory = $ProjectDir
-$Shortcut.Description   = "Clawdbot — Launch Gateway, TUI, Companion & Browser"
+$Shortcut.Description   = "Clawdbot — Gateway / TUI / Live2D+VOICEVOX / VRChat Relay / X Poster / Web UI"
 $Shortcut.WindowStyle   = 1   # Normal
 
 if (Test-Path $IconPath) {
