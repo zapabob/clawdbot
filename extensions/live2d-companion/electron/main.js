@@ -12,7 +12,6 @@ const stateDir = process.env.OPENCLAW_STATE_DIR
   ? path.resolve(process.env.OPENCLAW_STATE_DIR)
   : path.resolve(path.join(__dirname, "../../..", companionConfig.stateDir));
 let mainWindow = null;
-let ignoreMouseTimer = null;
 // ── Companion runtime state ───────────────────────────────────────────────────
 const companionState = {
   visible: true,
@@ -55,26 +54,16 @@ function createWindow() {
   });
   mainWindow.setAlwaysOnTop(true, "screen-saver");
   mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  // Start in click-through mode; renderer toggles via IPC when cursor enters UI
+  // (avoids HiDPI DPI mismatch in the old polling-timer approach)
+  mainWindow.setIgnoreMouseEvents(true, { forward: true });
   const rendererPath = path.join(__dirname, "../renderer/index.html");
   void mainWindow.loadFile(rendererPath);
   mainWindow.once("ready-to-show", () => {
     mainWindow?.show();
     void writeState();
   });
-  // Transparent click-through outside the model area
-  ignoreMouseTimer = setInterval(() => {
-    if (!mainWindow || mainWindow.isDestroyed()) return;
-    const pos = screen.getCursorScreenPoint();
-    const bounds = mainWindow.getBounds();
-    const inBounds =
-      pos.x >= bounds.x &&
-      pos.x <= bounds.x + bounds.width &&
-      pos.y >= bounds.y &&
-      pos.y <= bounds.y + bounds.height;
-    mainWindow.setIgnoreMouseEvents(!inBounds, { forward: true });
-  }, 50);
   mainWindow.on("closed", () => {
-    if (ignoreMouseTimer) clearInterval(ignoreMouseTimer);
     mainWindow = null;
   });
   // Start flag watcher — forwards .openclaw-desktop JSON events to renderer
@@ -303,6 +292,10 @@ ipcMain.handle("discover-model", async () => {
 ipcMain.on(IPC_CHANNELS.STATE_UPDATE, (_event, update) => {
   Object.assign(companionState, update, { timestamp: Date.now() });
   void writeState();
+});
+// ── IPC: click-through toggle (renderer-driven, avoids HiDPI DPI mismatch) ───
+ipcMain.on("set-ignore-mouse-events", (_e, ignore) => {
+  mainWindow?.setIgnoreMouseEvents(ignore, { forward: true });
 });
 // ── Bootstrap ────────────────────────────────────────────────────────────────
 if (process.platform === "win32") {

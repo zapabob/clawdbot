@@ -18,7 +18,6 @@ const stateDir = process.env.OPENCLAW_STATE_DIR
   : path.resolve(path.join(__dirname, "../../..", companionConfig.stateDir));
 
 let mainWindow: BrowserWindow | null = null;
-let ignoreMouseTimer: ReturnType<typeof setInterval> | null = null;
 
 // ── Companion runtime state ───────────────────────────────────────────────────
 const companionState: CompanionStateUpdate = {
@@ -67,6 +66,10 @@ function createWindow(): void {
   mainWindow.setAlwaysOnTop(true, "screen-saver");
   mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
 
+  // Start in click-through mode; renderer toggles via IPC when cursor enters UI
+  // (avoids HiDPI DPI mismatch in the old polling-timer approach)
+  mainWindow.setIgnoreMouseEvents(true, { forward: true });
+
   const rendererPath = path.join(__dirname, "../renderer/index.html");
   void mainWindow.loadFile(rendererPath);
 
@@ -75,21 +78,7 @@ function createWindow(): void {
     void writeState();
   });
 
-  // Transparent click-through outside the model area
-  ignoreMouseTimer = setInterval(() => {
-    if (!mainWindow || mainWindow.isDestroyed()) return;
-    const pos = screen.getCursorScreenPoint();
-    const bounds = mainWindow.getBounds();
-    const inBounds =
-      pos.x >= bounds.x &&
-      pos.x <= bounds.x + bounds.width &&
-      pos.y >= bounds.y &&
-      pos.y <= bounds.y + bounds.height;
-    mainWindow.setIgnoreMouseEvents(!inBounds, { forward: true });
-  }, 50);
-
   mainWindow.on("closed", () => {
-    if (ignoreMouseTimer) clearInterval(ignoreMouseTimer);
     mainWindow = null;
   });
 
@@ -339,6 +328,11 @@ ipcMain.handle("discover-model", async () => {
 ipcMain.on(IPC_CHANNELS.STATE_UPDATE, (_event, update: Partial<CompanionStateUpdate>) => {
   Object.assign(companionState, update, { timestamp: Date.now() });
   void writeState();
+});
+
+// ── IPC: click-through toggle (renderer-driven, avoids HiDPI DPI mismatch) ───
+ipcMain.on("set-ignore-mouse-events", (_e, ignore: boolean) => {
+  mainWindow?.setIgnoreMouseEvents(ignore, { forward: true });
 });
 
 // ── Bootstrap ────────────────────────────────────────────────────────────────

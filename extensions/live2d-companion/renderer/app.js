@@ -280,6 +280,15 @@ async function main() {
   document.addEventListener("dragleave", (e) => {
     if (!e.relatedTarget) setDragActive(false);
   });
+  // ── Click-through: renderer-driven (avoids HiDPI DPI mismatch) ──────────
+  // mousemove fires even when ignored (forward:true), so we can toggle here.
+  document.addEventListener("mousemove", () => {
+    window.companionBridge?.setIgnoreMouseEvents(false);
+  });
+  document.addEventListener("mouseleave", () => {
+    window.companionBridge?.setIgnoreMouseEvents(true);
+  });
+
   document.addEventListener("drop", async (e) => {
     e.preventDefault();
     setDragActive(false);
