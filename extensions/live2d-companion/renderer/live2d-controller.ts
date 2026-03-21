@@ -1,6 +1,6 @@
 import { Live2DModel } from "pixi-live2d-display";
 import * as PIXI from "pixi.js";
-import companionConfig from "../companion.config.json" assert { type: "json" };
+import companionConfig from "../companion.config.json" with { type: "json" };
 import type { IAvatarController } from "./avatar-controller.js";
 
 // Bind PIXI ticker for pixi-live2d-display

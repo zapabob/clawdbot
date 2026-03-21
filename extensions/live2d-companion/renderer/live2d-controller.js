@@ -1,6 +1,6 @@
 import { Live2DModel } from "pixi-live2d-display";
 import * as PIXI from "pixi.js";
-import companionConfig from "../companion.config.json" assert { type: "json" };
+import companionConfig from "../companion.config.json" with { type: "json" };
 // Bind PIXI ticker for pixi-live2d-display
 Live2DModel.registerTicker(PIXI.Ticker);
 export class Live2DController {
@@ -54,7 +54,10 @@ export class Live2DController {
   async loadModel(modelPath) {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const model = await Live2DModel.from(modelPath, { autoHitTest: true, autoFocus: true });
+      const model = await Live2DModel.from(modelPath, {
+        autoHitTest: true,
+        autoFocus: true,
+      });
       const cfg = companionConfig.live2d;
       model.scale.set(cfg.scale);
       model.anchor.set(cfg.anchorX, cfg.anchorY);
@@ -99,6 +102,9 @@ export class Live2DController {
   }
   setLipSyncValue(value) {
     this.lipSyncValue = Math.max(0, Math.min(1, value));
+  }
+  lookAt(_x, _y) {
+    // Live2D eye-tracking is handled internally by pixi-live2d-display focus
   }
   destroy() {
     this.app?.destroy(true);

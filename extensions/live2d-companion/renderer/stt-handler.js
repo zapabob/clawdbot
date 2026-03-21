@@ -1,4 +1,4 @@
-import companionConfig from "../companion.config.json" assert { type: "json" };
+import companionConfig from "../companion.config.json" with { type: "json" };
 export class SttHandler {
   recognition = null;
   active = false;

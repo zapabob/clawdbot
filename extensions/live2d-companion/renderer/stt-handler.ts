@@ -1,4 +1,4 @@
-import companionConfig from "../companion.config.json" assert { type: "json" };
+import companionConfig from "../companion.config.json" with { type: "json" };
 
 type SpeechRecognitionEvent = Event & { results: SpeechRecognitionResultList };
 type SpeechRecognitionResultList = { [index: number]: SpeechRecognitionResult; length: number };

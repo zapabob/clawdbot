@@ -5,16 +5,13 @@ import { fileURLToPath } from "node:url";
 import { app, BrowserWindow, screen, ipcMain } from "electron";
 import { IPC_CHANNELS, FLAG_FILES } from "../bridge/event-types.js";
 import { startFlagWatcher } from "../bridge/flag-watcher.js";
-import companionConfig from "../companion.config.json" assert { type: "json" };
-
+import companionConfig from "../companion.config.json" with { type: "json" };
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const stateDir = process.env.OPENCLAW_STATE_DIR
   ? path.resolve(process.env.OPENCLAW_STATE_DIR)
   : path.resolve(path.join(__dirname, "../../..", companionConfig.stateDir));
-
 let mainWindow = null;
 let ignoreMouseTimer = null;
-
 // ── Companion runtime state ───────────────────────────────────────────────────
 const companionState = {
   visible: true,
@@ -23,7 +20,6 @@ const companionState = {
   speaking: false,
   timestamp: Date.now(),
 };
-
 async function writeState() {
   const statePath = path.join(stateDir, FLAG_FILES.STATE);
   try {
@@ -33,12 +29,10 @@ async function writeState() {
     // Best-effort
   }
 }
-
 // ── Window creation ──────────────────────────────────────────────────────────
 function createWindow() {
   const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize;
   const { width, height, offsetRight, offsetBottom } = companionConfig.window;
-
   mainWindow = new BrowserWindow({
     x: screenWidth - offsetRight,
     y: screenHeight - offsetBottom,
@@ -57,19 +51,15 @@ function createWindow() {
     },
     show: false,
   });
-
   mainWindow.setAlwaysOnTop(true, "screen-saver");
   mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-
   const rendererPath = path.join(__dirname, "../renderer/index.html");
   void mainWindow.loadFile(rendererPath);
-
   mainWindow.once("ready-to-show", () => {
     mainWindow?.show();
     void writeState();
   });
-
-  // Transparent click-through outside model area
+  // Transparent click-through outside the model area
   ignoreMouseTimer = setInterval(() => {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     const pos = screen.getCursorScreenPoint();
@@ -81,15 +71,13 @@ function createWindow() {
       pos.y <= bounds.y + bounds.height;
     mainWindow.setIgnoreMouseEvents(!inBounds, { forward: true });
   }, 50);
-
   mainWindow.on("closed", () => {
     if (ignoreMouseTimer) clearInterval(ignoreMouseTimer);
     mainWindow = null;
   });
-
+  // Start flag watcher — forwards .openclaw-desktop JSON events to renderer
   startFlagWatcher(stateDir, () => mainWindow?.webContents ?? null);
 }
-
 // ── Control command handler ──────────────────────────────────────────────────
 function handleControlCommand(cmd) {
   if (typeof cmd.visible === "boolean") {
@@ -111,10 +99,13 @@ function handleControlCommand(cmd) {
   if (typeof cmd.speakText === "string" && cmd.speakText) {
     mainWindow?.webContents.send(IPC_CHANNELS.SPEAK_TEXT, cmd.speakText);
   }
+  if (cmd.avatarCommand) {
+    // Forward avatar command to renderer via dedicated IPC channel
+    mainWindow?.webContents.send(IPC_CHANNELS.AVATAR_COMMAND, cmd.avatarCommand);
+  }
   companionState.timestamp = Date.now();
   void writeState();
 }
-
 // ── HTTP control server (port 18791) ─────────────────────────────────────────
 function startControlServer() {
   const port = companionConfig.controlPort ?? 18791;
@@ -122,21 +113,17 @@ function startControlServer() {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-
     if (req.method === "OPTIONS") {
       res.writeHead(204);
       res.end();
       return;
     }
-
     const url = req.url ?? "/";
-
     if (req.method === "GET" && url === "/state") {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(companionState));
       return;
     }
-
     if (req.method === "POST" && url === "/control") {
       let body = "";
       req.on("data", (chunk) => {
@@ -155,15 +142,12 @@ function startControlServer() {
       });
       return;
     }
-
     res.writeHead(404);
     res.end();
   });
-
   server.listen(port, "127.0.0.1", () => {
     console.log(`[Companion] Control server on 127.0.0.1:${port}`);
   });
-
   server.on("error", (err) => {
     if (err.code === "EADDRINUSE") {
       console.warn(`[Companion] Port ${port} in use — control server skipped`);
@@ -172,7 +156,6 @@ function startControlServer() {
     }
   });
 }
-
 // ── IPC: model discovery ──────────────────────────────────────────────────────
 async function scanModels(dir) {
   const results = [];
@@ -182,7 +165,11 @@ async function scanModels(dir) {
       const fullPath = path.join(dir, entry.name);
       if (entry.isDirectory()) {
         results.push(...(await scanModels(fullPath)));
-      } else if (entry.name.endsWith(".model3.json")) {
+      } else if (
+        entry.name.endsWith(".model3.json") ||
+        entry.name.endsWith(".vrm") ||
+        entry.name.endsWith(".fbx")
+      ) {
         results.push(fullPath);
       }
     }
@@ -191,33 +178,27 @@ async function scanModels(dir) {
   }
   return results;
 }
-
 ipcMain.handle("discover-model", async () => {
   const modelsDir = path.join(__dirname, "../../models");
   const found = await scanModels(modelsDir);
   return found[0] ?? null;
 });
-
 // ── IPC: renderer → state update ─────────────────────────────────────────────
 ipcMain.on(IPC_CHANNELS.STATE_UPDATE, (_event, update) => {
   Object.assign(companionState, update, { timestamp: Date.now() });
   void writeState();
 });
-
 // ── Bootstrap ────────────────────────────────────────────────────────────────
 if (process.platform === "win32") {
   app.commandLine.appendSwitch("disable-gpu-shader-disk-cache");
 }
-
 app.whenReady().then(() => {
   createWindow();
   startControlServer();
-
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
-
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });

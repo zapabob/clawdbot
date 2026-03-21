@@ -6,7 +6,7 @@ import { app, BrowserWindow, screen, ipcMain } from "electron";
 import { IPC_CHANNELS, FLAG_FILES } from "../bridge/event-types.js";
 import type { CompanionStateUpdate, TtsProvider, AvatarCommand } from "../bridge/event-types.js";
 import { startFlagWatcher } from "../bridge/flag-watcher.js";
-import companionConfig from "../companion.config.json" assert { type: "json" };
+import companionConfig from "../companion.config.json" with { type: "json" };
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

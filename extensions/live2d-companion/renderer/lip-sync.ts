@@ -1,5 +1,5 @@
 import type { TtsProvider } from "../bridge/event-types.js";
-import companionConfig from "../companion.config.json" assert { type: "json" };
+import companionConfig from "../companion.config.json" with { type: "json" };
 import type { IAvatarController } from "./avatar-controller.js";
 import type { EmotionProfile } from "./emotion-mapper.js";
 

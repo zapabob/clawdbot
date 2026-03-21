@@ -4,7 +4,7 @@ import type {
   AvatarCommand,
   TtsProvider,
 } from "../bridge/event-types.js";
-import companionConfig from "../companion.config.json" assert { type: "json" };
+import companionConfig from "../companion.config.json" with { type: "json" };
 import type { IAvatarController } from "./avatar-controller.js";
 import { createAvatarController, inferAvatarType, type AvatarType } from "./avatar-factory.js";
 import { detectEmotion, applyEmotion } from "./emotion-mapper.js";
