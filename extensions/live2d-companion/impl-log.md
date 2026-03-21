@@ -66,6 +66,36 @@ OpenClaw 起動
 
 ---
 
+## 2026-03-22 (continued)
+
+### feat(duckduckgo): before_prompt_build ガイダンス追加
+
+**背景**
+`duckduckgo` は `WebSearchProvider.createTool()` 経由で `web_search` ツールを動的生成するが、
+システムプロンプトへのガイダンス注入がなく、エージェントがいつ使うべきか認識できなかった。
+
+**変更内容**
+
+- `extensions/duckduckgo/index.ts`: `before_prompt_build` フック追加 (`appendSystemContext`)
+- `.openclaw-desktop/openclaw.json`: `duckduckgo.hooks.allowPromptInjection: true` 追加
+
+**注入されるガイダンス（MD形式）**
+
+```
+## ウェブ検索 (DuckDuckGo)
+- web_search — APIキー不要。最新情報・外部ドキュメント確認に積極的に使用。
+- 検索結果はスニペットのみ。詳細が必要なら URL を取得してさらに調べること。
+```
+
+**現在の対応状況**
+| Extension | before_prompt_build | 有効 |
+|-----------|---------------------|------|
+| live2d-companion | ✅ | ✅ |
+| duckduckgo | ✅ | ✅ |
+| memory-core, lobster, llm-task | ❌（無効のため対応外） | ❌ |
+
+---
+
 ### fix(companion): FBX D&D importmap — bare module specifier を解決
 
 **問題**

@@ -175,7 +175,10 @@
         }
       },
       "duckduckgo": {
-        "enabled": true
+        "enabled": true,
+        "hooks": {
+          "allowPromptInjection": true
+        }
       }
     }
   },
