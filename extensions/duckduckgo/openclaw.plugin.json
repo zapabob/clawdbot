@@ -1,0 +1,10 @@
+{
+  "id": "duckduckgo",
+  "name": "DuckDuckGo",
+  "description": "Bundled DuckDuckGo web search provider — no API key required.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

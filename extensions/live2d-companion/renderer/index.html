@@ -4,9 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Hakua Companion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
-
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     html, body {
@@ -14,253 +15,399 @@
       height: 100%;
       overflow: hidden;
       background: transparent;
-      font-family: 'Share Tech Mono', 'Courier New', monospace;
+      font-family: 'M PLUS Rounded 1c', 'Hiragino Maru Gothic ProN', 'Yu Gothic', sans-serif;
     }
 
     /* ═══════════════════════════════════════════════
-       CYBERPUNK BACKGROUND
+       IMAS STAGE BACKGROUND
     ═══════════════════════════════════════════════ */
-    #cp-bg {
+    #imas-bg {
       position: absolute;
       inset: 0;
       background:
-        /* Neon grid lines */
-        linear-gradient(rgba(0, 255, 255, 0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 255, 255, 0.04) 1px, transparent 1px),
-        /* Diagonal accent lines */
-        linear-gradient(135deg, rgba(255, 0, 180, 0.03) 1px, transparent 1px),
-        /* Base dark gradient */
-        linear-gradient(180deg,
-          rgba(2, 5, 18, 0.82) 0%,
-          rgba(5, 8, 28, 0.88) 40%,
-          rgba(8, 3, 22, 0.92) 100%);
-      background-size:
-        28px 28px,
-        28px 28px,
-        56px 56px,
-        100% 100%;
-      border: 1px solid rgba(0, 220, 255, 0.18);
+        radial-gradient(ellipse at 50% -10%, rgba(255,255,255,0.18) 0%, transparent 55%),
+        linear-gradient(160deg,
+          #1a0533 0%,
+          #2d0a5c 18%,
+          #4a1080 32%,
+          #3b1468 50%,
+          #1e0c50 68%,
+          #0f0838 100%);
       border-radius: 4px;
-      box-shadow:
-        inset 0 0 40px rgba(0, 180, 255, 0.06),
-        inset 0 0 80px rgba(180, 0, 255, 0.04),
-        0 0 20px rgba(0, 200, 255, 0.08);
-      pointer-events: none;
+      overflow: hidden;
       z-index: 0;
     }
 
-    /* Scan lines overlay */
-    #cp-bg::after {
+    /* 虹色グロー境界線 */
+    #imas-bg::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 4px;
+      background: transparent;
+      box-shadow:
+        inset 0 0 0 1.5px rgba(255,120,200,0.55),
+        inset 0 0 30px rgba(200,100,255,0.12),
+        inset 0 0 60px rgba(100,150,255,0.08),
+        0 0 18px rgba(255,80,180,0.35);
+      pointer-events: none;
+      z-index: 30;
+    }
+
+    /* スキャンライン（控えめ） */
+    #imas-bg::after {
       content: '';
       position: absolute;
       inset: 0;
       background: repeating-linear-gradient(
         0deg,
-        rgba(0, 0, 0, 0.07) 0px,
-        rgba(0, 0, 0, 0.07) 1px,
+        rgba(0,0,0,0.04) 0px,
+        rgba(0,0,0,0.04) 1px,
         transparent 1px,
-        transparent 3px
+        transparent 4px
       );
       pointer-events: none;
+      z-index: 1;
     }
 
-    /* Neon corner accents */
-    #cp-corner-tl,
-    #cp-corner-tr,
-    #cp-corner-bl,
-    #cp-corner-br {
-      position: absolute;
-      width: 18px;
-      height: 18px;
-      z-index: 1;
-      pointer-events: none;
-    }
-    #cp-corner-tl { top: 4px;    left: 4px;    border-top: 2px solid #00e5ff;  border-left: 2px solid #00e5ff;  }
-    #cp-corner-tr { top: 4px;    right: 4px;   border-top: 2px solid #ff00c8;  border-right: 2px solid #ff00c8; }
-    #cp-corner-bl { bottom: 4px; left: 4px;    border-bottom: 2px solid #ff00c8; border-left: 2px solid #ff00c8; }
-    #cp-corner-br { bottom: 4px; right: 4px;   border-bottom: 2px solid #00e5ff; border-right: 2px solid #00e5ff; }
-
-    /* Bottom perspective grid */
-    #cp-grid {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 70px;
-      background:
-        linear-gradient(transparent, rgba(0, 200, 255, 0.06) 80%);
-      pointer-events: none;
-      z-index: 1;
-      overflow: hidden;
-    }
-    #cp-grid::before {
-      content: '';
+    /* ── ステージスポットライト ── */
+    #imas-lights {
       position: absolute;
       inset: 0;
-      background:
-        repeating-linear-gradient(
-          90deg,
-          rgba(0, 220, 255, 0.12) 0px,
-          rgba(0, 220, 255, 0.12) 1px,
-          transparent 1px,
-          transparent 18px
-        ),
-        repeating-linear-gradient(
-          180deg,
-          rgba(0, 220, 255, 0.08) 0px,
-          rgba(0, 220, 255, 0.08) 1px,
-          transparent 1px,
-          transparent 14px
-        );
-    }
-
-    /* Animated pulse line */
-    @keyframes cp-pulse {
-      0%   { opacity: 0; top: 0; }
-      10%  { opacity: 0.6; }
-      90%  { opacity: 0.4; }
-      100% { opacity: 0; top: 100%; }
-    }
-    #cp-pulse {
-      position: absolute;
-      left: 0; right: 0;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.5) 50%, transparent);
-      animation: cp-pulse 4s linear infinite;
+      overflow: hidden;
       pointer-events: none;
       z-index: 2;
     }
-
-    /* Flicker animation */
-    @keyframes cp-flicker {
-      0%, 97%, 100% { opacity: 1; }
-      97.5% { opacity: 0.85; }
-      98%   { opacity: 1; }
-      98.5% { opacity: 0.7; }
-      99%   { opacity: 1; }
+    .spot {
+      position: absolute;
+      top: -20px;
+      width: 120px;
+      height: 340px;
+      transform-origin: top center;
+      opacity: 0.28;
+      border-radius: 0 0 50% 50%;
     }
-    #cp-bg { animation: cp-flicker 8s infinite; }
+    .spot-1 {
+      left: 12%;
+      background: linear-gradient(180deg, rgba(255,160,220,0.9) 0%, rgba(255,100,200,0) 100%);
+      transform: rotate(-18deg);
+      animation: spot-sway 6s ease-in-out infinite alternate;
+    }
+    .spot-2 {
+      left: 38%;
+      background: linear-gradient(180deg, rgba(180,140,255,0.9) 0%, rgba(140,100,255,0) 100%);
+      transform: rotate(-4deg);
+      animation: spot-sway 8s ease-in-out infinite alternate-reverse;
+    }
+    .spot-3 {
+      left: 62%;
+      background: linear-gradient(180deg, rgba(120,200,255,0.9) 0%, rgba(80,160,255,0) 100%);
+      transform: rotate(6deg);
+      animation: spot-sway 7s ease-in-out infinite alternate;
+    }
+    .spot-4 {
+      left: 78%;
+      background: linear-gradient(180deg, rgba(255,200,100,0.8) 0%, rgba(255,160,80,0) 100%);
+      transform: rotate(20deg);
+      animation: spot-sway 5s ease-in-out infinite alternate-reverse;
+    }
+    @keyframes spot-sway {
+      0%   { opacity: 0.22; }
+      50%  { opacity: 0.34; }
+      100% { opacity: 0.20; }
+    }
+
+    /* ── ステージ床 (反射) ── */
+    #stage-floor {
+      position: absolute;
+      bottom: 0;
+      left: 0; right: 0;
+      height: 64px;
+      background: linear-gradient(
+        180deg,
+        transparent 0%,
+        rgba(200, 100, 255, 0.06) 50%,
+        rgba(255, 120, 200, 0.14) 100%
+      );
+      pointer-events: none;
+      z-index: 3;
+    }
+    #stage-floor::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        90deg,
+        rgba(255,150,220,0.07) 0px,
+        rgba(255,150,220,0.07) 1px,
+        transparent 1px,
+        transparent 22px
+      );
+    }
+    /* 水平グロウライン */
+    #stage-glow {
+      position: absolute;
+      bottom: 62px;
+      left: 4%; right: 4%;
+      height: 2px;
+      background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(255,120,200,0.6) 25%,
+        rgba(200,140,255,0.8) 50%,
+        rgba(100,180,255,0.6) 75%,
+        transparent 100%);
+      filter: blur(1px);
+      pointer-events: none;
+      z-index: 4;
+      animation: stage-glow-pulse 3s ease-in-out infinite;
+    }
+    @keyframes stage-glow-pulse {
+      0%, 100% { opacity: 0.7; }
+      50%       { opacity: 1.0; }
+    }
+
+    /* ── パーティクル (スター) ── */
+    #particles {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 3;
+      overflow: hidden;
+    }
+    .star {
+      position: absolute;
+      border-radius: 50%;
+      background: white;
+      animation: star-twinkle var(--dur, 3s) ease-in-out infinite var(--delay, 0s);
+    }
+    @keyframes star-twinkle {
+      0%, 100% { opacity: 0; transform: scale(0.3); }
+      50%       { opacity: var(--peak, 0.9); transform: scale(1); }
+    }
+    .star-drift {
+      animation: star-drift-anim var(--dur, 8s) linear infinite var(--delay, 0s);
+    }
+    @keyframes star-drift-anim {
+      0%   { transform: translateY(0) translateX(0) scale(0.5); opacity: 0; }
+      10%  { opacity: var(--peak, 0.8); }
+      90%  { opacity: var(--peak, 0.8); }
+      100% { transform: translateY(-120px) translateX(var(--dx, 20px)) scale(0.8); opacity: 0; }
+    }
+
+    /* ── ハート / ダイヤ デコ ── */
+    #deco-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2;
+      overflow: hidden;
+    }
+    .deco {
+      position: absolute;
+      font-size: 10px;
+      opacity: 0;
+      animation: deco-float var(--dur, 10s) ease-in-out infinite var(--delay, 0s);
+      user-select: none;
+    }
+    @keyframes deco-float {
+      0%   { opacity: 0; transform: translateY(10px) scale(0.6) rotate(0deg); }
+      15%  { opacity: 0.55; }
+      85%  { opacity: 0.35; }
+      100% { opacity: 0; transform: translateY(-80px) scale(1) rotate(30deg); }
+    }
 
     /* ═══════════════════════════════════════════════
-       CANVAS (avatar)
+       CANVAS
     ═══════════════════════════════════════════════ */
     #canvas-container {
       position: absolute;
       inset: 0;
-      z-index: 3;
+      z-index: 5;
     }
 
     /* ═══════════════════════════════════════════════
-       MIC BUTTON
+       MODEL BADGE (上部ラベル)
     ═══════════════════════════════════════════════ */
-    #mic-btn, #screenshot-btn {
+    #model-badge {
       position: absolute;
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: rgba(0, 180, 255, 0.15);
-      border: 2px solid rgba(0, 220, 255, 0.6);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      transition: background 0.2s, box-shadow 0.2s;
-      -webkit-app-region: no-drag;
-      z-index: 10;
-      box-shadow: 0 0 8px rgba(0, 200, 255, 0.25);
+      top: 7px;
+      left: 10px;
+      right: 10px;
+      font-size: 9px;
+      font-weight: 700;
+      color: rgba(255, 210, 240, 0.92);
+      font-family: 'M PLUS Rounded 1c', sans-serif;
+      text-shadow:
+        0 0 8px rgba(255,120,200,0.8),
+        0 0 16px rgba(200,100,255,0.5);
+      pointer-events: none;
+      z-index: 15;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: 0.06em;
+      text-align: center;
     }
-    #mic-btn {
-      bottom: 8px;
-      right: 8px;
-    }
-    #screenshot-btn {
-      bottom: 8px;
-      right: 52px;
-      font-size: 14px;
-    }
-    #mic-btn:hover, #screenshot-btn:hover {
-      background: rgba(0, 200, 255, 0.28);
-      box-shadow: 0 0 14px rgba(0, 220, 255, 0.5);
-    }
-    #mic-btn.active {
-      background: rgba(255, 0, 180, 0.22);
-      border-color: rgba(255, 0, 200, 0.8);
-      box-shadow: 0 0 16px rgba(255, 0, 180, 0.55);
-    }
-    #screenshot-btn:active {
-      background: rgba(0, 255, 180, 0.22);
-      border-color: rgba(0, 255, 180, 0.8);
+    #model-badge:not(:empty)::before {
+      content: '♪ ';
+      color: rgba(255,180,220,0.9);
     }
 
-    /* ═══════════════════════════════════════════════
-       STATUS TEXT
-    ═══════════════════════════════════════════════ */
+    /* SYSTEM ID */
+    #sys-id {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      font-size: 7.5px;
+      font-weight: 700;
+      color: rgba(200, 160, 255, 0.5);
+      font-family: 'M PLUS Rounded 1c', sans-serif;
+      pointer-events: none;
+      z-index: 15;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    /* STATUS TEXT */
     #status-text {
       position: absolute;
-      bottom: 52px;
-      right: 4px;
+      bottom: 58px;
+      left: 6px; right: 6px;
       font-size: 9px;
-      color: rgba(0, 230, 255, 0.85);
-      font-family: 'Share Tech Mono', monospace;
-      text-shadow: 0 0 6px rgba(0, 200, 255, 0.7);
-      max-width: 160px;
-      text-align: right;
+      font-weight: 700;
+      color: rgba(255, 230, 245, 0.9);
+      font-family: 'M PLUS Rounded 1c', sans-serif;
+      text-shadow:
+        0 0 6px rgba(255, 120, 200, 0.7),
+        0 0 12px rgba(200, 100, 255, 0.4);
+      text-align: center;
       pointer-events: none;
-      z-index: 10;
+      z-index: 15;
       letter-spacing: 0.04em;
     }
 
     /* ═══════════════════════════════════════════════
-       MODEL BADGE
+       ボタンバー (下部)
     ═══════════════════════════════════════════════ */
-    #model-badge {
+    #btn-bar {
       position: absolute;
-      top: 8px;
-      left: 24px;
+      bottom: 8px;
+      left: 4px; right: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      z-index: 16;
+      -webkit-app-region: no-drag;
+    }
+
+    /* 共通ボタンスタイル */
+    .imas-btn {
+      height: 28px;
+      border-radius: 14px;
+      border: none;
+      cursor: pointer;
+      font-family: 'M PLUS Rounded 1c', sans-serif;
+      font-weight: 800;
       font-size: 9px;
-      color: rgba(255, 0, 200, 0.75);
-      font-family: 'Share Tech Mono', monospace;
-      text-shadow: 0 0 5px rgba(255, 0, 180, 0.5);
-      pointer-events: none;
-      z-index: 10;
-      max-width: 180px;
+      letter-spacing: 0.04em;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      padding: 0 10px;
+      transition: filter 0.15s, transform 0.1s, box-shadow 0.15s;
+      user-select: none;
+      -webkit-app-region: no-drag;
       white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      letter-spacing: 0.05em;
     }
-    #model-badge:not(:empty)::before {
-      content: '▶ ';
-      color: rgba(0, 220, 255, 0.7);
+    .imas-btn:hover {
+      filter: brightness(1.2);
+      transform: translateY(-1px);
     }
-
-    /* ═══════════════════════════════════════════════
-       SYSTEM ID (top-right mini label)
-    ═══════════════════════════════════════════════ */
-    #sys-id {
-      position: absolute;
-      top: 9px;
-      right: 24px;
-      font-size: 8px;
-      color: rgba(0, 200, 255, 0.45);
-      font-family: 'Share Tech Mono', monospace;
-      pointer-events: none;
-      z-index: 10;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
+    .imas-btn:active {
+      transform: translateY(0px) scale(0.96);
     }
 
-    /* ═══════════════════════════════════════════════
-       DD DROP OVERLAY
-    ═══════════════════════════════════════════════ */
+    /* Live2D ボタン — ピンク */
+    #pick-live2d {
+      background: linear-gradient(135deg, #ff6eb4 0%, #ff3d9a 100%);
+      box-shadow: 0 2px 10px rgba(255,80,160,0.5), inset 0 1px 0 rgba(255,255,255,0.25);
+      color: #fff;
+    }
+
+    /* VRM ボタン — 青紫 */
+    #pick-vrm {
+      background: linear-gradient(135deg, #8b6fff 0%, #6040e8 100%);
+      box-shadow: 0 2px 10px rgba(120,80,255,0.5), inset 0 1px 0 rgba(255,255,255,0.2);
+      color: #fff;
+    }
+
+    /* FBX ボタン — ティール */
+    #pick-fbx {
+      background: linear-gradient(135deg, #34d0e8 0%, #1aabcc 100%);
+      box-shadow: 0 2px 10px rgba(30,180,220,0.5), inset 0 1px 0 rgba(255,255,255,0.2);
+      color: #fff;
+    }
+
+    /* 📸 スクリーンショット */
+    #screenshot-btn {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(255,220,100,0.2) 0%, rgba(255,180,60,0.3) 100%);
+      border: 1.5px solid rgba(255,200,80,0.65);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      transition: filter 0.15s, transform 0.1s;
+      -webkit-app-region: no-drag;
+      box-shadow: 0 0 8px rgba(255,180,60,0.3);
+    }
+    #screenshot-btn:hover {
+      filter: brightness(1.3);
+      transform: translateY(-1px);
+    }
+    #screenshot-btn:active {
+      transform: scale(0.94);
+    }
+
+    /* 🎤 マイク */
+    #mic-btn {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(255,120,200,0.18) 0%, rgba(200,100,255,0.25) 100%);
+      border: 1.5px solid rgba(255,140,210,0.65);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      transition: filter 0.15s, transform 0.1s, background 0.2s;
+      -webkit-app-region: no-drag;
+      box-shadow: 0 0 8px rgba(255,100,180,0.3);
+    }
+    #mic-btn:hover {
+      filter: brightness(1.25);
+      transform: translateY(-1px);
+    }
+    #mic-btn:active {
+      transform: scale(0.94);
+    }
+    #mic-btn.active {
+      background: linear-gradient(135deg, rgba(255,80,160,0.45) 0%, rgba(200,60,220,0.4) 100%);
+      border-color: rgba(255,80,180,0.9);
+      box-shadow: 0 0 14px rgba(255,60,160,0.65);
+    }
+
+    /* ── D&D オーバーレイ（非表示基本） ── */
     #drop-overlay {
       position: absolute;
       inset: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(0, 10, 30, 0.0);
+      background: rgba(20, 0, 40, 0.0);
       border: 2px dashed transparent;
       border-radius: 4px;
       pointer-events: none;
@@ -268,57 +415,86 @@
       z-index: 20;
     }
     body.drag-active #drop-overlay {
-      background: rgba(0, 40, 80, 0.22);
-      border-color: rgba(0, 220, 255, 0.7);
+      background: rgba(60, 0, 80, 0.28);
+      border-color: rgba(255, 140, 210, 0.7);
     }
     #drop-hint {
       padding: 8px 16px;
-      background: rgba(0, 10, 28, 0.85);
-      border: 1px solid rgba(0, 200, 255, 0.45);
-      color: rgba(0, 230, 255, 0.95);
+      background: rgba(20, 0, 40, 0.88);
+      border: 1px solid rgba(255, 140, 210, 0.5);
+      color: rgba(255, 220, 240, 0.95);
       font-size: 11px;
-      font-family: 'Share Tech Mono', monospace;
-      border-radius: 3px;
+      font-family: 'M PLUS Rounded 1c', sans-serif;
+      font-weight: 700;
+      border-radius: 14px;
       text-align: center;
       opacity: 0;
       transition: opacity 0.15s;
       pointer-events: none;
       user-select: none;
-      box-shadow: 0 0 14px rgba(0, 200, 255, 0.2);
+      box-shadow: 0 0 20px rgba(255,100,200,0.3);
       letter-spacing: 0.05em;
     }
     body.drag-active #drop-hint { opacity: 1; }
+
   </style>
 </head>
 <body>
-  <!-- Cyberpunk background -->
-  <div id="cp-bg"></div>
-  <div id="cp-corner-tl"></div>
-  <div id="cp-corner-tr"></div>
-  <div id="cp-corner-bl"></div>
-  <div id="cp-corner-br"></div>
-  <div id="cp-grid"></div>
-  <div id="cp-pulse"></div>
 
-  <!-- Avatar canvas -->
-  <div id="canvas-container"></div>
+  <!-- ── アイドルマスター背景 ── -->
+  <div id="imas-bg"></div>
 
-  <!-- DD overlay -->
-  <div id="drop-overlay">
-    <div id="drop-hint">◈ DROP AVATAR FILE ◈<br><span style="font-size:9px;opacity:0.7">.vrm / .fbx / .model3.json</span></div>
+  <!-- スポットライト -->
+  <div id="imas-lights">
+    <div class="spot spot-1"></div>
+    <div class="spot spot-2"></div>
+    <div class="spot spot-3"></div>
+    <div class="spot spot-4"></div>
   </div>
 
-  <!-- UI chrome -->
+  <!-- ステージ床 -->
+  <div id="stage-floor"></div>
+  <div id="stage-glow"></div>
+
+  <!-- パーティクル -->
+  <div id="particles"></div>
+  <div id="deco-layer"></div>
+
+  <!-- アバターキャンバス -->
+  <div id="canvas-container"></div>
+
+  <!-- D&D オーバーレイ -->
+  <div id="drop-overlay">
+    <div id="drop-hint">♪ ファイルをドロップ ♪<br><span style="font-size:9px;opacity:0.7">.vrm / .fbx / .model3.json</span></div>
+  </div>
+
+  <!-- UI クローム -->
   <div id="model-badge"></div>
-  <div id="sys-id">HAKUA·CORE</div>
+  <div id="sys-id">HAKUA★CORE</div>
   <div id="status-text"></div>
-  <button id="screenshot-btn" title="スクリーンキャプチャ (AIに画面を見せる)">📸</button>
-  <button id="mic-btn" title="音声入力 (STT)">🎤</button>
+
+  <!-- ボタンバー -->
+  <div id="btn-bar">
+    <button class="imas-btn" id="pick-live2d" title="Live2Dモデルを選択 (.model3.json)">
+      ★ Live2D
+    </button>
+    <button class="imas-btn" id="pick-vrm" title="VRMアバターを選択 (.vrm)">
+      ♦ VRM
+    </button>
+    <button class="imas-btn" id="pick-fbx" title="FBXモデルを選択 (.fbx)">
+      ◈ FBX
+    </button>
+    <button id="screenshot-btn" title="スクリーンキャプチャ (AIに画面を見せる)">📸</button>
+    <button id="mic-btn" title="音声入力 (STT)">🎤</button>
+  </div>
+
+  <!-- 非表示ファイル入力 -->
+  <input id="input-live2d" type="file" accept=".model3.json,.model.json" style="display:none">
+  <input id="input-vrm"    type="file" accept=".vrm" style="display:none">
+  <input id="input-fbx"    type="file" accept=".fbx" style="display:none">
 
   <!--
-    Import map: resolves bare module specifiers in the Electron renderer.
-    "three" and "three/" cover Three.js core + all examples/jsm paths.
-    "@pixiv/three-vrm" covers the VRM controller.
+    Import map: Three.js core + @pixiv/three-vrm
   -->
   <script type="importmap">
   {
@@ -330,12 +506,75 @@
   }
   </script>
 
-  <!--
-    Live2D Cubism Web SDK core (optional — VRM/FBX do not require this):
-    Place renderer/lib/live2dcubismcore.min.js
-    or run: powershell -File scripts/setup-live2d-sdk.ps1
-  -->
+  <!-- Live2D Cubism SDK (省略可) -->
   <script src="./lib/live2dcubismcore.min.js" onerror="console.warn('[Hakua] live2dcubismcore not found')"></script>
+
+  <!-- パーティクル生成スクリプト -->
+  <script>
+    (function() {
+      const particles = document.getElementById('particles');
+      const deco = document.getElementById('deco-layer');
+      if (!particles || !deco) return;
+
+      // スター
+      const starColors = ['#fff','#ffd6f0','#e0d0ff','#b8e4ff','#fffce0'];
+      for (let i = 0; i < 38; i++) {
+        const s = document.createElement('div');
+        s.className = 'star star-drift';
+        const size = 1.5 + Math.random() * 2.5;
+        const color = starColors[Math.floor(Math.random() * starColors.length)];
+        s.style.cssText = [
+          `width:${size}px`, `height:${size}px`,
+          `left:${Math.random()*100}%`,
+          `bottom:${Math.random()*65}%`,
+          `background:${color}`,
+          `--dur:${6+Math.random()*10}s`,
+          `--delay:${-Math.random()*12}s`,
+          `--peak:${0.4+Math.random()*0.6}`,
+          `--dx:${(Math.random()-0.5)*30}px`,
+          `box-shadow:0 0 ${size*2}px ${color}`,
+        ].join(';');
+        particles.appendChild(s);
+      }
+
+      // きらめきドット
+      for (let i = 0; i < 18; i++) {
+        const s = document.createElement('div');
+        s.className = 'star';
+        const size = 1 + Math.random() * 1.5;
+        s.style.cssText = [
+          `width:${size}px`, `height:${size}px`,
+          `left:${Math.random()*100}%`,
+          `top:${Math.random()*100}%`,
+          `--dur:${1.5+Math.random()*3}s`,
+          `--delay:${-Math.random()*4}s`,
+          `--peak:${0.5+Math.random()*0.5}`,
+        ].join(';');
+        particles.appendChild(s);
+      }
+
+      // デコ記号 (♥ ★ ♪ ✦ ◆)
+      const decoChars = ['♥','★','♪','✦','◆','♡','✧','♫'];
+      const decoColors = ['rgba(255,160,210,0.7)','rgba(200,160,255,0.7)','rgba(140,200,255,0.7)','rgba(255,230,100,0.6)'];
+      for (let i = 0; i < 20; i++) {
+        const d = document.createElement('div');
+        d.className = 'deco';
+        d.textContent = decoChars[Math.floor(Math.random()*decoChars.length)];
+        const color = decoColors[Math.floor(Math.random()*decoColors.length)];
+        d.style.cssText = [
+          `left:${5+Math.random()*90}%`,
+          `bottom:${5+Math.random()*85}%`,
+          `color:${color}`,
+          `font-size:${8+Math.random()*8}px`,
+          `--dur:${8+Math.random()*14}s`,
+          `--delay:${-Math.random()*14}s`,
+          `text-shadow:0 0 6px ${color}`,
+        ].join(';');
+        deco.appendChild(d);
+      }
+    })();
+  </script>
+
   <script type="module" src="./app.js"></script>
 </body>
 </html>

@@ -153,6 +153,76 @@ async function main(): Promise<void> {
     bridge.onAvatarCommand?.((cmd: AvatarCommand) => void handleAvatarCommand(cmd));
   }
 
+  // ── File select buttons (Live2D / VRM / FBX) ─────────────────────────────
+  const live2dPickBtn = document.getElementById("pick-live2d") as HTMLButtonElement | null;
+  const vrmPickBtn = document.getElementById("pick-vrm") as HTMLButtonElement | null;
+  const fbxPickBtn = document.getElementById("pick-fbx") as HTMLButtonElement | null;
+  const live2dInput = document.getElementById("input-live2d") as HTMLInputElement | null;
+  const vrmInput = document.getElementById("input-vrm") as HTMLInputElement | null;
+  const fbxInput = document.getElementById("input-fbx") as HTMLInputElement | null;
+
+  live2dPickBtn?.addEventListener("click", () => live2dInput?.click());
+  vrmPickBtn?.addEventListener("click", () => vrmInput?.click());
+  fbxPickBtn?.addEventListener("click", () => fbxInput?.click());
+
+  async function handleFileInput(file: File, type: AvatarType): Promise<void> {
+    if (!file) return;
+    if (statusText) statusText.textContent = "モデル読み込み中…";
+    try {
+      let fileBuffer: ArrayBuffer | null = null;
+      if ((type === "fbx" || type === "vrm") && file.size > 0) {
+        try {
+          fileBuffer = await file.arrayBuffer();
+        } catch {
+          /* fallback to path */
+        }
+      }
+      const currentType = avatar.avatarType;
+      if (type !== currentType) {
+        if (statusText) statusText.textContent = "アバター切替中…";
+        avatar.destroy();
+        const newCtrl = await createAvatarController(type);
+        await newCtrl.init(container!);
+        avatar = newCtrl;
+        (lipSync as unknown as { live2d: IAvatarController }).live2d = newCtrl;
+      }
+      const filePath = (file as File & { path?: string }).path ?? file.name;
+      if (
+        fileBuffer &&
+        typeof (avatar as unknown as Record<string, unknown>).reloadModelFromBuffer === "function"
+      ) {
+        await (
+          avatar as unknown as {
+            reloadModelFromBuffer: (buf: ArrayBuffer, path: string) => Promise<void>;
+          }
+        ).reloadModelFromBuffer(fileBuffer, filePath);
+      } else {
+        await avatar.reloadModel(filePath);
+      }
+      if (modelBadge) modelBadge.textContent = file.name;
+      if (statusText) statusText.textContent = "";
+    } catch (err) {
+      console.error("[FileSelect]", err);
+      if (statusText) statusText.textContent = `⚠ 読み込み失敗: ${String(err).slice(0, 60)}`;
+    }
+  }
+
+  live2dInput?.addEventListener("change", (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (file) void handleFileInput(file, "live2d");
+    (e.target as HTMLInputElement).value = "";
+  });
+  vrmInput?.addEventListener("change", (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (file) void handleFileInput(file, "vrm");
+    (e.target as HTMLInputElement).value = "";
+  });
+  fbxInput?.addEventListener("change", (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (file) void handleFileInput(file, "fbx");
+    (e.target as HTMLInputElement).value = "";
+  });
+
   // ── Avatar Model Drag-and-Drop (.model3.json / .vrm / .fbx) ──────────────
   function setDragActive(active: boolean): void {
     document.body.classList.toggle("drag-active", active);
