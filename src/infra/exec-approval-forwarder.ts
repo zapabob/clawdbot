@@ -1,3 +1,5 @@
+import { execFile } from "node:child_process";
+import path from "node:path";
 import type { ReplyPayload } from "../auto-reply/types.js";
 import { getChannelPlugin } from "../channels/plugins/index.js";
 import type { OpenClawConfig } from "../config/config.js";
@@ -26,6 +28,23 @@ import { deliverOutboundPayloads } from "./outbound/deliver.js";
 
 const log = createSubsystemLogger("gateway/exec-approvals");
 export type { ExecApprovalRequest, ExecApprovalResolved };
+
+// ── Approval-wait sound notification ──────────────────────────────────────────
+function playApprovalSound(): void {
+  const userHome = process.env["USERPROFILE"] ?? process.env["HOME"] ?? "";
+  const wavPath = path.join(userHome, "Desktop", "Output.wav");
+  execFile(
+    "powershell",
+    [
+      "-NoProfile",
+      "-NonInteractive",
+      "-c",
+      `(New-Object Media.SoundPlayer '${wavPath}').PlaySync()`,
+    ],
+    { timeout: 10000 },
+    () => {}, // fire-and-forget; errors silently ignored
+  );
+}
 
 type ForwardTarget = ExecApprovalForwardTarget & { source: "session" | "target" };
 
@@ -360,6 +379,7 @@ export function createExecApprovalForwarder(
   const pending = new Map<string, PendingApproval>();
 
   const handleRequested = async (request: ExecApprovalRequest): Promise<boolean> => {
+    playApprovalSound();
     const cfg = getConfig();
     const config = cfg.approvals?.exec;
     const filteredTargets = [
