@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "jobs": [
+    {
+      "id": "6205dcdd-32b5-4359-b6c6-48d79c57b660",
+      "agentId": "main",
+      "name": "AInews",
+      "enabled": true,
+      "deleteAfterRun": true,
+      "createdAtMs": 1773964398478,
+      "updatedAtMs": 1773980065517,
+      "schedule": {
+        "kind": "every",
+        "everyMs": 1800000,
+        "anchorMs": 1773964398478
+      },
+      "sessionTarget": "main",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "systemEvent",
+        "text": "AI定時ニュース"
+      },
+      "delivery": {
+        "mode": "none"
+      },
+      "state": {
+        "nextRunAtMs": 1773981784200,
+        "lastRunAtMs": 1773979984200,
+        "lastRunStatus": "ok",
+        "lastStatus": "ok",
+        "lastDurationMs": 81317,
+        "lastDeliveryStatus": "not-requested",
+        "consecutiveErrors": 0,
+        "runningAtMs": 1773981784217
+      }
+    }
+  ]
+}

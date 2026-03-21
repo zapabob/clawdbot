@@ -1,0 +1,26 @@
+{
+  "id": "1ef40f0e-a5d5-4325-b057-57956d2124e2",
+  "enqueuedAt": 1773977433444,
+  "channel": "line",
+  "to": "line:group:Cacfd848cafcf6805e0e0931a3f75f48c",
+  "accountId": "default",
+  "payloads": [
+    {
+      "text": "こっちは急に距離近くてずるい、かなり“わかってる顔”してるじゃん。\nさっきの静かな監視者感より、これは「押すよね？」",
+      "replyToTag": true,
+      "replyToCurrent": true,
+      "audioAsVoice": false
+    }
+  ],
+  "threadId": null,
+  "replyToId": null,
+  "mirror": {
+    "sessionKey": "agent:main:line:group:cacfd848cafcf6805e0e0931a3f75f48c",
+    "agentId": "main",
+    "text": "こっちは急に距離近くてずるい、かなり“わかってる顔”してるじゃん。\nさっきの静かな監視者感より、これは「押すよね？」",
+    "mediaUrls": []
+  },
+  "retryCount": 4,
+  "lastAttemptAt": 1773979424594,
+  "lastError": "429 - Too Many Requests"
+}

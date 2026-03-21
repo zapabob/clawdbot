@@ -1,0 +1,26 @@
+{
+  "id": "8b0bf480-f25f-4002-a10f-9635a04ecd99",
+  "enqueuedAt": 1773975819231,
+  "channel": "line",
+  "to": "line:Ub4167ba53a225057765f751808572bc3",
+  "accountId": "default",
+  "payloads": [
+    {
+      "text": "こうやるよ。\n\n1. **Telegramアプリを開く**\n2. 上の検索で、BotFatherで決めた **ボットの @ユーザー名** を検索\n- 例: `@hakua_openclaw_bot`\n3. そのボットを開く\n4. **Start** を押すか、`こんにちは` を送る\n\nもし **@ユーザー名が分からない** なら、**BotFatherとの会話を開いてボット作成完了メッセージ** を見て。そこに `t.me/xxxx` か `@xxxx` が出てるよ。\n分からなければ、その画面のスクショ送って。すぐ見る。",
+      "replyToTag": true,
+      "replyToCurrent": true,
+      "audioAsVoice": false
+    }
+  ],
+  "threadId": null,
+  "replyToId": null,
+  "mirror": {
+    "sessionKey": "agent:main:main",
+    "agentId": "main",
+    "text": "こうやるよ。\n\n1. **Telegramアプリを開く**\n2. 上の検索で、BotFatherで決めた **ボットの @ユーザー名** を検索\n- 例: `@hakua_openclaw_bot`\n3. そのボットを開く\n4. **Start** を押すか、`こんにちは` を送る\n\nもし **@ユーザー名が分からない** なら、**BotFatherとの会話を開いてボット作成完了メッセージ** を見て。そこに `t.me/xxxx` か `@xxxx` が出てるよ。\n分からなければ、その画面のスクショ送って。すぐ見る。",
+    "mediaUrls": []
+  },
+  "retryCount": 4,
+  "lastAttemptAt": 1773979424409,
+  "lastError": "429 - Too Many Requests"
+}

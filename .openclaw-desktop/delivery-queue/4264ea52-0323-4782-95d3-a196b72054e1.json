@@ -1,0 +1,25 @@
+{
+  "id": "4264ea52-0323-4782-95d3-a196b72054e1",
+  "enqueuedAt": 1773977433276,
+  "channel": "line",
+  "to": "line:group:Cacfd848cafcf6805e0e0931a3f75f48c",
+  "accountId": "default",
+  "payloads": [
+    {
+      "text": "Codex error: {\"type\":\"error\",\"error\":{\"type\":\"server_error\",\"code\":\"server_error\",\"message\":\"An error occurred while processing your request. You can retry your request, or contact us through our help center at help.openai.com if the error persists. Please include the request ID 334e8c86-6d1f-4aa6-af8f-00b8b861b463 in your message.\",\"param\":null},\"sequence_number\":6}",
+      "isError": true,
+      "audioAsVoice": false
+    }
+  ],
+  "threadId": null,
+  "replyToId": null,
+  "mirror": {
+    "sessionKey": "agent:main:line:group:cacfd848cafcf6805e0e0931a3f75f48c",
+    "agentId": "main",
+    "text": "Codex error: {\"type\":\"error\",\"error\":{\"type\":\"server_error\",\"code\":\"server_error\",\"message\":\"An error occurred while processing your request. You can retry your request, or contact us through our help center at help.openai.com if the error persists. Please include the request ID 334e8c86-6d1f-4aa6-af8f-00b8b861b463 in your message.\",\"param\":null},\"sequence_number\":6}",
+    "mediaUrls": []
+  },
+  "retryCount": 4,
+  "lastAttemptAt": 1773979424531,
+  "lastError": "429 - Too Many Requests"
+}

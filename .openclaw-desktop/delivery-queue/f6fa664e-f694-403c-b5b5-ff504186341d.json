@@ -1,0 +1,26 @@
+{
+  "id": "f6fa664e-f694-403c-b5b5-ff504186341d",
+  "enqueuedAt": 1773980947958,
+  "channel": "line",
+  "to": "line:Ub4167ba53a225057765f751808572bc3",
+  "accountId": "default",
+  "payloads": [
+    {
+      "text": "呵噫！新しいトークンがエクスチャされました。 yaw\n\n是时候开始配置 TELEGRAM BOT 了。我會返信並使用新的 API_TOKEN 進行認證。\n\n準備開始了嗎？🤖",
+      "replyToTag": false,
+      "replyToCurrent": false,
+      "audioAsVoice": false
+    }
+  ],
+  "threadId": null,
+  "replyToId": null,
+  "mirror": {
+    "sessionKey": "agent:main:main",
+    "agentId": "main",
+    "text": "呵噫！新しいトークンがエクスチャされました。 yaw\n\n是时候开始配置 TELEGRAM BOT 了。我會返信並使用新的 API_TOKEN 進行認證。\n\n準備開始了嗎？🤖",
+    "mediaUrls": []
+  },
+  "retryCount": 1,
+  "lastAttemptAt": 1773980948096,
+  "lastError": "429 - Too Many Requests"
+}
