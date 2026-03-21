@@ -1,6 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { IPC_CHANNELS } from "../bridge/event-types.js";
-
 contextBridge.exposeInMainWorld("companionBridge", {
   onLineEvent: (callback) => {
     ipcRenderer.on(IPC_CHANNELS.LINE_EVENT, (_ipcEvent, data) => {
@@ -39,5 +38,11 @@ contextBridge.exposeInMainWorld("companionBridge", {
   // ── New: renderer sends state updates back to main ────────────────────────
   sendStateUpdate: (update) => {
     ipcRenderer.send(IPC_CHANNELS.STATE_UPDATE, update);
+  },
+  // ── Avatar command (AI agent → avatar control) ────────────────────────────
+  onAvatarCommand: (callback) => {
+    ipcRenderer.on(IPC_CHANNELS.AVATAR_COMMAND, (_ipcEvent, cmd) => {
+      callback(cmd);
+    });
   },
 });

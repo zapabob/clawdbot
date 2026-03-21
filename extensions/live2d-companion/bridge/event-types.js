@@ -8,6 +8,7 @@ export const IPC_CHANNELS = {
   SPEAK_TEXT: "companion:speak-text",
   CONTROL: "companion:control",
   STATE_UPDATE: "companion:state-update",
+  AVATAR_COMMAND: "companion:avatar-command",
 };
 // Flag file names (relative to stateDir)
 export const FLAG_FILES = {

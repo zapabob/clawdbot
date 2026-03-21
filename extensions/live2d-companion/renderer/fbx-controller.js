@@ -1,0 +1,155 @@
+/**
+ * FBX avatar controller using Three.js FBXLoader.
+ * Provides a basic IAvatarController implementation for FBX avatars.
+ * Morph targets named "MouthOpen" (or similar) are driven for lip sync.
+ */
+/** Common FBX morph target names for mouth open (checked in order). */
+const MOUTH_OPEN_KEYS = [
+  "MouthOpen",
+  "mouthOpen",
+  "Mouth_Open",
+  "mouth_open",
+  "jawOpen",
+  "JawOpen",
+];
+export class FbxController {
+  three = null;
+  renderer = null;
+  scene = null;
+  camera = null;
+  mixer = null;
+  clock = null;
+  model = null;
+  rafId = null;
+  /** Mesh/skinned-mesh nodes that carry lip-sync morph targets */
+  lipMeshes = [];
+  /** Resolved morph target index for lip sync */
+  lipMorphIdx = null;
+  async init(container) {
+    this.three = await import("three");
+    const THREE = this.three;
+    this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    this.renderer.setPixelRatio(window.devicePixelRatio);
+    this.renderer.setSize(container.clientWidth || 380, container.clientHeight || 480);
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    container.appendChild(this.renderer.domElement);
+    this.scene = new THREE.Scene();
+    this.camera = new THREE.PerspectiveCamera(
+      30,
+      (container.clientWidth || 380) / (container.clientHeight || 480),
+      0.01,
+      200,
+    );
+    this.camera.position.set(0, 130, 280);
+    this.camera.lookAt(0, 100, 0);
+    const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+    this.scene.add(ambient);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(1, 2, 2);
+    this.scene.add(dirLight);
+    this.clock = new THREE.Clock();
+    this.startRenderLoop();
+  }
+  async reloadModel(pathOrUrl) {
+    if (!this.three || !this.scene) return;
+    if (this.model) {
+      this.scene.remove(this.model);
+      this.model = null;
+      this.lipMeshes = [];
+      this.lipMorphIdx = null;
+    }
+    const { FBXLoader } = await import("three/examples/jsm/loaders/FBXLoader.js");
+    const url = pathOrUrl.startsWith("file://")
+      ? pathOrUrl
+      : "file:///" + pathOrUrl.replace(/\\/g, "/");
+    const fbx = await new Promise((resolve, reject) => {
+      new FBXLoader().load(url, resolve, undefined, reject);
+    });
+    this.scene.add(fbx);
+    this.model = fbx;
+    // Set up AnimationMixer for skeletal animations
+    this.mixer = new this.three.AnimationMixer(fbx);
+    // Discover lip-sync morph targets
+    this.resolveLipMeshes(fbx);
+  }
+  playMotion(_group, _index = 0, _loop = false) {
+    // FBX clip playback could be extended here; stub for now
+  }
+  playExpression(expressionId) {
+    // Drive a morph target by expression name directly
+    this.setMorphTarget(expressionId, 1.0);
+    setTimeout(() => this.setMorphTarget(expressionId, 0), 800);
+  }
+  setLipSyncValue(value) {
+    const v = Math.max(0, Math.min(1, value));
+    if (this.lipMorphIdx !== null) {
+      for (const mesh of this.lipMeshes) {
+        if (mesh.morphTargetInfluences) {
+          mesh.morphTargetInfluences[this.lipMorphIdx] = v;
+        }
+      }
+    }
+  }
+  lookAt(x, y) {
+    if (!this.camera) return;
+    // Tilt camera slightly towards gaze direction
+    this.camera.position.set(x * 0.1, this.camera.position.y, this.camera.position.z);
+    this.camera.lookAt(x * 0.05, 100 + y * 5, 0);
+  }
+  destroy() {
+    this.stopRenderLoop();
+    this.mixer?.stopAllAction();
+    this.renderer?.dispose();
+    this.renderer?.domElement.remove();
+    this.renderer = null;
+    this.scene = null;
+    this.camera = null;
+    this.model = null;
+    this.mixer = null;
+    this.clock = null;
+    this.lipMeshes = [];
+    this.lipMorphIdx = null;
+  }
+  // ── Private helpers ──────────────────────────────────────────────────────
+  resolveLipMeshes(root) {
+    root.traverse((child) => {
+      const mesh = child;
+      if (!mesh.isMesh || !mesh.morphTargetDictionary) return;
+      for (const key of MOUTH_OPEN_KEYS) {
+        if (key in mesh.morphTargetDictionary) {
+          this.lipMorphIdx = mesh.morphTargetDictionary[key];
+          this.lipMeshes.push(mesh);
+          return;
+        }
+      }
+    });
+  }
+  setMorphTarget(name, value) {
+    if (!this.model) return;
+    this.model.traverse((child) => {
+      const mesh = child;
+      if (!mesh.isMesh || !mesh.morphTargetDictionary) return;
+      const idx = mesh.morphTargetDictionary[name];
+      if (idx !== undefined && mesh.morphTargetInfluences) {
+        mesh.morphTargetInfluences[idx] = value;
+      }
+    });
+  }
+  startRenderLoop() {
+    const loop = () => {
+      this.rafId = requestAnimationFrame(loop);
+      const delta = this.clock?.getDelta() ?? 0;
+      this.mixer?.update(delta);
+      if (this.renderer && this.scene && this.camera) {
+        this.renderer.render(this.scene, this.camera);
+      }
+    };
+    this.rafId = requestAnimationFrame(loop);
+  }
+  stopRenderLoop() {
+    if (this.rafId !== null) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
+  }
+}
