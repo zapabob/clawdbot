@@ -1,12 +1,15 @@
 import fs from "node:fs/promises";
 import http from "node:http";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { app, BrowserWindow, screen, ipcMain } from "electron";
 import { IPC_CHANNELS, FLAG_FILES } from "../bridge/event-types.js";
 import type { CompanionStateUpdate, TtsProvider, AvatarCommand } from "../bridge/event-types.js";
 import { startFlagWatcher } from "../bridge/flag-watcher.js";
-import companionConfig from "../companion.config.json" with { type: "json" };
+const companionConfig = createRequire(import.meta.url)(
+  "../companion.config.json",
+) as typeof import("../companion.config.json");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
