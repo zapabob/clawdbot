@@ -39,6 +39,30 @@ async function writeState(): Promise<void> {
   }
 }
 
+// ── DPI-robust click-through timer ───────────────────────────────────────────
+// Electron 28 on Windows: getCursorScreenPoint() may return logical (DIP) OR
+// physical pixels depending on per-monitor DPI awareness mode.
+// getBounds() always returns logical pixels.
+// Strategy: check BOTH coordinate spaces (OR) so one is always correct.
+function startIgnoreMouseTimer(): ReturnType<typeof setInterval> {
+  return setInterval(() => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    const pos = screen.getCursorScreenPoint();
+    const b = mainWindow.getBounds();
+    const sf = screen.getDisplayNearestPoint({
+      x: b.x + b.width / 2,
+      y: b.y + b.height / 2,
+    }).scaleFactor;
+    const inL = pos.x >= b.x && pos.x <= b.x + b.width && pos.y >= b.y && pos.y <= b.y + b.height;
+    const inP =
+      pos.x >= b.x * sf &&
+      pos.x <= (b.x + b.width) * sf &&
+      pos.y >= b.y * sf &&
+      pos.y <= (b.y + b.height) * sf;
+    mainWindow.setIgnoreMouseEvents(!(inL || inP), { forward: true });
+  }, 50);
+}
+
 // ── Window creation ──────────────────────────────────────────────────────────
 function createWindow(): void {
   const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize;
@@ -68,22 +92,7 @@ function createWindow(): void {
   mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
 
   mainWindow.setIgnoreMouseEvents(true, { forward: true });
-
-  // ── DPI-correct click-through polling ──────────────────────────────────────
-  // getCursorScreenPoint() returns physical pixels on Windows;
-  // getBounds() returns logical pixels. Multiply bounds by scaleFactor to match.
-  ignoreMouseTimer = setInterval(() => {
-    if (!mainWindow || mainWindow.isDestroyed()) return;
-    const pos = screen.getCursorScreenPoint();
-    const sf = screen.getDisplayNearestPoint(pos).scaleFactor;
-    const b = mainWindow.getBounds();
-    const inBounds =
-      pos.x >= b.x * sf &&
-      pos.x <= (b.x + b.width) * sf &&
-      pos.y >= b.y * sf &&
-      pos.y <= (b.y + b.height) * sf;
-    mainWindow.setIgnoreMouseEvents(!inBounds, { forward: true });
-  }, 50);
+  ignoreMouseTimer = startIgnoreMouseTimer();
 
   const rendererPath = path.join(__dirname, "../renderer/index.html");
   void mainWindow.loadFile(rendererPath);
@@ -288,15 +297,24 @@ ipcMain.handle(
     if (!mainWindow) return { ok: false, error: "no window" };
     // Temporarily lower always-on-top so the dialog is not hidden behind the companion window
     mainWindow.setAlwaysOnTop(false);
+    // Stop the polling timer while dialog is open (prevents focus flickering)
+    if (ignoreMouseTimer) {
+      clearInterval(ignoreMouseTimer);
+      ignoreMouseTimer = null;
+    }
+    mainWindow.setIgnoreMouseEvents(false);
     let result: Electron.OpenDialogReturnValue;
     try {
-      result = await dialog.showOpenDialog({
+      // Pass mainWindow as parent so dialog is properly associated
+      result = await dialog.showOpenDialog(mainWindow, {
         title: opts.title ?? "モデルを選択",
         filters: opts.filters ?? [{ name: "All Files", extensions: ["*"] }],
         properties: ["openFile"],
       });
     } finally {
       mainWindow?.setAlwaysOnTop(true, "screen-saver");
+      // Restart polling timer after dialog closes
+      if (mainWindow && !ignoreMouseTimer) ignoreMouseTimer = startIgnoreMouseTimer();
     }
     if (result.canceled || result.filePaths.length === 0) {
       return { ok: false, canceled: true };
