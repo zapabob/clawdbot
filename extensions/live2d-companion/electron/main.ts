@@ -217,6 +217,56 @@ function startControlServer(): void {
       return;
     }
 
+    if (req.method === "GET" && url.startsWith("/camera")) {
+      // AI agent calls GET /camera to read the latest webcam frame
+      // Optional ?capture=1 triggers a fresh capture from the renderer
+      const doCapture = url.includes("capture=1");
+      const respondCam = (data: unknown) => {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(data));
+      };
+      if (doCapture) {
+        // Ask renderer to capture and send a new camera frame via IPC
+        mainWindow?.webContents.send(IPC_CHANNELS.CAMERA_CAPTURE_REQUEST);
+        // Wait 400ms for renderer to respond via CAMERA_FRAME IPC
+        setTimeout(() => {
+          void (async () => {
+            try {
+              const imgPath = path.join(stateDir, FLAG_FILES.CAMERA);
+              const metaPath = path.join(stateDir, FLAG_FILES.CAMERA_META);
+              const meta = JSON.parse(await fs.readFile(metaPath, "utf-8")) as Record<
+                string,
+                unknown
+              >;
+              const buf = await fs.readFile(imgPath);
+              respondCam({ ok: true, base64: buf.toString("base64"), ...meta });
+            } catch {
+              respondCam({ ok: false, error: "no camera frame yet" });
+            }
+          })();
+        }, 400);
+      } else {
+        void (async () => {
+          try {
+            const imgPath = path.join(stateDir, FLAG_FILES.CAMERA);
+            const metaPath = path.join(stateDir, FLAG_FILES.CAMERA_META);
+            const meta = JSON.parse(await fs.readFile(metaPath, "utf-8")) as Record<
+              string,
+              unknown
+            >;
+            const buf = await fs.readFile(imgPath);
+            respondCam({ ok: true, base64: buf.toString("base64"), ...meta });
+          } catch {
+            respondCam({
+              ok: false,
+              error: "no camera frame yet — call GET /camera?capture=1",
+            });
+          }
+        })();
+      }
+      return;
+    }
+
     if (req.method === "POST" && url === "/control") {
       let body = "";
       req.on("data", (chunk: Buffer) => {
@@ -370,6 +420,26 @@ ipcMain.handle("discover-model", async () => {
   const modelsDir = path.join(__dirname, "../../models");
   const found = await scanModels(modelsDir);
   return found[0] ?? null;
+});
+
+// ── IPC: camera frame (webcam → stateDir/companion_camera.jpg) ───────────────
+ipcMain.on(IPC_CHANNELS.CAMERA_FRAME, (_event, base64: string) => {
+  void (async () => {
+    try {
+      const buf = Buffer.from(base64, "base64");
+      await fs.mkdir(stateDir, { recursive: true });
+      const imgPath = path.join(stateDir, FLAG_FILES.CAMERA);
+      await fs.writeFile(imgPath, buf);
+      const meta = { path: imgPath, timestamp: Date.now() };
+      await fs.writeFile(
+        path.join(stateDir, FLAG_FILES.CAMERA_META),
+        JSON.stringify(meta, null, 2),
+        "utf-8",
+      );
+    } catch {
+      // best-effort
+    }
+  })();
 });
 
 // ── IPC: renderer mouse-active (immediate click-through / D&D toggle) ─────────

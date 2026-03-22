@@ -84,6 +84,13 @@ contextBridge.exposeInMainWorld("companionBridge", {
   }> => ipcRenderer.invoke("open-file-dialog", opts ?? {}),
   // ── Mouse active state (renderer → main for D&D / click-through) ──────────
   notifyMouseActive: (active: boolean) => ipcRenderer.send("mouse-active", active),
+  // ── Camera (webcam) frame → main process ─────────────────────────────────
+  sendCameraFrame: (base64: string) => {
+    ipcRenderer.send(IPC_CHANNELS.CAMERA_FRAME, base64);
+  },
+  onCameraCaptureRequest: (callback: () => void) => {
+    ipcRenderer.on(IPC_CHANNELS.CAMERA_CAPTURE_REQUEST, () => callback());
+  },
 });
 
 // Type declaration for renderer-side TypeScript
@@ -125,6 +132,8 @@ declare global {
         error?: string;
       }>;
       notifyMouseActive: (active: boolean) => void;
+      sendCameraFrame: (base64: string) => void;
+      onCameraCaptureRequest: (cb: () => void) => void;
     };
   }
 }

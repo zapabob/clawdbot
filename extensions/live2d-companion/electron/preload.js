@@ -56,4 +56,11 @@ contextBridge.exposeInMainWorld("companionBridge", {
   openFileDialog: (opts) => ipcRenderer.invoke("open-file-dialog", opts ?? {}),
   // ── Mouse active state (renderer → main for D&D / click-through) ──────────
   notifyMouseActive: (active) => ipcRenderer.send("mouse-active", active),
+  // ── Camera (webcam) frame → main process ─────────────────────────────────
+  sendCameraFrame: (base64) => {
+    ipcRenderer.send(IPC_CHANNELS.CAMERA_FRAME, base64);
+  },
+  onCameraCaptureRequest: (callback) => {
+    ipcRenderer.on(IPC_CHANNELS.CAMERA_CAPTURE_REQUEST, () => callback());
+  },
 });

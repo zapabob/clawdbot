@@ -11,14 +11,59 @@ import { detectEmotion, applyEmotion } from "./emotion-mapper.js";
 import { LipSyncController } from "./lip-sync.js";
 import { SttHandler } from "./stt-handler.js";
 
+class CameraHandler {
+  private stream: MediaStream | null = null;
+  active = false;
+
+  constructor(
+    private videoEl: HTMLVideoElement,
+    private canvasEl: HTMLCanvasElement,
+  ) {}
+
+  async start(): Promise<boolean> {
+    try {
+      this.stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      this.videoEl.srcObject = this.stream;
+      this.videoEl.style.display = "block";
+      this.active = true;
+      return true;
+    } catch (err) {
+      console.warn("[Camera] getUserMedia failed:", err);
+      return false;
+    }
+  }
+
+  stop(): void {
+    this.stream?.getTracks().forEach((t) => t.stop());
+    this.stream = null;
+    this.videoEl.style.display = "none";
+    this.videoEl.srcObject = null;
+    this.active = false;
+  }
+
+  captureFrame(): string | null {
+    if (!this.active || !this.stream) return null;
+    const ctx = this.canvasEl.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(this.videoEl, 0, 0, this.canvasEl.width, this.canvasEl.height);
+    return this.canvasEl.toDataURL("image/jpeg", 0.7).split(",")[1];
+  }
+}
+
 async function main(): Promise<void> {
   const container = document.getElementById("canvas-container");
   const statusText = document.getElementById("status-text");
   const modelBadge = document.getElementById("model-badge");
   const micBtn = document.getElementById("mic-btn") as HTMLButtonElement;
   const screenshotBtn = document.getElementById("screenshot-btn") as HTMLButtonElement | null;
+  const cameraBtn = document.getElementById("camera-btn") as HTMLButtonElement | null;
+  const cameraPreview = document.getElementById("camera-preview") as HTMLVideoElement | null;
+  const cameraCanvas = document.getElementById("camera-canvas") as HTMLCanvasElement | null;
 
   if (!container) return;
+
+  const camera =
+    cameraPreview && cameraCanvas ? new CameraHandler(cameraPreview, cameraCanvas) : null;
 
   // ── Initialize avatar via factory ────────────────────────────────────────
   const configType =
@@ -51,6 +96,16 @@ async function main(): Promise<void> {
   // ── STT Handler ───────────────────────────────────────────────────────────
   const stt = new SttHandler((transcript: string) => {
     if (statusText) statusText.textContent = `🎤 ${transcript}`;
+    // カメラが有効な場合、STT 発話と同時にフレームを送信してマルチモーダル化
+    if (camera?.active) {
+      const frameB64 = camera.captureFrame();
+      if (frameB64) {
+        (
+          window.companionBridge as unknown as { sendCameraFrame?: (b: string) => void }
+        )?.sendCameraFrame?.(frameB64);
+        console.log("[Camera] frame sent with STT transcript");
+      }
+    }
     window.companionBridge?.sendSttResult(transcript);
     const emotion = detectEmotion(transcript);
     applyEmotion(avatar, emotion);
@@ -67,6 +122,55 @@ async function main(): Promise<void> {
       micBtn.classList.add("active");
       micBtn.title = "音声入力 OFF";
       if (statusText) statusText.textContent = "🎤 聴いています…";
+    }
+  });
+
+  // ── Camera button ─────────────────────────────────────────────────────────
+  cameraBtn?.addEventListener("click", async () => {
+    if (!camera) return;
+    if (camera.active) {
+      camera.stop();
+      cameraBtn.classList.remove("active");
+      cameraBtn.title = "カメラ ON (AIにカメラ映像を見せる)";
+      if (statusText) {
+        statusText.textContent = "📷 カメラ OFF";
+        setTimeout(() => {
+          if (statusText) statusText.textContent = "";
+        }, 1500);
+      }
+    } else {
+      const ok = await camera.start();
+      if (ok) {
+        cameraBtn.classList.add("active");
+        cameraBtn.title = "カメラ OFF";
+        if (statusText) {
+          statusText.textContent = "📷 カメラ ON";
+          setTimeout(() => {
+            if (statusText) statusText.textContent = "";
+          }, 1500);
+        }
+      } else {
+        if (statusText) statusText.textContent = "⚠ カメラが利用できません";
+        setTimeout(() => {
+          if (statusText) statusText.textContent = "";
+        }, 3000);
+      }
+    }
+  });
+
+  // ── Camera capture request from main (AI agent called /camera?capture=1) ──
+  (
+    window.companionBridge as unknown as {
+      onCameraCaptureRequest?: (cb: () => void) => void;
+    }
+  )?.onCameraCaptureRequest?.(() => {
+    if (camera?.active) {
+      const frameB64 = camera.captureFrame();
+      if (frameB64) {
+        (
+          window.companionBridge as unknown as { sendCameraFrame?: (b: string) => void }
+        )?.sendCameraFrame?.(frameB64);
+      }
     }
   });
 

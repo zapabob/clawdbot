@@ -372,6 +372,50 @@
       transform: scale(0.94);
     }
 
+    /* 📷 カメラ */
+    #camera-btn {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(100,220,180,0.18) 0%, rgba(60,200,140,0.25) 100%);
+      border: 1.5px solid rgba(100,220,170,0.65);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      transition: filter 0.15s, transform 0.1s, background 0.2s;
+      -webkit-app-region: no-drag;
+      box-shadow: 0 0 8px rgba(60,200,140,0.3);
+    }
+    #camera-btn:hover {
+      filter: brightness(1.25);
+      transform: translateY(-1px);
+    }
+    #camera-btn:active {
+      transform: scale(0.94);
+    }
+    #camera-btn.active {
+      background: linear-gradient(135deg, rgba(60,200,140,0.45) 0%, rgba(40,180,120,0.4) 100%);
+      border-color: rgba(60,210,150,0.9);
+      box-shadow: 0 0 14px rgba(40,200,130,0.65);
+    }
+
+    /* 📷 カメラプレビュー (右下小窓) */
+    #camera-preview {
+      position: absolute;
+      bottom: 44px;
+      right: 6px;
+      width: 108px;
+      height: 81px;
+      border-radius: 8px;
+      object-fit: cover;
+      z-index: 14;
+      display: none;
+      border: 1.5px solid rgba(100,220,170,0.6);
+      opacity: 0.88;
+      box-shadow: 0 0 12px rgba(40,200,130,0.4);
+    }
+
     /* 🎤 マイク */
     #mic-btn {
       width: 28px; height: 28px;
@@ -463,6 +507,10 @@
   <!-- アバターキャンバス -->
   <div id="canvas-container"></div>
 
+  <!-- カメラプレビュー (小窓) + 非表示キャンバス -->
+  <video id="camera-preview" autoplay muted playsinline></video>
+  <canvas id="camera-canvas" style="display:none;" width="640" height="480"></canvas>
+
   <!-- D&D オーバーレイ -->
   <div id="drop-overlay">
     <div id="drop-hint">♪ ファイルをドロップ ♪<br><span style="font-size:9px;opacity:0.7">.vrm / .fbx / .model3.json</span></div>
@@ -485,6 +533,7 @@
       ◈ FBX
     </button>
     <button id="screenshot-btn" title="スクリーンキャプチャ (AIに画面を見せる)">📸</button>
+    <button id="camera-btn" title="カメラ ON/OFF (AIにカメラ映像を見せる)">📷</button>
     <button id="mic-btn" title="音声入力 (STT)">🎤</button>
   </div>
 
@@ -501,7 +550,49 @@
     "imports": {
       "three": "../node_modules/three/build/three.module.js",
       "three/": "../node_modules/three/",
-      "@pixiv/three-vrm": "../node_modules/@pixiv/three-vrm/lib/three-vrm.module.js"
+      "@pixiv/three-vrm": "../node_modules/@pixiv/three-vrm/lib/three-vrm.module.js",
+      "pixi.js": "../node_modules/pixi.js/lib/index.mjs",
+      "pixi-live2d-display": "../node_modules/pixi-live2d-display/dist/index.es.js",
+      "pixi-live2d-display/cubism2": "../node_modules/pixi-live2d-display/dist/cubism2.es.js",
+      "pixi-live2d-display/cubism4": "../node_modules/pixi-live2d-display/dist/cubism4.es.js",
+      "@pixi/accessibility": "../node_modules/@pixi/accessibility/lib/index.mjs",
+      "@pixi/app": "../node_modules/@pixi/app/lib/index.mjs",
+      "@pixi/assets": "../node_modules/@pixi/assets/lib/index.mjs",
+      "@pixi/color": "../node_modules/@pixi/color/lib/index.mjs",
+      "@pixi/colord": "../node_modules/@pixi/colord/index.mjs",
+      "@pixi/compressed-textures": "../node_modules/@pixi/compressed-textures/lib/index.mjs",
+      "@pixi/constants": "../node_modules/@pixi/constants/lib/index.mjs",
+      "@pixi/core": "../node_modules/@pixi/core/lib/index.mjs",
+      "@pixi/display": "../node_modules/@pixi/display/lib/index.mjs",
+      "@pixi/events": "../node_modules/@pixi/events/lib/index.mjs",
+      "@pixi/extensions": "../node_modules/@pixi/extensions/lib/index.mjs",
+      "@pixi/extract": "../node_modules/@pixi/extract/lib/index.mjs",
+      "@pixi/filter-alpha": "../node_modules/@pixi/filter-alpha/lib/index.mjs",
+      "@pixi/filter-blur": "../node_modules/@pixi/filter-blur/lib/index.mjs",
+      "@pixi/filter-color-matrix": "../node_modules/@pixi/filter-color-matrix/lib/index.mjs",
+      "@pixi/filter-displacement": "../node_modules/@pixi/filter-displacement/lib/index.mjs",
+      "@pixi/filter-fxaa": "../node_modules/@pixi/filter-fxaa/lib/index.mjs",
+      "@pixi/filter-noise": "../node_modules/@pixi/filter-noise/lib/index.mjs",
+      "@pixi/graphics": "../node_modules/@pixi/graphics/lib/index.mjs",
+      "@pixi/math": "../node_modules/@pixi/math/lib/index.mjs",
+      "@pixi/mesh": "../node_modules/@pixi/mesh/lib/index.mjs",
+      "@pixi/mesh-extras": "../node_modules/@pixi/mesh-extras/lib/index.mjs",
+      "@pixi/mixin-cache-as-bitmap": "../node_modules/@pixi/mixin-cache-as-bitmap/lib/index.mjs",
+      "@pixi/mixin-get-child-by-name": "../node_modules/@pixi/mixin-get-child-by-name/lib/index.mjs",
+      "@pixi/mixin-get-global-position": "../node_modules/@pixi/mixin-get-global-position/lib/index.mjs",
+      "@pixi/particle-container": "../node_modules/@pixi/particle-container/lib/index.mjs",
+      "@pixi/prepare": "../node_modules/@pixi/prepare/lib/index.mjs",
+      "@pixi/runner": "../node_modules/@pixi/runner/lib/index.mjs",
+      "@pixi/settings": "../node_modules/@pixi/settings/lib/index.mjs",
+      "@pixi/sprite": "../node_modules/@pixi/sprite/lib/index.mjs",
+      "@pixi/sprite-animated": "../node_modules/@pixi/sprite-animated/lib/index.mjs",
+      "@pixi/sprite-tiling": "../node_modules/@pixi/sprite-tiling/lib/index.mjs",
+      "@pixi/spritesheet": "../node_modules/@pixi/spritesheet/lib/index.mjs",
+      "@pixi/text": "../node_modules/@pixi/text/lib/index.mjs",
+      "@pixi/text-bitmap": "../node_modules/@pixi/text-bitmap/lib/index.mjs",
+      "@pixi/text-html": "../node_modules/@pixi/text-html/lib/index.mjs",
+      "@pixi/ticker": "../node_modules/@pixi/ticker/lib/index.mjs",
+      "@pixi/utils": "../node_modules/@pixi/utils/lib/index.mjs"
     }
   }
   </script>

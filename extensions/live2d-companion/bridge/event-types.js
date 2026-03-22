@@ -12,6 +12,9 @@ export const IPC_CHANNELS = {
   // Screen capture
   SCREENSHOT_REQUEST: "companion:screenshot-request",
   SCREENSHOT_RESULT: "companion:screenshot-result",
+  // Camera (webcam) capture
+  CAMERA_FRAME: "companion:camera-frame",
+  CAMERA_CAPTURE_REQUEST: "companion:camera-capture-request",
 };
 // Flag file names (relative to stateDir)
 export const FLAG_FILES = {
@@ -22,4 +25,7 @@ export const FLAG_FILES = {
   STATE: "companion_state.json",
   // Screen capture output
   SCREENSHOT_META: "companion_screenshot_meta.json",
+  // Camera (webcam) output
+  CAMERA: "companion_camera.jpg",
+  CAMERA_META: "companion_camera_meta.json",
 };
