@@ -43,6 +43,10 @@ export class VrmController implements IAvatarController {
   private lipValue = 0;
   /** Current active viseme key (VRM 1.0) */
   private activeViseme: string | null = null;
+  /** Fallback avatar references (when no VRM model is loaded) */
+  private _fallbackMouth: import("three").Mesh | null = null;
+  private _fallbackGroup: import("three").Group | null = null;
+  private _fallbackEyes: import("three").Mesh[] | null = null;
 
   async init(container: HTMLElement): Promise<void> {
     this.three = await import("three");
@@ -78,6 +82,93 @@ export class VrmController implements IAvatarController {
 
     this.clock = new THREE.Clock();
     this.startRenderLoop();
+
+    // Auto-discover and load a model; if none found, render fallback avatar
+    const modelPath = await window.companionBridge?.discoverModel?.();
+    if (modelPath) {
+      try {
+        await this.reloadModel(modelPath);
+      } catch (err) {
+        console.warn("[VrmController] Auto-discover model load failed:", err);
+        this.renderFallbackAvatar();
+      }
+    } else {
+      this.renderFallbackAvatar();
+    }
+  }
+
+  /** Render a simple Three.js avatar (head + eyes + mouth) when no VRM model is available */
+  private renderFallbackAvatar(): void {
+    const THREE = this.three;
+    if (!THREE || !this.scene) return;
+
+    // Head
+    const head = new THREE.Mesh(
+      new THREE.SphereGeometry(0.35, 32, 32),
+      new THREE.MeshPhongMaterial({ color: 0xffe0d0 }),
+    );
+    head.position.set(0, 1.2, 0);
+
+    // Hair
+    const hair = new THREE.Mesh(
+      new THREE.SphereGeometry(0.37, 32, 32),
+      new THREE.MeshPhongMaterial({ color: 0x3a1a5c }),
+    );
+    hair.position.set(0, 1.28, -0.04);
+    hair.scale.set(1, 1.08, 1);
+
+    // Eyes
+    const eyeGeo = new THREE.SphereGeometry(0.05, 16, 16);
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x2a1a4a });
+    const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+    leftEye.position.set(-0.12, 1.24, 0.3);
+    const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+    rightEye.position.set(0.12, 1.24, 0.3);
+
+    // Eye highlights
+    const hlGeo = new THREE.SphereGeometry(0.018, 8, 8);
+    const hlMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const leftHl = new THREE.Mesh(hlGeo, hlMat);
+    leftHl.position.set(-0.1, 1.26, 0.33);
+    const rightHl = new THREE.Mesh(hlGeo, hlMat);
+    rightHl.position.set(0.14, 1.26, 0.33);
+
+    // Mouth (lip sync target)
+    const mouth = new THREE.Mesh(
+      new THREE.SphereGeometry(0.06, 16, 8),
+      new THREE.MeshBasicMaterial({ color: 0xe06080 }),
+    );
+    mouth.position.set(0, 1.06, 0.3);
+    mouth.scale.set(1.2, 0.3, 0.5);
+
+    // Blush
+    const blushGeo = new THREE.CircleGeometry(0.06, 16);
+    const blushMat = new THREE.MeshBasicMaterial({
+      color: 0xff8090,
+      transparent: true,
+      opacity: 0.3,
+    });
+    const leftBlush = new THREE.Mesh(blushGeo, blushMat);
+    leftBlush.position.set(-0.2, 1.14, 0.32);
+    const rightBlush = new THREE.Mesh(blushGeo, blushMat);
+    rightBlush.position.set(0.2, 1.14, 0.32);
+
+    // Body
+    const body = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.2, 0.25, 0.6, 16),
+      new THREE.MeshPhongMaterial({ color: 0x6040a0 }),
+    );
+    body.position.set(0, 0.6, 0);
+
+    const group = new THREE.Group();
+    group.add(head, hair, leftEye, rightEye, leftHl, rightHl, mouth);
+    group.add(leftBlush, rightBlush, body);
+    this.scene.add(group);
+
+    this._fallbackGroup = group;
+    this._fallbackMouth = mouth;
+    this._fallbackEyes = [leftEye, rightEye];
+    console.log("[VrmController] Fallback avatar rendered — drag a .vrm to load a real model");
   }
 
   async reloadModel(pathOrUrl: string): Promise<void> {
@@ -190,6 +281,10 @@ export class VrmController implements IAvatarController {
 
   setLipSyncValue(value: number): void {
     this.lipValue = Math.max(0, Math.min(1, value));
+    // Fallback avatar: drive mouth scaleY
+    if (this._fallbackMouth) {
+      this._fallbackMouth.scale.y = 0.3 + this.lipValue * 1.2;
+    }
     // Drive the generic "aa" viseme unless a specific vowel viseme is active
     if (!this.activeViseme && this.vrm) {
       try {
@@ -245,6 +340,12 @@ export class VrmController implements IAvatarController {
     if (this.vrm && this.vrmMod) {
       this.vrmMod.VRMUtils.deepDispose(this.vrm.scene);
     }
+    if (this._fallbackGroup && this.scene) {
+      this.scene.remove(this._fallbackGroup);
+    }
+    this._fallbackGroup = null;
+    this._fallbackMouth = null;
+    this._fallbackEyes = null;
     this.renderer?.dispose();
     this.renderer?.domElement.remove();
     this.renderer = null;

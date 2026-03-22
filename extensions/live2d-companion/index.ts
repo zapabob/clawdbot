@@ -7,6 +7,7 @@
  *  - `voicevox_speak_direct` tool → Python OSCスクリプト経由で直接 VOICEVOX 再生
  */
 import { execFile } from "node:child_process";
+import fs from "node:fs/promises";
 import path from "node:path";
 import { Type } from "@sinclair/typebox";
 import type { OpenClawPluginApi, OpenClawPluginDefinition } from "../../src/plugins/types.js";
@@ -117,15 +118,20 @@ const plugin: OpenClawPluginDefinition = {
         appendSystemContext: [
           "## Live2D コンパニオン ツール",
           "",
-          "以下のツールを **自律的** に使用してください:",
-          "",
+          "### 出力（音声）",
           "- **`voicevox_speak`** — Live2D コンパニオン経由で VOICEVOX 音声を再生。",
           "  ユーザーへの重要な返答・感情表現・挨拶時に積極的に呼び出す。",
-          "- **`voicevox_speak_direct`** — Python 直接呼び出し。",
-          "  コンパニオンが起動していない場合のフォールバックとして使用。",
+          "- **`voicevox_speak_direct`** — Python 直接呼び出し（フォールバック）。",
           "",
-          "> llm_output フックにより全応答は自動読み上げされますが、",
-          "> 感情・強調が必要な場面では明示的に `voicevox_speak` を呼び出してください。",
+          "### 入力（マルチモーダル）",
+          "- **`get_companion_input`** — ユーザーのマイク音声（STT）＋カメラ映像を取得。",
+          "  ユーザーが話しかけているか確認し、カメラ ON なら映像も含めて返す。",
+          "  **会話中は積極的に呼び出してユーザーの発話を確認すること。**",
+          "- **`companion_camera_capture`** — カメラフレームのみ取得。表情や環境確認に使用。",
+          "",
+          "> llm_output フックにより全応答は自動読み上げされます。",
+          "> ユーザーがマイクとカメラを ON にしている場合、`get_companion_input` で",
+          "> 定期的に入力を確認し、自然な会話を維持してください。",
         ].join("\n"),
       };
     });
@@ -215,11 +221,121 @@ const plugin: OpenClawPluginDefinition = {
       },
     });
 
+    // ── get_companion_input tool (マルチモーダル入力: STT + カメラ) ──────────
+    api.registerTool({
+      name: "get_companion_input",
+      description:
+        "ユーザーのマイク音声（STT テキスト）とカメラ映像（JPEG画像）を取得する。" +
+        "ユーザーがマイクで話しかけているか確認し、カメラ ON なら映像も取得。" +
+        "会話中は積極的に呼び出してユーザーの発話を確認すること。",
+      parameters: Type.Object({
+        include_camera: Type.Optional(
+          Type.Boolean({ default: true, description: "カメラフレームも取得するか" }),
+        ),
+      }),
+      async execute(_id: string, params: { include_camera?: boolean }) {
+        const stateDir = path.resolve(
+          ((api.config as Record<string, unknown>).stateDir as string) ?? ".openclaw-desktop",
+        );
+        const content: Array<Record<string, unknown>> = [];
+
+        // 1. Read STT result
+        try {
+          const sttPath = path.join(stateDir, "companion_stt_result.json");
+          const raw = await fs.readFile(sttPath, "utf-8");
+          const data = JSON.parse(raw) as { transcript: string; timestamp: number };
+          const age = Date.now() - data.timestamp;
+          const ageLabel =
+            age < 60000 ? `${Math.round(age / 1000)}秒前` : `${Math.round(age / 60000)}分前`;
+          content.push({
+            type: "text",
+            text: `🎤 ユーザー音声 (${ageLabel}): "${data.transcript}"`,
+          });
+        } catch {
+          content.push({ type: "text", text: "🎤 音声入力なし（マイク OFF またはまだ発話なし）" });
+        }
+
+        // 2. Read camera frame
+        if (params.include_camera !== false) {
+          try {
+            const res = await fetch("http://127.0.0.1:18791/camera?capture=1", {
+              signal: AbortSignal.timeout(3000),
+            });
+            const data = (await res.json()) as { ok: boolean; base64?: string; timestamp?: number };
+            if (data.ok && data.base64) {
+              content.push({
+                type: "image",
+                source: {
+                  type: "base64",
+                  media_type: "image/jpeg",
+                  data: data.base64,
+                },
+              });
+            } else {
+              content.push({ type: "text", text: "📷 カメラ OFF" });
+            }
+          } catch {
+            content.push({
+              type: "text",
+              text: "📷 カメラフレーム取得不可（コンパニオン未起動？）",
+            });
+          }
+        }
+
+        return { content };
+      },
+    });
+
+    // ── companion_camera_capture tool (カメラフレームのみ) ────────────────────
+    api.registerTool({
+      name: "companion_camera_capture",
+      description:
+        "コンパニオンのウェブカメラから最新の映像フレームを取得する。" +
+        "ユーザーの表情や周囲の環境を確認したい場合に使用。",
+      parameters: Type.Object({}),
+      async execute() {
+        try {
+          const res = await fetch("http://127.0.0.1:18791/camera?capture=1", {
+            signal: AbortSignal.timeout(3000),
+          });
+          const data = (await res.json()) as { ok: boolean; base64?: string; timestamp?: number };
+          if (data.ok && data.base64) {
+            return {
+              content: [
+                {
+                  type: "image",
+                  source: {
+                    type: "base64",
+                    media_type: "image/jpeg",
+                    data: data.base64,
+                  },
+                },
+                {
+                  type: "text",
+                  text: `📷 カメラ取得 (${new Date(data.timestamp ?? Date.now()).toLocaleTimeString()})`,
+                },
+              ],
+            };
+          }
+          return {
+            content: [{ type: "text", text: "📷 カメラ OFF またはフレームなし" }],
+          };
+        } catch {
+          return {
+            isError: true,
+            content: [{ type: "text", text: "📷 コンパニオン未起動" }],
+          };
+        }
+      },
+    });
+
     console.log("[live2d-companion] Plugin registered:");
     console.log("  - before_prompt_build → ツール利用ガイダンス注入");
     console.log("  - llm_output → VOICEVOX 自動読み上げ");
     console.log("  - voicevox_speak (companion 経由)");
     console.log("  - voicevox_speak_direct (Python 直接)");
+    console.log("  - get_companion_input (STT + カメラ マルチモーダル入力)");
+    console.log("  - companion_camera_capture (カメラフレーム取得)");
   },
 };
 

@@ -68,7 +68,7 @@ async function main(): Promise<void> {
   // ── Initialize avatar via factory ────────────────────────────────────────
   const configType =
     ((companionConfig as Record<string, unknown>).avatarType as AvatarType) ?? "auto";
-  const avatarType: AvatarType = configType === "auto" ? "live2d" : configType;
+  const avatarType: AvatarType = configType === "auto" ? "vrm" : configType;
   let avatar: IAvatarController;
   try {
     avatar = await createAvatarController(avatarType);

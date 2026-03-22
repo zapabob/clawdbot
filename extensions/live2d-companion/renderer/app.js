@@ -50,7 +50,7 @@ async function main() {
   const camera = new CameraHandler(cameraPreview, cameraCanvas);
   // ── Initialize avatar via factory ────────────────────────────────────────
   const configType = companionConfig.avatarType ?? "auto";
-  const avatarType = configType === "auto" ? "live2d" : configType;
+  const avatarType = configType === "auto" ? "vrm" : configType;
   let avatar;
   try {
     avatar = await createAvatarController(avatarType);
