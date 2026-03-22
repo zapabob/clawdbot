@@ -31,6 +31,10 @@ async function writeState() {
   }
 }
 // ── DPI-robust click-through timer ───────────────────────────────────────────
+// POLL_BUFFER_PX: pre-activate setIgnoreMouseEvents(false) this many pixels
+// OUTSIDE the window so OLE DragEnter is received before the cursor crosses
+// the window boundary (WS_EX_TRANSPARENT / WindowFromPoint incompatibility).
+const POLL_BUFFER_PX = 30;
 function startIgnoreMouseTimer() {
   return setInterval(() => {
     if (!mainWindow || mainWindow.isDestroyed()) return;
@@ -40,14 +44,18 @@ function startIgnoreMouseTimer() {
       x: b.x + b.width / 2,
       y: b.y + b.height / 2,
     }).scaleFactor;
-    const inL = pos.x >= b.x && pos.x <= b.x + b.width && pos.y >= b.y && pos.y <= b.y + b.height;
+    const inL =
+      pos.x >= b.x - POLL_BUFFER_PX &&
+      pos.x <= b.x + b.width + POLL_BUFFER_PX &&
+      pos.y >= b.y - POLL_BUFFER_PX &&
+      pos.y <= b.y + b.height + POLL_BUFFER_PX;
     const inP =
-      pos.x >= b.x * sf &&
-      pos.x <= (b.x + b.width) * sf &&
-      pos.y >= b.y * sf &&
-      pos.y <= (b.y + b.height) * sf;
+      pos.x >= b.x * sf - POLL_BUFFER_PX &&
+      pos.x <= (b.x + b.width) * sf + POLL_BUFFER_PX &&
+      pos.y >= b.y * sf - POLL_BUFFER_PX &&
+      pos.y <= (b.y + b.height) * sf + POLL_BUFFER_PX;
     mainWindow.setIgnoreMouseEvents(!(inL || inP), { forward: true });
-  }, 50);
+  }, 8);
 }
 // ── Window creation ──────────────────────────────────────────────────────────
 function createWindow() {
@@ -283,8 +291,14 @@ ipcMain.handle("open-file-dialog", async (_event, opts = {}) => {
   }
   const filePath = result.filePaths[0];
   try {
-    const buffer = await fs.readFile(filePath);
-    return { ok: true, filePath, buffer };
+    const nodeBuffer = await fs.readFile(filePath);
+    // Convert Node.js Buffer → ArrayBuffer so the renderer receives a true
+    // ArrayBuffer (not Uint8Array) — GLTFLoader/FBXLoader require ArrayBuffer.
+    const arrayBuffer = nodeBuffer.buffer.slice(
+      nodeBuffer.byteOffset,
+      nodeBuffer.byteOffset + nodeBuffer.byteLength,
+    );
+    return { ok: true, filePath, buffer: arrayBuffer };
   } catch (err) {
     return { ok: false, error: String(err) };
   }

@@ -9,6 +9,9 @@ Usage:
 import argparse
 import sys
 
+# Windows cp932 console cannot print emoji/non-ASCII without explicit UTF-8.
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 try:
     from pythonosc import udp_client
 except ImportError:

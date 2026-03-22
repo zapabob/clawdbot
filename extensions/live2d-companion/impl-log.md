@@ -6,6 +6,66 @@
 
 ## 2026-03-22 (latest)
 
+### fix(companion): D&D + ファイルピッカー 完全修正 (Ultrathink)
+
+**問題**
+
+1. **D&D が依然として作動しない**: 前回の `mouseenter` IPC 修正後も `.vrm`/`.fbx`/`.model3.json` のドラッグが検知されない。
+2. **ファイルピッカーでモデルが読み込まれない**: ダイアログで選択してもモデルが表示されず「モック」状態のまま。
+
+**根本原因**
+
+**D&D について（OLE / WS_EX_TRANSPARENT 非互換）**:
+
+`setIgnoreMouseEvents(true)` は Windows の `WS_EX_TRANSPARENT` 拡張スタイルを設定する。
+このフラグがあるとウィンドウは `WindowFromPoint()` の返り値から除外される。
+OLE D&D システムは `IDropTarget::DragEnter` をデリバリーする際に `WindowFromPoint()` を使うため、
+`WS_EX_TRANSPARENT` 状態のウィンドウには **永遠に D&D イベントが届かない**。
+
+`{ forward: true }` が `WM_MOUSEMOVE` を転送するため、前回の `mouseenter` IPC は
+通常のマウス操作では機能するが、OLE ドラッグ中は drag source HWND がマウスをキャプチャするため
+companion HWND の `{ forward: true }` フックが発火せず `mouseenter` が発生しない。
+
+50ms ポーリングタイマーは `dragenter` より遅く、レースコンディションが解消されていなかった。
+
+**解決**: 30px バッファゾーンをウィンドウ外に設け、カーソルが境界に達する **前に** `setIgnoreMouseEvents(false)` にしておく。8ms ≈ 120fps で検出し、バッファ外はデスクトップへクリックスルーされるため副作用なし。
+
+**ファイルピッカーについて（Buffer → Uint8Array IPC デシリアライズ）**:
+
+Node.js `fs.readFile()` が返す `Buffer` は、IPC の `contextIsolation: true` 環境で
+renderer に届くと **`Uint8Array` に変換される**。
+`GLTFLoader.parse()` / `FBXLoader.parse()` は `data instanceof ArrayBuffer` を検査し、
+`Uint8Array` は拒否される → モデルが無音でスキップ → 「モック」に見える。
+
+**解決**: `buffer.buffer.slice(byteOffset, byteOffset + byteLength)` で真の `ArrayBuffer` に変換してから返す。
+
+**変更ファイル**
+
+| ファイル           | 変更内容                                                                                                                 |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `electron/main.ts` | `POLL_BUFFER_PX=30` 追加、タイマー 50ms→8ms、bounds チェックに 30px マージン、`open-file-dialog` Buffer→ArrayBuffer 変換 |
+| `electron/main.js` | 同上（JS 版）                                                                                                            |
+
+**修正後のフロー**
+
+```
+[D&D]
+  cursor がウィンドウ境界の 30px 手前に到達
+    → 8ms タイマー: setIgnoreMouseEvents(false)
+    → cursor が境界を越える
+    → OLE DragEnter 受信 ✅ → dragover → drop → reloadModelFromBuffer() ✅
+
+[ファイルピッカー]
+  dialog.showOpenDialog() → fs.readFile() → Buffer
+    → buffer.buffer.slice() → ArrayBuffer
+    → IPC → renderer: ArrayBuffer (Uint8Array ではなく)
+    → GLTFLoader.parse(arrayBuffer) ✅ → モデル表示 ✅
+```
+
+---
+
+## 2026-03-22 (prev)
+
 ### fix(companion): D&D不動作 + screenshotBtn モック修正
 
 **問題**
