@@ -34,7 +34,7 @@ async function writeState() {
 // POLL_BUFFER_PX: pre-activate setIgnoreMouseEvents(false) this many pixels
 // OUTSIDE the window so OLE DragEnter is received before the cursor crosses
 // the window boundary (WS_EX_TRANSPARENT / WindowFromPoint incompatibility).
-const POLL_BUFFER_PX = 30;
+const POLL_BUFFER_PX = 60;
 function startIgnoreMouseTimer() {
   return setInterval(() => {
     if (!mainWindow || mainWindow.isDestroyed()) return;

@@ -1,6 +1,21 @@
 import { execFile } from "node:child_process";
-import { join } from "node:path";
+import { existsSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { getOSCClient } from "../osc/client.js";
+
+// Resolve osc_chatbox.py from import.meta.url so it works regardless of cwd.
+// Source layout:  src/tools/ → ../../../../ = project root
+// Dist layout:    dist/src/tools/ → ../../../../../../ = project root
+const __dirnameC = dirname(fileURLToPath(import.meta.url));
+const _oscScriptFromSrc = join(__dirnameC, "../../../..", "scripts", "osc_chatbox.py");
+const _oscScriptFromDist = join(__dirnameC, "../../../../../../", "scripts", "osc_chatbox.py");
+const _oscScriptFromCwd = join(process.cwd(), "scripts", "osc_chatbox.py");
+const OSC_SCRIPT_PATH = existsSync(_oscScriptFromSrc)
+  ? _oscScriptFromSrc
+  : existsSync(_oscScriptFromDist)
+    ? _oscScriptFromDist
+    : _oscScriptFromCwd;
 import { logInfo, logSkip, logError } from "./audit.js";
 import { checkPermission } from "./permissions.js";
 import { rateLimiters } from "./rate-limiter.js";
@@ -41,7 +56,7 @@ function sendViaPython(
   options: { sfx?: boolean; host?: string; port?: number } = {},
 ): Promise<{ success: boolean; error?: string }> {
   const { sfx = true, host = "127.0.0.1", port = 9000 } = options;
-  const scriptPath = join(process.cwd(), "scripts", "osc_chatbox.py");
+  const scriptPath = OSC_SCRIPT_PATH;
 
   const args = [scriptPath, message, "--host", host, "--port", String(port)];
   if (!sfx) args.push("--no-sfx");
@@ -68,7 +83,7 @@ export function sendRawOscViaPython(
   options: { host?: string; port?: number } = {},
 ): Promise<{ success: boolean; error?: string }> {
   const { host = "127.0.0.1", port = 9000 } = options;
-  const scriptPath = join(process.cwd(), "scripts", "osc_chatbox.py");
+  const scriptPath = OSC_SCRIPT_PATH;
 
   const args = [
     scriptPath,
