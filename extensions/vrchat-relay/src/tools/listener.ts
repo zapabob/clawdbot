@@ -14,6 +14,8 @@ const listenerState: ListenerState = {
 
 const recentMessages: OSCMessage[] = [];
 const MAX_STORED_MESSAGES = 100;
+const AUTO_COMPACT_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+let autoCompactTimer: NodeJS.Timeout | null = null;
 
 /**
  * Start OSC listener to receive messages from VRChat
@@ -39,6 +41,19 @@ export function startOSCListener(): { success: boolean; port: number; error?: st
     listenerState.isRunning = true;
     listenerState.startTime = new Date();
 
+    // Start auto-compact: trim old messages every 5 minutes
+    if (!autoCompactTimer) {
+      autoCompactTimer = setInterval(() => {
+        const before = recentMessages.length;
+        if (before > 50) {
+          recentMessages.splice(0, before - 50);
+          console.log(
+            `[vrchat-relay][listener] Auto-compact: ${before} → ${recentMessages.length} messages`,
+          );
+        }
+      }, AUTO_COMPACT_INTERVAL_MS);
+    }
+
     return { success: true, port: 9001 };
   } catch (error) {
     return {
@@ -58,6 +73,11 @@ export function stopOSCListener(): { success: boolean; error?: string } {
     client.stopListener();
 
     listenerState.isRunning = false;
+
+    if (autoCompactTimer) {
+      clearInterval(autoCompactTimer);
+      autoCompactTimer = null;
+    }
 
     return { success: true };
   } catch (error) {
@@ -101,6 +121,11 @@ export function resetOSC(): { success: boolean } {
   listenerState.messageCount = 0;
   listenerState.startTime = undefined;
   recentMessages.length = 0;
+
+  if (autoCompactTimer) {
+    clearInterval(autoCompactTimer);
+    autoCompactTimer = null;
+  }
 
   return { success: true };
 }

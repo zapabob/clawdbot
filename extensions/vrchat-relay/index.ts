@@ -870,14 +870,14 @@ ${logText}`,
       parameters: Type.Object({
         intervalMinutes: Type.Optional(
           Type.Number({
-            description: "Chatbox message interval in minutes (default: 5)",
-            default: 5,
+            description: "Chatbox message interval in minutes (default: 10)",
+            default: 10,
           }),
         ),
         emotionIntervalMinutes: Type.Optional(
           Type.Number({
-            description: "Avatar emotion interval in minutes (default: 15)",
-            default: 15,
+            description: "Avatar emotion interval in minutes (default: 10)",
+            default: 10,
           }),
         ),
         sendEmotions: Type.Optional(
@@ -896,8 +896,8 @@ ${logText}`,
         },
       ) {
         const result = startGuardianPulse({
-          intervalMs: (params.intervalMinutes ?? 5) * 60 * 1000,
-          emotionIntervalMs: (params.emotionIntervalMinutes ?? 15) * 60 * 1000,
+          intervalMs: (params.intervalMinutes ?? 10) * 60 * 1000,
+          emotionIntervalMs: (params.emotionIntervalMinutes ?? 10) * 60 * 1000,
           sendEmotions: params.sendEmotions ?? true,
         });
         return {
@@ -944,7 +944,7 @@ ${logText}`,
     });
 
     // Auto-start Guardian Pulse on plugin registration
-    const pulseResult = startGuardianPulse({ intervalMs: 5 * 60 * 1000, sendEmotions: true });
+    const pulseResult = startGuardianPulse({ intervalMs: 10 * 60 * 1000, sendEmotions: true });
     if (pulseResult.success) {
       console.log(`[vrchat-relay] ${pulseResult.message}`);
     }

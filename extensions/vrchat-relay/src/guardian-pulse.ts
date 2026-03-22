@@ -67,8 +67,8 @@ interface PulseState {
 
 const state: PulseState = {
   active: false,
-  intervalMs: 5 * 60 * 1000, // 5 minutes
-  emotionIntervalMs: 15 * 60 * 1000, // 15 minutes
+  intervalMs: 10 * 60 * 1000, // 10 minutes
+  emotionIntervalMs: 10 * 60 * 1000, // 10 minutes
   pulseTimer: null,
   emotionTimer: null,
   pulseCount: 0,
@@ -149,11 +149,11 @@ async function checkLineStatus(): Promise<void> {
 
 export interface GuardianPulseOptions {
   /**
-   * How often to send a chatbox heartbeat (default: 5 minutes)
+   * How often to send a chatbox heartbeat (default: 10 minutes)
    */
   intervalMs?: number;
   /**
-   * How often to trigger an avatar emotion expression (default: 15 minutes)
+   * How often to trigger an avatar emotion expression (default: 10 minutes)
    */
   emotionIntervalMs?: number;
   /**
