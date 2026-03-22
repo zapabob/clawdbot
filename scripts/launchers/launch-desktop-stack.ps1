@@ -147,6 +147,22 @@ Write-Host "  Profile : $StackProfile"
 Write-Host "  Runner  : $($launcher.Label)"
 Write-Host ""
 
+# --- Cleanup existing processes ---
+Write-Step "  Cleaning up existing OpenClaw processes..." -Color "Yellow"
+$processesToKill = @("node", "electron")
+foreach ($procName in $processesToKill) {
+    Get-Process -Name $procName -ErrorAction SilentlyContinue | Where-Object { 
+        $_.CommandLine -like "*openclaw*" -or $_.CommandLine -like "*live2d-companion*"
+    } | Stop-Process -Force -ErrorAction SilentlyContinue
+}
+# Also kill common ports if needed (GatewayPort)
+$portProc = Get-NetTCPConnection -LocalPort $GatewayPort -ErrorAction SilentlyContinue
+if ($portProc) {
+    Stop-Process -Id $portProc.OwningProcess -Force -ErrorAction SilentlyContinue
+}
+Write-Host "  Cleanup complete." -ForegroundColor Green
+Write-Host ""
+
 # --- [Pre] VOICEVOX ---
 if (-not $SkipVoice) {
     Write-Host "  [VOICEVOX] Starting..." -ForegroundColor DarkCyan

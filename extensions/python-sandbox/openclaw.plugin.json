@@ -1,0 +1,16 @@
+{
+  "id": "python-sandbox",
+  "name": "Python Sandbox",
+  "description": "Allows the AI to execute Python scripts via 'py -3' and capture output.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "pythonPath": {
+        "type": "string",
+        "description": "Path to the python executable (defaults to 'py -3' or 'python3')",
+        "default": "py -3"
+      }
+    }
+  }
+}

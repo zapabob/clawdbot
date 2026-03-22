@@ -461,98 +461,81 @@ async function main(): Promise<void> {
     if (!e.relatedTarget) setDragActive(false);
   });
 
-  document.addEventListener("drop", async (e) => {
+  document.addEventListener("drop", async (e: DragEvent) => {
     e.preventDefault();
     setDragActive(false);
 
-    const file = e.dataTransfer?.files[0];
-    if (!file) return;
+    const dataTransfer = e.dataTransfer;
+    if (!dataTransfer) return;
 
     let modelPath: string | null = null;
+    let fileBuffer: ArrayBuffer | null = null;
+    let fileName: string = "";
 
-    const name = file.name.toLowerCase();
-
-    if (name.endsWith(".vrm") || name.endsWith(".fbx")) {
-      modelPath = (file as File & { path?: string }).path ?? null;
-    } else if (name.endsWith(".model3.json") || name.endsWith(".model.json")) {
-      modelPath = (file as File & { path?: string }).path ?? null;
-    } else {
-      // Check for directory containing a model file
-      const item = e.dataTransfer?.items[0];
-      if (item) {
-        const entry = item.webkitGetAsEntry?.();
-        if (entry?.isDirectory) {
-          modelPath = await findModelInDirectory(entry as FileSystemDirectoryEntry);
+    // 1. Try to find a model file among dropped items
+    const items = Array.from(dataTransfer.items);
+    for (const item of items) {
+      const entry = (item as any).webkitGetAsEntry?.();
+      if (entry?.isDirectory) {
+        modelPath = await findModelInDirectory(entry as FileSystemDirectoryEntry);
+        if (modelPath) break;
+      } else if (item.kind === "file") {
+        const file = dataTransfer.files[items.indexOf(item)];
+        if (!file) continue;
+        const name = file.name.toLowerCase();
+        if (
+          name.endsWith(".vrm") ||
+          name.endsWith(".fbx") ||
+          name.endsWith(".model3.json") ||
+          name.endsWith(".model.json")
+        ) {
+          modelPath = (file as File & { path?: string }).path ?? file.name;
+          fileName = file.name;
+          // Pre-load buffer for Three.js
+          if (name.endsWith(".vrm") || name.endsWith(".fbx")) {
+            fileBuffer = await file.arrayBuffer();
+          }
+          break;
         }
       }
     }
 
     if (!modelPath) {
       if (statusText)
-        statusText.textContent = "⚠ .vrm / .fbx / .model3.json を含むファイル/フォルダをドロップ";
+        statusText.textContent =
+          "⚠ 有効なモデルファイルが見つかりません (.vrm, .fbx, .model3.json)";
       return;
     }
 
     const droppedType = inferAvatarType(modelPath);
+    fileName = fileName || modelPath.split(/[/\\]/).pop() || modelPath;
 
-    // Pre-read file as ArrayBuffer for Three.js loaders (avoids file:// XHR issues in Electron)
-    let fileBuffer: ArrayBuffer | null = null;
-    if ((droppedType === "fbx" || droppedType === "vrm") && file.size > 0) {
-      try {
-        fileBuffer = await file.arrayBuffer();
-      } catch {
-        /* fallback to URL */
-      }
-    }
+    if (statusText) statusText.textContent = `${fileName} をロード中…`;
 
-    /** Helper: load model using buffer (preferred) or path fallback */
-    async function loadModel(ctrl: IAvatarController): Promise<void> {
-      if (
-        fileBuffer &&
-        typeof (ctrl as unknown as Record<string, unknown>).reloadModelFromBuffer === "function"
-      ) {
-        await (
-          ctrl as unknown as {
-            reloadModelFromBuffer: (buf: ArrayBuffer, path: string) => Promise<void>;
-          }
-        ).reloadModelFromBuffer(fileBuffer, (file as File & { path?: string }).path ?? modelPath!);
-      } else {
-        await ctrl.reloadModel(modelPath!);
-      }
-    }
-
-    // If the dropped type differs from the running controller type, we need to
-    // destroy the current controller and create a new one of the correct type.
-    const currentType = avatar.avatarType;
-
-    if (droppedType !== currentType) {
-      if (statusText) statusText.textContent = "アバター切替中…";
-      try {
+    try {
+      const currentType = avatar.avatarType;
+      if (droppedType !== currentType) {
         avatar.destroy();
         const newCtrl = await createAvatarController(droppedType);
         await newCtrl.init(container!);
         avatar = newCtrl;
-        (lipSync as unknown as { live2d: IAvatarController }).live2d = newCtrl;
-        await loadModel(avatar);
-        const fname = modelPath.split(/[/\\]/).pop() ?? modelPath;
-        if (modelBadge) modelBadge.textContent = fname;
-        if (statusText) statusText.textContent = "";
-      } catch (err) {
-        console.error("[DD] controller-switch load failed:", err);
-        if (statusText) statusText.textContent = `⚠ 読み込み失敗: ${String(err).slice(0, 60)}`;
+        (lipSync as any).live2d = newCtrl;
       }
-      return;
-    }
 
-    if (statusText) statusText.textContent = "モデル読み込み中…";
-    try {
-      await loadModel(avatar);
-      const fname = modelPath.split(/[/\\]/).pop() ?? modelPath;
-      if (modelBadge) modelBadge.textContent = fname;
-      if (statusText) statusText.textContent = "";
+      if (fileBuffer && typeof (avatar as any).reloadModelFromBuffer === "function") {
+        await (avatar as any).reloadModelFromBuffer(fileBuffer, modelPath);
+      } else {
+        await avatar.reloadModel(modelPath);
+      }
+
+      if (modelBadge) modelBadge.textContent = fileName;
+      if (statusText) statusText.textContent = "✔ ロード完了";
+      setTimeout(() => {
+        if (statusText?.textContent === "✔ ロード完了") statusText.textContent = "";
+      }, 3000);
     } catch (err) {
-      console.error("[DD] model load failed:", err);
-      if (statusText) statusText.textContent = `⚠ 読み込み失敗: ${String(err).slice(0, 60)}`;
+      console.error("[DD] Load failed:", err);
+      if (statusText) statusText.textContent = `⚠ ロード失敗: ${String(err).slice(0, 50)}`;
     }
   });
 

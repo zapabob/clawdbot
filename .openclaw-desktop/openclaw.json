@@ -1,7 +1,13 @@
 {
   "meta": {
     "lastTouchedVersion": "2026.3.14",
-    "lastTouchedAt": "2026-03-21T10:35:11.544Z"
+    "lastTouchedAt": "2026-03-22T06:20:27.694Z"
+  },
+  "wizard": {
+    "lastRunAt": "2026-03-22T06:20:27.501Z",
+    "lastRunVersion": "2026.3.14",
+    "lastRunCommand": "doctor",
+    "lastRunMode": "local"
   },
   "browser": {
     "enabled": true,
@@ -65,12 +71,11 @@
         "fallbacks": ["ollama/qwen3.5:9b", "openai-codex/gpt-5.4"]
       },
       "compaction": {
-        "mode": "safeguard",
-        "autoCompactInterval": "5m"
+        "mode": "auto"
       },
       "timeoutSeconds": 900,
       "heartbeat": {
-        "every": "5m"
+        "every": "1m"
       },
       "maxConcurrent": 4,
       "subagents": {
@@ -149,10 +154,24 @@
       "dmPolicy": "${LINE_DM_POLICY}",
       "groupPolicy": "open",
       "groupAllowFrom": [],
-      "allowFrom": [],
+      "allowFrom": ["*"],
       "groups": {},
       "defaultAccount": "はくあ",
       "name": "はくあ"
+    }
+  },
+  "gateway": {
+    "mode": "local"
+  },
+  "mcp": {
+    "servers": {
+      "playwright": {
+        "command": "npx",
+        "args": ["-y", "@playwright/mcp@latest"],
+        "env": {
+          "PLAYWRIGHT_HEADLESS": false
+        }
+      }
     }
   },
   "plugins": {
@@ -206,20 +225,6 @@
         "enabled": true,
         "hooks": {
           "allowPromptInjection": true
-        }
-      }
-    }
-  },
-  "gateway": {
-    "mode": "local"
-  },
-  "mcp": {
-    "servers": {
-      "playwright": {
-        "command": "npx",
-        "args": ["-y", "@playwright/mcp@latest"],
-        "env": {
-          "PLAYWRIGHT_HEADLESS": false
         }
       }
     }
