@@ -317,6 +317,12 @@ ipcMain.handle("discover-model", async () => {
   const found = await scanModels(modelsDir);
   return found[0] ?? null;
 });
+// ── IPC: renderer mouse-active (immediate click-through / D&D toggle) ─────────
+ipcMain.on("mouse-active", (_event, active) => {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.setIgnoreMouseEvents(!active, { forward: true });
+});
+
 // ── IPC: renderer → state update ─────────────────────────────────────────────
 ipcMain.on(IPC_CHANNELS.STATE_UPDATE, (_event, update) => {
   Object.assign(companionState, update, { timestamp: Date.now() });

@@ -12,8 +12,27 @@ async function main() {
   if (!container) return;
   // ── Initialize avatar via factory ────────────────────────────────────────
   const configType = companionConfig.avatarType ?? "auto";
-  let avatar = await createAvatarController(configType === "auto" ? "live2d" : configType);
-  await avatar.init(container);
+  const avatarType = configType === "auto" ? "live2d" : configType;
+  let avatar;
+  try {
+    avatar = await createAvatarController(avatarType);
+    await avatar.init(container);
+  } catch (err) {
+    console.error("[app] avatar init failed:", err);
+    if (statusText) statusText.textContent = "⚠ アバター未ロード — ファイルを選択してください";
+    // No-op stub so the rest of main() (buttons, IPC, D&D) still works
+    avatar = {
+      avatarType,
+      init: async () => {},
+      destroy: () => {},
+      reloadModel: async () => {},
+      reloadModelFromBuffer: async () => {},
+      playMotion: () => {},
+      playExpression: () => {},
+      setLipSyncValue: () => {},
+      lookAt: () => {},
+    };
+  }
   // ── Lip sync ──────────────────────────────────────────────────────────────
   const lipSync = new LipSyncController(avatar);
   // ── STT Handler ───────────────────────────────────────────────────────────
@@ -356,6 +375,17 @@ async function main() {
       console.error("[DD] model load failed:", err);
       if (statusText) statusText.textContent = `⚠ 読み込み失敗: ${String(err).slice(0, 60)}`;
     }
+  });
+
+  // ── Renderer-driven mouse-active IPC (D&D + click-through fix) ───────────
+  // { forward: true } forwards mouseenter/mouseleave to the renderer even when
+  // setIgnoreMouseEvents is active. We use these to immediately toggle ignore,
+  // so dragenter events are never blocked by the 50ms polling delay.
+  document.addEventListener("mouseenter", () => {
+    window.companionBridge?.notifyMouseActive?.(true);
+  });
+  document.addEventListener("mouseleave", () => {
+    window.companionBridge?.notifyMouseActive?.(false);
   });
 }
 function hasModeFile(e) {

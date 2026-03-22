@@ -16,16 +16,34 @@ async function main(): Promise<void> {
   const statusText = document.getElementById("status-text");
   const modelBadge = document.getElementById("model-badge");
   const micBtn = document.getElementById("mic-btn") as HTMLButtonElement;
+  const screenshotBtn = document.getElementById("screenshot-btn") as HTMLButtonElement | null;
 
   if (!container) return;
 
   // ── Initialize avatar via factory ────────────────────────────────────────
   const configType =
     ((companionConfig as Record<string, unknown>).avatarType as AvatarType) ?? "auto";
-  let avatar: IAvatarController = await createAvatarController(
-    configType === "auto" ? "live2d" : configType,
-  );
-  await avatar.init(container);
+  const avatarType: AvatarType = configType === "auto" ? "live2d" : configType;
+  let avatar: IAvatarController;
+  try {
+    avatar = await createAvatarController(avatarType);
+    await avatar.init(container);
+  } catch (err) {
+    console.error("[app] avatar init failed:", err);
+    if (statusText) statusText.textContent = "⚠ アバター未ロード — ファイルを選択してください";
+    // No-op stub so the rest of main() (buttons, IPC, D&D) still works
+    avatar = {
+      avatarType,
+      init: async () => {},
+      destroy: () => {},
+      reloadModel: async () => {},
+      reloadModelFromBuffer: async () => {},
+      playMotion: () => {},
+      playExpression: () => {},
+      setLipSyncValue: () => {},
+      lookAt: () => {},
+    } as IAvatarController;
+  }
 
   // ── Lip sync ──────────────────────────────────────────────────────────────
   const lipSync = new LipSyncController(avatar);
@@ -49,6 +67,26 @@ async function main(): Promise<void> {
       micBtn.classList.add("active");
       micBtn.title = "音声入力 OFF";
       if (statusText) statusText.textContent = "🎤 聴いています…";
+    }
+  });
+
+  // ── Screen capture button ─────────────────────────────────────────────────
+  screenshotBtn?.addEventListener("click", async () => {
+    if (!window.companionBridge?.captureScreen) return;
+    if (statusText) statusText.textContent = "📸 キャプチャ中…";
+    try {
+      const result = await window.companionBridge.captureScreen();
+      if (result?.ok) {
+        if (statusText) statusText.textContent = "📸 保存完了";
+        setTimeout(() => {
+          if (statusText) statusText.textContent = "";
+        }, 2000);
+      } else {
+        if (statusText) statusText.textContent = `⚠ キャプチャ失敗: ${result?.error ?? "不明"}`;
+      }
+    } catch (err) {
+      if (statusText) statusText.textContent = "⚠ キャプチャエラー";
+      console.error("[Screenshot]", err);
     }
   });
 
@@ -412,6 +450,17 @@ async function main(): Promise<void> {
       console.error("[DD] model load failed:", err);
       if (statusText) statusText.textContent = `⚠ 読み込み失敗: ${String(err).slice(0, 60)}`;
     }
+  });
+
+  // ── Renderer-driven mouse-active IPC (D&D + click-through fix) ───────────
+  // { forward: true } forwards mouseenter/mouseleave to the renderer even when
+  // setIgnoreMouseEvents is active. We use these to immediately toggle ignore,
+  // so dragenter events are never blocked by the 50ms polling delay.
+  document.addEventListener("mouseenter", () => {
+    window.companionBridge?.notifyMouseActive?.(true);
+  });
+  document.addEventListener("mouseleave", () => {
+    window.companionBridge?.notifyMouseActive?.(false);
   });
 }
 

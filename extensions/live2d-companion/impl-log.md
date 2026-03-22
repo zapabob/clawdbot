@@ -4,6 +4,86 @@
 
 ---
 
+## 2026-03-22 (latest)
+
+### fix(companion): D&D不動作 + screenshotBtn モック修正
+
+**問題**
+
+1. **D&Dが完全に作動しない**: ファイルエクスプローラーから `.vrm`/`.fbx`/`.model3.json` をドラッグしてもウィンドウが反応しない。
+2. **📸ボタンが app.ts に未実装**: `app.js` には screenshotBtn のハンドラーが存在するが、TypeScript ソース `app.ts` に未追加のため次回コンパイルで消滅する。
+
+**根本原因**
+
+**D&D について**:
+Electron の `setIgnoreMouseEvents(true, { forward: true })` で透過クリックスルーを実現しているが、
+`{ forward: true }` オプションが転送するのは **通常マウスイベント** (`mousemove`/`mouseenter` 等) のみで、
+**OLE D&D イベント** (`dragenter`/`dragover`/`drop`) は転送されない。
+
+50ms ポーリングタイマーで `getCursorScreenPoint()` を確認し、ウィンドウ内なら `setIgnoreMouseEvents(false)` にしているが、
+`dragenter` 発火のタイミングに対してポーリング間隔が長く、レースコンディションが発生していた。
+
+```
+cursor が window 境界に到達
+  ├─ OLE DragEnter 発火 (即時)          ← setIgnoreMouseEvents(true) のまま → 無視される
+  └─ ポーリングタイマー (0～50ms 後)    ← 遅すぎる
+       └─ setIgnoreMouseEvents(false)   ← dragenter はすでに消えた
+```
+
+**修正内容**
+
+`{ forward: true }` が `mouseenter`/`mouseleave` を転送することを利用し、
+レンダラー → IPC → main プロセスで **即座に** `setIgnoreMouseEvents` を切り替える仕組みを追加。
+ポーリングタイマーはフォールバックとして残す。
+
+```
+cursor が window に近づく (drag 中でも)
+  └─ mouseenter → forwarded by { forward: true } → renderer が受信
+       └─ companionBridge.notifyMouseActive(true)  [IPC: "mouse-active"]
+            └─ main: setIgnoreMouseEvents(false)   [即時、1-2ms 以内]
+                  └─ OLE DragEnter 発火 → 受信できる ✅
+```
+
+**変更ファイル**
+
+| ファイル                             | 変更内容                                                                                                           |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `electron/preload.ts` / `preload.js` | `notifyMouseActive(active: boolean)` を `companionBridge` に追加。`Window.companionBridge` 型にも追記。            |
+| `electron/main.ts` / `main.js`       | `ipcMain.on("mouse-active", (_event, active) => mainWindow.setIgnoreMouseEvents(!active, { forward: true }))` 追加 |
+| `renderer/app.ts`                    | `screenshotBtn` 変数宣言 + クリックハンドラー追加。`mouseenter`/`mouseleave` → `notifyMouseActive` IPC 追加        |
+| `renderer/app.js`                    | `mouseenter`/`mouseleave` → `notifyMouseActive` IPC 追加（screenshotBtn は既存）                                   |
+
+**修正後のフロー**
+
+```
+[ボタンクリック]
+  cursor が companion window に入る
+    → mouseenter (forwarded) → notifyMouseActive(true)
+    → setIgnoreMouseEvents(false)
+    → click イベント受信 ✅
+
+[D&D]
+  cursor がウィンドウに近づく (drag 中)
+    → mousemove (forwarded) → mouseenter → notifyMouseActive(true)
+    → setIgnoreMouseEvents(false)
+    → dragenter → dragover (preventDefault) → drop
+    → file.arrayBuffer() → reloadModelFromBuffer() → モデル表示 ✅
+
+[クリックスルー]
+  cursor がウィンドウを離れる
+    → mouseleave → notifyMouseActive(false)
+    → setIgnoreMouseEvents(true, { forward: true })
+    → デスクトップへクリックスルー ✅
+```
+
+**screenshotBtn について**
+
+`app.ts`（TypeScript ソース）から `screenshotBtn` が欠落していた。
+`app.js` には手動追記されていたが次回 `tsc` で消えるリスクがあった。
+`app.ts` に変数宣言とクリックハンドラーを追加して同期。
+
+---
+
 ## 2026-03-22
 
 ### feat(companion): OpenClaw エージェントが自律的に自作エクステンションを使用できるように設定

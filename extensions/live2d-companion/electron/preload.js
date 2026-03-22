@@ -54,4 +54,6 @@ contextBridge.exposeInMainWorld("companionBridge", {
   },
   // ── Native file dialog (opens Windows Explorer) ───────────────────────────
   openFileDialog: (opts) => ipcRenderer.invoke("open-file-dialog", opts ?? {}),
+  // ── Mouse active state (renderer → main for D&D / click-through) ──────────
+  notifyMouseActive: (active) => ipcRenderer.send("mouse-active", active),
 });

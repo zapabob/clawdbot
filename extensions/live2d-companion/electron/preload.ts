@@ -82,6 +82,8 @@ contextBridge.exposeInMainWorld("companionBridge", {
     canceled?: boolean;
     error?: string;
   }> => ipcRenderer.invoke("open-file-dialog", opts ?? {}),
+  // ── Mouse active state (renderer → main for D&D / click-through) ──────────
+  notifyMouseActive: (active: boolean) => ipcRenderer.send("mouse-active", active),
 });
 
 // Type declaration for renderer-side TypeScript
@@ -122,6 +124,7 @@ declare global {
         canceled?: boolean;
         error?: string;
       }>;
+      notifyMouseActive: (active: boolean) => void;
     };
   }
 }
