@@ -1,5 +1,5 @@
-import { Type } from "@sinclair/typebox";
 import type { AgentToolResult } from "@mariozechner/pi-agent-core";
+import { Type } from "@sinclair/typebox";
 import type { OpenClawPluginApi, OpenClawPluginDefinition } from "../../src/plugins/types.js";
 import {
   fetchCurrentUserLocation,
