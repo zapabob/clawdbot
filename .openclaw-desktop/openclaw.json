@@ -71,7 +71,7 @@
         "fallbacks": ["ollama/qwen3.5:9b", "openai-codex/gpt-5.4"]
       },
       "compaction": {
-        "mode": "auto"
+        "mode": "default"
       },
       "timeoutSeconds": 900,
       "heartbeat": {

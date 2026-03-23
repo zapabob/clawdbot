@@ -154,3 +154,10 @@ dist/protocol.schema.json
 
 # Local voice virtualenv
 extensions/local-voice/moonshine-venv/
+
+# IDE and Agent patterns
+.vscode/
+.antigravity/
+.gemini/
+.agents/
+.agent/
