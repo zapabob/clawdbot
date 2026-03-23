@@ -38,10 +38,7 @@ function errorMessageIncludesTimeoutHint(value: unknown): boolean {
   );
 }
 
-function isTimeoutAbortError(
-  err: unknown,
-  signal?: AbortSignal,
-): boolean {
+function isTimeoutAbortError(err: unknown, signal?: AbortSignal): boolean {
   if (!err || typeof err !== "object") {
     return false;
   }

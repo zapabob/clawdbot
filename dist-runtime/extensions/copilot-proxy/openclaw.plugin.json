@@ -1,8 +1,6 @@
 {
   "id": "copilot-proxy",
-  "providers": [
-    "copilot-proxy"
-  ],
+  "providers": ["copilot-proxy"],
   "providerAuthChoices": [
     {
       "provider": "copilot-proxy",

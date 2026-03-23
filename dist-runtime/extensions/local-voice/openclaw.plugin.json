@@ -8,21 +8,13 @@
     "properties": {
       "sttProvider": {
         "type": "string",
-        "enum": [
-          "openai-realtime",
-          "whisper"
-        ],
+        "enum": ["openai-realtime", "whisper"],
         "description": "Speech-to-text provider",
         "default": "openai-realtime"
       },
       "ttsProvider": {
         "type": "string",
-        "enum": [
-          "style-bert-vits2",
-          "elevenlabs",
-          "openai",
-          "voicevox"
-        ],
+        "enum": ["style-bert-vits2", "elevenlabs", "openai", "voicevox"],
         "description": "Text-to-speech provider",
         "default": "voicevox"
       },

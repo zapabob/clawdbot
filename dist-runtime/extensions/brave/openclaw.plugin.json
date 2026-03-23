@@ -21,17 +21,11 @@
         "additionalProperties": false,
         "properties": {
           "apiKey": {
-            "type": [
-              "string",
-              "object"
-            ]
+            "type": ["string", "object"]
           },
           "mode": {
             "type": "string",
-            "enum": [
-              "web",
-              "llm-context"
-            ]
+            "enum": ["web", "llm-context"]
           }
         }
       }

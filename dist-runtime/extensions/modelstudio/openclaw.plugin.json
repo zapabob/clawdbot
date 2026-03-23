@@ -1,12 +1,8 @@
 {
   "id": "modelstudio",
-  "providers": [
-    "modelstudio"
-  ],
+  "providers": ["modelstudio"],
   "providerAuthEnvVars": {
-    "modelstudio": [
-      "MODELSTUDIO_API_KEY"
-    ]
+    "modelstudio": ["MODELSTUDIO_API_KEY"]
   },
   "providerAuthChoices": [
     {

@@ -2,9 +2,7 @@
   "id": "diffs",
   "name": "Diffs",
   "description": "Read-only diff viewer and file renderer for agents.",
-  "skills": [
-    "./skills"
-  ],
+  "skills": ["./skills"],
   "uiHints": {
     "defaults.fontFamily": {
       "label": "Default Font",
@@ -93,10 +91,7 @@
           },
           "layout": {
             "type": "string",
-            "enum": [
-              "unified",
-              "split"
-            ],
+            "enum": ["unified", "split"],
             "default": "unified"
           },
           "showLineNumbers": {
@@ -105,11 +100,7 @@
           },
           "diffIndicators": {
             "type": "string",
-            "enum": [
-              "bars",
-              "classic",
-              "none"
-            ],
+            "enum": ["bars", "classic", "none"],
             "default": "bars"
           },
           "wordWrap": {
@@ -122,34 +113,21 @@
           },
           "theme": {
             "type": "string",
-            "enum": [
-              "light",
-              "dark"
-            ],
+            "enum": ["light", "dark"],
             "default": "dark"
           },
           "fileFormat": {
             "type": "string",
-            "enum": [
-              "png",
-              "pdf"
-            ],
+            "enum": ["png", "pdf"],
             "default": "png"
           },
           "format": {
             "type": "string",
-            "enum": [
-              "png",
-              "pdf"
-            ]
+            "enum": ["png", "pdf"]
           },
           "fileQuality": {
             "type": "string",
-            "enum": [
-              "standard",
-              "hq",
-              "print"
-            ],
+            "enum": ["standard", "hq", "print"],
             "default": "standard"
           },
           "fileScale": {
@@ -166,18 +144,11 @@
           },
           "imageFormat": {
             "type": "string",
-            "enum": [
-              "png",
-              "pdf"
-            ]
+            "enum": ["png", "pdf"]
           },
           "imageQuality": {
             "type": "string",
-            "enum": [
-              "standard",
-              "hq",
-              "print"
-            ]
+            "enum": ["standard", "hq", "print"]
           },
           "imageScale": {
             "type": "number",
@@ -191,12 +162,7 @@
           },
           "mode": {
             "type": "string",
-            "enum": [
-              "view",
-              "image",
-              "file",
-              "both"
-            ],
+            "enum": ["view", "image", "file", "both"],
             "default": "both"
           }
         }

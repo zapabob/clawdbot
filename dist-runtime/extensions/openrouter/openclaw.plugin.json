@@ -1,12 +1,8 @@
 {
   "id": "openrouter",
-  "providers": [
-    "openrouter"
-  ],
+  "providers": ["openrouter"],
   "providerAuthEnvVars": {
-    "openrouter": [
-      "OPENROUTER_API_KEY"
-    ]
+    "openrouter": ["OPENROUTER_API_KEY"]
   },
   "providerAuthChoices": [
     {

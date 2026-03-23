@@ -66,9 +66,7 @@
             "type": "number"
           }
         },
-        "required": [
-          "apiKey"
-        ]
+        "required": ["apiKey"]
       },
       "dbPath": {
         "type": "string"
@@ -85,8 +83,6 @@
         "maximum": 10000
       }
     },
-    "required": [
-      "embedding"
-    ]
+    "required": ["embedding"]
   }
 }

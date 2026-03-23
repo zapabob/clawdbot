@@ -1,13 +1,8 @@
 {
   "id": "opencode-go",
-  "providers": [
-    "opencode-go"
-  ],
+  "providers": ["opencode-go"],
   "providerAuthEnvVars": {
-    "opencode-go": [
-      "OPENCODE_API_KEY",
-      "OPENCODE_ZEN_API_KEY"
-    ]
+    "opencode-go": ["OPENCODE_API_KEY", "OPENCODE_ZEN_API_KEY"]
   },
   "providerAuthChoices": [
     {
