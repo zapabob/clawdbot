@@ -9,6 +9,7 @@ export const BUNDLED_PROVIDER_AUTH_ENV_VAR_CANDIDATES = {
   "github-copilot": ["COPILOT_GITHUB_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"],
   google: ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
   huggingface: ["HUGGINGFACE_HUB_TOKEN", "HF_TOKEN"],
+  hypura: ["HYPURA_API_KEY"],
   kilocode: ["KILOCODE_API_KEY"],
   kimi: ["KIMI_API_KEY", "KIMICODE_API_KEY"],
   "kimi-coding": ["KIMI_API_KEY", "KIMICODE_API_KEY"],
