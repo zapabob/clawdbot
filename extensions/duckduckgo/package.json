@@ -1,8 +1,8 @@
 {
   "name": "@openclaw/duckduckgo-plugin",
-  "version": "2026.3.21",
+  "version": "2026.3.22",
   "private": true,
-  "description": "OpenClaw DuckDuckGo web search plugin — no API key required",
+  "description": "OpenClaw DuckDuckGo plugin",
   "type": "module",
   "openclaw": {
     "extensions": [
