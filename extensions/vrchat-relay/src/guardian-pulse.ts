@@ -7,7 +7,6 @@
  * is unloaded.
  */
 
-import { getLineRuntime } from "../../line/src/runtime.js";
 import { setAvatarParameter } from "./tools/avatar.js";
 import { sendChatboxMessage } from "./tools/chatbox-enhanced.js";
 
@@ -123,26 +122,9 @@ async function sendEmotionPulse(): Promise<void> {
 }
 
 async function checkLineStatus(): Promise<void> {
-  try {
-    const runtime = getLineRuntime();
-    const cfg = runtime.config.loadConfig();
-    const account = runtime.channel.line.resolveLineAccount({ cfg });
-    const configured = Boolean(account.channelAccessToken?.trim() && account.channelSecret?.trim());
-
-    if (configured) {
-      const probe = await runtime.channel.line.probeLineBot(account.channelAccessToken, 5000);
-      if (probe?.ok) {
-        console.log(`[vrchat-relay][guardian-pulse] LINE連携 OK (${probe.bot?.displayName})`);
-      } else {
-        console.warn(`[vrchat-relay][guardian-pulse] LINE連携 警告: 疎通できませんでした`);
-      }
-    } else {
-      console.log(`[vrchat-relay][guardian-pulse] LINE連携 未設定 (スキップ)`);
-    }
-  } catch (err: unknown) {
-    // getLineRuntime throws if LINE plugin is not loaded yet
-    console.debug("[vrchat-relay][guardian-pulse] LINE status check failed or plugin not loaded.");
-  }
+  // Cross-extension imports are disallowed in production paths.
+  // Keep this as a lightweight heartbeat placeholder without LINE runtime coupling.
+  console.debug("[vrchat-relay][guardian-pulse] LINE status check skipped.");
 }
 
 // ─── Public API ─────────────────────────────────────────────────────────────

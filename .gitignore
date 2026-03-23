@@ -164,3 +164,11 @@ extensions/local-voice/moonshine-venv/
 .gemini/
 .agents/
 .agent/
+
+# Additional local runtime state (tracked history cleanup)
+.openclaw-desktop/agents/codex/sessions/
+.openclaw-desktop/agents/main/agent/models.json
+.openclaw-desktop/canvas/index.html
+.openclaw-desktop/devices/pending.json
+.openclaw-desktop/openclaw.json
+.openclaw-desktop/telegram/update-offset-default.json
