@@ -23,13 +23,15 @@ export {
   setSetupChannelEnabled,
   splitSetupEntries,
 } from "openclaw/plugin-sdk/setup";
-export * from "openclaw/plugin-sdk/line-runtime";
 
 export * from "./src/accounts.js";
-export * from "./src/bot-access.js";
+export {
+  firstDefined,
+  normalizeAllowFrom,
+  normalizeDmAllowFromWithStore,
+} from "./src/bot-access.js";
 export * from "./src/channel-access-token.js";
 export * from "./src/config-schema.js";
-export * from "./src/download.js";
 export * from "./src/group-keys.js";
 export * from "./src/markdown-to-line.js";
 export * from "./src/probe.js";
