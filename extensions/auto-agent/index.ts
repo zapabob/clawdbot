@@ -1,9 +1,5 @@
 import { Cron } from "croner";
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
-import type {
-  PluginHookMessageReceivedEvent,
-  PluginHookMessageContext,
-} from "../../src/plugins/types.js";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/core";
 
 const THREE_LAWS_ENABLED = true;
 
@@ -737,23 +733,20 @@ export default function register(api: OpenClawPluginApi): void {
     },
   });
 
-  api.on(
-    "message_received",
-    async (event: PluginHookMessageReceivedEvent, _ctx: PluginHookMessageContext) => {
-      const cfg = getConfig(api);
-      if (!cfg.enabled) {
-        return;
-      }
+  api.on("message_received", async (event: any, _ctx: any) => {
+    const cfg = getConfig(api);
+    if (!cfg.enabled) {
+      return;
+    }
 
-      const content = event.content.toLowerCase();
-      if (content.includes("error") || content.includes("fail") || content.includes("exception")) {
-        api.logger.info(
-          `[auto-agent] Potential error detected in message: ${content.slice(0, 50)}...`,
-        );
-        state.taskQueue.push(`Investigate this user-reported issue: ${event.content}`);
-      }
-    },
-  );
+    const content = event.content.toLowerCase();
+    if (content.includes("error") || content.includes("fail") || content.includes("exception")) {
+      api.logger.info(
+        `[auto-agent] Potential error detected in message: ${content.slice(0, 50)}...`,
+      );
+      state.taskQueue.push(`Investigate this user-reported issue: ${event.content}`);
+    }
+  });
 
   api.on("gateway_start", () => {
     const cfg = getConfig(api);

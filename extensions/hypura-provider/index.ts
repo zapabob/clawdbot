@@ -20,7 +20,8 @@ export default definePluginEntry({
   name: "Hypura Provider",
   description: "Storage-tier-aware local LLM inference via hypura serve (Ollama-compatible API)",
   register(api: OpenClawPluginApi) {
-    api.registerProvider({
+    const apiAny = api as any;
+    apiAny.registerProvider({
       id: PROVIDER_ID,
       label: "Hypura",
       docsPath: "/providers/hypura",
@@ -35,7 +36,8 @@ export default definePluginEntry({
             // Attempt to discover a running hypura server
             const baseUrl = ctx.config.models?.providers?.hypura?.baseUrl ?? DEFAULT_BASE_URL;
 
-            await ctx.prompter.print(
+            const prompterAny = ctx.prompter as any;
+            await prompterAny.print?.(
               `Connecting to Hypura server at ${baseUrl}\n` +
                 `Make sure it is running: hypura serve --model ./model.gguf\n`,
             );
@@ -67,7 +69,7 @@ export default definePluginEntry({
                 },
               ],
               configPatch: {},
-            };
+            } as any;
           },
         },
       ],
@@ -116,9 +118,9 @@ export default definePluginEntry({
                 baseUrl: DEFAULT_BASE_URL,
                 api: "ollama" as const,
                 apiKey: hypuraKey,
-                models,
+                models: models.map((name) => ({ id: name })),
               },
-            };
+            } as any;
           } catch {
             // hypura serve not running — skip silently
             return null;

@@ -3,7 +3,7 @@
 #  デスクトップショートカットを作成する
 #
 #  作成されるショートカット:
-#    Clawdbot.lnk            — フルスタック起動 (clawdbot-master.ps1)
+#    Clawdbot.lnk            — フルスタック起動 (launch-desktop-stack.ps1)
 #    Hakua Companion.lnk     — コンパニオン単体起動 (Electron)
 #    Hakua Companion Only.lnk — コンパニオン + VOICEVOXのみ (stack無し)
 #    Install Shortcuts.lnk   — このスクリプト自体の再実行用
@@ -88,10 +88,10 @@ Write-Host "  [created] $PrimaryName" -ForegroundColor Green
 Write-Host "            $LauncherPs1 -SpeakOnReady" -ForegroundColor DarkGray
 
 # ── 2. コンパニオン + StackショートカットHakua Companion.lnk) ─────────────────
-#    Gateway + コンパニオン + VOICEVOX のみ (TUI/Browser/Ngrok をスキップ)
+#    Gateway + コンパニオン + VOICEVOX のみ (TUI/Browser/Ngrok/Hypura をスキップ)
 $sc2 = $WshShell.CreateShortcut($CompanionPath)
 $sc2.TargetPath       = "powershell.exe"
-$sc2.Arguments        = "-NoExit -ExecutionPolicy Bypass -File `"$LaunchStackPs1`" -SkipTui -SkipBrowser -SkipNgrok -SpeakOnReady"
+$sc2.Arguments        = "-NoExit -ExecutionPolicy Bypass -File `"$LaunchStackPs1`" -SkipTui -SkipBrowser -SkipNgrok -SkipHypura -SpeakOnReady"
 $sc2.WorkingDirectory = $ProjectDir
 $sc2.Description      = "Hakua Companion — iDOLM@STER AI Avatar + VOICEVOX + Gateway (TUI/Browser省略)"
 $sc2.WindowStyle      = 1

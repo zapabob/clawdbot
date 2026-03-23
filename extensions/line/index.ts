@@ -1,5 +1,5 @@
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
-import { emptyPluginConfigSchema } from "openclaw/plugin-sdk";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/core";
+import { emptyPluginConfigSchema } from "openclaw/plugin-sdk/core";
 import { registerLineCardCommand } from "./src/card-command.js";
 import { linePlugin } from "./src/channel.js";
 import { registerLinePushCommand } from "./src/push-command.js";

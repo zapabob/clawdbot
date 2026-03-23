@@ -78,7 +78,10 @@ extensions/live2d-companion/models/
 .openclaw-desktop/devices/paired.json
 .openclaw-desktop/update-check.json
 .openclaw-desktop/cron/jobs.json
+.openclaw-desktop/cron/jobs.json.*.tmp
 .openclaw-desktop/cron/jobs.json.bak
+.specstory/
+vrchat-mcp-osc/
 .openclaw-desktop/cron/runs/
 .openclaw-desktop/openclaw.json.bak
 .openclaw-desktop/openclaw.json.bak.*

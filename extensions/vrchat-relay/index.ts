@@ -1,6 +1,6 @@
 import type { AgentToolResult } from "@mariozechner/pi-agent-core";
 import { Type } from "@sinclair/typebox";
-import type { OpenClawPluginApi, OpenClawPluginDefinition } from "../../src/plugins/types.js";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/core";
 import {
   fetchCurrentUserLocation,
   fetchWorldInfo,
@@ -14,6 +14,8 @@ import {
   clearSession,
   getStoredSession,
 } from "./src/auth/index.js";
+import { applyReactiveManifest } from "./src/autonomy/reactive-manifest.js";
+import { startGhostBridge, stopGhostBridge, getGhostBridgeStatus } from "./src/ghost-bridge.js";
 import {
   startGuardianPulse,
   stopGuardianPulse,
@@ -31,7 +33,11 @@ import {
 import { sendChatboxMessage, sendRawOscViaPython } from "./src/tools/chatbox-enhanced.js";
 import { setChatboxTyping } from "./src/tools/chatbox.js";
 import { discoverAvatarParameters } from "./src/tools/discovery.js";
-import { sendInputCommand, VALID_INPUT_ACTIONS } from "./src/tools/input.js";
+import {
+  sendInputCommand,
+  VALID_INPUT_ACTIONS,
+  performMovementWithReset,
+} from "./src/tools/input.js";
 import {
   startOSCListener,
   stopOSCListener,
@@ -66,7 +72,7 @@ function fail(
   });
 }
 
-const plugin: OpenClawPluginDefinition = {
+const plugin: any = {
   id: "vrchat-relay",
   name: "VRChat Relay",
   description:
@@ -93,9 +99,17 @@ const plugin: OpenClawPluginDefinition = {
         maxCharacters: Type.Optional(Type.Number({ default: 144 })),
       }),
     ),
+    topology: Type.Optional(
+      Type.Object({
+        controlPlane: Type.Optional(Type.String({ default: "relay-primary" })),
+        autoStartOscListener: Type.Optional(Type.Boolean({ default: true })),
+        autoStartGuardianPulse: Type.Optional(Type.Boolean({ default: true })),
+      }),
+    ),
   }),
 
-  register(api: OpenClawPluginApi) {
+  register(_api: OpenClawPluginApi) {
+    const api = _api as any;
     console.log("[vrchat-relay] Registering VRChat Relay plugin (Pro Edition)...");
 
     // /chatbox command - Direct access for the Parent (via Python OSC bridge)
@@ -103,7 +117,7 @@ const plugin: OpenClawPluginDefinition = {
       name: "chatbox",
       description: "Send a message directly to the VRChat chatbox (via Python OSC)",
       acceptsArgs: true,
-      async handler(ctx) {
+      async handler(ctx: any) {
         const message = (ctx.args ?? "").trim();
         if (!message) return { text: "Usage: /chatbox <message>" };
         const result = await sendChatboxMessage({ message });
@@ -119,7 +133,7 @@ const plugin: OpenClawPluginDefinition = {
       name: "osc",
       description: "Send a raw OSC message to VRChat (via Python OSC)",
       acceptsArgs: true,
-      async handler(ctx) {
+      async handler(ctx: any) {
         const args = (ctx.args ?? "").trim();
         const spaceIdx = args.indexOf(" ");
         if (spaceIdx === -1) return { text: "Usage: /osc <address> <value>" };
@@ -139,18 +153,28 @@ const plugin: OpenClawPluginDefinition = {
       },
     });
 
-    // Auto-start OSC Listener for Reactive Manifestation Telemetry
-    const listenerResult = startOSCListener();
-    if (listenerResult.success) {
-      console.log(`[vrchat-relay] OSC Telemetry Listener started on port ${listenerResult.port}`);
+    const topologyCfg = (api.pluginConfig as any)?.topology ?? {};
+    const controlPlane = topologyCfg.controlPlane ?? "relay-primary";
+    const isRelayPrimary = controlPlane === "relay-primary";
+
+    // Auto-start OSC Listener only when relay is the primary control plane.
+    if ((topologyCfg.autoStartOscListener ?? isRelayPrimary) === true) {
+      const listenerResult = startOSCListener();
+      if (listenerResult.success) {
+        console.log(`[vrchat-relay] OSC Telemetry Listener started on port ${listenerResult.port}`);
+      } else {
+        console.error(
+          `[vrchat-relay] Failed to auto-start OSC Telemetry Listener: ${listenerResult.error}`,
+        );
+      }
     } else {
-      console.error(
-        `[vrchat-relay] Failed to auto-start OSC Telemetry Listener: ${listenerResult.error}`,
+      console.log(
+        `[vrchat-relay] Skipping OSC listener autostart because controlPlane=${controlPlane}`,
       );
     }
 
     // --- Metaverse Voice Sync (SOUL.md) ---
-    api.on("llm_output", (event) => {
+    api.on("llm_output", (event: any) => {
       const cfg = (api.pluginConfig as any)?.mirror;
       if (cfg?.syncAiResponseToChatbox === false) return;
 
@@ -487,7 +511,7 @@ ${status.allowedOperations.map((op) => `  - ${op}`).join("\n")}`,
 
 Parameters:
 ${paramList}`,
-          result as Record<string, unknown>,
+          result as unknown as Record<string, unknown>,
         );
       },
     });
@@ -552,6 +576,136 @@ ${paramList}`,
         } else {
           return fail(`Failed to send input: ${result.error}`, { error: result.error });
         }
+      },
+    });
+
+    // vrchat_manual_move - Controlled move with automatic reset (PRO guard)
+    api.registerTool({
+      name: "vrchat_manual_move",
+      description:
+        "Perform a movement action with guaranteed input reset. Supports forward/backward/left/right/jump.",
+      guard: "PRO",
+      parameters: Type.Object({
+        direction: Type.String({
+          description: "Movement direction: forward, backward, left, right, jump",
+        }),
+        durationMs: Type.Optional(
+          Type.Number({
+            description: "Movement duration in milliseconds (default: 1000)",
+            default: 1000,
+          }),
+        ),
+      }),
+      async execute(_id: string, params: { direction: string; durationMs?: number }) {
+        const allowed = ["forward", "backward", "left", "right", "jump"];
+        if (!allowed.includes(params.direction)) {
+          return fail(`Invalid direction. Use one of: ${allowed.join(", ")}`, {
+            direction: params.direction,
+          });
+        }
+        const result = await performMovementWithReset({
+          direction: params.direction as "forward" | "backward" | "left" | "right" | "jump",
+          durationMs: params.durationMs,
+        });
+        if (result.success) {
+          return ok(`Movement completed: ${params.direction} (${params.durationMs ?? 1000}ms)`, {
+            direction: params.direction,
+            durationMs: params.durationMs ?? 1000,
+          });
+        }
+        return fail(`Movement failed: ${result.error}`, { error: result.error });
+      },
+    });
+
+    // vrchat_autonomy_start - Start Ghost Bridge autonomous movement/emote loop
+    api.registerTool({
+      name: "vrchat_autonomy_start",
+      description: "Start Ghost Bridge autonomous behavior loop for movement and expressions.",
+      guard: "PRO",
+      parameters: Type.Object({
+        intervalMs: Type.Optional(
+          Type.Number({
+            description: "Loop interval in milliseconds (minimum 600, default 2500)",
+            default: 2500,
+          }),
+        ),
+        enableEmotes: Type.Optional(
+          Type.Boolean({
+            description: "Allow autonomous emote triggers (default true)",
+            default: true,
+          }),
+        ),
+      }),
+      execute(_id: string, params: { intervalMs?: number; enableEmotes?: boolean }) {
+        const result = startGhostBridge({
+          intervalMs: params.intervalMs,
+          enableEmotes: params.enableEmotes,
+        });
+        return result.success
+          ? ok(result.message, { ...getGhostBridgeStatus() })
+          : fail(result.message);
+      },
+    });
+
+    // vrchat_autonomy_stop - Stop Ghost Bridge loop
+    api.registerTool({
+      name: "vrchat_autonomy_stop",
+      description: "Stop Ghost Bridge autonomous behavior loop.",
+      parameters: Type.Object({}),
+      execute() {
+        const result = stopGhostBridge();
+        return result.success
+          ? ok(result.message, { ...getGhostBridgeStatus() })
+          : fail(result.message);
+      },
+    });
+
+    // vrchat_autonomy_status - Read Ghost Bridge state
+    api.registerTool({
+      name: "vrchat_autonomy_status",
+      description: "Get Ghost Bridge autonomous behavior status.",
+      parameters: Type.Object({}),
+      execute() {
+        const status = getGhostBridgeStatus();
+        return ok(
+          `Ghost Bridge Status:
+- Active: ${status.active}
+- Interval: ${status.intervalMs}ms
+- Emotes Enabled: ${status.enableEmotes}
+- Step Count: ${status.stepCount}
+- Last Action: ${status.lastAction ?? "none"}
+- Last Run: ${status.lastRunAt ?? "never"}`,
+          status,
+        );
+      },
+    });
+
+    // vrchat_autonomy_react - Apply conversation emotion + follow intent.
+    api.registerTool({
+      name: "vrchat_autonomy_react",
+      description:
+        "Apply reactive emotion and optional follow movement from a conversation chunk with cooldown safety.",
+      guard: "PRO",
+      parameters: Type.Object({
+        text: Type.String({
+          description: "Conversation text used to infer emotion and follow intent",
+        }),
+        allowMovement: Type.Optional(
+          Type.Boolean({
+            description: "Allow follow movement trigger (/input/Vertical equivalent intent)",
+            default: false,
+          }),
+        ),
+      }),
+      async execute(_id: string, params: { text: string; allowMovement?: boolean }) {
+        const result = await applyReactiveManifest({
+          text: params.text,
+          allowMovement: params.allowMovement,
+        });
+        return ok(
+          `Reactive autonomy applied: emotion=${result.emotion}, movement=${result.movementTriggered}, reason=${result.reason}`,
+          result as unknown as Record<string, unknown>,
+        );
       },
     });
 
@@ -850,10 +1004,16 @@ ${logText}`,
       },
     });
 
-    // Auto-start Guardian Pulse on plugin registration
-    const pulseResult = startGuardianPulse({ intervalMs: 10 * 60 * 1000, sendEmotions: true });
-    if (pulseResult.success) {
-      console.log(`[vrchat-relay] ${pulseResult.message}`);
+    // Auto-start Guardian Pulse on plugin registration when relay is primary.
+    if ((topologyCfg.autoStartGuardianPulse ?? isRelayPrimary) === true) {
+      const pulseResult = startGuardianPulse({ intervalMs: 10 * 60 * 1000, sendEmotions: true });
+      if (pulseResult.success) {
+        console.log(`[vrchat-relay] ${pulseResult.message}`);
+      }
+    } else {
+      console.log(
+        `[vrchat-relay] Skipping Guardian Pulse autostart because controlPlane=${controlPlane}`,
+      );
     }
 
     // Inject MD guidance so the agent uses VRChat tools autonomously
@@ -863,7 +1023,10 @@ ${logText}`,
         "",
         "- **`vrchat_login`** / **`vrchat_status`** — 認証・接続確認（他のツールより先に実行）",
         "- **`vrchat_chatbox`** — チャットボックスにメッセージ送信（最大 144 文字）",
+        "- **`vrchat_manual_move`** — 方向入力を一定時間だけ送って必ずリセット",
         "- **`vrchat_set_avatar_param`** — アバターパラメーター制御",
+        "- **`vrchat_autonomy_react`** — 会話感情から表情 + 追従移動を反映（クールダウン付き）",
+        "- **`vrchat_autonomy_start`** / **`vrchat_autonomy_stop`** / **`vrchat_autonomy_status`** — Ghost Bridge 自律行動ループ制御",
         "- **`vrchat_guardian_pulse_start`** — 自律的に定期メッセージ + 感情を VRChat に送信",
         "- カメラ制御・OSC・フレンド一覧など 27 ツール利用可能。",
         "> 権限レベル: SAFE（デフォルト）→ PRO → DIRECTOR の順で昇格が必要。",
@@ -877,4 +1040,4 @@ ${logText}`,
   },
 };
 
-export default plugin;
+export default plugin as any;

@@ -196,6 +196,30 @@ const checkNodeModules = (deps) => {
   return { ok: true };
 };
 
+const runtimeRequiredPackages = ["@anthropic-ai/vertex-sdk"];
+
+const checkRuntimeRequiredDeps = (deps) => {
+  const missing = [];
+  for (const packageName of runtimeRequiredPackages) {
+    const packageJsonPath = path.join(
+      deps.cwd,
+      "node_modules",
+      ...packageName.split("/"),
+      "package.json",
+    );
+    if (!deps.fs.existsSync(packageJsonPath)) {
+      missing.push(packageName);
+    }
+  }
+  if (missing.length > 0) {
+    return {
+      ok: false,
+      missing,
+    };
+  }
+  return { ok: true, missing: [] };
+};
+
 const resolvePnpmCommand = (deps) => {
   if (deps.platform === "win32") {
     const pnpmCheck = deps.spawnSync("cmd.exe", ["/d", "/s", "/c", "where pnpm"], {
@@ -290,6 +314,15 @@ export async function runNodeMain(params = {}) {
   deps.buildStampPath = path.join(deps.distRoot, ".buildstamp");
   deps.srcRoot = path.join(deps.cwd, "src");
   deps.configFiles = [path.join(deps.cwd, "tsconfig.json"), path.join(deps.cwd, "package.json")];
+
+  const runtimeDepsCheck = checkRuntimeRequiredDeps(deps);
+  if (!runtimeDepsCheck.ok) {
+    logRunner(
+      `Missing required runtime dependencies (${runtimeDepsCheck.missing.join(", ")}); run \`pnpm install\` in the project root to restore them.`,
+      deps,
+    );
+    return 1;
+  }
 
   if (!shouldBuild(deps)) {
     return await runOpenClaw(deps);

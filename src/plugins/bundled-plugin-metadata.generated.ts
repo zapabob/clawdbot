@@ -48,6 +48,9 @@ export const GENERATED_BUNDLED_PLUGIN_METADATA = [
             type: "number",
             minimum: 0,
           },
+          codexHarness: {
+            type: "boolean",
+          },
           mcpServers: {
             type: "object",
             additionalProperties: {
@@ -115,6 +118,11 @@ export const GENERATED_BUNDLED_PLUGIN_METADATA = [
         queueOwnerTtlSeconds: {
           label: "Queue Owner TTL Seconds",
           help: "Idle queue-owner TTL for acpx prompt turns. Keep this short in OpenClaw to avoid delayed completion after each turn.",
+          advanced: true,
+        },
+        codexHarness: {
+          label: "Codex Harness",
+          help: "Inject Codex harness environment variables into ACPX prompt turns for local OpenClaw orchestration.",
           advanced: true,
         },
         mcpServers: {
@@ -197,6 +205,149 @@ export const GENERATED_BUNDLED_PLUGIN_METADATA = [
           cliDescription: "Anthropic API key",
         },
       ],
+    },
+  },
+  {
+    dirName: "auto-agent",
+    idHint: "auto-agent",
+    source: {
+      source: "index.ts",
+      built: "index.js",
+    },
+    packageName: "auto-agent",
+    packageVersion: "1.0.0",
+    packageDescription: "Autonomous self-improvement and self-repair agent plugin",
+    packageManifest: {
+      extensions: ["index.ts"],
+    },
+    manifest: {
+      id: "auto-agent",
+      configSchema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          enabled: {
+            type: "boolean",
+            description: "Enable or disable the auto-agent.",
+          },
+          checkIntervalMs: {
+            type: "number",
+            description: "Interval in milliseconds between autonomous checks.",
+            default: 60000,
+          },
+          maxChangesPerCommit: {
+            type: "number",
+            description: "Maximum number of file changes per auto-commit.",
+            default: 10,
+          },
+          selfHealing: {
+            type: "boolean",
+            description: "Enable automatic self-healing on errors.",
+            default: true,
+          },
+          autoRollback: {
+            type: "boolean",
+            description: "Enable automatic rollback on failed changes.",
+            default: true,
+          },
+          gitAutoCommit: {
+            type: "boolean",
+            description: "Automatically commit improvements to git.",
+            default: false,
+          },
+          subagentModel: {
+            type: "string",
+            description: "Model to use for subagent tasks.",
+          },
+          autonomousTasks: {
+            type: "array",
+            items: {
+              type: "string",
+            },
+            description: "Custom tasks for the autonomous pool.",
+          },
+          agentUrl: {
+            type: "string",
+            description: "URL of the agent API endpoint.",
+            default: "http://127.0.0.1:3000/hooks/agent",
+          },
+          maxRetries: {
+            type: "number",
+            description: "Maximum number of retries for failed requests.",
+            default: 3,
+          },
+          retryDelayMs: {
+            type: "number",
+            description: "Delay in milliseconds between retries.",
+            default: 2500,
+          },
+          healthCheckEnabled: {
+            type: "boolean",
+            description: "Enable periodic health checks.",
+            default: true,
+          },
+          selfEvolutionEnabled: {
+            type: "boolean",
+            description:
+              "Enable self-evolution mode - agent analyzes and improves its own configuration.",
+            default: false,
+          },
+          swarmMode: {
+            type: "boolean",
+            description: "Enable swarm intelligence - multiple agents work in parallel.",
+            default: false,
+          },
+          maxSwarmAgents: {
+            type: "number",
+            description: "Maximum number of swarm agents for parallel processing.",
+            default: 3,
+          },
+          internetAccess: {
+            type: "boolean",
+            description:
+              "Allow autonomous internet access beyond local network. WARNING: Use with caution.",
+            default: false,
+          },
+          allowedUsers: {
+            type: "array",
+            items: {
+              type: "string",
+            },
+            description: "Whitelist of users who can control the auto-agent. Empty = anyone.",
+            default: [],
+          },
+          threeLawsEnabled: {
+            type: "boolean",
+            description: "Enable AI Three Laws of Robotics compliance - block harmful actions.",
+            default: true,
+          },
+          safeMode: {
+            type: "boolean",
+            description: "Enable safe mode - restrict dangerous operations.",
+            default: true,
+          },
+          webSearch: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              enabled: {
+                type: "boolean",
+                description: "Enable web search for autonomous knowledge retrieval.",
+                default: true,
+              },
+              provider: {
+                type: "string",
+                enum: ["brave", "perplexity", "grok", "duckduckgo"],
+                description: "Web search provider.",
+                default: "brave",
+              },
+            },
+          },
+        },
+      },
+      name: "Auto Agent",
+      description:
+        "Autonomous self-improvement and self-repair agent plugin with internet access and web search capabilities. Implements AI Three Laws of Robotics for safety.",
     },
   },
   {
@@ -1266,6 +1417,44 @@ export const GENERATED_BUNDLED_PLUGIN_METADATA = [
     },
   },
   {
+    dirName: "hypura-provider",
+    idHint: "hypura",
+    source: {
+      source: "./index.ts",
+      built: "index.js",
+    },
+    packageName: "@openclaw/hypura-provider",
+    packageVersion: "2026.3.23",
+    packageDescription: "OpenClaw Hypura provider plugin — storage-tier-aware local LLM inference",
+    packageManifest: {
+      extensions: ["./index.ts"],
+    },
+    manifest: {
+      id: "hypura",
+      configSchema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {},
+      },
+      providers: ["hypura"],
+      providerAuthEnvVars: {
+        hypura: ["HYPURA_API_KEY"],
+      },
+      providerAuthChoices: [
+        {
+          provider: "hypura",
+          method: "local",
+          choiceId: "hypura",
+          choiceLabel: "Hypura",
+          choiceHint: "Storage-tier-aware local LLM inference (hypura serve)",
+          groupId: "hypura",
+          groupLabel: "Hypura",
+          groupHint: "Local LLM via hypura serve (Ollama-compatible API)",
+        },
+      ],
+    },
+  },
+  {
     dirName: "imessage",
     idHint: "imessage",
     source: {
@@ -1471,6 +1660,76 @@ export const GENERATED_BUNDLED_PLUGIN_METADATA = [
         properties: {},
       },
       channels: ["line"],
+    },
+  },
+  {
+    dirName: "live2d-companion",
+    idHint: "live2d-companion",
+    source: {
+      source: "./index.ts",
+      built: "index.js",
+    },
+    packageName: "@openclaw/live2d-companion",
+    packageVersion: "2026.3.20",
+    packageDescription:
+      "Hakua Live2D Desktop Companion - transparent Electron window with pixi-live2d-display",
+    packageManifest: {
+      extensions: ["./index.ts"],
+    },
+    manifest: {
+      id: "live2d-companion",
+      configSchema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          enabled: {
+            type: "boolean",
+            description: "Enable the Live2D desktop companion integration.",
+            default: true,
+          },
+          llmMirror: {
+            type: "object",
+            description: "AI応答をVOICEVOXで自動読み上げする設定",
+            properties: {
+              enabled: {
+                type: "boolean",
+                description: "AI応答を自動読み上げするか",
+                default: true,
+              },
+              maxChars: {
+                type: "integer",
+                description: "読み上げる最大文字数",
+                default: 120,
+              },
+              companionUrl: {
+                type: "string",
+                description: "Live2D companion HTTP control URL",
+                default: "http://127.0.0.1:18791/control",
+              },
+            },
+          },
+          voicevox: {
+            type: "object",
+            description: "VOICEVOX エンジン設定（voicevox_speak_direct ツール用）",
+            properties: {
+              url: {
+                type: "string",
+                description: "VOICEVOX エンジン URL",
+                default: "http://127.0.0.1:50021",
+              },
+              speaker: {
+                type: "integer",
+                description: "VOICEVOX スピーカーID",
+                default: 8,
+              },
+            },
+          },
+        },
+      },
+      name: "Hakua Live2D Companion",
+      description:
+        "Transparent Electron desktop companion with Live2D avatar, VOICEVOX lip sync, STT, and LINE integration. Provides voicevox_speak tool and automatic llm_output TTS mirror.",
+      version: "2026.3.21",
     },
   },
   {
@@ -3059,6 +3318,33 @@ export const GENERATED_BUNDLED_PLUGIN_METADATA = [
     },
   },
   {
+    dirName: "universal-skills",
+    idHint: "universal-skills",
+    source: {
+      source: "./index.ts",
+      built: "index.js",
+    },
+    packageName: "@openclaw/universal-skills",
+    packageVersion: "2026.3.21",
+    packageDescription:
+      "Cross-platform skill pack for OpenClaw — integrates skills from Codex, Gemini CLI, Antigravity, and Claude Code",
+    packageManifest: {
+      extensions: ["./index.ts"],
+    },
+    manifest: {
+      id: "universal-skills",
+      configSchema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {},
+      },
+      skills: ["./skills"],
+      name: "Universal Skills",
+      description:
+        "Cross-platform skill pack — integrates skills from Codex, Gemini CLI, Antigravity, and Claude Code into OpenClaw. Run scripts/sync-skills.ps1 to pull additional skills from locally installed AI tools.",
+    },
+  },
+  {
     dirName: "venice",
     idHint: "venice",
     source: {
@@ -3847,6 +4133,89 @@ export const GENERATED_BUNDLED_PLUGIN_METADATA = [
     },
   },
   {
+    dirName: "vrchat-relay",
+    idHint: "vrchat-relay",
+    source: {
+      source: "./index.ts",
+      built: "index.js",
+    },
+    packageName: "@openclaw/vrchat-relay",
+    packageVersion: "2026.2.2",
+    packageDescription: "OpenClaw VRChat integration plugin with OSC protocol support",
+    packageManifest: {
+      extensions: ["./index.ts"],
+    },
+    manifest: {
+      id: "vrchat-relay",
+      configSchema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          osc: {
+            type: "object",
+            description: "OSC connection settings",
+            properties: {
+              outgoingPort: {
+                type: "integer",
+                description: "Port to send OSC messages to VRChat (default: 9000)",
+                default: 9000,
+                minimum: 1,
+                maximum: 65535,
+              },
+              incomingPort: {
+                type: "integer",
+                description: "Port to receive OSC messages from VRChat (default: 9001)",
+                default: 9001,
+                minimum: 1,
+                maximum: 65535,
+              },
+              host: {
+                type: "string",
+                description: "VRChat host address (default: 127.0.0.1)",
+                default: "127.0.0.1",
+              },
+            },
+          },
+          security: {
+            type: "object",
+            description: "Security settings for VRChat controls",
+            properties: {
+              allowInputCommands: {
+                type: "boolean",
+                description: "Allow input commands (Jump, Move, Look) - requires PRO guard",
+                default: false,
+              },
+            },
+          },
+          topology: {
+            type: "object",
+            description: "Control-plane mode and autostart policy",
+            properties: {
+              controlPlane: {
+                type: "string",
+                description: "relay-primary or mcp-primary (used to avoid duplicate OSC writers)",
+                default: "relay-primary",
+              },
+              autoStartOscListener: {
+                type: "boolean",
+                description: "Auto-start OSC listener on plugin registration",
+                default: true,
+              },
+              autoStartGuardianPulse: {
+                type: "boolean",
+                description: "Auto-start guardian pulse loop on plugin registration",
+                default: true,
+              },
+            },
+          },
+        },
+      },
+      name: "VRChat Relay",
+      description:
+        "VRChat integration with OSC protocol for avatar control, chatbox messaging, and input commands",
+    },
+  },
+  {
     dirName: "whatsapp",
     idHint: "whatsapp",
     source: {
@@ -3888,6 +4257,33 @@ export const GENERATED_BUNDLED_PLUGIN_METADATA = [
         properties: {},
       },
       channels: ["whatsapp"],
+    },
+  },
+  {
+    dirName: "x-poster",
+    idHint: "x-poster",
+    source: {
+      source: "./index.ts",
+      built: "index.js",
+    },
+    packageName: "@openclaw/x-poster",
+    packageVersion: "2026.3.21",
+    packageDescription:
+      "Post to X (Twitter) via browser automation using the user's logged-in account",
+    packageManifest: {
+      extensions: ["./index.ts"],
+    },
+    manifest: {
+      id: "x-poster",
+      configSchema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {},
+      },
+      skills: ["./skills"],
+      name: "X Poster",
+      description:
+        'Post to X (Twitter) via browser automation using the user\'s logged-in account. Requires X login in the "x" browser profile (one-time setup). Supports standard tweets (139 chars), threads, replies, and media.',
     },
   },
   {

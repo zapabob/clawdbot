@@ -21,7 +21,11 @@ export const vrchatHandlers: GatewayRequestHandlers = {
     if (result.success) {
       respond(true, { ok: true });
     } else {
-      respond(false, undefined, errorShape(ErrorCodes.INTERNAL_ERROR, result.error));
+      respond(
+        false,
+        undefined,
+        errorShape(ErrorCodes.UNAVAILABLE, result.error ?? "VRChat call failed"),
+      );
     }
   },
 
@@ -39,7 +43,11 @@ export const vrchatHandlers: GatewayRequestHandlers = {
     if (result.success) {
       respond(true, { ok: true });
     } else {
-      respond(false, undefined, errorShape(ErrorCodes.INTERNAL_ERROR, result.error));
+      respond(
+        false,
+        undefined,
+        errorShape(ErrorCodes.UNAVAILABLE, result.error ?? "VRChat call failed"),
+      );
     }
   },
 
@@ -66,7 +74,11 @@ export const vrchatHandlers: GatewayRequestHandlers = {
     if (result.success) {
       respond(true, { ok: true });
     } else {
-      respond(false, undefined, errorShape(ErrorCodes.INTERNAL_ERROR, result.error));
+      respond(
+        false,
+        undefined,
+        errorShape(ErrorCodes.UNAVAILABLE, result.error ?? "VRChat call failed"),
+      );
     }
   },
 };

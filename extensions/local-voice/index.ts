@@ -1,4 +1,4 @@
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/core";
 import { loadOpenAICodexAuth } from "./src/auth.js";
 import { captureAndAnalyze } from "./src/camera.js";
 import { getOSCClient, resetOSCClient } from "./src/osc.js";

@@ -349,6 +349,7 @@ export async function createMockRuntimeFixture(params?: {
     nonInteractivePermissions: "fail",
     strictWindowsCmdWrapper: true,
     queueOwnerTtlSeconds: params?.queueOwnerTtlSeconds ?? 0.1,
+    codexHarness: false,
     mcpServers: params?.mcpServers ?? {},
   };
 

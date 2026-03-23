@@ -10,7 +10,7 @@ import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { Type } from "@sinclair/typebox";
-import type { OpenClawPluginApi, OpenClawPluginDefinition } from "../../src/plugins/types.js";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/core";
 
 const DEFAULT_COMPANION_URL = "http://127.0.0.1:18791/control";
 const DEFAULT_MAX_CHARS = 120;
@@ -73,7 +73,7 @@ function speakViaPython(
   });
 }
 
-const plugin: OpenClawPluginDefinition = {
+const plugin: any = {
   id: "live2d-companion",
   name: "Hakua Live2D Companion",
   description:
@@ -107,6 +107,7 @@ const plugin: OpenClawPluginDefinition = {
   }),
 
   register(api: OpenClawPluginApi) {
+    const apiAny = api as any;
     console.log("[live2d-companion] Registering plugin...");
 
     // ── before_prompt_build → ツール利用ガイダンスをシステムプロンプトに注入 ──
@@ -159,7 +160,7 @@ const plugin: OpenClawPluginDefinition = {
     });
 
     // ── voicevox_speak tool (Live2D companion 経由) ───────────────────────────
-    api.registerTool({
+    apiAny.registerTool({
       name: "voicevox_speak",
       description:
         "Live2D コンパニオンを通じて VOICEVOX で音声を再生する。ユーザーに話しかけたいときや感情を伝えたいときに使用。",
@@ -183,7 +184,7 @@ const plugin: OpenClawPluginDefinition = {
     });
 
     // ── voicevox_speak_direct tool (Python 直接再生、Live2D なしでも動作) ──────
-    api.registerTool({
+    apiAny.registerTool({
       name: "voicevox_speak_direct",
       description:
         "Python スクリプトで直接 VOICEVOX を呼び出して音声を再生する。Live2D コンパニオンが起動していなくても動作する。",
@@ -222,7 +223,7 @@ const plugin: OpenClawPluginDefinition = {
     });
 
     // ── get_companion_input tool (マルチモーダル入力: STT + カメラ) ──────────
-    api.registerTool({
+    apiAny.registerTool({
       name: "get_companion_input",
       description:
         "ユーザーのマイク音声（STT テキスト）とカメラ映像（JPEG画像）を取得する。" +
@@ -287,7 +288,7 @@ const plugin: OpenClawPluginDefinition = {
     });
 
     // ── companion_camera_capture tool (カメラフレームのみ) ────────────────────
-    api.registerTool({
+    apiAny.registerTool({
       name: "companion_camera_capture",
       description:
         "コンパニオンのウェブカメラから最新の映像フレームを取得する。" +
@@ -339,4 +340,4 @@ const plugin: OpenClawPluginDefinition = {
   },
 };
 
-export default plugin;
+export default plugin as any;

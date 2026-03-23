@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "../../../src/config/config.js";
+type OpenClawConfig = Record<string, any>;
 
 export type TTSProvider = "style-bert-vits2" | "elevenlabs" | "openai" | "voicevox";
 

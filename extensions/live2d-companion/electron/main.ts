@@ -332,7 +332,7 @@ ipcMain.handle("capture-screen", async (_event, opts: { width?: number; height?:
       JSON.stringify(meta, null, 2),
       "utf-8",
     );
-    return { ok: true, path: screenshotPath, base64: pngBuffer.toString("base64"), ...meta };
+    return { ok: true, base64: pngBuffer.toString("base64"), ...meta };
   } catch (err) {
     console.error("[Companion] capture-screen error:", err);
     return { ok: false, error: String(err) };

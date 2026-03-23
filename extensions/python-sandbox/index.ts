@@ -12,7 +12,8 @@ export default definePluginEntry({
   name: "Python Sandbox",
   description: "Allows the AI to execute Python scripts and capture output.",
   register(api) {
-    api.registerTool((ctx) => ({
+    const apiAny = api as any;
+    apiAny.registerTool((ctx: any) => ({
       name: "execute_python",
       description:
         "Executes a Python script and returns the stdout/stderr. Used for complex calculations or data processing.",

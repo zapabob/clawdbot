@@ -9,7 +9,7 @@
  *   /line_status
  */
 
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/core";
 import { getLineRuntime } from "./runtime.js";
 
 export function registerLinePushCommand(api: OpenClawPluginApi): void {

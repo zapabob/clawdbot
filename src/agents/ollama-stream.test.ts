@@ -651,19 +651,21 @@ describe("ollama timeout normalization", () => {
 
     try {
       const streamFn = createOllamaStreamFn("http://127.0.0.1:11434");
-      const stream = streamFn(
-        {
-          id: "qwen3.5:9b",
-          api: "ollama",
-          provider: "ollama",
-          contextWindow: 262144,
-        } as never,
-        {
-          messages: [{ role: "user", content: "hello" }],
-        } as never,
-        {
-          signal: abortedSignal,
-        } as never,
+      const stream = await Promise.resolve(
+        streamFn(
+          {
+            id: "qwen3.5:9b",
+            api: "ollama",
+            provider: "ollama",
+            contextWindow: 262144,
+          } as never,
+          {
+            messages: [{ role: "user", content: "hello" }],
+          } as never,
+          {
+            signal: abortedSignal,
+          } as never,
+        ),
       );
       const events = await collectStreamEvents(stream);
       const errorEvent = events.at(-1);

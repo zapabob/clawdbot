@@ -375,7 +375,8 @@ async function main(): Promise<void> {
           : "FBXモデルを選択";
     const result = await bridge.openFileDialog({ filters, title });
     if (!result.ok || !result.filePath) return;
-    await handleFileDirect(result.filePath, result.buffer ?? null, type);
+    const dialogBuffer = result.buffer ? (result.buffer as unknown as ArrayBuffer) : null;
+    await handleFileDirect(result.filePath, dialogBuffer, type);
   }
 
   live2dPickBtn?.addEventListener("click", () => void openWithDialog("live2d"));

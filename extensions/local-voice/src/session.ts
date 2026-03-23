@@ -1,4 +1,4 @@
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/core";
 import { getOSCClient, type OSCConfig } from "./osc.js";
 import {
   OpenAIRealtimeSTT,
