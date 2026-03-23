@@ -2,7 +2,8 @@ import { exec } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import { promisify } from "util";
-import { definePluginEntry } from "openclaw/plugin-sdk/core";
+import { Type } from "@sinclair/typebox";
+import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 
 const execAsync = promisify(exec);
 
@@ -15,22 +16,19 @@ export default definePluginEntry({
       name: "execute_python",
       description:
         "Executes a Python script and returns the stdout/stderr. Used for complex calculations or data processing.",
-      schema: {
-        type: "object",
-        properties: {
-          code: {
-            type: "string",
-            description: "The Python code to execute.",
-          },
-          filename: {
-            type: "string",
+      parameters: Type.Object({
+        code: Type.String({
+          description: "The Python code to execute.",
+        }),
+        filename: Type.Optional(
+          Type.String({
             description: "Optional filename to save the code as (default: temp_script.py)",
             default: "temp_script.py",
-          },
-        },
-        required: ["code"],
-      },
-      async execute({ code, filename }) {
+          }),
+        ),
+      }),
+      async execute(_id: string, params: { code: string; filename?: string }) {
+        const { code, filename } = params;
         const scriptPath = path.join(process.cwd(), "tmp", filename || "temp_script.py");
         // Ensure tmp dir exists
         if (!fs.existsSync(path.join(process.cwd(), "tmp"))) {
@@ -39,19 +37,34 @@ export default definePluginEntry({
 
         await fs.promises.writeFile(scriptPath, code);
 
-        const pythonCmd = ctx.config.pythonPath || "py -3";
+        const pythonCmd = (ctx as any)?.config?.pythonPath ?? "py -3";
         try {
           const { stdout, stderr } = await execAsync(`${pythonCmd} "${scriptPath}"`);
+          const trimmedStdout = stdout.trim();
+          const trimmedStderr = stderr.trim();
           return {
-            success: true,
-            stdout: stdout.trim(),
-            stderr: stderr.trim(),
+            content: [{ type: "text", text: trimmedStdout || "(no output)" }],
+            details: {
+              success: true,
+              stdout: trimmedStdout,
+              stderr: trimmedStderr,
+              command: pythonCmd,
+              scriptPath,
+            },
           };
         } catch (error: any) {
+          const trimmedStdout = error.stdout?.trim() || "";
+          const trimmedStderr = error.stderr?.trim() || error.message;
           return {
-            success: false,
-            stdout: error.stdout?.trim() || "",
-            stderr: error.stderr?.trim() || error.message,
+            isError: true,
+            content: [{ type: "text", text: trimmedStderr || "Python execution failed." }],
+            details: {
+              success: false,
+              stdout: trimmedStdout,
+              stderr: trimmedStderr,
+              command: pythonCmd,
+              scriptPath,
+            },
           };
         } finally {
           // Optional: cleanup script file

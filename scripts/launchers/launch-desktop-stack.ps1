@@ -9,6 +9,7 @@ param(
     [switch]$SkipTui,
     [switch]$SkipBrowser,
     [switch]$SkipCompanion,
+    [switch]$SkipHypura,
     [switch]$SpeakOnReady
 )
 
@@ -87,6 +88,16 @@ function Start-StackProcess {
     Start-Process -FilePath "powershell.exe" -ArgumentList @(
         "-NoExit", "-ExecutionPolicy", "Bypass", "-Command", ($scriptLines -join "; ")
     ) -WorkingDirectory $WorkingDirectory -WindowStyle $WindowStyle | Out-Null
+}
+
+function Test-HypuraRunning {
+    param([string]$Url = "http://127.0.0.1:8080/api/tags")
+    try {
+        $res = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 2
+        return ($res.StatusCode -ge 200 -and $res.StatusCode -lt 300)
+    } catch {
+        return $false
+    }
 }
 
 # --- Build-time env setup ---
@@ -178,6 +189,37 @@ if (-not $SkipNgrok) {
         "-ExecutionPolicy","Bypass","-File",(Join-Path $PSScriptRoot "start_ngrok.ps1"),
         "-Port",[string]$GatewayPort
     ) -WorkingDirectory $ProjectDir -WindowStyle Minimized | Out-Null
+}
+
+# --- [Pre] Hypura ---
+if (-not $SkipHypura) {
+    if (Test-HypuraRunning) {
+        Write-Host "  [Hypura  ] Already running on 127.0.0.1:8080" -ForegroundColor Green
+    } else {
+        $hypuraCmd = Get-Command "hypura.exe" -ErrorAction SilentlyContinue
+        if (-not $hypuraCmd) {
+            $hypuraCmd = Get-Command "hypura" -ErrorAction SilentlyContinue
+        }
+
+        if ($hypuraCmd) {
+            Write-Host "  [Hypura  ] Not running. Starting hypura serve..." -ForegroundColor DarkCyan
+            $startHypura = Read-Host "  Start hypura serve now? [Y/n]"
+            if ([string]::IsNullOrWhiteSpace($startHypura) -or $startHypura -match "^(y|yes)$") {
+                Start-Process -FilePath $hypuraCmd.Source -ArgumentList @("serve") `
+                    -WorkingDirectory $ProjectDir -WindowStyle Minimized | Out-Null
+                Start-Sleep -Seconds 2
+                if (Test-HypuraRunning) {
+                    Write-Host "  [Hypura  ] Started successfully." -ForegroundColor Green
+                } else {
+                    Write-Host "  [Hypura  ] Start requested, but probe is still failing." -ForegroundColor Yellow
+                }
+            } else {
+                Write-Host "  [Hypura  ] Skipped by user input." -ForegroundColor Yellow
+            }
+        } else {
+            Write-Host "  [Hypura  ] hypura executable was not found in PATH." -ForegroundColor Yellow
+        }
+    }
 }
 
 # --- Dependency check (done once, before burst) ---

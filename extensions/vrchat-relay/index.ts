@@ -1,4 +1,5 @@
 import { Type } from "@sinclair/typebox";
+import type { AgentToolResult } from "@mariozechner/pi-agent-core";
 import type { OpenClawPluginApi, OpenClawPluginDefinition } from "../../src/plugins/types.js";
 import {
   fetchCurrentUserLocation,
@@ -43,6 +44,27 @@ import {
   PermissionLevel,
 } from "./src/tools/permissions.js";
 import { rateLimiters } from "./src/tools/rate-limiter.js";
+
+function ok(
+  text: string,
+  details: Record<string, unknown> = {},
+): Promise<AgentToolResult<Record<string, unknown>>> {
+  return Promise.resolve({
+    content: [{ type: "text", text } as const],
+    details,
+  });
+}
+
+function fail(
+  text: string,
+  details: Record<string, unknown> = {},
+): Promise<AgentToolResult<Record<string, unknown>>> {
+  return Promise.resolve({
+    isError: true,
+    content: [{ type: "text", text } as const],
+    details,
+  });
+}
 
 const plugin: OpenClawPluginDefinition = {
   id: "vrchat-relay",
@@ -172,19 +194,16 @@ const plugin: OpenClawPluginDefinition = {
 
         if (result.ok) {
           storeSession(result.value);
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Successfully logged in as ${result.value.displayName} (${result.value.userId})`,
-              },
-            ],
-          };
+          return ok(
+            `Successfully logged in as ${result.value.displayName} (${result.value.userId})`,
+            {
+              authenticated: true,
+              userId: result.value.userId,
+              displayName: result.value.displayName,
+            },
+          );
         } else {
-          return {
-            isError: true,
-            content: [{ type: "text", text: `Login failed: ${result.error.message}` }],
-          };
+          return fail(`Login failed: ${result.error.message}`, { authenticated: false });
         }
       },
     });
@@ -200,9 +219,7 @@ const plugin: OpenClawPluginDefinition = {
           await logout(session.authToken);
         }
         clearSession();
-        return {
-          content: [{ type: "text", text: "Logged out from VRChat" }],
-        };
+        return ok("Logged out from VRChat", { authenticated: false });
       },
     });
 
@@ -216,19 +233,15 @@ const plugin: OpenClawPluginDefinition = {
         const listenerStatus = getListenerStatus();
         const permissionStatus = getPermissionStatus();
 
-        return {
-          content: [
-            {
-              type: "text",
-              text: `VRChat Status:
+        return ok(
+          `VRChat Status:
 - Authenticated: ${authStatus ? "Yes" : "No"}
 - OSC Listener: ${listenerStatus.isRunning ? "Running" : "Stopped"}
 - Messages Received: ${listenerStatus.messageCount}
 - Permission Level: ${permissionStatus.currentLevel}
 - Level Description: ${permissionStatus.description}`,
-            },
-          ],
-        };
+          { authStatus, listenerStatus, permissionStatus },
+        );
       },
     });
 
@@ -240,22 +253,15 @@ const plugin: OpenClawPluginDefinition = {
       async execute() {
         try {
           const result = await fetchCurrentUserLocation();
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Current Location:
+          return ok(
+            `Current Location:
 - World ID: ${result.worldId || "Unknown"}
 - Instance ID: ${result.instanceId || "None"}
 - Raw Location Token: ${result.location}`,
-              },
-            ],
-          };
+            result,
+          );
         } catch (error: any) {
-          return {
-            isError: true,
-            content: [{ type: "text", text: `Failed to fetch location: ${error.message}` }],
-          };
+          return fail(`Failed to fetch location: ${error.message}`, { error: error.message });
         }
       },
     });
@@ -270,23 +276,16 @@ const plugin: OpenClawPluginDefinition = {
       async execute(_id: string, params: { worldId: string }) {
         try {
           const world = await fetchWorldInfo(params.worldId);
-          return {
-            content: [
-              {
-                type: "text",
-                text: `World Details:
+          return ok(
+            `World Details:
 - Name: ${world.name}
 - Author: ${world.authorName}
 - Capacity: ${world.capacity}
 - Tags: ${world.tags ? world.tags.join(", ") : "None"}`,
-              },
-            ],
-          };
+            world,
+          );
         } catch (error: any) {
-          return {
-            isError: true,
-            content: [{ type: "text", text: `Failed to fetch world info: ${error.message}` }],
-          };
+          return fail(`Failed to fetch world info: ${error.message}`, { error: error.message });
         }
       },
     });
@@ -305,19 +304,12 @@ const plugin: OpenClawPluginDefinition = {
                 `  - ${f.displayName} (${f.status}): ${f.location !== "offline" && f.location !== "private" ? "Public/In-Game" : f.location}`,
             )
             .join("\n");
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Online Friends (${friends.length}):\n${friendList || "  None"}`,
-              },
-            ],
-          };
+          return ok(`Online Friends (${friends.length}):\n${friendList || "  None"}`, {
+            count: friends.length,
+            friends,
+          });
         } catch (error: any) {
-          return {
-            isError: true,
-            content: [{ type: "text", text: `Failed to fetch online friends: ${error.message}` }],
-          };
+          return fail(`Failed to fetch online friends: ${error.message}`, { error: error.message });
         }
       },
     });
@@ -333,15 +325,9 @@ const plugin: OpenClawPluginDefinition = {
       execute(_id: string, params: { level: string }) {
         const result = setPermissionLevel(params.level as PermissionLevel);
 
-        return {
-          content: [
-            {
-              type: "text",
-              text: result.success ? result.message : `Failed: ${result.message}`,
-            },
-          ],
-          isError: !result.success,
-        };
+        return result.success
+          ? ok(result.message, { success: true, level: params.level })
+          : fail(`Failed: ${result.message}`, { success: false, level: params.level });
       },
     });
 
@@ -353,19 +339,15 @@ const plugin: OpenClawPluginDefinition = {
       execute() {
         const status = getPermissionStatus();
 
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Permission Status:
+        return ok(
+          `Permission Status:
 - Current Level: ${status.currentLevel}
 - Description: ${status.description}
 - Active Since: ${status.since.toISOString()}
 - Allowed Operations:
 ${status.allowedOperations.map((op) => `  - ${op}`).join("\n")}`,
-            },
-          ],
-        };
+          status,
+        );
       },
     });
 
@@ -405,19 +387,12 @@ ${status.allowedOperations.map((op) => `  - ${op}`).join("\n")}`,
 
         if (result.success) {
           const trimmedMsg = result.trimmed ? " (message was trimmed to fit limits)" : "";
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Message sent to VRChat chatbox${trimmedMsg}: "${params.message.substring(0, 50)}${params.message.length > 50 ? "..." : ""}"`,
-              },
-            ],
-          };
+          return ok(
+            `Message sent to VRChat chatbox${trimmedMsg}: "${params.message.substring(0, 50)}${params.message.length > 50 ? "..." : ""}"`,
+            { success: true, trimmed: result.trimmed ?? false },
+          );
         } else {
-          return {
-            isError: true,
-            content: [{ type: "text", text: `Failed to send: ${result.error}` }],
-          };
+          return fail(`Failed to send: ${result.error}`, { success: false, error: result.error });
         }
       },
     });
@@ -433,14 +408,9 @@ ${status.allowedOperations.map((op) => `  - ${op}`).join("\n")}`,
         const result = setChatboxTyping({ typing: params.typing });
 
         if (result.success) {
-          return {
-            content: [{ type: "text", text: `Typing indicator set to: ${params.typing}` }],
-          };
+          return ok(`Typing indicator set to: ${params.typing}`, { typing: params.typing });
         } else {
-          return {
-            isError: true,
-            content: [{ type: "text", text: `Failed to set typing: ${result.error}` }],
-          };
+          return fail(`Failed to set typing: ${result.error}`, { error: result.error });
         }
       },
     });
@@ -460,16 +430,12 @@ ${status.allowedOperations.map((op) => `  - ${op}`).join("\n")}`,
         });
 
         if (result.success) {
-          return {
-            content: [
-              { type: "text", text: `Avatar parameter "${params.name}" set to ${params.value}` },
-            ],
-          };
+          return ok(`Avatar parameter "${params.name}" set to ${params.value}`, {
+            name: params.name,
+            value: params.value,
+          });
         } else {
-          return {
-            isError: true,
-            content: [{ type: "text", text: `Failed to set parameter: ${result.error}` }],
-          };
+          return fail(`Failed to set parameter: ${result.error}`, { error: result.error });
         }
       },
     });
@@ -487,14 +453,11 @@ ${status.allowedOperations.map((op) => `  - ${op}`).join("\n")}`,
         });
 
         if (result.success) {
-          return {
-            content: [{ type: "text", text: `Avatar changed to "${params.avatarId}" via OSC` }],
-          };
+          return ok(`Avatar changed to "${params.avatarId}" via OSC`, {
+            avatarId: params.avatarId,
+          });
         } else {
-          return {
-            isError: true,
-            content: [{ type: "text", text: `Failed to change avatar: ${result.error}` }],
-          };
+          return fail(`Failed to change avatar: ${result.error}`, { error: result.error });
         }
       },
     });
@@ -515,11 +478,8 @@ ${status.allowedOperations.map((op) => `  - ${op}`).join("\n")}`,
             ? result.parameters.map((p) => `  - ${p.name} (${p.type})`).join("\n")
             : "  No parameters discovered";
 
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Discovery Result:
+        return ok(
+          `Discovery Result:
 - Avatar ID: ${result.avatarId}
 - Source: ${result.source}
 - Parameters Found: ${result.parameters.length}
@@ -527,9 +487,8 @@ ${status.allowedOperations.map((op) => `  - ${op}`).join("\n")}`,
 
 Parameters:
 ${paramList}`,
-            },
-          ],
-        };
+          result as Record<string, unknown>,
+        );
       },
     });
 
@@ -553,14 +512,12 @@ ${paramList}`,
         });
 
         if (result.success) {
-          return {
-            content: [{ type: "text", text: `OSC message sent to ${params.address}` }],
-          };
+          return ok(`OSC message sent to ${params.address}`, {
+            address: params.address,
+            args: params.args,
+          });
         } else {
-          return {
-            isError: true,
-            content: [{ type: "text", text: `Failed to send OSC: ${result.error}` }],
-          };
+          return fail(`Failed to send OSC: ${result.error}`, { error: result.error });
         }
       },
     });
@@ -588,14 +545,12 @@ ${paramList}`,
         });
 
         if (result.success) {
-          return {
-            content: [{ type: "text", text: `Input command "${params.action}" sent` }],
-          };
+          return ok(`Input command "${params.action}" sent`, {
+            action: params.action,
+            value: params.value,
+          });
         } else {
-          return {
-            isError: true,
-            content: [{ type: "text", text: `Failed to send input: ${result.error}` }],
-          };
+          return fail(`Failed to send input: ${result.error}`, { error: result.error });
         }
       },
     });
@@ -621,19 +576,13 @@ ${paramList}`,
 
         if (result.success) {
           const clampedMsg = result.clamped ? " (value was clamped to valid range)" : "";
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Camera parameter "${params.parameter}" set to ${params.value}${clampedMsg}`,
-              },
-            ],
-          };
+          return ok(`Camera parameter "${params.parameter}" set to ${params.value}${clampedMsg}`, {
+            parameter: params.parameter,
+            value: params.value,
+            clamped: result.clamped ?? false,
+          });
         } else {
-          return {
-            isError: true,
-            content: [{ type: "text", text: `Failed to set camera: ${result.error}` }],
-          };
+          return fail(`Failed to set camera: ${result.error}`, { error: result.error });
         }
       },
     });
@@ -656,19 +605,16 @@ ${paramList}`,
         });
 
         if (result.success) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `GreenScreen HSL set: H=${params.hue}, S=${params.saturation}, L=${params.lightness}`,
-              },
-            ],
-          };
+          return ok(
+            `GreenScreen HSL set: H=${params.hue}, S=${params.saturation}, L=${params.lightness}`,
+            {
+              hue: params.hue,
+              saturation: params.saturation,
+              lightness: params.lightness,
+            },
+          );
         } else {
-          return {
-            isError: true,
-            content: [{ type: "text", text: `Failed to set greenscreen: ${result.error}` }],
-          };
+          return fail(`Failed to set greenscreen: ${result.error}`, { error: result.error });
         }
       },
     });
@@ -691,19 +637,12 @@ ${paramList}`,
         });
 
         if (result.success) {
-          return {
-            content: [
-              {
-                type: "text",
-                text: `LookAtMe composition set: enabled=${params.enabled}, X=${params.xOffset}, Y=${params.yOffset}`,
-              },
-            ],
-          };
+          return ok(
+            `LookAtMe composition set: enabled=${params.enabled}, X=${params.xOffset}, Y=${params.yOffset}`,
+            { enabled: params.enabled, xOffset: params.xOffset, yOffset: params.yOffset },
+          );
         } else {
-          return {
-            isError: true,
-            content: [{ type: "text", text: `Failed to set LookAtMe: ${result.error}` }],
-          };
+          return fail(`Failed to set LookAtMe: ${result.error}`, { error: result.error });
         }
       },
     });
@@ -723,14 +662,9 @@ ${paramList}`,
 
         if (result.success) {
           const mode = params.delayed ? "delayed" : "immediate";
-          return {
-            content: [{ type: "text", text: `Camera capture triggered (${mode})` }],
-          };
+          return ok(`Camera capture triggered (${mode})`, { delayed: Boolean(params.delayed) });
         } else {
-          return {
-            isError: true,
-            content: [{ type: "text", text: `Failed to capture: ${result.error}` }],
-          };
+          return fail(`Failed to capture: ${result.error}`, { error: result.error });
         }
       },
     });
@@ -744,14 +678,9 @@ ${paramList}`,
         const result = startOSCListener();
 
         if (result.success) {
-          return {
-            content: [{ type: "text", text: `OSC listener started on port ${result.port}` }],
-          };
+          return ok(`OSC listener started on port ${result.port}`, { port: result.port });
         } else {
-          return {
-            isError: true,
-            content: [{ type: "text", text: `Failed to start listener: ${result.error}` }],
-          };
+          return fail(`Failed to start listener: ${result.error}`, { error: result.error });
         }
       },
     });
@@ -765,14 +694,9 @@ ${paramList}`,
         const result = stopOSCListener();
 
         if (result.success) {
-          return {
-            content: [{ type: "text", text: "OSC listener stopped" }],
-          };
+          return ok("OSC listener stopped", { success: true });
         } else {
-          return {
-            isError: true,
-            content: [{ type: "text", text: `Failed to stop listener: ${result.error}` }],
-          };
+          return fail(`Failed to stop listener: ${result.error}`, { error: result.error });
         }
       },
     });
@@ -795,11 +719,8 @@ ${paramList}`,
           messageText = messages.map((m) => `${m.address}: ${JSON.stringify(m.args)}`).join("\n");
         }
 
-        return {
-          content: [
-            {
-              type: "text",
-              text: `OSC Listener Status:
+        return ok(
+          `OSC Listener Status:
 - Running: ${status.isRunning}
 - Port: ${status.port}
 - Messages Received: ${status.messageCount}
@@ -807,9 +728,8 @@ ${paramList}`,
 
 Recent Messages:
 ${messageText}`,
-            },
-          ],
-        };
+          { status, messages },
+        );
       },
     });
 
@@ -828,11 +748,8 @@ ${messageText}`,
           .map((log) => `[${log.timestamp}] ${log.level}: ${log.operation}`)
           .join("\n");
 
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Audit Log Summary:
+        return ok(
+          `Audit Log Summary:
 - Total Operations: ${summary.total}
 - INFO: ${summary.byLevel.INFO}
 - SKIP: ${summary.byLevel.SKIP}
@@ -841,9 +758,8 @@ ${messageText}`,
 
 Recent Logs:
 ${logText}`,
-            },
-          ],
-        };
+          { summary, logs },
+        );
       },
     });
 
@@ -854,9 +770,7 @@ ${logText}`,
       parameters: Type.Object({}),
       execute() {
         Object.values(rateLimiters).forEach((limiter) => limiter.reset());
-        return {
-          content: [{ type: "text", text: "All rate limiters have been reset" }],
-        };
+        return ok("All rate limiters have been reset", { reset: true });
       },
     });
 
@@ -900,10 +814,9 @@ ${logText}`,
           emotionIntervalMs: (params.emotionIntervalMinutes ?? 10) * 60 * 1000,
           sendEmotions: params.sendEmotions ?? true,
         });
-        return {
-          content: [{ type: "text", text: result.message }],
-          isError: !result.success,
-        };
+        return result.success
+          ? ok(result.message, { success: true })
+          : fail(result.message, { success: false });
       },
     });
 
@@ -914,9 +827,7 @@ ${logText}`,
       parameters: Type.Object({}),
       async execute() {
         const result = stopGuardianPulse();
-        return {
-          content: [{ type: "text", text: result.message }],
-        };
+        return ok(result.message, { success: result.success });
       },
     });
 
@@ -927,19 +838,15 @@ ${logText}`,
       parameters: Type.Object({}),
       async execute() {
         const s = getGuardianPulseStatus();
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Guardian Pulse Status:
+        return ok(
+          `Guardian Pulse Status:
 - Active: ${s.active}
 - Pulse Count: ${s.pulseCount}
 - Last Pulse: ${s.lastPulseAt ?? "Never"}
 - Chatbox Interval: ${s.intervalMs / 60000}m
 - Emotion Interval: ${s.emotionIntervalMs / 60000}m`,
-            },
-          ],
-        };
+          s,
+        );
       },
     });
 

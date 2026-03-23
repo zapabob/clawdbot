@@ -12,7 +12,7 @@
 # ============================================================
 
 $ProjectDir      = (Get-Item $PSScriptRoot).Parent.Parent.FullName
-$LauncherPs1     = Join-Path $ProjectDir "scripts\clawdbot-master.ps1"
+$LauncherPs1     = Join-Path $ProjectDir "scripts\launchers\launch-desktop-stack.ps1"
 $CompanionDir    = Join-Path $ProjectDir "extensions\live2d-companion"
 $LaunchStackPs1  = Join-Path $ProjectDir "scripts\launchers\launch-desktop-stack.ps1"
 $ThisScript      = $PSCommandPath
