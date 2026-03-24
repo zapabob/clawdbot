@@ -10,6 +10,7 @@ param(
     [switch]$SkipBrowser,
     [switch]$SkipCompanion,
     [switch]$SkipHypura,
+    [switch]$SkipHypuraHarness,
     [int]$HypuraWaitSeconds = 120,
     [switch]$SpeakOnReady
 )
@@ -233,6 +234,20 @@ if (-not $SkipHypura) {
             Write-Host "  [Hypura  ] WARNING: hypura executable was not found in PATH. Skipping Hypura provider." -ForegroundColor Yellow
             $SkipHypura = $true
         }
+    }
+}
+
+# --- [Pre] Hypura Python Harness (FastAPI on 18790) ---
+if (-not $SkipHypuraHarness) {
+    $hypuraHarnessDir = Join-Path $ProjectDir "scripts\hypura"
+    $harnessEntry = Join-Path $hypuraHarnessDir "harness_daemon.py"
+    $uvHarnessCmd = Get-Command "uv" -ErrorAction SilentlyContinue
+    if ($uvHarnessCmd -and (Test-Path $harnessEntry)) {
+        Write-Host "  [HypuraHX] Starting Hypura harness daemon (127.0.0.1:18790)..." -ForegroundColor DarkCyan
+        Start-Process -FilePath $uvHarnessCmd.Source -ArgumentList @("run", "harness_daemon.py") `
+            -WorkingDirectory $hypuraHarnessDir -WindowStyle Hidden | Out-Null
+    } else {
+        Write-Host "  [HypuraHX] uv or scripts\hypura\harness_daemon.py missing; skipping harness daemon." -ForegroundColor Yellow
     }
 }
 
