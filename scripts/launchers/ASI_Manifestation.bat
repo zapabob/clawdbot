@@ -9,8 +9,8 @@ cd /d "%PROJECTDIR%"
 echo.
 echo  ==========================================
 echo   Hakua Core  ^|  iDOLM@STER Stage Edition
-echo   Brain  : hypura/Qwen3.5-27B-Uncensored-HauhauCS-Aggressive-Q6_K
-echo   Fallbk : ollama/Hakua-core-lite
+echo   Main   : ollama/Hakua-core-lite
+echo   Sub    : hypura/Qwen3.5-9B-Uncensored-HauhauCS-Aggressive-BF16
 echo   TTS    : VOICEVOX + Web Speech
 echo   Hypura : probing 127.0.0.1:8080/api/tags
 echo  ==========================================
