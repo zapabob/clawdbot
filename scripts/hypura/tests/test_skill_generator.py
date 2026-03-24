@@ -6,6 +6,8 @@ def test_create_skill_calls_init_script() -> None:
     with (
         patch("skill_generator.subprocess.run") as mock_run,
         patch("skill_generator.Path.exists", return_value=True),
+        patch("pathlib.Path.write_text", MagicMock()),
+        patch("skill_generator.Path.mkdir"),
     ):
         mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
         from skill_generator import SkillGenerator
