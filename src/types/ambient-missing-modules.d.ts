@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 declare module "@microsoft/teams.apps" {
   export class App {
     constructor(...args: any[]);
@@ -21,3 +22,4 @@ declare module "@create-markdown/preview" {
   export function applyPreviewTheme(...args: any[]): string;
   export function marked(input: string): string;
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */

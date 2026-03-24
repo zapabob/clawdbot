@@ -1,13 +1,7 @@
 {
-  "providers": [
-    "ollama",
-    "openai"
-  ],
+  "providers": ["ollama", "openai"],
   "lineConfigured": true,
   "ollamaConfigured": true,
   "anthropicProfileConfigured": true,
-  "envRefsDetected": [
-    "LINE_CHANNEL_ACCESS_TOKEN",
-    "LINE_CHANNEL_SECRET"
-  ]
+  "envRefsDetected": ["LINE_CHANNEL_ACCESS_TOKEN", "LINE_CHANNEL_SECRET"]
 }
