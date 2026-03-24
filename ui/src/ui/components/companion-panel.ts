@@ -169,6 +169,10 @@ export class CompanionPanel extends LitElement {
     const agentId = this.companionState?.agentId ?? "main";
     const ttsProvider = this.companionState?.ttsProvider ?? "voicevox";
     const agents = this.agentsList?.agents ?? [];
+    const oscOk = this.hypuraStatus?.osc_connected ?? false;
+    const vxOk = this.hypuraStatus?.voicevox_alive ?? false;
+    const olOk = this.hypuraStatus?.ollama_alive ?? false;
+    const hypuraOff = !this.hypuraOnline;
 
     return html`
       <div class="companion-panel ${this.collapsed ? "companion-panel--collapsed" : ""}">
@@ -267,6 +271,74 @@ export class CompanionPanel extends LitElement {
                   Web Speech (無料)
                 </option>
               </select>
+            </div>
+
+            <!-- Hypura Harness -->
+            <div
+              class="companion-panel__hypura ${hypuraOff
+                ? "companion-panel__hypura--offline"
+                : ""}"
+            >
+              <div class="companion-panel__hypura-head">
+                <span class="companion-panel__hypura-title"
+                  >── Hypura Harness ──────────────────────</span
+                >
+              </div>
+              <div class="companion-panel__hypura-row">
+                <span class="companion-panel__hypura-pill">
+                  <span
+                    class="companion-panel__hypura-dot ${oscOk
+                      ? "companion-panel__hypura-dot--ok"
+                      : "companion-panel__hypura-dot--bad"}"
+                  ></span>
+                  OSC
+                </span>
+                <span class="companion-panel__hypura-pill">
+                  <span
+                    class="companion-panel__hypura-dot ${vxOk
+                      ? "companion-panel__hypura-dot--ok"
+                      : "companion-panel__hypura-dot--bad"}"
+                  ></span>
+                  VoiceVox
+                </span>
+                <span class="companion-panel__hypura-pill">
+                  <span
+                    class="companion-panel__hypura-dot ${olOk
+                      ? "companion-panel__hypura-dot--ok"
+                      : "companion-panel__hypura-dot--bad"}"
+                  ></span>
+                  Ollama
+                </span>
+              </div>
+              <div class="companion-panel__hypura-actions">
+                <button
+                  type="button"
+                  class="companion-panel__hypura-btn"
+                  @click=${this._hypuraOscQuick}
+                  ?disabled=${hypuraOff}
+                  title="OSC chatbox: こんにちは！"
+                >
+                  [OSC: こんにちは]
+                </button>
+                <button
+                  type="button"
+                  class="companion-panel__hypura-btn"
+                  @click=${this._hypuraSpeakQuick}
+                  ?disabled=${hypuraOff}
+                  title="Speak: 起動完了しました"
+                >
+                  [Speak: 起動完了]
+                </button>
+                <button
+                  type="button"
+                  class="companion-panel__hypura-btn"
+                  @click=${this._hypuraRun}
+                  ?disabled=${hypuraOff}
+                  title="Run task"
+                >
+                  [Run ▶]
+                </button>
+              </div>
             </div>
           </div>
         `
@@ -459,6 +531,86 @@ export class CompanionPanel extends LitElement {
         .companion-panel__select option {
           background: #1a0d28;
           color: rgba(255, 200, 235, 0.9);
+        }
+
+        .companion-panel__hypura {
+          margin-top: 6px;
+          padding-top: 8px;
+          border-top: 1px solid rgba(180, 100, 255, 0.15);
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          transition: opacity 0.25s;
+        }
+        .companion-panel__hypura--offline {
+          opacity: 0.42;
+          pointer-events: none;
+        }
+        .companion-panel__hypura-head {
+          overflow: hidden;
+        }
+        .companion-panel__hypura-title {
+          font-size: 9px;
+          font-weight: 600;
+          letter-spacing: 0.06em;
+          color: rgba(200, 160, 255, 0.75);
+          white-space: nowrap;
+        }
+        .companion-panel__hypura-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px 10px;
+          align-items: center;
+        }
+        .companion-panel__hypura-pill {
+          font-size: 9.5px;
+          font-weight: 600;
+          color: rgba(220, 180, 255, 0.85);
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .companion-panel__hypura-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .companion-panel__hypura-dot--ok {
+          background: rgba(120, 220, 140, 0.9);
+          box-shadow: 0 0 3px rgba(120, 220, 140, 0.55);
+        }
+        .companion-panel__hypura-dot--bad {
+          background: rgba(220, 90, 100, 0.85);
+          box-shadow: 0 0 3px rgba(220, 90, 100, 0.45);
+        }
+        .companion-panel__hypura-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 5px;
+        }
+        .companion-panel__hypura-btn {
+          flex: 1 1 auto;
+          min-width: 0;
+          padding: 5px 8px;
+          border: 1px solid rgba(180, 100, 255, 0.22);
+          border-radius: 5px;
+          background: rgba(140, 80, 220, 0.08);
+          color: rgba(220, 190, 255, 0.88);
+          font-size: 9.5px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background 0.2s, border-color 0.2s;
+        }
+        .companion-panel__hypura-btn:hover:not(:disabled) {
+          background: rgba(160, 100, 240, 0.16);
+          border-color: rgba(200, 140, 255, 0.4);
+        }
+        .companion-panel__hypura-btn:disabled {
+          cursor: not-allowed;
+        }
+        .companion-panel__hypura--offline .companion-panel__hypura-btn {
+          cursor: not-allowed;
         }
       </style>
     `;
