@@ -21,6 +21,8 @@ import {
   stopGuardianPulse,
   getGuardianPulseStatus,
 } from "./src/guardian-pulse.js";
+import { getOSCClient } from "./src/osc/client.js";
+import { DEFAULT_OSC_CONFIG } from "./src/osc/types.js";
 import { getAuditSummary, getRecentLogs } from "./src/tools/audit.js";
 import { setAvatarParameter, sendOSCMessage, changeAvatar } from "./src/tools/avatar.js";
 import {
@@ -111,6 +113,22 @@ const plugin: any = {
   register(_api: OpenClawPluginApi) {
     const api = _api as any;
     console.log("[vrchat-relay] Registering VRChat Relay plugin (Pro Edition)...");
+
+    const oscCfg = (api.pluginConfig as { osc?: Record<string, unknown> } | undefined)?.osc ?? {};
+    getOSCClient({
+      host:
+        typeof oscCfg.host === "string" && oscCfg.host.trim()
+          ? oscCfg.host
+          : DEFAULT_OSC_CONFIG.host,
+      outgoingPort:
+        typeof oscCfg.outgoingPort === "number" && Number.isFinite(oscCfg.outgoingPort)
+          ? oscCfg.outgoingPort
+          : DEFAULT_OSC_CONFIG.outgoingPort,
+      incomingPort:
+        typeof oscCfg.incomingPort === "number" && Number.isFinite(oscCfg.incomingPort)
+          ? oscCfg.incomingPort
+          : DEFAULT_OSC_CONFIG.incomingPort,
+    });
 
     // /chatbox command - Direct access for the Parent (via Python OSC bridge)
     api.registerCommand({

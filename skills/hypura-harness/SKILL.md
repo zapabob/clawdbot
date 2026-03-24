@@ -80,19 +80,24 @@ cd scripts/hypura && uv run harness_daemon.py
 ### /run — コード生成・実行
 
 ```json
-{"task":"CSVを読んでグラフを作るスクリプトを書いて実行して"}
+{ "task": "CSVを読んでグラフを作るスクリプトを書いて実行して" }
 ```
 
 ### /skill — スキル自動生成
 
 ```json
-{"name":"my-skill","description":"○○をする","examples":["使用例1","使用例2"]}
+{ "name": "my-skill", "description": "○○をする", "examples": ["使用例1", "使用例2"] }
 ```
 
 ### /evolve — ShinkaEvolve進化
 
 ```json
-{"target":"code","seed":"既存コード","fitness_hint":"エラーなく実行できること","generations":5}
+{
+  "target": "code",
+  "seed": "既存コード",
+  "fitness_hint": "エラーなく実行できること",
+  "generations": 5
+}
 ```
 
 ## OpenClawを汎用エージェントとして使う

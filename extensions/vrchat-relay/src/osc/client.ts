@@ -169,6 +169,10 @@ export class OSCClient {
     return this.listenerSocket !== null;
   }
 
+  getConfig(): OSCConfig {
+    return this.config;
+  }
+
   /**
    * Close the OSC client
    */

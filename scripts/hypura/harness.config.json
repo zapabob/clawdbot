@@ -1,5 +1,6 @@
 {
   "daemon_port": 18790,
+  "companion_url": "http://127.0.0.1:18791",
   "osc_host": "127.0.0.1",
   "osc_port": 9000,
   "voicevox_url": "http://127.0.0.1:50021",

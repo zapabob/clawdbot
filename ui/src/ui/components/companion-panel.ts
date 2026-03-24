@@ -3,9 +3,17 @@ import { customElement, state } from "lit/decorators.js";
 import type { AgentsListResult } from "../types.ts";
 
 const CONTROL_URL = "http://127.0.0.1:18791";
+const HYPURA_URL = "http://127.0.0.1:18790";
 const POLL_INTERVAL_MS = 3000;
 
 type TtsProvider = "voicevox" | "web-speech";
+
+interface HypuraStatus {
+  daemon_version?: string;
+  osc_connected?: boolean;
+  voicevox_alive?: boolean;
+  ollama_alive?: boolean;
+}
 
 interface CompanionState {
   visible: boolean;
@@ -24,6 +32,8 @@ export class CompanionPanel extends LitElement {
 
   @state() private companionState: CompanionState | null = null;
   @state() private online = false;
+  @state() private hypuraStatus: HypuraStatus | null = null;
+  @state() private hypuraOnline = false;
   @state() private collapsed = true;
 
   private pollTimer: ReturnType<typeof setInterval> | null = null;
@@ -47,7 +57,29 @@ export class CompanionPanel extends LitElement {
     }
   }
 
+  private async fetchHypuraStatus(): Promise<void> {
+    try {
+      const res = await fetch(`${HYPURA_URL}/status`, {
+        signal: AbortSignal.timeout(1500),
+      }).catch(() => null);
+      if (!res?.ok) {
+        this.hypuraStatus = null;
+        this.hypuraOnline = false;
+        return;
+      }
+      this.hypuraStatus = (await res.json()) as HypuraStatus;
+      this.hypuraOnline = true;
+    } catch {
+      this.hypuraStatus = null;
+      this.hypuraOnline = false;
+    }
+  }
+
   private async _poll(): Promise<void> {
+    await Promise.all([this._pollCompanionState(), this.fetchHypuraStatus()]);
+  }
+
+  private async _pollCompanionState(): Promise<void> {
     try {
       const res = await fetch(`${CONTROL_URL}/state`, { signal: AbortSignal.timeout(1500) });
       if (!res.ok) {
@@ -91,6 +123,44 @@ export class CompanionPanel extends LitElement {
   private _setTts = (e: Event) => {
     const sel = e.target as HTMLSelectElement;
     void this._send({ ttsProvider: sel.value as TtsProvider });
+  };
+
+  private async _hypuraPost(
+    path: string,
+    body: Record<string, unknown>,
+  ): Promise<void> {
+    try {
+      await fetch(`${HYPURA_URL}${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(8000),
+      });
+    } catch {
+      // Hypura offline or network error — silent
+    }
+  }
+
+  private _hypuraOscQuick = () => {
+    void this._hypuraPost("/osc", {
+      action: "chatbox",
+      payload: { text: "こんにちは！" },
+    });
+  };
+
+  private _hypuraSpeakQuick = () => {
+    void this._hypuraPost("/speak", {
+      text: "起動完了しました",
+      emotion: "happy",
+    });
+  };
+
+  private _hypuraRun = () => {
+    const task = window.prompt("Hypura task", "");
+    if (task === null || task.trim() === "") {
+      return;
+    }
+    void this._hypuraPost("/run", { task: task.trim() });
   };
 
   override render() {

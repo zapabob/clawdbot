@@ -17,7 +17,26 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# Explorer / .lnk launches often inherit a minimal PATH (no pnpm, no node). Prepend common locations.
+$pathBootstrapDirs = @(
+    (Join-Path $env:ProgramFiles "nodejs"),
+    "${env:ProgramFiles(x86)}\nodejs",
+    (Join-Path $env:APPDATA "npm"),
+    (Join-Path $env:LOCALAPPDATA "pnpm"),
+    (Join-Path $env:USERPROFILE ".local\bin"),
+    (Join-Path $env:USERPROFILE "scoop\shims")
+)
+foreach ($dir in $pathBootstrapDirs) {
+    if ($dir -and (Test-Path -LiteralPath $dir)) {
+        $env:Path = "$dir;$env:Path"
+    }
+}
+
 $ProjectDir = (Get-Item $PSScriptRoot).Parent.Parent.FullName
+$projectLocalBin = Join-Path $ProjectDir "node_modules\.bin"
+if (Test-Path -LiteralPath $projectLocalBin) {
+    $env:Path = "$projectLocalBin;$env:Path"
+}
 . "$PSScriptRoot\env-tools.ps1"
 
 $envFile = Ensure-ProjectEnvFile -ProjectDir $ProjectDir
@@ -39,7 +58,7 @@ function Resolve-LaunchCommand {
     if ($corepackCmd) {
         return @{ FilePath = $corepackCmd.Source; Prefix = @("pnpm"); Label = "corepack pnpm" }
     }
-    throw "Neither pnpm.cmd nor corepack.cmd was found in PATH."
+    throw 'Neither pnpm.cmd nor corepack.cmd was found in PATH. Install Node.js, run corepack enable, ensure pnpm is on PATH, or open PowerShell from a login shell where pnpm works, then retry the shortcut.'
 }
 
 function Assert-DependenciesReady {
@@ -183,10 +202,17 @@ foreach ($procName in $processesToKill) {
         $_.CommandLine -like "*openclaw*" -or $_.CommandLine -like "*live2d-companion*"
     } | Stop-Process -Force -ErrorAction SilentlyContinue
 }
-# Also kill common ports if needed (GatewayPort)
-$portProc = Get-NetTCPConnection -LocalPort $GatewayPort -ErrorAction SilentlyContinue
-if ($portProc) {
-    Stop-Process -Id $portProc.OwningProcess -Force -ErrorAction SilentlyContinue
+# Also kill processes listening on GatewayPort (best-effort; may fail without rights or on older hosts)
+try {
+    $listeners = @(Get-NetTCPConnection -LocalPort $GatewayPort -State Listen -ErrorAction SilentlyContinue)
+    foreach ($c in $listeners) {
+        $owningPid = [int]$c.OwningProcess
+        if ($owningPid -gt 0) {
+            Stop-Process -Id $owningPid -Force -ErrorAction SilentlyContinue
+        }
+    }
+} catch {
+    Write-Host "  [cleanup] Port $GatewayPort cleanup skipped: $($_.Exception.Message)" -ForegroundColor DarkGray
 }
 Write-Host "  Cleanup complete." -ForegroundColor Green
 Write-Host ""

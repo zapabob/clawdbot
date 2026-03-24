@@ -16,6 +16,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from code_runner import CodeRunner
+from companion_bridge import CompanionBridge
 from osc_controller import OSCController, load_param_map
 from shinka_adapter import ShinkaAdapter
 from skill_generator import SkillGenerator
@@ -24,9 +25,20 @@ from voicevox_sequencer import VoicevoxSequencer
 logger = logging.getLogger(__name__)
 ROOT = Path(__file__).parent
 CONFIG_PATH = ROOT / "harness.config.json"
-config: dict = (
-    json.loads(CONFIG_PATH.read_text(encoding="utf-8")) if CONFIG_PATH.exists() else {}
-)
+config: dict[str, Any] = {}
+
+
+def load_config() -> dict[str, Any]:
+    """Load JSON config from disk into the module-level ``config`` dict."""
+    global config
+    if CONFIG_PATH.exists():
+        config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    else:
+        config = {}
+    return config
+
+
+load_config()
 
 app = FastAPI(title="Hypura Harness", version="0.1.0")
 
@@ -42,6 +54,9 @@ voicevox_seq: VoicevoxSequencer = VoicevoxSequencer(
 code_runner_instance: CodeRunner = CodeRunner()
 skill_gen: SkillGenerator = SkillGenerator()
 shinka: ShinkaAdapter = ShinkaAdapter()
+companion_bridge: CompanionBridge = CompanionBridge(
+    config.get("companion_url", "http://127.0.0.1:18791"),
+)
 
 
 class OscRequest(BaseModel):
@@ -112,7 +127,9 @@ async def osc(req: OscRequest) -> dict:
         if action == "chatbox":
             osc_ctrl.send_chatbox(payload.get("text", ""))
         elif action == "emotion":
-            osc_ctrl.apply_emotion(payload.get("emotion", "neutral"))
+            emotion = payload.get("emotion", "neutral")
+            osc_ctrl.apply_emotion(emotion)
+            await companion_bridge.forward_emotion(emotion)
         elif action == "param":
             osc_ctrl.set_param(payload.get("name", ""), payload.get("value", 0))
         elif action in (
@@ -144,7 +161,18 @@ async def speak(req: SpeakRequest) -> dict:
     except Exception as e:
         logger.error("Speak error: %s", e)
         return {"success": False, "error": str(e)}
+    await companion_bridge.forward_speak(req.text or "", req.emotion)
     return {"success": True}
+
+
+@app.post("/reload")
+async def reload_config_endpoint() -> dict[str, Any]:
+    global companion_bridge
+    cfg = load_config()
+    companion_bridge = CompanionBridge(
+        cfg.get("companion_url", "http://127.0.0.1:18791"),
+    )
+    return {"reloaded": True, "config": cfg}
 
 
 @app.post("/run")

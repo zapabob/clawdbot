@@ -1,5 +1,6 @@
 # scripts/hypura/tests/test_harness_daemon.py
-from unittest.mock import patch
+import json
+from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 
@@ -44,3 +45,64 @@ def test_run_endpoint_returns_result() -> None:
         resp = client.post("/run", json={"task": "print hello"})
         assert resp.status_code == 200
         assert resp.json()["success"] is True
+
+
+def test_speak_forwards_to_companion_bridge() -> None:
+    from harness_daemon import app
+
+    with patch("harness_daemon.voicevox_seq") as mock_vx, patch(
+        "harness_daemon.companion_bridge"
+    ) as mock_bridge:
+        mock_vx.speak = AsyncMock()
+        mock_bridge.forward_speak = AsyncMock()
+        client = TestClient(app)
+        resp = client.post(
+            "/speak", json={"text": "hello", "emotion": "happy"}
+        )
+        assert resp.status_code == 200
+        mock_bridge.forward_speak.assert_awaited_once_with("hello", "happy")
+
+
+def test_osc_emotion_forwards_companion_bridge() -> None:
+    from harness_daemon import app
+
+    with patch("harness_daemon.osc_ctrl") as mock_osc, patch(
+        "harness_daemon.companion_bridge"
+    ) as mock_bridge:
+        mock_bridge.forward_emotion = AsyncMock()
+        client = TestClient(app)
+        resp = client.post(
+            "/osc",
+            json={"action": "emotion", "payload": {"emotion": "happy"}},
+        )
+        assert resp.status_code == 200
+        mock_osc.apply_emotion.assert_called_once_with("happy")
+        mock_bridge.forward_emotion.assert_awaited_once_with("happy")
+
+
+def test_reload_returns_reloaded_true(tmp_path, monkeypatch) -> None:
+    import harness_daemon as hd
+
+    cfg_path = tmp_path / "harness.config.json"
+    cfg_path.write_text(json.dumps({"daemon_port": 18790}))
+    monkeypatch.setattr(hd, "CONFIG_PATH", cfg_path)
+    client = TestClient(hd.app)
+    resp = client.post("/reload")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["reloaded"] is True
+    assert "config" in body
+
+
+def test_reload_reflects_updated_config(tmp_path, monkeypatch) -> None:
+    import harness_daemon as hd
+
+    cfg_path = tmp_path / "harness.config.json"
+    cfg_path.write_text(
+        json.dumps({"daemon_port": 18790, "test_key": "before"})
+    )
+    monkeypatch.setattr(hd, "CONFIG_PATH", cfg_path)
+    client = TestClient(hd.app)
+    assert client.post("/reload").json()["config"]["test_key"] == "before"
+    cfg_path.write_text(json.dumps({"daemon_port": 18790, "test_key": "after"}))
+    assert client.post("/reload").json()["config"]["test_key"] == "after"

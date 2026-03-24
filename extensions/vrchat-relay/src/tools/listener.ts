@@ -1,5 +1,6 @@
 import { getOSCClient, resetOSCClient } from "../osc/client.js";
 import type { OSCMessage } from "../osc/types.js";
+import { DEFAULT_OSC_CONFIG } from "../osc/types.js";
 
 interface ListenerState {
   isRunning: boolean;
@@ -54,7 +55,10 @@ export function startOSCListener(): { success: boolean; port: number; error?: st
       }, AUTO_COMPACT_INTERVAL_MS);
     }
 
-    return { success: true, port: 9001 };
+    return {
+      success: true,
+      port: client.getConfig().incomingPort ?? DEFAULT_OSC_CONFIG.incomingPort,
+    };
   } catch (error) {
     return {
       success: false,
@@ -97,9 +101,10 @@ export function getListenerStatus(): {
   messageCount: number;
   startTime?: string;
 } {
+  const client = getOSCClient();
   return {
     isRunning: listenerState.isRunning,
-    port: 9001,
+    port: client.getConfig().incomingPort ?? DEFAULT_OSC_CONFIG.incomingPort,
     messageCount: listenerState.messageCount,
     startTime: listenerState.startTime?.toISOString(),
   };
