@@ -1,0 +1,23 @@
+{
+  "daemon_port": 18790,
+  "osc_host": "127.0.0.1",
+  "osc_port": 9000,
+  "voicevox_url": "http://127.0.0.1:50021",
+  "virtual_cable_name": "CABLE Input",
+  "execution_timeout_sec": 60,
+  "generated_max_files": 50,
+  "models": {
+    "primary": "qwen-hakua-core",
+    "lite": "qwen-hakua-core-lite",
+    "ollama_base_url": "http://127.0.0.1:11434",
+    "codex_fallbacks": ["gpt-5.4", "gpt-5.3-codex", "gpt-5.2"]
+  },
+  "evolution": {
+    "default_generations": 5,
+    "max_retries_before_evolve": 3
+  },
+  "openclaw": {
+    "agent_endpoint": "http://127.0.0.1:5900/agent",
+    "cli_binary": "openclaw"
+  }
+}

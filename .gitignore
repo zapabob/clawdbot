@@ -168,6 +168,10 @@ extensions/local-voice/moonshine-venv/
 .agents/
 .agent/
 
+# Hypura harness generated scripts (keep dirs tracked via .gitkeep)
+scripts/hypura/generated/*.py
+scripts/hypura/evolved/*.py
+
 # Additional local runtime state (tracked history cleanup)
 .openclaw-desktop/agents/codex/sessions/
 .openclaw-desktop/agents/main/agent/models.json
