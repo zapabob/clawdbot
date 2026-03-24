@@ -10,6 +10,7 @@ param(
     [switch]$SkipBrowser,
     [switch]$SkipCompanion,
     [switch]$SkipHypura,
+    [int]$HypuraWaitSeconds = 120,
     [switch]$SpeakOnReady
 )
 
@@ -98,6 +99,21 @@ function Test-HypuraRunning {
     } catch {
         return $false
     }
+}
+
+function Wait-HypuraReady {
+    param(
+        [int]$TimeoutSec = 120,
+        [string]$Url = "http://127.0.0.1:8080/api/tags"
+    )
+    $deadline = (Get-Date).AddSeconds($TimeoutSec)
+    while ((Get-Date) -lt $deadline) {
+        if (Test-HypuraRunning -Url $Url) {
+            return $true
+        }
+        Start-Sleep -Milliseconds 800
+    }
+    return $false
 }
 
 # --- Build-time env setup ---
@@ -193,6 +209,7 @@ if (-not $SkipNgrok) {
 
 # --- [Pre] Hypura ---
 if (-not $SkipHypura) {
+    Write-Host "  [Hypura  ] Central provider mode enabled." -ForegroundColor DarkCyan
     if (Test-HypuraRunning) {
         Write-Host "  [Hypura  ] Already running on 127.0.0.1:8080" -ForegroundColor Green
     } else {
@@ -203,22 +220,19 @@ if (-not $SkipHypura) {
 
         if ($hypuraCmd) {
             Write-Host "  [Hypura  ] Not running. Starting hypura serve..." -ForegroundColor DarkCyan
-            $startHypura = Read-Host "  Start hypura serve now? [Y/n]"
-            if ([string]::IsNullOrWhiteSpace($startHypura) -or $startHypura -match "^(y|yes)$") {
-                Start-Process -FilePath $hypuraCmd.Source -ArgumentList @("serve") `
-                    -WorkingDirectory $ProjectDir -WindowStyle Minimized | Out-Null
-                Start-Sleep -Seconds 2
-                if (Test-HypuraRunning) {
-                    Write-Host "  [Hypura  ] Started successfully." -ForegroundColor Green
-                } else {
-                    Write-Host "  [Hypura  ] Start requested, but probe is still failing." -ForegroundColor Yellow
-                }
-            } else {
-                Write-Host "  [Hypura  ] Skipped by user input." -ForegroundColor Yellow
-            }
+            Start-Process -FilePath $hypuraCmd.Source -ArgumentList @("serve") `
+                -WorkingDirectory $ProjectDir -WindowStyle Minimized | Out-Null
         } else {
             Write-Host "  [Hypura  ] hypura executable was not found in PATH." -ForegroundColor Yellow
+            throw "Hypura was not found in PATH."
         }
+    }
+
+    Write-Host "  [Hypura  ] Waiting for /api/tags readiness (timeout: $HypuraWaitSeconds sec)..." -ForegroundColor Gray
+    if (Wait-HypuraReady -TimeoutSec $HypuraWaitSeconds) {
+        Write-Host "  [Hypura  ] Ready. Proceeding with stack launch." -ForegroundColor Green
+    } else {
+        throw "Hypura did not become ready within $HypuraWaitSeconds seconds."
     }
 }
 

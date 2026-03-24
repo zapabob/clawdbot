@@ -78,7 +78,7 @@ $iconLoc = Resolve-Icon -Primary $IconPath
 # ── 1. フルスタックショートカット (Clawdbot.lnk) ──────────────────────────────
 $sc = $WshShell.CreateShortcut($PrimaryPath)
 $sc.TargetPath       = "powershell.exe"
-$sc.Arguments        = "-NoExit -ExecutionPolicy Bypass -File `"$LauncherPs1`" -SpeakOnReady"
+$sc.Arguments        = "-NoExit -ExecutionPolicy Bypass -File `"$LauncherPs1`" -SpeakOnReady -HypuraWaitSeconds 180"
 $sc.WorkingDirectory = $ProjectDir
 $sc.Description      = "Clawdbot — フルスタック起動 (Gateway / TUI / Live2D + VOICEVOX / VRChat / Web UI)"
 $sc.WindowStyle      = 1  # Normal
