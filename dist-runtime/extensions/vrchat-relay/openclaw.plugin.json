@@ -41,6 +41,27 @@
             "default": false
           }
         }
+      },
+      "topology": {
+        "type": "object",
+        "description": "Control-plane mode and autostart policy",
+        "properties": {
+          "controlPlane": {
+            "type": "string",
+            "description": "relay-primary or mcp-primary (used to avoid duplicate OSC writers)",
+            "default": "relay-primary"
+          },
+          "autoStartOscListener": {
+            "type": "boolean",
+            "description": "Auto-start OSC listener on plugin registration",
+            "default": true
+          },
+          "autoStartGuardianPulse": {
+            "type": "boolean",
+            "description": "Auto-start guardian pulse loop on plugin registration",
+            "default": true
+          }
+        }
       }
     }
   }

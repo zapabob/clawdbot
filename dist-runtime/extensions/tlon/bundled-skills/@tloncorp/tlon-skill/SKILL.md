@@ -272,9 +272,20 @@ Read and search message history. Authors are shown with nicknames when available
 tlon messages dm ~sampel --limit 20                      # DM history (max 50)
 tlon messages channel chat/~host/slug --limit 20         # Channel history (max 50)
 tlon messages search "query" --channel chat/~host/slug   # Search messages
+tlon messages context chat/~host/slug 170.141... --limit 5  # Messages around a post
+tlon messages post chat/~host/slug 170.141...            # Fetch single post with replies
 ```
 
 Options: `--limit N`, `--resolve-cites`
+
+The `context` command fetches N messages before and after a given post ID — useful for
+finding surrounding conversation when you have a post from search or activity.
+For DMs, use the ship name as the channel: `tlon messages context ~sampel 170.141...`
+
+The `post` command fetches a single post with its replies/thread. For DM posts,
+pass `--author ~ship` (required for DM/club lookups).
+
+**Tip:** Use `search` to find a message, then `context` with its ID to see the surrounding conversation.
 
 ### DMs
 
@@ -340,13 +351,21 @@ The `--content` file should be Story JSON format (array of verses with headers, 
 
 ### Upload
 
-Upload images to Tlon storage.
+Upload files to Tlon storage from a URL, local path, or stdin.
 
 ```bash
-tlon upload https://example.com/image.png    # Upload image from URL
+tlon upload https://example.com/image.png         # Upload from URL
+tlon upload ./photo.jpg                            # Upload local file
+tlon upload ~/Pictures/screenshot.png              # Upload with absolute path
+tlon upload ./mystery-file -t image/webp           # Override content type
+cat image.png | tlon upload --stdin -t image/png   # Upload from stdin
 ```
 
-Returns the uploaded image URL for use in posts, profiles, etc.
+Options: `-t`/`--type` (override MIME type), `--stdin` (read from stdin)
+
+Content type is auto-detected from file extension for local files. For stdin, `-t` is recommended (defaults to `application/octet-stream`).
+
+Returns the uploaded URL for use in posts, profiles, etc.
 
 ### Settings (OpenClaw)
 

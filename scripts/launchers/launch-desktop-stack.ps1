@@ -222,17 +222,17 @@ if (-not $SkipHypura) {
             Write-Host "  [Hypura  ] Not running. Starting hypura serve..." -ForegroundColor DarkCyan
             Start-Process -FilePath $hypuraCmd.Source -ArgumentList @("serve") `
                 -WorkingDirectory $ProjectDir -WindowStyle Minimized | Out-Null
-        } else {
-            Write-Host "  [Hypura  ] hypura executable was not found in PATH." -ForegroundColor Yellow
-            throw "Hypura was not found in PATH."
-        }
-    }
 
-    Write-Host "  [Hypura  ] Waiting for /api/tags readiness (timeout: $HypuraWaitSeconds sec)..." -ForegroundColor Gray
-    if (Wait-HypuraReady -TimeoutSec $HypuraWaitSeconds) {
-        Write-Host "  [Hypura  ] Ready. Proceeding with stack launch." -ForegroundColor Green
-    } else {
-        throw "Hypura did not become ready within $HypuraWaitSeconds seconds."
+            Write-Host "  [Hypura  ] Waiting for /api/tags readiness (timeout: $HypuraWaitSeconds sec)..." -ForegroundColor Gray
+            if (Wait-HypuraReady -TimeoutSec $HypuraWaitSeconds) {
+                Write-Host "  [Hypura  ] Ready. Proceeding with stack launch." -ForegroundColor Green
+            } else {
+                Write-Host "  [Hypura  ] WARNING: Hypura did not become ready within $HypuraWaitSeconds seconds. Continuing anyway." -ForegroundColor Yellow
+            }
+        } else {
+            Write-Host "  [Hypura  ] WARNING: hypura executable was not found in PATH. Skipping Hypura provider." -ForegroundColor Yellow
+            $SkipHypura = $true
+        }
     }
 }
 
@@ -306,45 +306,24 @@ if (-not $SkipCompanion) {
     }
 }
 
-# --- Browser: wait for Gateway then open ---
+# --- Browser: launch asynchronously (poll in background) ---
 if (-not $SkipBrowser) {
     $browserUrl = "$localGatewayUrl/#token=$token"
-
-    if (-not $SkipGateway) {
-        Write-Host ""
-        Write-Host "  Waiting for gateway on :$GatewayPort" -ForegroundColor Gray -NoNewline
-
-        $pollJob = Start-Job -ScriptBlock {
-            param([int]$port, [int]$maxSecs)
-            $deadline = [DateTime]::Now.AddSeconds($maxSecs)
-            while ([DateTime]::Now -lt $deadline) {
-                $conn = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
-                if ($conn) { return $true }
-                Start-Sleep -Milliseconds 600
-            }
-            return $false
-        } -ArgumentList $GatewayPort, 30
-
-        $gatewayReady = $false
-        for ($tick = 0; $tick -lt 31; $tick++) {
-            if ($pollJob.State -in "Completed","Failed","Stopped") {
-                $gatewayReady = [bool](Receive-Job $pollJob -ErrorAction SilentlyContinue)
-                break
-            }
-            Write-Host "." -NoNewline -ForegroundColor DarkGray
-            Start-Sleep -Milliseconds 1000
+    
+    $browserLauncher = {
+        param($url, $port)
+        $deadline = [DateTime]::Now.AddSeconds(45)
+        while ([DateTime]::Now -lt $deadline) {
+            $conn = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+            if ($conn) { break }
+            Start-Sleep -Milliseconds 800
         }
-        Remove-Job $pollJob -Force -ErrorAction SilentlyContinue
-        Write-Host ""
+        # Open browser regardless of readiness after timeout, or immediately if ready
+        Start-Process $url
+    }.ToString()
 
-        if ($gatewayReady) {
-            Write-Host "  [Browser ] Gateway ready - opening browser" -ForegroundColor Green
-        } else {
-            Write-Host "  [Browser ] Gateway not yet listening - opening anyway" -ForegroundColor Yellow
-        }
-    }
-
-    Start-Process $browserUrl | Out-Null
+    Start-Process powershell.exe -ArgumentList "-NoProfile", "-WindowStyle", "Hidden", "-Command", "& { $browserLauncher } '$browserUrl' $GatewayPort"
+    Write-Host "  [Browser ] Background polling started (will open when gateway ready)" -ForegroundColor Cyan
 }
 
 # --- Done ---

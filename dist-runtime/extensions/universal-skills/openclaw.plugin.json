@@ -4,5 +4,10 @@
   "description": "Cross-platform skill pack — integrates skills from Codex, Gemini CLI, Antigravity, and Claude Code into OpenClaw. Run scripts/sync-skills.ps1 to pull additional skills from locally installed AI tools.",
   "skills": ["./skills"],
   "channels": [],
-  "providers": []
+  "providers": [],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@tloncorp/tlon-skill",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Tlon/Urbit skill for OpenClaw agents",
   "license": "MIT",
   "repository": {
@@ -32,9 +32,9 @@
     "typescript": "^5.9.3"
   },
   "optionalDependencies": {
-    "@tloncorp/tlon-skill-darwin-arm64": "0.2.2",
-    "@tloncorp/tlon-skill-darwin-x64": "0.2.2",
-    "@tloncorp/tlon-skill-linux-arm64": "0.2.2",
-    "@tloncorp/tlon-skill-linux-x64": "0.2.2"
+    "@tloncorp/tlon-skill-darwin-arm64": "0.3.0",
+    "@tloncorp/tlon-skill-darwin-x64": "0.3.0",
+    "@tloncorp/tlon-skill-linux-arm64": "0.3.0",
+    "@tloncorp/tlon-skill-linux-x64": "0.3.0"
   }
 }
