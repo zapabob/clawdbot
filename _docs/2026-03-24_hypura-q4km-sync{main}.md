@@ -44,3 +44,22 @@
 - 設定値は repo/user 両方で更新済み。
 - 現時点の `/api/tags` は旧 `Qwen3.5-27B-Uncensored-HauhauCS-Aggressive` を返却中。
 - つまり Hypura 実行モデルはまだ切替前。指定GGUFで Hypura 再起動後に tags 再確認が必要。
+
+## 追記: 起動経路確実化（shortcut + default）
+
+- Date (from MCP): 2026-03-24T06:04:33+00:00
+- 対応目的: 起動経路が複数あっても 9B BF16 を確実に選択する
+
+### 実施内容（確実化）
+
+1. デスクトップショートカット `Hypura 荳ｭ譫｢ (Ollama API).lnk` の `Arguments` に以下を固定追加。
+   - `-ModelPath "H:\HauhauCS_9B_Restoration\Qwen3.5-9B-Uncensored-HauhauCS-Aggressive-BF16.gguf"`
+2. `hypura-central-smart.ps1` の既定値を新モデルへ変更。
+   - `$defaultModel = "H:\HauhauCS_9B_Restoration\Qwen3.5-9B-Uncensored-HauhauCS-Aggressive-BF16.gguf"`
+   - `$defaultModelName = "Qwen3.5-9B-Uncensored-HauhauCS-Aggressive-BF16"`
+
+### 検証
+
+- `.lnk` 再読込で `Arguments` に `-ModelPath` が含まれることを確認済み。
+- `hypura-central-smart.ps1` の `defaultModel/defaultModelName` が新値へ更新済み。
+- `/api/tags` の先頭名は、Hypuraを再起動して新起動パスを踏んだ後に再確認すること。
