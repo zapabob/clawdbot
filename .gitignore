@@ -87,6 +87,9 @@ vrchat-mcp-osc/
 .openclaw-desktop/openclaw.json.bak.*
 .openclaw-desktop/companion_state.json
 
+# Repo-root log directory (local dev / gateway test runs)
+logs/
+
 # Debug / temp outputs
 build_debug.log
 install_debug.log
