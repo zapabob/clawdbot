@@ -13,3 +13,4 @@
 - `vendor/ShinkaEvolve` は `.gitignore` のためリポジトリ未同梱。`shinka_adapter` は import 失敗時スタブ、`AsyncLLMClient` をテストでモック。
 - `pyproject.toml` に `soundfile` と `pydantic` を追加（VOICEVOX / FastAPI モデル）。
 - コミットは pre-commit の oxfmt が未整形の untracked ドキュメントと衝突するため `--no-verify` を使用（計画ファイルの手順に準拠）。
+- Hakua の **thinking だけ**止めるのは Hypura 設定ではなく、OpenClaw の `agents.defaults.models["ollama/qwen-hakua-core"].params.thinking` 等（`skills/hypura-harness/SKILL.md` 参照）。`/evolve` は従来どおり Shinka が推論する。

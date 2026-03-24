@@ -22,8 +22,6 @@ if CONFIG_PATH.exists():
 _OLLAMA_URL = _config.get("models", {}).get("ollama_base_url", "http://127.0.0.1:11434")
 _PRIMARY_MODEL = _config.get("models", {}).get("primary", "qwen-hakua-core")
 _LITE_MODEL = _config.get("models", {}).get("lite", "qwen-hakua-core-lite")
-# When false, do not run qwen-hakua-core / qwen-hakua-core-lite via AsyncLLMClient (evolve is no-op).
-_HAKUA_INFERENCE_ENABLED = _config.get("models", {}).get("hakua_inference_enabled", False)
 
 os.environ.setdefault("OLLAMA_BASE_URL", _OLLAMA_URL)
 os.environ.setdefault("OLLAMA_API_KEY", "ollama-local")
@@ -39,25 +37,15 @@ except ImportError:
 
 
 class ShinkaAdapter:
-    def __init__(self, *, hakua_inference_enabled: bool | None = None) -> None:
-        """If hakua_inference_enabled is None, read models.hakua_inference_enabled from harness.config.json."""
+    def __init__(self) -> None:
         os.environ.setdefault("OLLAMA_BASE_URL", _OLLAMA_URL)
-        enabled = (
-            hakua_inference_enabled
-            if hakua_inference_enabled is not None
-            else _HAKUA_INFERENCE_ENABLED
-        )
-        if AsyncLLMClient is not None and enabled:
+        if AsyncLLMClient is not None:
             self._client = AsyncLLMClient(
                 model_names=[_PRIMARY_MODEL, _LITE_MODEL],
                 temperatures=[0.8, 0.6],
                 model_sample_probs=[0.7, 0.3],
             )
         else:
-            if not enabled:
-                logger.info(
-                    "Hakua inference disabled (qwen-hakua-core / lite); evolve endpoints are no-ops"
-                )
             self._client = None
 
     async def evolve_code(

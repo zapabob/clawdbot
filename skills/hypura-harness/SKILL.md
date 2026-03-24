@@ -16,7 +16,28 @@ description: >
 
 デーモンURL: `http://127.0.0.1:18790`
 
-`scripts/hypura/harness.config.json` の `models.hakua_inference_enabled` が `false` のとき、`qwen-hakua-core` / `qwen-hakua-core-lite` による `/evolve` 推論は行わない（シードをそのまま返す）。`GET /status` の `hakua_inference_enabled` で現在値を確認できる。
+## エージェントチャットで Hakua の thinking だけ止める（OpenClaw 設定）
+
+Hypura の `/evolve`（Shinka）とは別に、**ゲートウェイ／デスクトップのエージェントが使うチャット推論**では、`agents.defaults.models` の **per-model `params.thinking`** が効く。`qwen-hakua-core` と `qwen-hakua-core-lite` について **thinking だけ `off`** にしたい場合は、たとえば `openclaw.json`（通常は `~/.openclaw/openclaw.json` やデスクトップ用の `.openclaw-desktop/openclaw.json`）に次を足す:
+
+```json
+{
+  "agents": {
+    "defaults": {
+      "models": {
+        "ollama/qwen-hakua-core": {
+          "params": { "thinking": "off" }
+        },
+        "ollama/qwen-hakua-core-lite": {
+          "params": { "thinking": "off" }
+        }
+      }
+    }
+  }
+}
+```
+
+プライマリやフォールバックのどちらで選ばれても同じモデル ID なら上記で揃う。エージェント条項で `thinkingDefault` を上書きしている場合は、必要ならそちらも調整する。
 
 ## デーモン起動確認
 

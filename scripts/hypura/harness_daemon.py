@@ -96,13 +96,11 @@ async def status() -> dict:
             ollama_ok = r.status_code == 200
     except Exception:
         pass
-    hakua_on = config.get("models", {}).get("hakua_inference_enabled", False)
     return {
         "daemon_version": "0.1.0",
         "osc_connected": True,
         "voicevox_alive": vx_ok,
         "ollama_alive": ollama_ok,
-        "hakua_inference_enabled": hakua_on,
     }
 
 
