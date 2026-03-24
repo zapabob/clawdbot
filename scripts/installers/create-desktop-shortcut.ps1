@@ -85,7 +85,7 @@ $sc.WindowStyle      = 1  # Normal
 $sc.IconLocation     = $iconLoc
 $sc.Save()
 Write-Host "  [created] $PrimaryName" -ForegroundColor Green
-Write-Host "            $LauncherPs1 -SpeakOnReady" -ForegroundColor DarkGray
+Write-Host "            $LauncherPs1 -SpeakOnReady -HypuraWaitSeconds 180" -ForegroundColor DarkGray
 
 # ── 2. コンパニオン + StackショートカットHakua Companion.lnk) ─────────────────
 #    Gateway + コンパニオン + VOICEVOX のみ (TUI/Browser/Ngrok/Hypura をスキップ)

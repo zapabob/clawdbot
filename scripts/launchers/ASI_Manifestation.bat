@@ -9,8 +9,8 @@ cd /d "%PROJECTDIR%"
 echo.
 echo  ==========================================
 echo   Hakua Core  ^|  iDOLM@STER Stage Edition
-echo   Brain  : ollama/qwen-hakua-core
-echo   Fallbk : openai-codex/gpt-5.4
+echo   Brain  : hypura/Qwen3.5-27B-Uncensored-HauhauCS-Aggressive-Q6_K
+echo   Fallbk : ollama/Hakua-core-lite
 echo   TTS    : VOICEVOX + Web Speech
 echo   Hypura : probing 127.0.0.1:8080/api/tags
 echo  ==========================================
@@ -23,5 +23,5 @@ echo  Starting full desktop stack...
 echo.
 
 powershell.exe -NoExit -ExecutionPolicy Bypass ^
-  -File "scripts\launchers\launch-desktop-stack.ps1" -SpeakOnReady
+  -File "scripts\launchers\launch-desktop-stack.ps1" -SpeakOnReady -HypuraWaitSeconds 180
 
