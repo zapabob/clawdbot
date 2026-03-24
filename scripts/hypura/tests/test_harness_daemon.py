@@ -21,6 +21,7 @@ def test_status_has_required_keys() -> None:
     assert "osc_connected" in data
     assert "voicevox_alive" in data
     assert "ollama_alive" in data
+    assert "hakua_inference_enabled" in data
 
 
 def test_osc_endpoint_chatbox() -> None:

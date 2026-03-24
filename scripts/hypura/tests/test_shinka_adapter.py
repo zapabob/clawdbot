@@ -23,6 +23,17 @@ async def test_evolve_code_returns_result() -> None:
         MockLLM.return_value = mock_client
         from shinka_adapter import ShinkaAdapter
 
-        adapter = ShinkaAdapter()
+        adapter = ShinkaAdapter(hakua_inference_enabled=True)
         result = await adapter.evolve_code("print('hello')", "print more", generations=1)
         assert result is not None
+
+
+@pytest.mark.asyncio
+async def test_hakua_inference_disabled_returns_seed() -> None:
+    with patch("shinka_adapter.AsyncLLMClient") as MockLLM:
+        from shinka_adapter import ShinkaAdapter
+
+        adapter = ShinkaAdapter(hakua_inference_enabled=False)
+        result = await adapter.evolve_code("seed", "hint", generations=3)
+        assert result == "seed"
+        MockLLM.assert_not_called()

@@ -16,6 +16,8 @@ description: >
 
 デーモンURL: `http://127.0.0.1:18790`
 
+`scripts/hypura/harness.config.json` の `models.hakua_inference_enabled` が `false` のとき、`qwen-hakua-core` / `qwen-hakua-core-lite` による `/evolve` 推論は行わない（シードをそのまま返す）。`GET /status` の `hakua_inference_enabled` で現在値を確認できる。
+
 ## デーモン起動確認
 
 まず `GET /status` で稼働確認。応答なし → 起動:

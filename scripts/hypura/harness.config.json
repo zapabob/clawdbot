@@ -9,6 +9,7 @@
   "models": {
     "primary": "qwen-hakua-core",
     "lite": "qwen-hakua-core-lite",
+    "hakua_inference_enabled": false,
     "ollama_base_url": "http://127.0.0.1:11434",
     "codex_fallbacks": ["gpt-5.4", "gpt-5.3-codex", "gpt-5.2"]
   },
