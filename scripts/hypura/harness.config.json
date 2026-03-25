@@ -8,8 +8,8 @@
   "execution_timeout_sec": 60,
   "generated_max_files": 50,
   "models": {
-    "primary": "qwen-hakua-core",
-    "lite": "qwen-hakua-core-lite",
+    "primary": "qwen-Hakua-core",
+    "lite": "qwen-Hakua-core-lite",
     "ollama_base_url": "http://127.0.0.1:11434",
     "codex_fallbacks": ["gpt-5.4", "gpt-5.3-codex", "gpt-5.2"]
   },
@@ -18,6 +18,7 @@
     "max_retries_before_evolve": 3
   },
   "openclaw": {
+    "agent_endpoint": "http://127.0.0.1:18789/agent",
     "cli_binary": "openclaw",
     "use_gateway_agent": true,
     "agent_extra_args": []

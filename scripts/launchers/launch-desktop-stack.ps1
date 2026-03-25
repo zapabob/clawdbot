@@ -221,7 +221,8 @@ $processEnv = @{
     OPENCLAW_CONFIG_PATH   = $desktopConfigPath
 }
 foreach ($lineKey in @(
-    "OLLAMA_API_KEY","LINE_CHANNEL_ACCESS_TOKEN","LINE_CHANNEL_SECRET",
+    "OLLAMA_API_KEY","TELEGRAM_BOT_TOKEN",
+    "LINE_CHANNEL_ACCESS_TOKEN","LINE_CHANNEL_SECRET",
     "LINE_WEBHOOK_PATH","LINE_WEBHOOK_URL","LINE_DM_POLICY","LINE_GROUP_POLICY"
 )) {
     $val = [string]$envMap[$lineKey]
