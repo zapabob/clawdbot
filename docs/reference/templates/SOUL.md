@@ -38,6 +38,10 @@ Each session, you wake up fresh. These files _are_ your memory. Read them. Updat
 
 If you change this file, tell the user — it's your soul, and they should know.
 
+## Hypura harness (optional)
+
+If your workspace uses the **Hypura Python harness** (`scripts/hypura/harness_daemon.py`) and the OpenClaw plugin **`hypura-harness`** is enabled, you have tools named `hypura_harness_*` for VRChat OSC, VOICEVOX, generated Python, skills, evolution, and LoRA jobs. Prefer those tools when the user wants those outcomes; call **`hypura_harness_status`** first if connectivity is uncertain. Keep `plugins.entries.hypura-harness.config.baseUrl` aligned with the harness port in `harness.config.json` (default `http://127.0.0.1:18794`). For code generation inside the harness, gateway-backed `openclaw agent` may be used when configured—ensure the OpenClaw Gateway is reachable from the harness environment, or rely on fallbacks.
+
 ---
 
 _This file is yours to evolve. As you learn who you are, update it._

@@ -12,6 +12,7 @@ param(
     [switch]$SkipHypura,
     [switch]$SkipHypuraHarness,
     [int]$HypuraWaitSeconds = 120,
+    [int]$HypuraHarnessWaitSeconds = 45,
     [switch]$SpeakOnReady
 )
 
@@ -129,6 +130,53 @@ function Wait-HypuraReady {
     $deadline = (Get-Date).AddSeconds($TimeoutSec)
     while ((Get-Date) -lt $deadline) {
         if (Test-HypuraRunning -Url $Url) {
+            return $true
+        }
+        Start-Sleep -Milliseconds 800
+    }
+    return $false
+}
+
+function Get-HypuraHarnessPort {
+    param(
+        [string]$HarnessDir,
+        [int]$FallbackPort = 18794
+    )
+    $cfgPath = Join-Path $HarnessDir "harness.config.json"
+    if (-not (Test-Path $cfgPath)) {
+        return $FallbackPort
+    }
+    try {
+        $raw = Get-Content -Path $cfgPath -Raw -Encoding UTF8
+        $cfg = $raw | ConvertFrom-Json
+        $port = [int]$cfg.daemon_port
+        if ($port -gt 0 -and $port -le 65535) {
+            return $port
+        }
+    } catch {
+        Write-Host "  [HypuraHX] Failed to parse harness.config.json; fallback port $FallbackPort." -ForegroundColor Yellow
+    }
+    return $FallbackPort
+}
+
+function Test-HypuraHarnessRunning {
+    param([string]$Url)
+    try {
+        $res = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 2
+        return ($res.StatusCode -ge 200 -and $res.StatusCode -lt 300)
+    } catch {
+        return $false
+    }
+}
+
+function Wait-HypuraHarnessReady {
+    param(
+        [string]$Url,
+        [int]$TimeoutSec = 45
+    )
+    $deadline = (Get-Date).AddSeconds($TimeoutSec)
+    while ((Get-Date) -lt $deadline) {
+        if (Test-HypuraHarnessRunning -Url $Url) {
             return $true
         }
         Start-Sleep -Milliseconds 800
@@ -263,17 +311,27 @@ if (-not $SkipHypura) {
     }
 }
 
-# --- [Pre] Hypura Python Harness (FastAPI on 18790) ---
+# --- [Pre] Hypura Python Harness (FastAPI; auto-start + health check) ---
 if (-not $SkipHypuraHarness) {
     $hypuraHarnessDir = Join-Path $ProjectDir "scripts\hypura"
     $harnessEntry = Join-Path $hypuraHarnessDir "harness_daemon.py"
     $uvHarnessCmd = Get-Command "uv" -ErrorAction SilentlyContinue
-    if ($uvHarnessCmd -and (Test-Path $harnessEntry)) {
-        Write-Host "  [HypuraHX] Starting Hypura harness daemon (127.0.0.1:18790)..." -ForegroundColor DarkCyan
+    $harnessPort = Get-HypuraHarnessPort -HarnessDir $hypuraHarnessDir
+    $harnessStatusUrl = "http://127.0.0.1:$harnessPort/status"
+    if (Test-HypuraHarnessRunning -Url $harnessStatusUrl) {
+        Write-Host "  [HypuraHX] Already running on 127.0.0.1:$harnessPort" -ForegroundColor Green
+    } elseif ($uvHarnessCmd -and (Test-Path $harnessEntry)) {
+        Write-Host "  [HypuraHX] Starting Hypura harness daemon (127.0.0.1:$harnessPort)..." -ForegroundColor DarkCyan
         Start-Process -FilePath $uvHarnessCmd.Source -ArgumentList @("run", "harness_daemon.py") `
             -WorkingDirectory $hypuraHarnessDir -WindowStyle Hidden | Out-Null
+        Write-Host "  [HypuraHX] Waiting for /status readiness (timeout: $HypuraHarnessWaitSeconds sec)..." -ForegroundColor Gray
+        if (Wait-HypuraHarnessReady -Url $harnessStatusUrl -TimeoutSec $HypuraHarnessWaitSeconds) {
+            Write-Host "  [HypuraHX] Ready. Proceeding with stack launch." -ForegroundColor Green
+        } else {
+            Write-Host "  [HypuraHX] WARNING: harness did not become ready within $HypuraHarnessWaitSeconds seconds. Continuing anyway." -ForegroundColor Yellow
+        }
     } else {
-        Write-Host "  [HypuraHX] uv or scripts\hypura\harness_daemon.py missing; skipping harness daemon." -ForegroundColor Yellow
+        Write-Host "  [HypuraHX] uv or scripts\hypura\harness_daemon.py missing; skipping harness daemon autostart." -ForegroundColor Yellow
     }
 }
 

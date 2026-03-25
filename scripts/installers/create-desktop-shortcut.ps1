@@ -78,27 +78,27 @@ $iconLoc = Resolve-Icon -Primary $IconPath
 # ── 1. フルスタックショートカット (Clawdbot.lnk) ──────────────────────────────
 $sc = $WshShell.CreateShortcut($PrimaryPath)
 $sc.TargetPath       = "powershell.exe"
-$sc.Arguments        = "-NoExit -ExecutionPolicy Bypass -File `"$LauncherPs1`" -SpeakOnReady -HypuraWaitSeconds 180"
+$sc.Arguments        = "-NoExit -ExecutionPolicy Bypass -File `"$LauncherPs1`" -SpeakOnReady -HypuraWaitSeconds 180 -HypuraHarnessWaitSeconds 45"
 $sc.WorkingDirectory = $ProjectDir
 $sc.Description      = "Clawdbot — フルスタック起動 (Gateway / TUI / Live2D + VOICEVOX / VRChat / Web UI)"
 $sc.WindowStyle      = 1  # Normal
 $sc.IconLocation     = $iconLoc
 $sc.Save()
 Write-Host "  [created] $PrimaryName" -ForegroundColor Green
-Write-Host "            $LauncherPs1 -SpeakOnReady -HypuraWaitSeconds 180" -ForegroundColor DarkGray
+Write-Host "            $LauncherPs1 -SpeakOnReady -HypuraWaitSeconds 180 -HypuraHarnessWaitSeconds 45" -ForegroundColor DarkGray
 
 # ── 2. コンパニオン + StackショートカットHakua Companion.lnk) ─────────────────
 #    Gateway + コンパニオン + VOICEVOX のみ (TUI/Browser/Ngrok/Hypura をスキップ)
 $sc2 = $WshShell.CreateShortcut($CompanionPath)
 $sc2.TargetPath       = "powershell.exe"
-$sc2.Arguments        = "-NoExit -ExecutionPolicy Bypass -File `"$LaunchStackPs1`" -SkipTui -SkipBrowser -SkipNgrok -SkipHypura -SpeakOnReady"
+$sc2.Arguments        = "-NoExit -ExecutionPolicy Bypass -File `"$LaunchStackPs1`" -SkipTui -SkipBrowser -SkipNgrok -SkipHypura -SpeakOnReady -HypuraHarnessWaitSeconds 45"
 $sc2.WorkingDirectory = $ProjectDir
 $sc2.Description      = "Hakua Companion — iDOLM@STER AI Avatar + VOICEVOX + Gateway (TUI/Browser省略)"
 $sc2.WindowStyle      = 1
 $sc2.IconLocation     = $iconLoc
 $sc2.Save()
 Write-Host "  [created] $CompanionName" -ForegroundColor Green
-Write-Host "            launch-desktop-stack.ps1 -SkipTui -SkipBrowser -SkipNgrok" -ForegroundColor DarkGray
+Write-Host "            launch-desktop-stack.ps1 -SkipTui -SkipBrowser -SkipNgrok -HypuraHarnessWaitSeconds 45" -ForegroundColor DarkGray
 
 # ── 3. コンパニオン単体 (Hakua Companion Only.lnk) ────────────────────────────
 #    Electron 直接起動 — Gateway/TUI 不要な場合
