@@ -1417,6 +1417,38 @@ export const GENERATED_BUNDLED_PLUGIN_METADATA = [
     },
   },
   {
+    dirName: "hypura-harness",
+    idHint: "hypura-harness",
+    source: {
+      source: "./index.ts",
+      built: "index.js",
+    },
+    packageName: "@openclaw/hypura-harness",
+    packageVersion: "2026.3.25",
+    packageDescription:
+      "OpenClaw Hypura Python harness HTTP tools (OSC, VOICEVOX, code run, skills, LoRA)",
+    packageManifest: {
+      extensions: ["./index.ts"],
+    },
+    manifest: {
+      id: "hypura-harness",
+      configSchema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          baseUrl: {
+            type: "string",
+            description:
+              "Hypura harness base URL (must match scripts/hypura/harness.config.json daemon_port; default http://127.0.0.1:18794)",
+          },
+        },
+      },
+      name: "Hypura Harness",
+      description:
+        "HTTP tools for the Hypura Python harness daemon (VRChat OSC, VOICEVOX, code execution, skill generation, Shinka evolve, LoRA jobs).",
+    },
+  },
+  {
     dirName: "hypura-provider",
     idHint: "hypura",
     source: {

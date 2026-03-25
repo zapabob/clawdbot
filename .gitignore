@@ -179,3 +179,33 @@ scripts/hypura/evolved/*.py
 .openclaw-desktop/devices/pending.json
 .openclaw-desktop/openclaw.json
 .openclaw-desktop/telegram/update-offset-default.json
+
+# Local assistant/tooling workspaces (machine-specific)
+.codebuddy/
+.commandcode/
+.continue/
+.crush/
+.factory/
+.goose/
+.junie/
+.kilocode/
+.kiro/
+.kode/
+.mcpjam/
+.mux/
+.neovate/
+.openhands/
+.pi/
+.pochi/
+.qoder/
+.qwen/
+.roo/
+.trae/
+.windsurf/
+.zencoder/
+
+# Local Cursor planning scratch
+.cursor/plans/*.plan.md
+
+# Local clobbered desktop config snapshots (may contain secrets)
+.openclaw-desktop/openclaw.json.clobbered.*

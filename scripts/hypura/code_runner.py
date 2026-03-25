@@ -23,7 +23,17 @@ if CONFIG_PATH.exists():
 
 _MAX_GENERATED = _config.get("generated_max_files", 50)
 _EXEC_TIMEOUT = _config.get("execution_timeout_sec", 60)
-_OPENCLAW_CLI = _config.get("openclaw", {}).get("cli_binary", "openclaw")
+_OPENCLAW_CFG = _config.get("openclaw", {}) if isinstance(_config.get("openclaw"), dict) else {}
+_OPENCLAW_CLI = (
+    _OPENCLAW_CFG.get("cli_binary", "openclaw")
+    if isinstance(_OPENCLAW_CFG.get("cli_binary"), str)
+    else "openclaw"
+)
+_USE_GATEWAY_AGENT = bool(_OPENCLAW_CFG.get("use_gateway_agent", False))
+_AGENT_EXTRA: list[str] = []
+_raw_extra = _OPENCLAW_CFG.get("agent_extra_args")
+if isinstance(_raw_extra, list):
+    _AGENT_EXTRA = [str(x) for x in _raw_extra if isinstance(x, str)]
 
 
 def extract_code_block(text: str) -> str:
@@ -45,20 +55,26 @@ def _prune_generated() -> None:
 
 
 def _generate_code(task: str, error_context: str = "") -> str:
-    """Call OpenClaw CLI → Codex CLI fallback to generate Python code."""
+    """Call OpenClaw CLI (optional gateway ``agent``) → ``run`` → Claude/Codex fallbacks."""
     prompt = (
         f"Write a self-contained Python script (PEP 723 inline deps) to: {task}"
         + (f"\n\nPrevious error:\n{error_context}" if error_context else "")
         + "\n\nStart with:\n# /// script\n# dependencies = [...]\n# ///"
     )
-    for cli in [_OPENCLAW_CLI, "claude", "codex"]:
+    attempts: list[tuple[str, list[str]]] = []
+    if _USE_GATEWAY_AGENT:
+        attempts.append(
+            (
+                f"{_OPENCLAW_CLI} agent",
+                [_OPENCLAW_CLI, "agent", *_AGENT_EXTRA, "-m", prompt],
+            )
+        )
+    attempts.append((f"{_OPENCLAW_CLI} run", [_OPENCLAW_CLI, "run", "--", prompt]))
+    attempts.append(("claude", ["claude", "-p", prompt, "--output-format", "text"]))
+    attempts.append(("codex", ["codex", "--quiet", prompt]))
+
+    for _label, cmd in attempts:
         try:
-            if cli == _OPENCLAW_CLI:
-                cmd = [cli, "run", "--", prompt]
-            elif cli == "claude":
-                cmd = [cli, "-p", prompt, "--output-format", "text"]
-            else:
-                cmd = [cli, "--quiet", prompt]
             r = subprocess.run(
                 cmd,
                 capture_output=True,

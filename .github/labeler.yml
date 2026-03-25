@@ -338,3 +338,9 @@
       - any-glob-to-any-file:
           - "extensions/hypura-provider/**"
           - "skills/hypura/**"
+"extensions: hypura-harness":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "extensions/hypura-harness/**"
+          - "skills/hypura-harness/**"
+          - "scripts/hypura/**"

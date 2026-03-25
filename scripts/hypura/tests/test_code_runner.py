@@ -2,6 +2,45 @@
 from unittest.mock import MagicMock, patch
 
 
+def test_generate_code_uses_agent_first_when_gateway_enabled(monkeypatch) -> None:
+    recorded: list[list[str]] = []
+
+    def fake_run(cmd, **kwargs):
+        recorded.append(list(cmd))
+        return MagicMock(
+            returncode=0,
+            stdout='```python\n# /// script\n# dependencies = []\n# ///\nprint("x")\n```',
+            stderr="",
+        )
+
+    monkeypatch.setattr("code_runner.subprocess.run", fake_run)
+    monkeypatch.setattr("code_runner._USE_GATEWAY_AGENT", True)
+    from code_runner import _generate_code
+
+    out = _generate_code("sample task")
+    assert "print" in out
+    assert recorded[0][0:3] == ["openclaw", "agent", "-m"]
+
+
+def test_generate_code_skips_agent_when_gateway_disabled(monkeypatch) -> None:
+    recorded: list[list[str]] = []
+
+    def fake_run(cmd, **kwargs):
+        recorded.append(list(cmd))
+        return MagicMock(
+            returncode=0,
+            stdout='```python\nprint("y")\n```',
+            stderr="",
+        )
+
+    monkeypatch.setattr("code_runner.subprocess.run", fake_run)
+    monkeypatch.setattr("code_runner._USE_GATEWAY_AGENT", False)
+    from code_runner import _generate_code
+
+    _generate_code("task")
+    assert recorded[0][0:3] == ["openclaw", "run", "--"]
+
+
 def test_run_task_succeeds_on_first_try() -> None:
     with patch("code_runner.subprocess.run") as mock_run:
         mock_run.side_effect = [

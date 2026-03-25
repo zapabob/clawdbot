@@ -8,7 +8,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-DAEMON_URL = "http://127.0.0.1:18790/status"
+DAEMON_URL = "http://127.0.0.1:18794/status"
 # skills/hypura-harness/scripts/ -> repo root is parents[3]
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 PID_FILE = _REPO_ROOT / ".openclaw-desktop" / "harness_daemon.pid"

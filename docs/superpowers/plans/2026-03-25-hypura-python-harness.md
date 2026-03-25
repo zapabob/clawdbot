@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a FastAPI daemon (port 18790) that lets OpenClaw act as a general-purpose autonomous agent — controlling VRChat avatars via OSC, generating VOICEVOX speech through VB-Cable, executing AI-generated Python scripts, and creating new skills — all backed by ShinkaEvolve self-improvement loops.
+**Goal:** Build a FastAPI daemon (port 18794) that lets OpenClaw act as a general-purpose autonomous agent — controlling VRChat avatars via OSC, generating VOICEVOX speech through VB-Cable, executing AI-generated Python scripts, and creating new skills — all backed by ShinkaEvolve self-improvement loops.
 
 **Architecture:** Hub-and-spoke with bidirectional OpenClaw integration. `harness_daemon.py` routes requests to focused modules. Each module calls back into OpenClaw (via `openclaw` CLI or agent endpoint) for reasoning tasks — emotion inference, code generation, skill design, script writing. External services (VRChat, VOICEVOX, Ollama) degrade gracefully when unavailable. AI-generated scripts use PEP 723 inline deps and run in isolated uv environments.
 
@@ -86,7 +86,7 @@ testpaths = ["tests"]
 
 ```json
 {
-  "daemon_port": 18790,
+  "daemon_port": 18794,
   "osc_host": "127.0.0.1",
   "osc_port": 9000,
   "voicevox_url": "http://127.0.0.1:50021",
@@ -210,7 +210,7 @@ Expected: `ImportError: No module named 'harness_daemon'`
 
 ```python
 # scripts/hypura/harness_daemon.py
-"""Hypura Harness — central FastAPI daemon (port 18790)."""
+"""Hypura Harness — central FastAPI daemon (port 18794)."""
 from __future__ import annotations
 
 import json
@@ -1144,7 +1144,7 @@ Replace `harness_daemon.py` with the full wired version:
 
 ```python
 # scripts/hypura/harness_daemon.py
-"""Hypura Harness — central FastAPI daemon (port 18790).
+"""Hypura Harness — central FastAPI daemon (port 18794).
 OpenClaw calls this as a general-purpose agent toolkit.
 """
 from __future__ import annotations
@@ -1342,7 +1342,7 @@ description: >
 
 # Hypura Harness
 
-デーモンURL: `http://127.0.0.1:18790`
+デーモンURL: `http://127.0.0.1:18794`
 
 ## デーモン起動確認
 
@@ -1421,7 +1421,7 @@ import time
 import urllib.request
 from pathlib import Path
 
-DAEMON_URL = "http://127.0.0.1:18790/status"
+DAEMON_URL = "http://127.0.0.1:18794/status"
 PID_FILE = Path(__file__).parent.parent.parent.parent / ".openclaw-desktop" / "harness_daemon.pid"
 HARNESS_DIR = Path(__file__).parent.parent.parent.parent / "scripts" / "hypura"
 TIMEOUT_SEC = 10
@@ -1487,7 +1487,7 @@ git commit --no-verify -m "feat: add hypura-harness skill and start_daemon.py la
 cd scripts/hypura
 uv run harness_daemon.py &
 sleep 3
-curl http://127.0.0.1:18790/status
+curl http://127.0.0.1:18794/status
 ```
 
 Expected response:
@@ -1501,7 +1501,7 @@ Expected response:
 - [ ] **Step 2: Test /osc endpoint (VRChat optional)**
 
 ```bash
-curl -X POST http://127.0.0.1:18790/osc \
+curl -X POST http://127.0.0.1:18794/osc \
   -H "Content-Type: application/json" \
   -d '{"action":"chatbox","payload":{"text":"test from harness"}}'
 ```
@@ -1511,7 +1511,7 @@ Expected: `{"success":true}`
 - [ ] **Step 3: Test /run endpoint**
 
 ```bash
-curl -X POST http://127.0.0.1:18790/run \
+curl -X POST http://127.0.0.1:18794/run \
   -H "Content-Type: application/json" \
   -d '{"task":"print the current date and time in Japanese"}'
 ```
@@ -1553,7 +1553,7 @@ git commit --no-verify -m "feat: complete Hypura Python Harness — integration 
 | ------------- | ------------------------------------------------------------------------ |
 | Start daemon  | `cd scripts/hypura && uv run harness_daemon.py`                          |
 | Run all tests | `cd scripts/hypura && uv run pytest tests/ -v`                           |
-| Check status  | `curl http://127.0.0.1:18790/status`                                     |
+| Check status  | `curl http://127.0.0.1:18794/status`                                     |
 | OSC chatbox   | `curl -X POST .../osc -d '{"action":"chatbox","payload":{"text":"hi"}}'` |
 | Run AI task   | `curl -X POST .../run -d '{"task":"..."}'`                               |
 | Install deps  | `cd scripts/hypura && uv sync --extra test`                              |

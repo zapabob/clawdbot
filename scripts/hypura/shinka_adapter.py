@@ -1,10 +1,12 @@
 """ShinkaEvolve adapter — evolution engine backed by Ollama native API."""
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -36,6 +38,25 @@ except ImportError:
     logger.warning("ShinkaEvolve not available — evolve endpoint will use stub")
 
 
+async def _check_fitness(code: str) -> bool:
+    """Run code in an isolated uv environment; return True if exit_code == 0."""
+    with tempfile.NamedTemporaryFile(suffix=".py", mode="w", delete=False, encoding="utf-8") as f:
+        f.write(code)
+        tmp = f.name
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "uv", "run", "--no-project", tmp,
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL,
+        )
+        await asyncio.wait_for(proc.wait(), timeout=10)
+        return proc.returncode == 0
+    except Exception:
+        return False
+    finally:
+        Path(tmp).unlink(missing_ok=True)
+
+
 class ShinkaAdapter:
     def __init__(self) -> None:
         os.environ.setdefault("OLLAMA_BASE_URL", _OLLAMA_URL)
@@ -50,10 +71,12 @@ class ShinkaAdapter:
 
     async def evolve_code(
         self, seed: str, fitness_hint: str, generations: int = 5
-    ) -> str | None:
+    ) -> str:
         if self._client is None:
             logger.warning("ShinkaEvolve unavailable, returning seed unchanged")
             return seed
+        from code_runner import extract_code_block
+
         best = seed
         for gen in range(generations):
             prompt = (
@@ -66,10 +89,8 @@ class ShinkaAdapter:
                 system_msg="You are a Python code optimizer. Return only code.",
             )
             if result and hasattr(result, "content") and result.content:
-                from code_runner import extract_code_block
-
                 improved = extract_code_block(result.content)
-                if improved and improved != best:
+                if improved and await _check_fitness(improved):
                     best = improved
                     logger.info("[evolve] generation %s: improved", gen + 1)
         return best
@@ -79,14 +100,17 @@ class ShinkaAdapter:
     ) -> str:
         if self._client is None:
             return skill_md
-        prompt = (
-            "Improve this SKILL.md to better trigger on these examples:\n"
-            + "\n".join(f"- {e}" for e in examples)
-            + f"\n\nCurrent SKILL.md:\n{skill_md}"
-        )
-        result = await self._client.query(
-            msg=prompt, system_msg="Return only the improved SKILL.md."
-        )
-        if result and hasattr(result, "content"):
-            return result.content or skill_md
-        return skill_md
+        best = skill_md
+        examples_txt = "\n".join(f"- {e}" for e in examples)
+        for gen in range(generations):
+            prompt = (
+                f"Improve this SKILL.md to better trigger on these examples:\n{examples_txt}"
+                f"\n\nCurrent SKILL.md:\n{best}"
+            )
+            result = await self._client.query(
+                msg=prompt, system_msg="Return only the improved SKILL.md."
+            )
+            if result and hasattr(result, "content") and result.content.strip():
+                best = result.content.strip()
+                logger.info("[evolve_skill] generation %s: improved", gen + 1)
+        return best

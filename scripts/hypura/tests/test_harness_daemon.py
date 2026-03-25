@@ -22,6 +22,8 @@ def test_status_has_required_keys() -> None:
     assert "osc_connected" in data
     assert "voicevox_alive" in data
     assert "ollama_alive" in data
+    assert "lora" in data
+    assert "base_model_configured" in data["lora"]
 
 
 def test_osc_endpoint_chatbox() -> None:
@@ -84,7 +86,7 @@ def test_reload_returns_reloaded_true(tmp_path, monkeypatch) -> None:
     import harness_daemon as hd
 
     cfg_path = tmp_path / "harness.config.json"
-    cfg_path.write_text(json.dumps({"daemon_port": 18790}))
+    cfg_path.write_text(json.dumps({"daemon_port": 18794}))
     monkeypatch.setattr(hd, "CONFIG_PATH", cfg_path)
     client = TestClient(hd.app)
     resp = client.post("/reload")
@@ -99,10 +101,10 @@ def test_reload_reflects_updated_config(tmp_path, monkeypatch) -> None:
 
     cfg_path = tmp_path / "harness.config.json"
     cfg_path.write_text(
-        json.dumps({"daemon_port": 18790, "test_key": "before"})
+        json.dumps({"daemon_port": 18794, "test_key": "before"})
     )
     monkeypatch.setattr(hd, "CONFIG_PATH", cfg_path)
     client = TestClient(hd.app)
     assert client.post("/reload").json()["config"]["test_key"] == "before"
-    cfg_path.write_text(json.dumps({"daemon_port": 18790, "test_key": "after"}))
+    cfg_path.write_text(json.dumps({"daemon_port": 18794, "test_key": "after"}))
     assert client.post("/reload").json()["config"]["test_key"] == "after"

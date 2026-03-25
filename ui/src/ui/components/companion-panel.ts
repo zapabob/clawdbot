@@ -3,7 +3,7 @@ import { customElement, state } from "lit/decorators.js";
 import type { AgentsListResult } from "../types.ts";
 
 const CONTROL_URL = "http://127.0.0.1:18791";
-const HYPURA_URL = "http://127.0.0.1:18790";
+const HYPURA_URL = "http://127.0.0.1:18794";
 const POLL_INTERVAL_MS = 3000;
 
 type TtsProvider = "voicevox" | "web-speech";
@@ -125,10 +125,7 @@ export class CompanionPanel extends LitElement {
     void this._send({ ttsProvider: sel.value as TtsProvider });
   };
 
-  private async _hypuraPost(
-    path: string,
-    body: Record<string, unknown>,
-  ): Promise<void> {
+  private async _hypuraPost(path: string, body: Record<string, unknown>): Promise<void> {
     try {
       await fetch(`${HYPURA_URL}${path}`, {
         method: "POST",
@@ -275,9 +272,7 @@ export class CompanionPanel extends LitElement {
 
             <!-- Hypura Harness -->
             <div
-              class="companion-panel__hypura ${hypuraOff
-                ? "companion-panel__hypura--offline"
-                : ""}"
+              class="companion-panel__hypura ${hypuraOff ? "companion-panel__hypura--offline" : ""}"
             >
               <div class="companion-panel__hypura-head">
                 <span class="companion-panel__hypura-title"
@@ -287,25 +282,25 @@ export class CompanionPanel extends LitElement {
               <div class="companion-panel__hypura-row">
                 <span class="companion-panel__hypura-pill">
                   <span
-                    class="companion-panel__hypura-dot ${oscOk
-                      ? "companion-panel__hypura-dot--ok"
-                      : "companion-panel__hypura-dot--bad"}"
+                    class="companion-panel__hypura-dot ${
+                      oscOk ? "companion-panel__hypura-dot--ok" : "companion-panel__hypura-dot--bad"
+                    }"
                   ></span>
                   OSC
                 </span>
                 <span class="companion-panel__hypura-pill">
                   <span
-                    class="companion-panel__hypura-dot ${vxOk
-                      ? "companion-panel__hypura-dot--ok"
-                      : "companion-panel__hypura-dot--bad"}"
+                    class="companion-panel__hypura-dot ${
+                      vxOk ? "companion-panel__hypura-dot--ok" : "companion-panel__hypura-dot--bad"
+                    }"
                   ></span>
                   VoiceVox
                 </span>
                 <span class="companion-panel__hypura-pill">
                   <span
-                    class="companion-panel__hypura-dot ${olOk
-                      ? "companion-panel__hypura-dot--ok"
-                      : "companion-panel__hypura-dot--bad"}"
+                    class="companion-panel__hypura-dot ${
+                      olOk ? "companion-panel__hypura-dot--ok" : "companion-panel__hypura-dot--bad"
+                    }"
                   ></span>
                   Ollama
                 </span>
