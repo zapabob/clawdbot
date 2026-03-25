@@ -8,10 +8,26 @@
   },
   "actions": {
     "jump": "/input/Jump",
+    "run": "/input/Run",
+    "voice": "/input/Voice",
     "move_forward": "/input/MoveForward",
     "move_back": "/input/MoveBackward",
-    "turn_left": "/input/LookHorizontal",
-    "turn_right": "/input/LookHorizontal"
+    "move_left": "/input/MoveLeft",
+    "move_right": "/input/MoveRight",
+    "look_left": "/input/LookLeft",
+    "look_right": "/input/LookRight",
+    "look_up": "/input/LookUp",
+    "look_down": "/input/LookDown"
+  },
+  "tracking": {
+    "eyes_closed": "/tracking/eye/EyesClosedAmount",
+    "eye_pitch_yaw": "/tracking/eye/CenterPitchYaw",
+    "head_pos": "/tracking/trackers/head/position",
+    "head_rot": "/tracking/trackers/head/rotation"
+  },
+  "chatbox": {
+    "input": "/chatbox/input",
+    "typing": "/chatbox/typing"
   },
   "voicevox_emotions": {
     "happy": { "speedScale": 1.1, "pitchScale": 0.04, "intonationScale": 1.3 },

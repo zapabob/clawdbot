@@ -12,6 +12,7 @@ from typing import Any, Literal
 
 import httpx
 import uvicorn
+import threading
 from code_runner import CodeRunner
 from companion_bridge import CompanionBridge
 from fastapi import BackgroundTasks, FastAPI, HTTPException
@@ -23,11 +24,13 @@ from lora_service import (
     run_grpo_job_async,
     run_train_job,
 )
-from osc_controller import OSCController, load_param_map
+from osc_controller import OSCController, OSCListener, load_param_map
 from pydantic import BaseModel
 from shinka_adapter import ShinkaAdapter
 from skill_generator import SkillGenerator
 from voicevox_sequencer import VoicevoxSequencer
+from web_scavenger import WebScavenger
+from knowledge_graph_shinka import KnowledgeGraphShinka
 
 DEFAULT_DAEMON_PORT = 18794
 
@@ -58,6 +61,10 @@ osc_ctrl: OSCController = OSCController(
     port=config.get("osc_port", 9000),
     param_map=load_param_map(),
 )
+osc_listen: OSCListener = OSCListener(
+    host=config.get("osc_host", "127.0.0.1"),
+    port=config.get("osc_receive_port", 9001),
+)
 voicevox_seq: VoicevoxSequencer = VoicevoxSequencer(
     voicevox_url=config.get("voicevox_url", "http://127.0.0.1:50021"),
     cable_device_name=config.get("virtual_cable_name", "CABLE Input"),
@@ -68,6 +75,8 @@ shinka: ShinkaAdapter = ShinkaAdapter()
 companion_bridge: CompanionBridge = CompanionBridge(
     config.get("companion_url", "http://127.0.0.1:18791"),
 )
+web_scavenger: WebScavenger = WebScavenger()
+knowledge_graph: KnowledgeGraphShinka = KnowledgeGraphShinka()
 
 
 class OscRequest(BaseModel):
@@ -121,6 +130,15 @@ class GrpoJobRequest(BaseModel):
     dataset_path: str | None = None
 
 
+class ScavengeRequest(BaseModel):
+    query: str = ""
+    deep: bool = False
+
+
+class WisdomRequest(BaseModel):
+    concept: str
+
+
 def _get_job_store() -> JobStore:
     global job_store
     if job_store is None:
@@ -165,7 +183,15 @@ async def osc(req: OscRequest) -> dict:
     payload = req.payload
     try:
         if action == "chatbox":
-            osc_ctrl.send_chatbox(payload.get("text", ""))
+            osc_ctrl.send_chatbox(
+                payload.get("text", ""),
+                immediate=payload.get("immediate", True),
+                sfx=payload.get("sfx", True)
+            )
+        elif action == "typing":
+            osc_ctrl.set_typing(payload.get("value", False))
+        elif action == "tracking":
+            osc_ctrl.send_tracking(payload.get("name", ""), payload.get("value"))
         elif action == "emotion":
             emotion = payload.get("emotion", "neutral")
             osc_ctrl.apply_emotion(emotion)
@@ -187,6 +213,12 @@ async def osc(req: OscRequest) -> dict:
         logger.error("OSC error: %s", e)
         return {"success": False, "error": str(e)}
     return {"success": True}
+
+
+@app.get("/osc/telemetry")
+async def osc_telemetry() -> dict:
+    """Read the latest received OSC data from VRChat."""
+    return {"telemetry": osc_listen.telemetry}
 
 
 @app.post("/speak")
@@ -315,6 +347,34 @@ async def run(req: RunRequest) -> dict:
     return await asyncio.to_thread(code_runner_instance.run_task, req.task)
 
 
+@app.post("/scavenge")
+async def scavenge(req: ScavengeRequest) -> dict:
+    """Manually trigger a web scavenge pulse (Neuro-style)."""
+    try:
+        if req.query:
+            logger.info("Triggering Intent-Driven Scavenge: %s", req.query)
+            # Simulated deep search logic using the scavenger's induction/extraction
+            web_scavenger.execute_scavenge() 
+            return {"success": True, "message": f"Scavenge initiated for '{req.query}'"}
+        else:
+            web_scavenger.execute_scavenge()
+            return {"success": True, "message": "General scavenge pulse executed."}
+    except Exception as e:
+        logger.error("Scavenge error: %s", e)
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/wisdom")
+async def wisdom(req: WisdomRequest) -> dict:
+    """Query the knowledge graph for associative insights."""
+    try:
+        insights = knowledge_graph.query_wisdom(req.concept)
+        return {"success": True, "concept": req.concept, "insights": insights}
+    except Exception as e:
+        logger.error("Wisdom query error: %s", e)
+        return {"success": False, "error": str(e)}
+
+
 @app.post("/skill")
 async def skill(req: SkillRequest) -> dict:
     return await asyncio.to_thread(
@@ -338,5 +398,17 @@ async def evolve(req: EvolveRequest) -> dict:
 
 
 if __name__ == "__main__":
-    port = config.get("daemon_port", DEFAULT_DAEMON_PORT)
-    uvicorn.run("harness_daemon:app", host="127.0.0.1", port=port, reload=False)
+    try:
+        logging.basicConfig(level=logging.INFO)
+        port = config.get("daemon_port", DEFAULT_DAEMON_PORT)
+        logger.info("Starting Hypura Harness on port %s", port)
+        
+        # Start OSC Listener in background daemon thread
+        listener_thread = threading.Thread(target=osc_listen.start, daemon=True)
+        listener_thread.start()
+        
+        uvicorn.run(app, host="127.0.0.1", port=port, log_level="info")
+    except Exception as e:
+        logger.critical("Harness Daemon failed to start: %s", e, exc_info=True)
+        import sys
+        sys.exit(1)

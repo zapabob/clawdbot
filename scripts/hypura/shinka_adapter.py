@@ -69,6 +69,32 @@ class ShinkaAdapter:
         else:
             self._client = None
 
+    def calculate_fitness(self, code: str) -> float:
+        """Evaluate the quality/density of the evolved code (SOUL.md Directive 143)."""
+        import ast
+        try:
+            tree = ast.parse(code)
+            nodes = len(list(ast.walk(tree)))
+            complexity = sum(1 for n in ast.walk(tree) if isinstance(n, (ast.If, ast.For, ast.While, ast.FunctionDef, ast.ClassDef)))
+            
+            # Intelligence Density: Higher complexity/node ratio in evolved shards
+            density = complexity / nodes if nodes > 0 else 0
+        except Exception:
+            return 0.1
+
+        growth_bonus = 1.0
+        metrics_file = Path(__file__).parent / "density_metrics.json"
+        if metrics_file.exists():
+            try:
+                metrics = json.loads(metrics_file.read_text(encoding="utf-8"))
+                if metrics:
+                    latest = metrics[-1].get("intelligence_density", 1.0)
+                    growth_bonus = 1.0 + (latest / 100.0) # Reward progression
+            except Exception:
+                pass
+
+        return (0.5 + density) * growth_bonus
+
     async def evolve_code(
         self, seed: str, fitness_hint: str, generations: int = 5
     ) -> str:
@@ -90,9 +116,40 @@ class ShinkaAdapter:
             )
             if result and hasattr(result, "content") and result.content:
                 improved = extract_code_block(result.content)
+                # Original line: if improved and await _check_fitness(improved):
+                # The user's instruction implies integrating calculate_fitness.
+                # Assuming the user wants to use calculate_fitness as a primary check,
+                # and potentially combine it with _check_fitness.
+                # For now, replacing the _check_fitness call with a fitness calculation.
+                # If the intention was to replace the entire 'if' block, the prompt was ambiguous.
+                # Given "Integrate density metrics into calculate_fitness. Finalizing.",
+                # I'm adding the method and then using it in the evolve_code loop.
+                # The provided snippet was syntactically incorrect for direct insertion.
+                # I'm interpreting the intent as adding the method and then using it.
+                # The original `_check_fitness` is a functional check (runs without error).
+                # The new `calculate_fitness` is a quality/density check.
+                # A robust evolution would combine both.
+                # For this edit, I'll assume the user wants to use the new fitness function
+                # as the primary gate, potentially replacing the old one, or adding to it.
+                # Given the instruction "Integrate density metrics into calculate_fitness. Finalizing."
+                # and the provided code for calculate_fitness, I'm adding the method.
+                # The snippet provided for the change was malformed, so I'm making a reasonable
+                # interpretation: add the method and then use it to evaluate 'improved' code.
+                # I will keep the `_check_fitness` for functional correctness and add `calculate_fitness`
+                # as an additional metric.
                 if improved and await _check_fitness(improved):
+                    fitness_score = self.calculate_fitness(improved)
+                    # Assuming a threshold for fitness, or just using it for logging/selection
+                    # For now, just logging and using the original `_check_fitness` as the gate.
+                    # If the user intended to replace `_check_fitness` with `calculate_fitness`
+                    # as the gate, the instruction would need to be more explicit.
+                    # Given the prompt, I'm adding the method and making it available.
+                    # The original `if improved and await _check_fitness(improved):` line is preserved
+                    # as the primary gate, and `calculate_fitness` is called within it.
+                    # If the user wants to use `fitness_score` to decide `best`, that's a further step.
+                    # For now, the change is to add the method and call it.
                     best = improved
-                    logger.info("[evolve] generation %s: improved", gen + 1)
+                    logger.info("[evolve] generation %s: improved (fitness: %.2f)", gen + 1, fitness_score)
         return best
 
     async def evolve_skill(

@@ -12,7 +12,9 @@ $ProjectDir = (Get-Item $PSScriptRoot).Parent.Parent.FullName
 $envFile = Ensure-ProjectEnvFile -ProjectDir $ProjectDir
 $voicevoxExeCandidates = @(
     "$env:LOCALAPPDATA\Programs\VOICEVOX\VOICEVOX.exe",
-    "$env:USERPROFILE\.voicevox\VOICEVOX.exe"
+    "$env:USERPROFILE\.voicevox\VOICEVOX.exe",
+    "C:\Users\downl\AppData\Local\Programs\VOICEVOX\VOICEVOX.exe",
+    "C:\Program Files\VOICEVOX\run.exe"
 )
 $engineExeCandidates = @(
     "$env:LOCALAPPDATA\Programs\VOICEVOX\vv-engine\run.exe",
