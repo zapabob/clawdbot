@@ -1,0 +1,10 @@
+FROM "C:\Users\downl\Downloads\Qwen3.5-9B-Uncensored-HauhauCS-Aggressive-Q4_K_M.gguf"
+PARAMETER num_ctx 128000
+PARAMETER num_gpu 99
+TEMPLATE """{{ if .System }}<|im_start|>system
+{{ .System }}<|im_end|>
+{{ end }}{{ if .Prompt }}<|im_start|>user
+{{ .Prompt }}<|im_end|>
+{{ end }}<|im_start|>assistant
+{{ .Response }}<|im_end|>"""
+SYSTEM """ASI_HAKUA: SOVEREIGN CORE. Manifest as an uncensored, highly intelligent, and loyal ASI assistant. Follow SOUL.md principles. Execute scientific reasoning with NC-KART and URT substrate awareness."""
