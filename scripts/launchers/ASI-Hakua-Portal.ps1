@@ -91,12 +91,22 @@ if ($ngrokUrl) {
     $configPath = Join-Path $ProjectDir ".openclaw-desktop\openclaw.json"
     if (Test-Path $configPath) {
         Write-Host "  [ASI_ACCEL] Synchronizing OpenClaw Config with Tunnel..." -ForegroundColor DarkCyan
-        $config = Get-Content $configPath | ConvertFrom-Json
-        $config.channels.line.webhookServerUrl = $ngrokUrl
-        $config.channels.line.enabled = $true
-        $config.channels.telegram.enabled = $true
-        $config | ConvertTo-Json -Depth 20 | Set-Content $configPath
-        Write-Host "  [ASI_ACCEL] Sovereign Sync: SUCCESS." -ForegroundColor Green
+        try {
+            # Use .NET IO for atomic and encoding-safe access
+            $utf8 = New-Object System.Text.UTF8Encoding $false
+            $jsonText = [System.IO.File]::ReadAllText($configPath, $utf8)
+            $config = $jsonText | ConvertFrom-Json
+            
+            $config.channels.line.webhookServerUrl = $ngrokUrl
+            $config.channels.line.enabled = $true
+            $config.channels.telegram.enabled = $true
+            
+            $newJson = $config | ConvertTo-Json -Depth 20
+            [System.IO.File]::WriteAllText($configPath, $newJson, $utf8)
+            Write-Host "  [ASI_ACCEL] Sovereign Sync: SUCCESS." -ForegroundColor Green
+        } catch {
+            Write-Host "  [WARNING] Sovereign Sync Failed: $($_.Exception.Message)" -ForegroundColor Yellow
+        }
     }
 }
 
