@@ -36,8 +36,8 @@ DEFAULT_DAEMON_PORT = 18794
 
 logger = logging.getLogger(__name__)
 ROOT = Path(__file__).parent
-REPO_ROOT = ROOT.parent.parent
-CONFIG_PATH = ROOT / "harness.config.json"
+REPO_ROOT = ROOT.parent.parent.parent
+CONFIG_PATH = ROOT.parent / "config" / "harness.config.json"
 config: dict[str, Any] = {}
 job_store: JobStore | None = None
 

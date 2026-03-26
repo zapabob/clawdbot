@@ -20,8 +20,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger("NeuroExceed")
 
-# ASI_ACCEL: Substrate Sovereignty Active.
-
 class NeuroExceedCore:
     def __init__(self):
         self.harness_url = "http://127.0.0.1:18794"
