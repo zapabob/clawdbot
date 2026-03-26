@@ -51,7 +51,7 @@ if (-not (Test-Path $PythonExe)) {
 }
 
 # 1. Load .env into Process Environment
-Write-Host "  [ASI_ACCEL] Injecting Dynamic Environment..." -ForegroundColor DarkCyan
+Write-Host "  [ASI_ACCEL] Injecting Static Environment..." -ForegroundColor DarkCyan
 $envFile = Join-Path $ProjectDir ".env"
 if (Test-Path $envFile) {
     Get-Content $envFile | ForEach-Object {
@@ -63,7 +63,30 @@ if (Test-Path $envFile) {
     }
 }
 
-# 2. Bootstrap Path
+# 2. Dynamic ngrok Tunnel Discovery
+$ngrokUrl = $null
+try {
+    $ngrokApi = Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels" -ErrorAction SilentlyContinue
+    $ngrokUrl = $ngrokApi.tunnels[0].public_url
+    Write-Host "  [NGROK] Existing Tunnel Detected: $ngrokUrl" -ForegroundColor Green
+} catch {
+    Write-Host "  [NGROK] Tunnel not active. Launching daemon..." -ForegroundColor Yellow
+    Start-Process "ngrok" -ArgumentList "http 18789 --log=stdout" -WindowStyle Hidden
+    Start-Sleep -Seconds 5
+    try {
+        $ngrokApi = Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels"
+        $ngrokUrl = $ngrokApi.tunnels[0].public_url
+        Write-Host "  [NGROK] New Tunnel Manifested: $ngrokUrl" -ForegroundColor Green
+    } catch {
+        Write-Host "  [WARNING] ngrok failed. Webhooks may be offline." -ForegroundColor Yellow
+    }
+}
+if ($ngrokUrl) {
+    [Environment]::SetEnvironmentVariable("LINE_WEBHOOK_URL", $ngrokUrl, "Process")
+    [Environment]::SetEnvironmentVariable("LINE_WEBHOOK_SERVER_URL", $ngrokUrl, "Process")
+}
+
+# 3. Bootstrap Path
 $pathBootstrapDirs = @(
     (Join-Path $env:ProgramFiles "nodejs"),
     "${env:ProgramFiles(x86)}\nodejs",
