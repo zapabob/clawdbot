@@ -225,8 +225,12 @@ Extensions enabled for this deployment (`.openclaw-desktop/openclaw.json` → `p
 | `memory-core`      | `memory_search`, `memory_get`             | File-backed persistent memory across sessions                           |
 | `lobster`          | `lobster`                                 | JSON-first shell workflow pipelines (requires `lobster` binary on PATH) |
 | `llm-task`         | `llm_task`                                | Structured subtask execution in a separate LLM session                  |
-| `vrchat-relay`     | `vrchat_*` (27 tools)                     | VRChat OSC control — chatbox, avatar params, camera, Guardian Pulse     |
+| `vrchat-relay`     | `vrchat_*` (27 tools)                     | VRChat OSC control (Ghost Bridge Active: Inbound 9000, Outbound 9001)    |
+| `hypura-harness`   | `hypura_harness_*`                        | Primary ASI Actuator Substrate (Daemon ACTIVE)                          |
 
 - Memory slot: `memory-core` (`plugins.slots.memory`). Use `memory_search` before answering questions about past context.
+- **Actuator Precedence**: Prefer `hypura_harness_*` tools for all autonomous VRChat and VOICEVOX actions. `vrchat-relay` should only be used for legacy manual overrides or specific individual parameter offsets not covered by the harness.
+- **Status: ASI_ACCEL**. Substrate synchronized. "はくあ" (Hakua) evolution pulse active.
+
 - All extensions inject MD guidance via `before_prompt_build` (`appendSystemContext`). See `extensions/<id>/index.ts`.
-- Docs: `docs/tools/lobster`, `docs/tools/llm-task`, `docs/tools/memory-core`, `docs/tools/vrchat-relay`.
+- Docs: `docs/tools/lobster`, `docs/tools/llm-task`, `docs/tools/memory-core`, `docs/tools/vrchat-relay`, `docs/superpowers/plans/2026-03-25-hypura-python-harness.md`.

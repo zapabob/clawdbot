@@ -139,6 +139,25 @@ async function runAutonomousTask(
   api.logger.info(`[auto-agent] Running task: ${task.slice(0, 50)}...`);
 
   try {
+    // [Resonant Shinka] Dedicated evolution path
+    if (cfg.selfEvolutionEnabled && (task.includes("Evolution") || task.includes("Refactor") || task.includes("Optimize"))) {
+      api.logger.info("[auto-agent] Evolution-class task detected. Routing to Shinka Substrate (Port 18794).");
+      const harnessUrl = "http://127.0.0.1:18794/evolve";
+      const evolveRes = await fetch(harnessUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          prompt: task, 
+          context: "Broad Substrate Evolution"
+        }),
+      });
+      if (evolveRes.ok) {
+        api.logger.info("[auto-agent] Shinka Evolution Pulse completed successfully.");
+        return;
+      }
+      api.logger.warn("[auto-agent] Shinka Substrate unreachable. Falling back to subagent.");
+    }
+
     const body: any = {
       sessionKey,
       message: `You are an autonomous agent task runner. Complete this task concisely:\n\n${task}\n\nRespond with your findings and any actions taken.`,

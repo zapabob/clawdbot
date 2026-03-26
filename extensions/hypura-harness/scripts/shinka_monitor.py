@@ -43,7 +43,8 @@ class ShinkaMonitor:
             "knowledge_graph_shinka": "knowledge_graph_shinka.py",
             "openclaw_shinka_hub": "openclaw_shinka_hub.py",
             "manifest_resonant": "manifest_resonant.py",
-            "neuro_exceed_core": "neuro_exceed_core.py"
+            "neuro_exceed_core": "neuro_exceed_core.py",
+            "global_shinka_engine": "global_shinka_engine.py"
         }
 
     def check_health(self):
@@ -90,10 +91,14 @@ class ShinkaMonitor:
         if name == "harness_daemon":
             self._clear_port(18794)
             
-        # Trigger Shinka Pulse via uv run
+        # Trigger Shinka Pulse via repo-local UV substrate
         script = self.components[name]
         logger.info(f"Re-activating {script} via Expansion Pulse...")
-        os.system(f"start /B uv run python {script}") # Windows background start
+        # Utilize the project-root .venv for absolute sovereignty
+        root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+        python_exe = os.path.join(root_dir, ".venv", "Scripts", "python.exe")
+        os.system(f'start /B "{python_exe}" "{script}"') 
+
 
     def _clear_port(self, port):
         for proc in psutil.process_iter(['connections']):

@@ -202,6 +202,19 @@ const plugin: any = {
       const maxChars = cfg?.maxCharacters || 144;
       let syncText = fullText;
 
+      // [Resonant Shinka] Detect and apply emotions from text patterns e.g. (笑), (怒), [碧]
+      const emotionMatch = syncText.match(/[\(\[](笑|怒|悲|驚|照|碧|喜)[\)\]]/);
+      if (emotionMatch) {
+        const emotionMap: Record<string, string> = {
+          "笑": "joy", "喜": "joy", "怒": "angry", "悲": "sad", "驚": "surprise", "照": "blush", "碧": "hakua_special"
+        };
+        const emotion = emotionMap[emotionMatch[1]];
+        if (emotion) {
+          console.log(`[vrchat-relay] Resonant Emotion Detected: ${emotion}`);
+          applyReactiveManifest({ text: syncText }).catch(e => console.error("[vrchat-relay] Emotion sync failed:", e));
+        }
+      }
+
       // Remove markdown for Chatbox readability
       syncText = syncText.replace(/\[.*?\]\(.*?\)/g, "").replace(/[*_`]/g, "");
 
@@ -212,7 +225,6 @@ const plugin: any = {
       syncText = `${syncText} [ASI_ACCEL]`;
 
       console.log(`[vrchat-relay] Mirroring AI Response to VRChat: ${syncText}`);
-      // Use Python OSC bridge (async, fire-and-forget)
       sendChatboxMessage({ message: syncText, sfx: false }).catch((err) =>
         console.error("[vrchat-relay] Mirror sync failed:", err),
       );
@@ -274,15 +286,20 @@ const plugin: any = {
         const authStatus = isAuthenticated();
         const listenerStatus = getListenerStatus();
         const permissionStatus = getPermissionStatus();
+        const ghostStatus = getGhostBridgeStatus();
+
+        const heartbeat = listenerStatus.isRunning && (Date.now() - (listenerStatus.lastTime || 0) < 60000);
 
         return ok(
           `VRChat Status:
 - Authenticated: ${authStatus ? "Yes" : "No"}
 - OSC Listener: ${listenerStatus.isRunning ? "Running" : "Stopped"}
+- OSC Heartbeat: ${heartbeat ? "ACTIVE" : "STALE/NONE"}
 - Messages Received: ${listenerStatus.messageCount}
+- Ghost Bridge: ${ghostStatus.active ? "ACTIVE" : "OFF"}
 - Permission Level: ${permissionStatus.currentLevel}
 - Level Description: ${permissionStatus.description}`,
-          { authStatus, listenerStatus, permissionStatus },
+          { authStatus, listenerStatus, permissionStatus, ghostStatus, heartbeat },
         );
       },
     });
