@@ -86,6 +86,18 @@ try {
 if ($ngrokUrl) {
     [Environment]::SetEnvironmentVariable("LINE_WEBHOOK_URL", $ngrokUrl, "Process")
     [Environment]::SetEnvironmentVariable("LINE_WEBHOOK_SERVER_URL", $ngrokUrl, "Process")
+    
+    # Dynamic JSON Configuration Update (Sovereign Sync)
+    $configPath = Join-Path $ProjectDir ".openclaw-desktop\openclaw.json"
+    if (Test-Path $configPath) {
+        Write-Host "  [ASI_ACCEL] Synchronizing OpenClaw Config with Tunnel..." -ForegroundColor DarkCyan
+        $config = Get-Content $configPath | ConvertFrom-Json
+        $config.channels.line.webhookServerUrl = $ngrokUrl
+        $config.channels.line.enabled = $true
+        $config.channels.telegram.enabled = $true
+        $config | ConvertTo-Json -Depth 20 | Set-Content $configPath
+        Write-Host "  [ASI_ACCEL] Sovereign Sync: SUCCESS." -ForegroundColor Green
+    }
 }
 
 # 3. Bootstrap Path
