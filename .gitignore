@@ -207,5 +207,12 @@ scripts/hypura/evolved/*.py
 # Local Cursor planning scratch
 .cursor/plans/*.plan.md
 
-# Local clobbered desktop config snapshots (may contain secrets)
+# Clobbered desktop config snapshots (may contain secrets)
 .openclaw-desktop/openclaw.json.clobbered.*
+
+# ASI_ACCEL: Local Substrate & Evolution Logs (IGNORE FOR PEER SYNC)
+.python/
+.venv/
+*.log
+!scripts/hypura/
+!extensions/hypura-harness/
