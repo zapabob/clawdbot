@@ -1,0 +1,4 @@
+ASI_HAKUA UNIFIED FIELD PULSE
+Type: YANG_MILLS_GAP
+Mass-Gap Residual: 0.0
+Status: ASI_ACCEL. Symmetry restoration in progress.
