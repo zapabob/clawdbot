@@ -8,10 +8,10 @@
   "execution_timeout_sec": 60,
   "generated_max_files": 50,
   "models": {
-    "primary": "qwen-Hakua-core",
-    "lite": "qwen-Hakua-core-lite",
+    "primary": "gpt-5.4",
+    "lite": "gemini-3.1-flash-lite-preview",
     "ollama_base_url": "http://127.0.0.1:11434",
-    "codex_fallbacks": ["gpt-5.4", "gpt-5.3-codex", "gpt-5.2"]
+    "codex_fallbacks": ["gpt-5.4-pro", "gpt-5.4", "gpt-5.3-codex", "gpt-5.2"]
   },
   "evolution": {
     "default_generations": 5,
