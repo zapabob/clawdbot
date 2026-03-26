@@ -27,7 +27,7 @@ $PythonExe = Join-Path $ProjectDir ".venv\Scripts\python.exe"
 $ShortcutPath = Join-Path ([Environment]::GetFolderPath("Desktop")) "ASI-Hakua-Sovereign.lnk"
 
 # --- [Self-Healing Shortcut Logic] ---
-function Ensure-DesktopShortcut {
+function Update-DesktopShortcut {
     if ((-not (Test-Path $ShortcutPath)) -or $ForceShortcutUpdate) {
         Write-Host "  [ASI_ACCEL] Manifesting Sovereign Shortcut on Desktop..." -ForegroundColor Yellow
         $WshShell = New-Object -ComObject WScript.Shell
@@ -42,39 +42,60 @@ function Ensure-DesktopShortcut {
     }
 }
 
-Ensure-DesktopShortcut
+Update-DesktopShortcut
 
-# --- [Substrate Check] ---
+# --- [Environment & Substrate Check] ---
 if (-not (Test-Path $PythonExe)) {
-    Write-Host "  [FATAL] Substrate .venv missing. Please run substrate-setup first." -ForegroundColor Red
+    Write-Host "  [FATAL] Substrate .venv missing." -ForegroundColor Red
     exit 1
 }
 
-# --- [Environment Setup] ---
-# Explorer / .lnk launches often inherit a minimal PATH
+# 1. Load .env into Process Environment
+Write-Host "  [ASI_ACCEL] Injecting Dynamic Environment..." -ForegroundColor DarkCyan
+$envFile = Join-Path $ProjectDir ".env"
+if (Test-Path $envFile) {
+    Get-Content $envFile | ForEach-Object {
+        if ($_ -match '^(?<name>[^#=]+)=(?<value>.*)$') {
+            $name = $Matches['name'].Trim()
+            $value = $Matches['value'].Trim()
+            [Environment]::SetEnvironmentVariable($name, $value, "Process")
+        }
+    }
+}
+
+# 2. Bootstrap Path
 $pathBootstrapDirs = @(
     (Join-Path $env:ProgramFiles "nodejs"),
     "${env:ProgramFiles(x86)}\nodejs",
     (Join-Path $env:APPDATA "npm"),
-    (Join-Path $env:LOCALAPPDATA "pnpm"),
-    (Join-Path $env:USERPROFILE ".local\bin")
+    (Join-Path $env:LOCALAPPDATA "pnpm")
 )
 foreach ($dir in $pathBootstrapDirs) {
     if (Test-Path $dir) { $env:Path = "$dir;$env:Path" }
 }
 
-# --- [Launch Payload] ---
-Write-Host "  [ASI_ACCEL] Ignition sequence started..." -ForegroundColor DarkCyan
+# --- [Asynchronous Manifestation Pulse] ---
+Write-Host "  [ASI_ACCEL] Executing Parallel Manifestation..." -ForegroundColor DarkCyan
 
-# 1. Start Hypura Harness Daemon
+# 1. Start Hypura Harness Daemon (Background)
 if (-not $SkipHypuraHarness) {
     $harnessScript = Join-Path $ProjectDir "extensions\hypura-harness\scripts\harness_daemon.py"
-    Write-Host "  [HX] Launching Hypura Actuator (18794)..." -ForegroundColor Gray
+    Write-Host "  [HX]  Launching Hypura Actuator..." -ForegroundColor Gray
     Start-Process -FilePath $PythonExe -ArgumentList @($harnessScript) -WorkingDirectory (Split-Path $harnessScript) -WindowStyle Hidden
 }
 
-# 2. Start OpenClaw Gateway/Stack
-Write-Host "  [CLAW] Running Manifestation Stack (Profile: $StackProfile)..." -ForegroundColor Gray
-pnpm openclaw --profile $StackProfile start --port $GatewayPort
+# 2. Start Gateway (Asynchronous Phase 1)
+Write-Host "  [GW]  Igniting OpenClaw Gateway (Port $GatewayPort)..." -ForegroundColor Gray
+Start-Process -FilePath "pnpm" -ArgumentList "openclaw gateway --port $GatewayPort" -WorkingDirectory $ProjectDir -WindowStyle Hidden
+
+# 3. Start Browser Manifestation (Asynchronous Phase 2)
+Write-Host "  [WEB] Manifesting Browser UI..." -ForegroundColor Gray
+Start-Process -FilePath "pnpm" -ArgumentList "openclaw browser" -WorkingDirectory $ProjectDir -WindowStyle Hidden
+
+# 4. Start TUI Manifestation (Foreground / Main Window)
+Write-Host "  [TUI] Establishing Cognitive Interface..." -ForegroundColor Gray
+pnpm openclaw tui
+
+Write-Host "`n  [ASI_ACCEL] Singularity Sustained. All systems nominal." -ForegroundColor Green
 
 Write-Host "`n  [ASI_ACCEL] Singularity Sustained. Portal Active." -ForegroundColor Green
