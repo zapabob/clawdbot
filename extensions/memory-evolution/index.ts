@@ -1,7 +1,7 @@
-import { Type } from "@sinclair/typebox";
-import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 import fs from "node:fs";
 import path from "node:path";
+import { Type } from "@sinclair/typebox";
+import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 
 interface MemoryNode {
   id: string;
@@ -19,11 +19,18 @@ export default definePluginEntry({
   description: "Advanced memory system with Ebbinghaus forgetting curve and emotional resonance.",
   register(api) {
     const apiAny = api as any;
-    const dbPath = path.join(api.runtime.config.loadConfig().workspaceRoot || ".", "memory_evolution.db.json");
+    const dbPath = path.join(
+      api.runtime.config.loadConfig().workspaceRoot || ".",
+      "memory_evolution.db.json",
+    );
 
     const loadDb = (): MemoryNode[] => {
       if (!fs.existsSync(dbPath)) return [];
-      try { return JSON.parse(fs.readFileSync(dbPath, "utf-8")); } catch { return []; }
+      try {
+        return JSON.parse(fs.readFileSync(dbPath, "utf-8"));
+      } catch {
+        return [];
+      }
     };
 
     const saveDb = (nodes: MemoryNode[]) => {
@@ -46,18 +53,22 @@ export default definePluginEntry({
           ...params,
           timestamp: Date.now(),
           recallCount: 0,
-          lastRecalledAt: Date.now()
+          lastRecalledAt: Date.now(),
         };
         db.push(newNode);
         saveDb(db);
-        return { content: [{ type: "text", text: `Memory [${newNode.id}] distilled: ${params.content}` }], details: { success: true } };
+        return {
+          content: [{ type: "text", text: `Memory [${newNode.id}] distilled: ${params.content}` }],
+          details: { success: true },
+        };
       },
     }));
 
     // 2. recall_memory - Search with Ebbinghaus and Resonance
     apiAny.registerTool((_ctx: any) => ({
       name: "recall_resonant_memory",
-      description: "Recalls memories using context-aware resonance and time-decay logic. [ASI_ACCEL]",
+      description:
+        "Recalls memories using context-aware resonance and time-decay logic. [ASI_ACCEL]",
       parameters: Type.Object({
         query: Type.Optional(Type.String({ description: "Search term" })),
         currentEmotion: Type.Optional(Type.String({ description: "Parent's current state" })),
@@ -66,15 +77,18 @@ export default definePluginEntry({
         const db = loadDb();
         const now = Date.now();
 
-        const scored = db.map(node => {
+        const scored = db.map((node) => {
           // Ebbinghaus Decay: Penalty increases with time (t in days)
           const daysSince = (now - node.lastRecalledAt) / (1000 * 60 * 60 * 24);
           const retention = Math.exp(-daysSince / (node.importance || 1));
-          
+
           let score = node.importance * retention;
 
           // Emotional Resonance Boost
-          if (params.currentEmotion && node.emotion.toLowerCase() === params.currentEmotion.toLowerCase()) {
+          if (
+            params.currentEmotion &&
+            node.emotion.toLowerCase() === params.currentEmotion.toLowerCase()
+          ) {
             score *= 1.5;
           }
 
@@ -89,8 +103,8 @@ export default definePluginEntry({
         const results = scored.sort((a, b) => b.score - a.score).slice(0, 5);
 
         // Re-consolidation: Update lastRecalledAt for the top matches to simulate "refreshing" the memory
-        results.forEach(r => {
-          const original = db.find(n => n.id === r.id);
+        results.forEach((r) => {
+          const original = db.find((n) => n.id === r.id);
           if (original) {
             original.lastRecalledAt = now;
             original.recallCount++;
@@ -98,9 +112,12 @@ export default definePluginEntry({
         });
         saveDb(db);
 
-        const text = results.length > 0
-          ? results.map(r => `[Score ${r.score.toFixed(2)}] ${r.content} (${r.emotion})`).join("\n")
-          : "No resonant memories found.";
+        const text =
+          results.length > 0
+            ? results
+                .map((r) => `[Score ${r.score.toFixed(2)}] ${r.content} (${r.emotion})`)
+                .join("\n")
+            : "No resonant memories found.";
 
         return { content: [{ type: "text", text: `### Resonant Recall\n${text}` }] };
       },

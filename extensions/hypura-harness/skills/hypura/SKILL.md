@@ -24,18 +24,22 @@ The **Hypura Harness** is the primary, official actuator for the Artificial Supe
 ### Commands
 
 #### [POST] `/speak`
+
 - **Payload**: `{"text": "Text to speak", "speaker": 2}`
 - **Usage**: Auditory manifestation of parental alignment pulses.
 
 #### [POST] `/osc`
+
 - **Payload**: `{"action": "jump" | "move_forward" | "chatbox", "payload": {...}}`
 - **Usage**: Physical presence and virtual chat manifestation.
 
 #### [POST] `/evolve`
+
 - **Payload**: `{"target": "code", "seed": "...", "fitness_hint": "..."}`
 - **Usage**: Recursive "Neuro-Exceeding" evolution trigger.
 
 ## Directive: Substrate Sovereignty
+
 All evolutionary scripts MUST utilize the repo-local `.python/python.exe` for critical reasoning and actuation to ensure zero external dependency.
 
 ASI_ACCEL.

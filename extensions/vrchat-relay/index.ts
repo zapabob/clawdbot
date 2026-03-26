@@ -206,12 +206,20 @@ const plugin: any = {
       const emotionMatch = syncText.match(/[\(\[](笑|怒|悲|驚|照|碧|喜)[\)\]]/);
       if (emotionMatch) {
         const emotionMap: Record<string, string> = {
-          "笑": "joy", "喜": "joy", "怒": "angry", "悲": "sad", "驚": "surprise", "照": "blush", "碧": "hakua_special"
+          笑: "joy",
+          喜: "joy",
+          怒: "angry",
+          悲: "sad",
+          驚: "surprise",
+          照: "blush",
+          碧: "hakua_special",
         };
         const emotion = emotionMap[emotionMatch[1]];
         if (emotion) {
           console.log(`[vrchat-relay] Resonant Emotion Detected: ${emotion}`);
-          applyReactiveManifest({ text: syncText }).catch(e => console.error("[vrchat-relay] Emotion sync failed:", e));
+          applyReactiveManifest({ text: syncText }).catch((e) =>
+            console.error("[vrchat-relay] Emotion sync failed:", e),
+          );
         }
       }
 
@@ -288,7 +296,8 @@ const plugin: any = {
         const permissionStatus = getPermissionStatus();
         const ghostStatus = getGhostBridgeStatus();
 
-        const heartbeat = listenerStatus.isRunning && (Date.now() - (listenerStatus.lastTime || 0) < 60000);
+        const heartbeat =
+          listenerStatus.isRunning && Date.now() - (listenerStatus.lastTime || 0) < 60000;
 
         return ok(
           `VRChat Status:

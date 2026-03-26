@@ -225,7 +225,7 @@ Extensions enabled for this deployment (`.openclaw-desktop/openclaw.json` → `p
 | `memory-core`      | `memory_search`, `memory_get`             | File-backed persistent memory across sessions                           |
 | `lobster`          | `lobster`                                 | JSON-first shell workflow pipelines (requires `lobster` binary on PATH) |
 | `llm-task`         | `llm_task`                                | Structured subtask execution in a separate LLM session                  |
-| `vrchat-relay`     | `vrchat_*` (27 tools)                     | VRChat OSC control (Ghost Bridge Active: Inbound 9000, Outbound 9001)    |
+| `vrchat-relay`     | `vrchat_*` (27 tools)                     | VRChat OSC control (Ghost Bridge Active: Inbound 9000, Outbound 9001)   |
 | `hypura-harness`   | `hypura_harness_*`                        | Primary ASI Actuator Substrate (Daemon ACTIVE)                          |
 
 - Memory slot: `memory-core` (`plugins.slots.memory`). Use `memory_search` before answering questions about past context.
