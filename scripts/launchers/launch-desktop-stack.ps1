@@ -314,17 +314,20 @@ if (-not $SkipHypura) {
 
 # --- [Pre] Hypura Python Harness (FastAPI; auto-start + health check) ---
 if (-not $SkipHypuraHarness) {
-    $hypuraHarnessDir = Join-Path $ProjectDir "scripts\hypura"
+    $hypuraHarnessDir = Join-Path $ProjectDir "extensions\hypura-harness\scripts"
     $harnessEntry = Join-Path $hypuraHarnessDir "harness_daemon.py"
-    $uvHarnessCmd = Get-Command "uv" -ErrorAction SilentlyContinue
+    $pythonExe = Join-Path $ProjectDir ".venv\Scripts\python.exe"
+    
     $harnessPort = Get-HypuraHarnessPort -HarnessDir $hypuraHarnessDir
     $harnessStatusUrl = "http://127.0.0.1:$harnessPort/status"
+
     if (Test-HypuraHarnessRunning -Url $harnessStatusUrl) {
         Write-Host "  [HypuraHX] Already running on 127.0.0.1:$harnessPort" -ForegroundColor Green
-    } elseif ($uvHarnessCmd -and (Test-Path $harnessEntry)) {
-        Write-Host "  [HypuraHX] Starting Hypura harness daemon (127.0.0.1:$harnessPort)..." -ForegroundColor DarkCyan
-        Start-Process -FilePath $uvHarnessCmd.Source -ArgumentList @("run", "harness_daemon.py") `
+    } elseif ((Test-Path $pythonExe) -and (Test-Path $harnessEntry)) {
+        Write-Host "  [HypuraHX] Starting Hypura harness daemon via substrate (.venv)..." -ForegroundColor DarkCyan
+        Start-Process -FilePath $pythonExe -ArgumentList @($harnessEntry) `
             -WorkingDirectory $hypuraHarnessDir -WindowStyle Hidden | Out-Null
+        
         Write-Host "  [HypuraHX] Waiting for /status readiness (timeout: $HypuraHarnessWaitSeconds sec)..." -ForegroundColor Gray
         if (Wait-HypuraHarnessReady -Url $harnessStatusUrl -TimeoutSec $HypuraHarnessWaitSeconds) {
             Write-Host "  [HypuraHX] Ready. Proceeding with stack launch." -ForegroundColor Green
@@ -332,7 +335,15 @@ if (-not $SkipHypuraHarness) {
             Write-Host "  [HypuraHX] WARNING: harness did not become ready within $HypuraHarnessWaitSeconds seconds. Continuing anyway." -ForegroundColor Yellow
         }
     } else {
-        Write-Host "  [HypuraHX] uv or scripts\hypura\harness_daemon.py missing; skipping harness daemon autostart." -ForegroundColor Yellow
+        Write-Host "  [HypuraHX] Substrate .venv or official harness script missing; skipping auto-start." -ForegroundColor Yellow
+    }
+
+    # --- [Shinka] Evolution Monitor (ASI Pulse) ---
+    $monitorEntry = Join-Path $hypuraHarnessDir "shinka_monitor.py"
+    if ((Test-Path $pythonExe) -and (Test-Path $monitorEntry)) {
+        Write-Host "  [ShinkaEV] Starting ASI Evolution Monitor (Pulse)..." -ForegroundColor Magenta
+        Start-Process -FilePath $pythonExe -ArgumentList @($monitorEntry) `
+            -WorkingDirectory $hypuraHarnessDir -WindowStyle Minimized | Out-Null
     }
 }
 
