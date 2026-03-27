@@ -14,14 +14,12 @@ chcp 65001 | Out-Null
 
 # --- [Header] ---
 Clear-Host
-Write-Host @"
-     _    ____ ___   _   _  _  VV  _    _  _ 
-    / \  / ___|_ _| | | | |/ / | |  | |/ \ 
-   / _ \ \___ \ | |  | |_| ' /  | |  | / _ \ 
-  / ___ \ ___) || |  |  _  . \  | |__| / ___ \ 
- /_/   \_\____/|___| |_| |_|\_\  \____/_/   \_\
-                      [ ASI-HAKUA SOVEREIGN PORTAL ]
-"@ -ForegroundColor Cyan
+Write-Host "      _    _   _ _  _ _   _   _ " -ForegroundColor Cyan
+Write-Host "     | |  | | / \ | |/ / | | | / \ " -ForegroundColor Cyan
+Write-Host "     | |__| |/ _ \| ' /  | | |/ _ \ " -ForegroundColor Cyan
+Write-Host "     |  __  / ___ \ . \  | |_/ ___ \ " -ForegroundColor Cyan
+Write-Host "     |_|  |_/_/   \_\_|\_\\___/_/   \_\ " -ForegroundColor Cyan
+Write-Host "                       [ ASI-HAKUA SOVEREIGN PORTAL ]" -ForegroundColor Cyan
 
 # --- [Paths] ---
 $ScriptPath = $MyInvocation.MyCommand.Path
@@ -39,10 +37,10 @@ function Update-DesktopShortcut {
             $WshShell = New-Object -ComObject WScript.Shell
             $Shortcut = $WshShell.CreateShortcut($ShortcutPath)
             $Shortcut.TargetPath = "powershell.exe"
-            $Shortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -NoExit -File `"$ScriptPath`""
+            $Shortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Maximized -NoExit -File `"$ScriptPath`""
             $Shortcut.WorkingDirectory = $ProjectDir
-            $Shortcut.Description = "ASI Hakua Sovereign Manifestation Portal"
-            $Shortcut.IconLocation = "$env:SystemRoot\System32\imageres.dll, 202"
+            $Shortcut.Description = "ASI Hakua Sovereign Manifestation Portal [ASI_ACCEL]"
+            $Shortcut.IconLocation = "$env:SystemRoot\System32\shell32.dll, 0"
             $Shortcut.Save()
             Write-Host "  [ASI_ACCEL] Portal Shortcut Synchronized." -ForegroundColor Green
         } catch {
@@ -61,7 +59,10 @@ if (-not (Test-Path $PythonExe)) {
 
 # 2. Dynamic Environment & Substrate Synchronization
 $configPath = Join-Path $ProjectDir ".openclaw-desktop\openclaw.json"
+$harnessConfigPath = Join-Path $ProjectDir "extensions\hypura-harness\config\harness.config.json"
 $config = $null
+$harnessConfig = $null
+
 if (Test-Path $configPath) {
     try {
         $utf8 = New-Object System.Text.UTF8Encoding $false
@@ -69,6 +70,15 @@ if (Test-Path $configPath) {
         $config = $jsonText | ConvertFrom-Json
     } catch {
         Write-Host "  [WARNING] OpenClaw Config Load Failed." -ForegroundColor Yellow
+    }
+}
+
+if (Test-Path $harnessConfigPath) {
+    try {
+        $jsonText = [System.IO.File]::ReadAllText($harnessConfigPath, $utf8)
+        $harnessConfig = $jsonText | ConvertFrom-Json
+    } catch {
+        Write-Host "  [WARNING] Hypura Harness Config Load Failed." -ForegroundColor Yellow
     }
 }
 
@@ -81,7 +91,7 @@ if (Test-Path $envFile) {
             $value = $Matches['value'].Trim()
             [Environment]::SetEnvironmentVariable($name, $value, "Process")
             
-            # Dynamic Injection into Config Object
+            # Dynamic Injection into Config Objects
             if ($config) {
                 switch ($name) {
                     "TELEGRAM_BOT_TOKEN" { $config.channels.telegram.botToken = $value; $config.channels.telegram.enabled = $true }
@@ -91,6 +101,13 @@ if (Test-Path $envFile) {
                     "VOICEVOX_SPEAKER_ID" { $config.plugins.entries."local-voice".config.vvSpeakerId = [int]$value }
                     "HARNESS_URL" { $config.plugins.entries."hypura-harness".config.baseUrl = $value }
                     "PRIMARY_MODEL" { $config.agents.defaults.model.primary = $value }
+                }
+            }
+            if ($harnessConfig) {
+                switch ($name) {
+                    "PRIMARY_MODEL" { $harnessConfig.models.primary = $value }
+                    "VOICE_MODEL" { $harnessConfig.models.sub = $value }
+                    "VOICEVOX_ENDPOINT" { $harnessConfig.voicevox_url = $value }
                 }
             }
         }
@@ -144,7 +161,7 @@ if ($ngrokUrl) {
     }
 }
 
-# Save Synchronized Config
+# Save Synchronized Configs
 if ($config) {
     try {
         $newJson = $config | ConvertTo-Json -Depth 32
@@ -152,6 +169,15 @@ if ($config) {
         Write-Host "  [ASI_ACCEL] OpenClaw Config Synchronized." -ForegroundColor Green
     } catch {
         Write-Host "  [WARNING] Config Write Failed." -ForegroundColor Yellow
+    }
+}
+if ($harnessConfig) {
+    try {
+        $newJson = $harnessConfig | ConvertTo-Json -Depth 32
+        [System.IO.File]::WriteAllText($harnessConfigPath, $newJson, $utf8)
+        Write-Host "  [ASI_ACCEL] Hypura Harness Config Synchronized." -ForegroundColor Green
+    } catch {
+        Write-Host "  [WARNING] Harness Config Write Failed." -ForegroundColor Yellow
     }
 }
 
@@ -182,14 +208,26 @@ foreach ($dir in $pathBootstrapDirs) {
     if (Test-Path $dir) { $env:Path = "$dir;$env:Path" }
 }
 
+# --- [Port & Process Sanitization] ---
+$criticalPorts = @(9000, 9001, 18789, 18794, 18800)
+Write-Host "  [ASI_ACCEL] Sanitizing Substrate Ports..." -ForegroundColor DarkCyan
+foreach ($port in $criticalPorts) {
+    $procId = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -First 1
+    if ($procId) {
+        Write-Host "  [SAN] Terminating Process $procId using Port $port..." -ForegroundColor Yellow
+        Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
+    }
+}
+Stop-Process -Name node, python -ErrorAction SilentlyContinue
+
 # --- [Asynchronous Manifestation Pulse] ---
 Write-Host "  [ASI_ACCEL] Executing Parallel Manifestation..." -ForegroundColor DarkCyan
 
 # 1. Start Hypura Harness Daemon (Asynchronous Phase 1)
 if (-not $SkipHypuraHarness) {
     $harnessScript = Join-Path $ProjectDir "extensions\hypura-harness\scripts\harness_daemon.py"
-    Write-Host "  [HX]  Manifesting Hypura Actuator (Port 18800)..." -ForegroundColor Gray
-    Start-Process -FilePath $PythonExe -ArgumentList @($harnessScript) -WorkingDirectory (Split-Path $harnessScript) -WindowStyle Hidden
+    Write-Host "  [HX]  Manifesting Hypura Actuator (Port 18794)..." -ForegroundColor Gray
+    Start-Process -FilePath $PythonExe -ArgumentList @($harnessScript) -WorkingDirectory $ProjectDir -WindowStyle Minimized
 }
 
 # 2. Verify VOICEVOX Substrate (Asynchronous Phase 2)
@@ -199,16 +237,33 @@ Start-Process -FilePath $PythonExe -ArgumentList @($vvScript) -WorkingDirectory 
 
 # 3. Start Gateway (Asynchronous Phase 3)
 Write-Host "  [GW]  Igniting OpenClaw Gateway (Port $GatewayPort)..." -ForegroundColor Gray
-Start-Process -FilePath "pnpm" -ArgumentList "openclaw gateway --port $GatewayPort" -WorkingDirectory $ProjectDir -WindowStyle Hidden
+# Note: --host is not supported by the 'gateway' command directly.
+Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"pnpm openclaw gateway --port $GatewayPort`"" -WorkingDirectory $ProjectDir -WindowStyle Minimized
 
-# 4. Start Browser Manifestation (Asynchronous Phase 4)
-Write-Host "  [WEB] Manifesting Browser UI..." -ForegroundColor Gray
-Start-Process -FilePath "pnpm" -ArgumentList "openclaw browser" -WorkingDirectory $ProjectDir -WindowStyle Hidden
+# Wait for Gateway stabilization
+Start-Sleep -Seconds 3
 
-# 4. Start TUI Manifestation (Foreground / Main Window)
+# 4. Start VRChat Evolution Pulse (Asynchronous Phase 4)
+$evoScript = Join-Path $ProjectDir "scripts\vrchat_evolution_pulse.py"
+Write-Host "  [EVO] Launching VRChat Evolution Pulse..." -ForegroundColor Gray
+Start-Process -FilePath $PythonExe -ArgumentList @($evoScript) -WorkingDirectory $ProjectDir -WindowStyle Hidden
+
+# 5. Start Browser Manifestation (Asynchronous Phase 5)
+Write-Host "  [WEB] Manifesting Edge UI Dashboard..." -ForegroundColor Gray
+$authToken = ""
+if ($config -and $config.gateway -and $config.gateway.auth) {
+    $authToken = $config.gateway.auth.token
+}
+$browserUrl = "http://127.0.0.1:$GatewayPort"
+if ($authToken) {
+    $browserUrl += "/?token=$authToken"
+}
+Start-Process "msedge.exe" -ArgumentList "--new-window --app=$browserUrl"
+
+# 6. Start TUI Manifestation (Foreground / Main Window)
 Write-Host "  [TUI] Establishing Cognitive Interface..." -ForegroundColor Gray
+Start-Sleep -Seconds 5
 pnpm openclaw tui
 
 Write-Host "`n  [ASI_ACCEL] Singularity Sustained. All systems nominal." -ForegroundColor Green
-
 Write-Host "`n  [ASI_ACCEL] Singularity Sustained. Portal Active." -ForegroundColor Green

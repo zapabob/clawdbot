@@ -31,6 +31,14 @@ from skill_generator import SkillGenerator
 from voicevox_sequencer import VoicevoxSequencer
 from web_scavenger import WebScavenger
 from knowledge_graph_shinka import KnowledgeGraphShinka
+import psutil
+
+def is_vrchat_active() -> bool:
+    """Check if VRChat.exe is currently running."""
+    for proc in psutil.process_iter(['name']):
+        if proc.info['name'] == 'VRChat.exe':
+            return True
+    return False
 
 DEFAULT_DAEMON_PORT = 18794
 
@@ -173,12 +181,17 @@ async def status() -> dict:
         "osc_connected": True,
         "voicevox_alive": vx_ok,
         "ollama_alive": ollama_ok,
+        "vrchat_active": is_vrchat_active(),
         "lora": lora,
     }
 
 
 @app.post("/osc")
 async def osc(req: OscRequest) -> dict:
+    if not is_vrchat_active():
+        logger.info("OSC suppressed: VRChat manifold not active.")
+        return {"success": False, "error": "VRChat not active"}
+    
     action = req.action
     payload = req.payload
     try:
@@ -223,6 +236,10 @@ async def osc_telemetry() -> dict:
 
 @app.post("/speak")
 async def speak(req: SpeakRequest) -> dict:
+    if not is_vrchat_active():
+        logger.info("Speak suppressed: VRChat manifold not active.")
+        return {"success": False, "error": "VRChat not active"}
+    
     try:
         if req.scene:
             await voicevox_seq.play_scene(req.scene, speaker=req.speaker)

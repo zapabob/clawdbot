@@ -3,7 +3,6 @@
 **Root:** `C:\Users\downl\Desktop\clawdbot-main3\clawdbot-main`
 
 ## Substrate Status
-
 - ✅ **Gateway**: ONLINE
 - ❌ **Harness**: OFFLINE
 - ✅ **VOICEVOX**: ONLINE
@@ -12,5 +11,4 @@
 - ✅ **Ollama_Model**: MANIFESTED
 
 ## Dependency Status
-
 - ✅ **node_modules**: Healthy
