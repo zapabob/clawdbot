@@ -4,28 +4,35 @@ description: Convert an existing codebase in the current working directory into 
 ---
 
 # Shinka Convert Skill
+
 Use this skill to turn an existing project into a Shinka-ready task.
 
 This is the alternative starting point to `shinka-setup`:
+
 - `shinka-setup`: new task from natural-language task description
 - `shinka-convert`: existing codebase to Shinka task conversion
 
 After conversion, the user should still be able to use `shinka-run`.
 
 ## When to Use
+
 Invoke this skill when the user:
+
 - Wants to optimize an existing script or repo with Shinka/ShinkaEvolve
 - Mentions adapting current code to Shinka output signatures, `metrics.json`, `correct.json`, or `EVOLVE-BLOCK` markers
 - Wants a sidecar Shinka task generated from the current working directory
 
 Do not use this skill when:
+
 - The user wants a brand-new task scaffold from only a natural-language description
 - `evaluate.py` and `initial.<ext>` already exist and the user only wants to launch evolution; use `shinka-run`
 
 ## User Inputs
+
 Start from freeform instructions, then ask follow-ups only if high-impact details are missing.
 
 Collect:
+
 - What behavior or file/function to optimize
 - Score direction and main metric
 - Constraints: correctness, runtime, memory, determinism, style, allowed edits
@@ -33,9 +40,11 @@ Collect:
 - Any required data/assets/dependencies
 
 ## Default Output
+
 Generate a sidecar task directory at `./shinka_task/` unless the user requests another path.
 
 The task directory should contain:
+
 - `evaluate.py`
 - `run_evo.py`
 - `shinka.yaml`
@@ -45,6 +54,7 @@ The task directory should contain:
 Do not edit the original source tree unless the user explicitly requests in-place conversion.
 
 ## Workflow
+
 1. Inspect the current working directory.
    - Identify language, entrypoints, package/module layout, dependencies, and current outputs.
    - Prefer concrete evidence from the code over guesses.
@@ -77,18 +87,23 @@ Do not edit the original source tree unless the user explicitly requests in-plac
    - Or use the `shinka-run` skill
 
 ## Conversion Strategy by Language
+
 ### Python
+
 - Preferred path: expose `run_experiment(...)` in the snapshot and evaluate via `run_shinka_eval`
 - If the existing code is CLI-only, add a thin wrapper in the snapshot rather than forcing a subprocess evaluator unless imports are too brittle
 - Keep imports relative to the copied task snapshot stable
 
 ### Non-Python
+
 - Keep the candidate program executable in its own runtime
 - Use Python `evaluate.py` as the Shinka entrypoint
 - Write `metrics.json` and `correct.json` in `results_dir`
 
 ## Required Evaluator Contract
+
 Metrics must include:
+
 - `combined_score`
 - `public`
 - `private`
@@ -96,12 +111,14 @@ Metrics must include:
 - `text_feedback`
 
 Correctness must include:
+
 - `correct`
 - `error`
 
 Higher `combined_score` values indicate better performance unless the user explicitly defines an inverted metric that you transform during aggregation.
 
 ## Python Conversion Template
+
 Prefer shaping the copied program like this:
 
 ```py
@@ -137,6 +154,7 @@ def main(program_path: str, results_dir: str):
 ```
 
 ## Non-Python Conversion Template
+
 Use `evaluate.py` to run the candidate and write outputs:
 
 ```py
@@ -160,10 +178,12 @@ def main(program_path: str, results_dir: str):
 ```
 
 ## Bundled Assets
+
 - Use `scripts/run_evo.py` as the starting runner template
 - Use `scripts/shinka.yaml` as the starting config template
 
 ## Notes
+
 - Keep evolve regions tight; do not make the whole project mutable by default
 - Preserve correctness checks outside the evolve region where possible
 - Prefer deterministic evaluation and stable seeds

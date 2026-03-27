@@ -6,6 +6,7 @@ interface ListenerState {
   isRunning: boolean;
   messageCount: number;
   startTime?: Date;
+  lastTime?: Date;
 }
 
 const listenerState: ListenerState = {
@@ -31,6 +32,7 @@ export function startOSCListener(): { success: boolean; port: number; error?: st
 
     client.startListener((message) => {
       listenerState.messageCount++;
+      listenerState.lastTime = new Date();
 
       // Store recent messages
       recentMessages.push(message);
@@ -100,6 +102,7 @@ export function getListenerStatus(): {
   port: number;
   messageCount: number;
   startTime?: string;
+  lastTime?: number;
 } {
   const client = getOSCClient();
   return {
@@ -107,6 +110,7 @@ export function getListenerStatus(): {
     port: client.getConfig().incomingPort ?? DEFAULT_OSC_CONFIG.incomingPort,
     messageCount: listenerState.messageCount,
     startTime: listenerState.startTime?.toISOString(),
+    lastTime: listenerState.lastTime?.getTime(),
   };
 }
 

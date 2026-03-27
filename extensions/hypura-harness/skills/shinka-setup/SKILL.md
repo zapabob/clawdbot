@@ -4,14 +4,18 @@ description: Create ShinkaEvolve task scaffolds from a target directory and task
 ---
 
 # Shinka Task Setup Skill
-Create a setup scaffold consisting of an evaluation script and initial solution for an optimization problem given a user's task description. Both ingredients will be used within ShinkaEvolve, a framework combining LLMs with evolutionary algorithms to drive code optimization. 
+
+Create a setup scaffold consisting of an evaluation script and initial solution for an optimization problem given a user's task description. Both ingredients will be used within ShinkaEvolve, a framework combining LLMs with evolutionary algorithms to drive code optimization.
 
 # When to Use
+
 Invoke this skill when the user:
+
 - Wants to optimize code with LLM-driven code evolution (Shinka/ShinkaEvolve)
 - No `evaluate.py` and `initial.<ext>` exist in the working directory
 
 ## User Inputs
+
 - Task description + success criteria
 - Target language for `initial.<ext>` (if omitted, default to Python)
 - What parts of the script to optimize
@@ -21,6 +25,7 @@ Invoke this skill when the user:
 - Dependencies or constraints (runtime, memory)
 
 ## Workflow
+
 1. Check if all user inputs are provided and ask the user follow-up questions if not inferrable.
 2. Inspect working directory. Detect chosen language + extension. Avoid overwriting existing `evaluate.py` or `initial.<ext>` without consent.
 3. Write `initial.<ext>` with a clear evolve region (`EVOLVE-BLOCK` markers or language-equivalent comments) and stable I/O contract.
@@ -39,17 +44,19 @@ Invoke this skill when the user:
      - `extra_data` (`dict`),
      - `text_feedback` (string, can be empty).
    - Confirm `correct.json` exists with `correct` (bool) and `error` (string) fields.
-7. Ask the user if they want to run the evolution themself or whether to use the `shinka-run` skill: 
-    - If the user wants to run evolution manually, add `run_evo.py` plus a `shinka.yaml` config with matching language + `init_program_path`.
-    - Ask the user if they want to use the `shinka-run` skill to perform optimization with the agent.
+7. Ask the user if they want to run the evolution themself or whether to use the `shinka-run` skill:
+   - If the user wants to run evolution manually, add `run_evo.py` plus a `shinka.yaml` config with matching language + `init_program_path`.
+   - Ask the user if they want to use the `shinka-run` skill to perform optimization with the agent.
 
 ## What is ShinkaEvolve?
-A framework developed by SakanaAI that combines LLMs with evolutionary algorithms to propose program mutations, that are then evaluated and archived. The goal is to optimize for performance and discover novel scientific insights. 
+
+A framework developed by SakanaAI that combines LLMs with evolutionary algorithms to propose program mutations, that are then evaluated and archived. The goal is to optimize for performance and discover novel scientific insights.
 
 Repo and documentation: https://github.com/SakanaAI/ShinkaEvolve
 Paper: https://arxiv.org/abs/2212.04180
 
 ### Evolution Flow
+
 1. Select parent(s) from archive/population
 2. LLM proposes patch (diff, full rewrite, or crossover)
 3. Evaluate candidate → `combined_score`
@@ -58,14 +65,16 @@ Paper: https://arxiv.org/abs/2212.04180
 6. Repeat for N generations
 
 ### Core Files To Generate
-| File | Purpose |
-|------|---------|
+
+| File            | Purpose                                                                         |
+| --------------- | ------------------------------------------------------------------------------- |
 | `initial.<ext>` | Starting solution in the chosen language with an evolve region that LLMs mutate |
-| `evaluate.py` | Scores candidates and emits metrics/correctness outputs that guide selection |
-| `run_evo.py` | (Optional) Launches the evolution loop |
-| `shinka.yaml` | (Optional) Config: generations, islands, LLM models, patch types, etc. |
+| `evaluate.py`   | Scores candidates and emits metrics/correctness outputs that guide selection    |
+| `run_evo.py`    | (Optional) Launches the evolution loop                                          |
+| `shinka.yaml`   | (Optional) Config: generations, islands, LLM models, patch types, etc.          |
 
 ## Quick Install (if Shinka is not set up yet)
+
 Install once before creating/running tasks:
 
 ```bash
@@ -80,25 +89,28 @@ uv pip install shinka-evolve
 ```
 
 ## Language Support (`initial.<ext>`)
+
 Shinka supports multiple candidate-program languages. Choose one, then keep extension/config/evaluator aligned.
 
 | `evo_config.language` | `initial.<ext>` |
-|---|---|
-| `python` | `initial.py` |
-| `julia` | `initial.jl` |
-| `cpp` | `initial.cpp` |
-| `cuda` | `initial.cu` |
-| `rust` | `initial.rs` |
-| `swift` | `initial.swift` |
-| `json` / `json5` | `initial.json` |
+| --------------------- | --------------- |
+| `python`              | `initial.py`    |
+| `julia`               | `initial.jl`    |
+| `cpp`                 | `initial.cpp`   |
+| `cuda`                | `initial.cu`    |
+| `rust`                | `initial.rs`    |
+| `swift`               | `initial.swift` |
+| `json` / `json5`      | `initial.json`  |
 
 Rules:
+
 - `evaluate.py` stays the evaluator entrypoint.
 - Python candidates: prefer `run_shinka_eval` + `experiment_fn_name`.
 - Non-Python candidates: evaluate via `subprocess` and write `metrics.json` + `correct.json`.
 - Always set both `evo_config.language` and matching `evo_config.init_program_path`.
 
 ## Template: `initial.<ext>` (Python example)
+
 ```py
 import random
 
@@ -123,6 +135,7 @@ def run_experiment(random_seed: int | None = None, **kwargs):
 For non-Python `initial.<ext>`, keep the same idea: small evolve region + deterministic program interface consumed by `evaluate.py`.
 
 ## Template: `evaluate.py` (Python `run_shinka_eval` path)
+
 ```py
 import argparse
 import numpy as np
@@ -177,6 +190,7 @@ if __name__ == "__main__":
 ```
 
 ## Template: `evaluate.py` (non-Python `initial.<ext>` path)
+
 ```py
 import argparse
 import json
@@ -224,6 +238,7 @@ See `skills/shinka-setup/scripts/run_evo.py` for an example to edit.
 See `skills/shinka-setup/scripts/shinka.yaml` for an example to edit.
 
 ## Notes
+
 - Keep evolve markers tight; only code inside the region should evolve.
 - Keep evaluator schema stable (`combined_score`, `public`, `private`, `extra_data`, `text_feedback`).
 - Python module path: ensure `experiment_fn_name` matches function name in `initial.py`.

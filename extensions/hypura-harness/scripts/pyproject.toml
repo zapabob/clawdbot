@@ -20,6 +20,8 @@ dependencies = [
   "anthropic",
   "numpy",
   "pandas",
+  "matplotlib",
+  "scipy",
   "sympy>=1.14.0",
   "beautifulsoup4>=4.14.3",
 ]

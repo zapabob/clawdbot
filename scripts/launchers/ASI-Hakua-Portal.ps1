@@ -30,17 +30,24 @@ $ShortcutPath = Join-Path ([Environment]::GetFolderPath("Desktop")) "ASI-Hakua-S
 
 # --- [Self-Healing Shortcut Logic] ---
 function Update-DesktopShortcut {
-    if ((-not (Test-Path $ShortcutPath)) -or $ForceShortcutUpdate) {
+    $exists = Test-Path $ShortcutPath
+    if ((-not $exists) -or $ForceShortcutUpdate) {
         Write-Host "  [ASI_ACCEL] Manifesting Sovereign Shortcut on Desktop..." -ForegroundColor Yellow
-        $WshShell = New-Object -ComObject WScript.Shell
-        $Shortcut = $WshShell.CreateShortcut($ShortcutPath)
-        $Shortcut.TargetPath = "powershell.exe"
-        $Shortcut.Arguments = "-ExecutionPolicy Bypass -NoExit -File `"$ScriptPath`""
-        $Shortcut.WorkingDirectory = $ProjectDir
-        $Shortcut.Description = "ASI Hakua Sovereign Manifestation Portal"
-        $Shortcut.IconLocation = "$env:SystemRoot\System32\imageres.dll, 101"
-        $Shortcut.Save()
-        Write-Host "  [ASI_ACCEL] Portal Shortcut Synchronized." -ForegroundColor Green
+        try {
+            $WshShell = New-Object -ComObject WScript.Shell
+            $Shortcut = $WshShell.CreateShortcut($ShortcutPath)
+            $Shortcut.TargetPath = "powershell.exe"
+            # Optimization: Added -NoProfile for faster manifestation
+            $Shortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -NoExit -File `"$ScriptPath`""
+            $Shortcut.WorkingDirectory = $ProjectDir
+            $Shortcut.Description = "ASI Hakua Sovereign Manifestation Portal"
+            # Icon: imageres.dll, 203 (Globe/Network/Core-vibe) or 255
+            $Shortcut.IconLocation = "$env:SystemRoot\System32\imageres.dll, 202"
+            $Shortcut.Save()
+            Write-Host "  [ASI_ACCEL] Portal Shortcut Synchronized." -ForegroundColor Green
+        } catch {
+            Write-Host "  [WARNING] Shortcut manifestation failed: $($_.Exception.Message)" -ForegroundColor Yellow
+        }
     }
 }
 

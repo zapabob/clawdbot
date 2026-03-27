@@ -20,7 +20,7 @@ export default definePluginEntry({
   register(api) {
     const apiAny = api as any;
     const dbPath = path.join(
-      api.runtime.config.loadConfig().workspaceRoot || ".",
+      (api.runtime.config.loadConfig() as any).workspaceRoot || process.cwd(),
       "memory_evolution.db.json",
     );
 

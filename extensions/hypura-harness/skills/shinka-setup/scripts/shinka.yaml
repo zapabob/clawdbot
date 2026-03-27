@@ -25,7 +25,7 @@ evo_config:
   max_patch_attempts: 3
   max_novelty_attempts: 3
   job_type: local
-  language: python  # Set to julia/cpp/cuda/rust/swift/json/json5 as needed
+  language: python # Set to julia/cpp/cuda/rust/swift/json/json5 as needed
   llm_models: ["gemini-3-flash-preview", "gpt-5-mini", "gpt-5-nano"]
   llm_kwargs:
     temperatures: [0, 0.5, 1.0]
@@ -41,7 +41,7 @@ evo_config:
   novelty_llm_models: ["gpt-5-nano"]
   novelty_llm_kwargs:
     temperatures: [0]
-  init_program_path: initial.py  # Match chosen language extension (e.g., initial.jl)
+  init_program_path: initial.py # Match chosen language extension (e.g., initial.jl)
   llm_dynamic_selection: ucb1
   llm_dynamic_selection_kwargs:
     exploration_coef: 1

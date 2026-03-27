@@ -4,19 +4,24 @@ description: Run existing ShinkaEvolve tasks with the `shinka_run` CLI from a ta
 ---
 
 # Shinka Run CLI Skill
+
 Run a batch of program mutations using ShinkaEvolve's CLI interface.
 
 ## When to Use
+
 Use this skill when:
+
 - `evaluate.py` and `initial.<ext>` already exist
 - The user wants to run code evolution using the ShinkaEvolve/Shinka library
 - You want configurable program evolution runs using explicit CLI args
 
 Do not use this skill when:
+
 - You need to scaffold a new task from scratch (use `shinka-setup`)
 
 ## What is ShinkaEvolve?
-A framework developed by SakanaAI that combines LLMs with evolutionary algorithms to propose program mutations, that are then evaluated and archived. The goal is to optimize for performance and discover novel scientific insights. 
+
+A framework developed by SakanaAI that combines LLMs with evolutionary algorithms to propose program mutations, that are then evaluated and archived. The goal is to optimize for performance and discover novel scientific insights.
 
 Repo and documentation: https://github.com/SakanaAI/ShinkaEvolve
 Paper: https://arxiv.org/abs/2212.04180
@@ -24,22 +29,27 @@ Paper: https://arxiv.org/abs/2212.04180
 ## Workflow
 
 1. Inspect task directory
+
 ```bash
 ls -la <task_dir>
 ```
+
 Confirm `evaluate.py` and `initial.<ext>` exist.
 
 2. Inspect CLI reference quickly
+
 ```bash
 shinka_run --help
 ```
 
 3. Confirm first-batch configuration with the user
+
 - Minimum: budget scope, generation count, critical overrides.
 - If unclear, ask before running.
 - Do not override any non-confirmed arguments.
 
 4. Launch main run with explicit knobs
+
 ```bash
 shinka_run \
   --task-dir <task_dir> \
@@ -56,12 +66,15 @@ shinka_run \
 ```
 
 6. Verify outputs before handoff
+
 ```bash
 ls -la <results_dir>
 ```
+
 Expect artifacts like run log, generation folders, and SQLite DBs.
 
 7. Between-batch handoff (unless explicitly autonomous)
+
 - Summarize outcomes from the finished batch.
 - Ask user for the next batch config before running again.
 - Explicitly ask: "What new directions should we push next batch? Please include algorithm ideas, constraints, and failure modes to avoid."
@@ -70,6 +83,7 @@ Expect artifacts like run log, generation folders, and SQLite DBs.
 - Unless the user explicitly wants a fresh run/fork, keep the same `--results_dir` for follow-up batches.
 
 Example next-batch command with feedback-driven prompt:
+
 ```bash
 shinka_run \
   --task-dir <task_dir> \
