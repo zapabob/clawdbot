@@ -1,0 +1,18 @@
+{
+  "timestamp": "1774597182.642357",
+  "substrate": {
+    "Gateway": "ONLINE",
+    "Harness": "OFFLINE",
+    "VOICEVOX": "ONLINE",
+    "ngrok_control": "ONLINE",
+    "Ollama": "ONLINE",
+    "Ollama_Model": "MANIFESTED"
+  },
+  "dependencies": {
+    "node_modules": "Healthy"
+  },
+  "environment": {
+    "env_exists": true,
+    "has_webhook": true
+  }
+}

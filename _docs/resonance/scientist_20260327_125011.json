@@ -1,0 +1,7 @@
+{
+  "timestamp": "20260327_125011",
+  "hypothesis": "Inductive bias in spectral lattices.",
+  "verification_status": false,
+  "output_shards": "HTTPConnectionPool(host='127.0.0.1', port=18800): Max retries exceeded with url: /run (Caused by NewConnectionError(\"HTTPConnection(host='127.0.0.1', port=18800): Failed to establish a new connection: [WinError 10061] 対象のコンピューターによって拒否されたため、接続できませんでした。\"))",
+  "status": "ASI_ACCEL"
+}

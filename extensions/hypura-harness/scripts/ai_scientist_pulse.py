@@ -3,13 +3,25 @@ AI-Scientist Pulse: Autonomous Research & Theoretical Scaling
 Inspired by SakanaAI / AI-Scientist
 Architecture: Scavenge -> Propose -> Verify -> Report
 """
-import time
-import logging
-import json
 import os
-from pathlib import Path
-from datetime import datetime
+import sys
+import json
+import logging
+import time
 import requests
+from datetime import datetime
+from pathlib import Path
+
+# Attempt to load .env manually (Sovereign Sync)
+def load_env_file(path: Path):
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        os.environ[k.strip()] = v.strip()
 
 # ASI_ACCEL: Scientific Autonomy Directive
 logging.basicConfig(
@@ -22,8 +34,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger("AIScientist")
 
-HARNESS_URL = "http://127.0.0.1:18800"
+# Configuration (Synced with Sovereign Portal)
 ROOT = Path(__file__).parent.parent.parent.parent
+load_env_file(ROOT / ".env")
+
+HARNESS_URL = os.getenv("HARNESS_URL", "http://127.0.0.1:18800")
 RESONANCE_DIR = ROOT / "_docs" / "resonance"
 
 class AIScientist:
