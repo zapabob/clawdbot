@@ -4,10 +4,10 @@ import "./unhandled-rejections-BUxLQs1F.js";
 import "./account-resolution-YAil9v6G.js";
 import "./io-BeL7sW7Y.js";
 import "./paths-Chd_ukvM.js";
-import { D as getCommandPathWithRootOptions, M as getVerboseFlag, P as hasHelpOrVersion, s as setVerbose, y as loggingState } from "./globals-BKVgh_pY.js";
+import { Command } from "commander";
 import "./theme-CWrxY1-_.js";
 import "./utils-DGUUVa38.js";
-import { i as routeLogsToStderr, l as defaultRuntime } from "./subsystem-BZRyMoTO.js";
+import { t as emitCliBanner } from "./banner-D8_G9LpO.js";
 import "./ansi-D3lUajt1.js";
 import "./agent-scope-BIySJgkJ.js";
 import "./file-identity-DgWfjfnD.js";
@@ -20,12 +20,12 @@ import "./message-channel-BTVKzHsu.js";
 import "./identity-file-CuigvXSN.js";
 import "./provider-env-vars-h4NFBrJS.js";
 import "./model-auth-env-B970-6ZQ.js";
-import { n as resolveCliName } from "./cli-name-C9PM6wRj.js";
+import { n as resolveCliChannelOptions } from "./channel-options-JITXRCYa.js";
 import "./boolean-CsNbQKvJ.js";
-import { t as isTruthyEnvValue } from "./env-C-KVzFmc.js";
+import { n as resolveCliName } from "./cli-name-C9PM6wRj.js";
 import "./shell-env-BOjFl6MZ.js";
 import "./config-state-CGV1IKLE.js";
-import { t as VERSION } from "./version-yfoo3YbF.js";
+import { i as registerProgramCommands } from "./command-registry-DPs9iwCR.js";
 import "./min-host-version-DM6er2ZX.js";
 import "./manifest-registry-CMy5XLiN.js";
 import "./runtime-guard-WQAOpX6v.js";
@@ -120,154 +120,170 @@ import "./install-B-SbSPl-.js";
 import "./clawhub-Dnex3zgz.js";
 import "./status-DwJ1U2P-.js";
 import "./plugins-command-helpers-D2EceMsj.js";
-import { n as resolveCliChannelOptions } from "./channel-options-JITXRCYa.js";
+import { t as isTruthyEnvValue } from "./env-C-KVzFmc.js";
 import "./register.subclis-cV5s4xy_.js";
-import { i as registerProgramCommands } from "./command-registry-DPs9iwCR.js";
-import { n as setProgramContext } from "./program-context-B-iun8ti.js";
+import {
+  D as getCommandPathWithRootOptions,
+  M as getVerboseFlag,
+  P as hasHelpOrVersion,
+  s as setVerbose,
+  y as loggingState,
+} from "./globals-BKVgh_pY.js";
+import { t as configureProgramHelp } from "./help-DqMA6yVY.js";
 import { t as isCommandJsonOutputMode } from "./json-mode-D7-j1pPY.js";
 import "./ports-DZBYCmUn.js";
-import { n as resolvePluginInstallPreactionRequest, t as resolvePluginInstallInvalidConfigPolicy } from "./plugin-install-config-policy-CboIXooc.js";
-import { t as emitCliBanner } from "./banner-D8_G9LpO.js";
-import { t as configureProgramHelp } from "./help-DqMA6yVY.js";
-import { Command } from "commander";
+import {
+  n as resolvePluginInstallPreactionRequest,
+  t as resolvePluginInstallInvalidConfigPolicy,
+} from "./plugin-install-config-policy-CboIXooc.js";
+import { n as setProgramContext } from "./program-context-B-iun8ti.js";
+import { i as routeLogsToStderr, l as defaultRuntime } from "./subsystem-BZRyMoTO.js";
+import { t as VERSION } from "./version-yfoo3YbF.js";
 //#region src/cli/program/context.ts
 function createProgramContext() {
-	let cachedChannelOptions;
-	const getChannelOptions = () => {
-		if (cachedChannelOptions === void 0) cachedChannelOptions = resolveCliChannelOptions();
-		return cachedChannelOptions;
-	};
-	return {
-		programVersion: VERSION,
-		get channelOptions() {
-			return getChannelOptions();
-		},
-		get messageChannelOptions() {
-			return getChannelOptions().join("|");
-		},
-		get agentChannelOptions() {
-			return ["last", ...getChannelOptions()].join("|");
-		}
-	};
+  let cachedChannelOptions;
+  const getChannelOptions = () => {
+    if (cachedChannelOptions === void 0) cachedChannelOptions = resolveCliChannelOptions();
+    return cachedChannelOptions;
+  };
+  return {
+    programVersion: VERSION,
+    get channelOptions() {
+      return getChannelOptions();
+    },
+    get messageChannelOptions() {
+      return getChannelOptions().join("|");
+    },
+    get agentChannelOptions() {
+      return ["last", ...getChannelOptions()].join("|");
+    },
+  };
 }
 //#endregion
 //#region src/cli/program/preaction.ts
 function setProcessTitleForCommand(actionCommand) {
-	let current = actionCommand;
-	while (current.parent && current.parent.parent) current = current.parent;
-	const name = current.name();
-	const cliName = resolveCliName();
-	if (!name || name === cliName) return;
-	process.title = `${cliName}-${name}`;
+  let current = actionCommand;
+  while (current.parent && current.parent.parent) current = current.parent;
+  const name = current.name();
+  const cliName = resolveCliName();
+  if (!name || name === cliName) return;
+  process.title = `${cliName}-${name}`;
 }
 const PLUGIN_REQUIRED_COMMANDS = new Set([
-	"message",
-	"channels",
-	"directory",
-	"agents",
-	"configure",
-	"status",
-	"health"
+  "message",
+  "channels",
+  "directory",
+  "agents",
+  "configure",
+  "status",
+  "health",
 ]);
-const CONFIG_GUARD_BYPASS_COMMANDS = new Set([
-	"backup",
-	"doctor",
-	"completion",
-	"secrets"
-]);
+const CONFIG_GUARD_BYPASS_COMMANDS = new Set(["backup", "doctor", "completion", "secrets"]);
 let configGuardModulePromise;
 let pluginRegistryModulePromise;
 function shouldBypassConfigGuard(commandPath) {
-	const [primary, secondary] = commandPath;
-	if (!primary) return false;
-	if (CONFIG_GUARD_BYPASS_COMMANDS.has(primary)) return true;
-	if (primary === "config" && secondary === "validate") return true;
-	return false;
+  const [primary, secondary] = commandPath;
+  if (!primary) return false;
+  if (CONFIG_GUARD_BYPASS_COMMANDS.has(primary)) return true;
+  if (primary === "config" && secondary === "validate") return true;
+  return false;
 }
 function loadConfigGuardModule() {
-	configGuardModulePromise ??= import("./config-guard-BIVQNyG_.js");
-	return configGuardModulePromise;
+  configGuardModulePromise ??= import("./config-guard-BIVQNyG_.js");
+  return configGuardModulePromise;
 }
 function loadPluginRegistryModule() {
-	pluginRegistryModulePromise ??= import("./plugin-registry-_3_5rEUK.js");
-	return pluginRegistryModulePromise;
+  pluginRegistryModulePromise ??= import("./plugin-registry-_3_5rEUK.js");
+  return pluginRegistryModulePromise;
 }
 function resolvePluginRegistryScope(commandPath) {
-	return commandPath[0] === "status" || commandPath[0] === "health" ? "channels" : "all";
+  return commandPath[0] === "status" || commandPath[0] === "health" ? "channels" : "all";
 }
 function shouldLoadPluginsForCommand(commandPath, jsonOutputMode) {
-	const [primary, secondary] = commandPath;
-	if (!primary || !PLUGIN_REQUIRED_COMMANDS.has(primary)) return false;
-	if ((primary === "status" || primary === "health") && jsonOutputMode) return false;
-	if (primary === "onboard" || primary === "channels" && secondary === "add") return false;
-	return true;
+  const [primary, secondary] = commandPath;
+  if (!primary || !PLUGIN_REQUIRED_COMMANDS.has(primary)) return false;
+  if ((primary === "status" || primary === "health") && jsonOutputMode) return false;
+  if (primary === "onboard" || (primary === "channels" && secondary === "add")) return false;
+  return true;
 }
 function shouldAllowInvalidConfigForAction(actionCommand, commandPath) {
-	return resolvePluginInstallInvalidConfigPolicy(resolvePluginInstallPreactionRequest({
-		actionCommand,
-		commandPath,
-		argv: process.argv
-	})) === "recover-matrix-only";
+  return (
+    resolvePluginInstallInvalidConfigPolicy(
+      resolvePluginInstallPreactionRequest({
+        actionCommand,
+        commandPath,
+        argv: process.argv,
+      }),
+    ) === "recover-matrix-only"
+  );
 }
 function getRootCommand(command) {
-	let current = command;
-	while (current.parent) current = current.parent;
-	return current;
+  let current = command;
+  while (current.parent) current = current.parent;
+  return current;
 }
 function getCliLogLevel(actionCommand) {
-	const root = getRootCommand(actionCommand);
-	if (typeof root.getOptionValueSource !== "function") return;
-	if (root.getOptionValueSource("logLevel") !== "cli") return;
-	const logLevel = root.opts().logLevel;
-	return typeof logLevel === "string" ? logLevel : void 0;
+  const root = getRootCommand(actionCommand);
+  if (typeof root.getOptionValueSource !== "function") return;
+  if (root.getOptionValueSource("logLevel") !== "cli") return;
+  const logLevel = root.opts().logLevel;
+  return typeof logLevel === "string" ? logLevel : void 0;
 }
 function registerPreActionHooks(program, programVersion) {
-	program.hook("preAction", async (_thisCommand, actionCommand) => {
-		setProcessTitleForCommand(actionCommand);
-		const argv = process.argv;
-		if (hasHelpOrVersion(argv)) return;
-		const commandPath = getCommandPathWithRootOptions(argv, 2);
-		const jsonOutputMode = isCommandJsonOutputMode(actionCommand, argv);
-		if (jsonOutputMode) routeLogsToStderr();
-		if (!(isTruthyEnvValue(process.env.OPENCLAW_HIDE_BANNER) || commandPath[0] === "update" || commandPath[0] === "completion" || commandPath[0] === "plugins" && commandPath[1] === "update")) emitCliBanner(programVersion);
-		const verbose = getVerboseFlag(argv, { includeDebug: true });
-		setVerbose(verbose);
-		const cliLogLevel = getCliLogLevel(actionCommand);
-		if (cliLogLevel) process.env.OPENCLAW_LOG_LEVEL = cliLogLevel;
-		if (!verbose) process.env.NODE_NO_WARNINGS ??= "1";
-		if (shouldBypassConfigGuard(commandPath)) return;
-		const allowInvalid = shouldAllowInvalidConfigForAction(actionCommand, commandPath);
-		const { ensureConfigReady } = await loadConfigGuardModule();
-		await ensureConfigReady({
-			runtime: defaultRuntime,
-			commandPath,
-			...allowInvalid ? { allowInvalid: true } : {},
-			...jsonOutputMode ? { suppressDoctorStdout: true } : {}
-		});
-		if (shouldLoadPluginsForCommand(commandPath, jsonOutputMode)) {
-			const { ensurePluginRegistryLoaded } = await loadPluginRegistryModule();
-			const prev = loggingState.forceConsoleToStderr;
-			if (jsonOutputMode) loggingState.forceConsoleToStderr = true;
-			try {
-				ensurePluginRegistryLoaded({ scope: resolvePluginRegistryScope(commandPath) });
-			} finally {
-				loggingState.forceConsoleToStderr = prev;
-			}
-		}
-	});
+  program.hook("preAction", async (_thisCommand, actionCommand) => {
+    setProcessTitleForCommand(actionCommand);
+    const argv = process.argv;
+    if (hasHelpOrVersion(argv)) return;
+    const commandPath = getCommandPathWithRootOptions(argv, 2);
+    const jsonOutputMode = isCommandJsonOutputMode(actionCommand, argv);
+    if (jsonOutputMode) routeLogsToStderr();
+    if (
+      !(
+        isTruthyEnvValue(process.env.OPENCLAW_HIDE_BANNER) ||
+        commandPath[0] === "update" ||
+        commandPath[0] === "completion" ||
+        (commandPath[0] === "plugins" && commandPath[1] === "update")
+      )
+    )
+      emitCliBanner(programVersion);
+    const verbose = getVerboseFlag(argv, { includeDebug: true });
+    setVerbose(verbose);
+    const cliLogLevel = getCliLogLevel(actionCommand);
+    if (cliLogLevel) process.env.OPENCLAW_LOG_LEVEL = cliLogLevel;
+    if (!verbose) process.env.NODE_NO_WARNINGS ??= "1";
+    if (shouldBypassConfigGuard(commandPath)) return;
+    const allowInvalid = shouldAllowInvalidConfigForAction(actionCommand, commandPath);
+    const { ensureConfigReady } = await loadConfigGuardModule();
+    await ensureConfigReady({
+      runtime: defaultRuntime,
+      commandPath,
+      ...(allowInvalid ? { allowInvalid: true } : {}),
+      ...(jsonOutputMode ? { suppressDoctorStdout: true } : {}),
+    });
+    if (shouldLoadPluginsForCommand(commandPath, jsonOutputMode)) {
+      const { ensurePluginRegistryLoaded } = await loadPluginRegistryModule();
+      const prev = loggingState.forceConsoleToStderr;
+      if (jsonOutputMode) loggingState.forceConsoleToStderr = true;
+      try {
+        ensurePluginRegistryLoaded({ scope: resolvePluginRegistryScope(commandPath) });
+      } finally {
+        loggingState.forceConsoleToStderr = prev;
+      }
+    }
+  });
 }
 //#endregion
 //#region src/cli/program/build-program.ts
 function buildProgram() {
-	const program = new Command();
-	program.enablePositionalOptions();
-	const ctx = createProgramContext();
-	const argv = process.argv;
-	setProgramContext(program, ctx);
-	configureProgramHelp(program, ctx);
-	registerPreActionHooks(program, ctx.programVersion);
-	registerProgramCommands(program, ctx, argv);
-	return program;
+  const program = new Command();
+  program.enablePositionalOptions();
+  const ctx = createProgramContext();
+  const argv = process.argv;
+  setProgramContext(program, ctx);
+  configureProgramHelp(program, ctx);
+  registerPreActionHooks(program, ctx.programVersion);
+  registerProgramCommands(program, ctx, argv);
+  return program;
 }
 //#endregion
 export { buildProgram };

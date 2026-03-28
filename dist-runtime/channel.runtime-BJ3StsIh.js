@@ -1,13 +1,16 @@
 import "./redact-CPjO5IzK.js";
 import "./errors-CHvVoeNX.js";
 import "./unhandled-rejections-BUxLQs1F.js";
-import { Da as createAccountStatusSink, __ as PAIRING_APPROVED_MESSAGE } from "./account-resolution-YAil9v6G.js";
+import {
+  Da as createAccountStatusSink,
+  __ as PAIRING_APPROVED_MESSAGE,
+} from "./account-resolution-YAil9v6G.js";
 import "./io-BeL7sW7Y.js";
 import "./paths-Chd_ukvM.js";
 import "./globals-BKVgh_pY.js";
 import "./theme-CWrxY1-_.js";
 import "./utils-DGUUVa38.js";
-import { l as normalizeSecretInputString } from "./types.secrets-BEA4gMCN.js";
+import { i as getMe, n as ZaloApiError, t as resolveZaloProxyFetch } from "./proxy-C7PPeq1Q.js";
 import "./subsystem-BZRyMoTO.js";
 import "./ansi-D3lUajt1.js";
 import "./agent-scope-BIySJgkJ.js";
@@ -116,107 +119,120 @@ import "./search-manager-D577MWWo.js";
 import "./mcp-config-Dbre4f6_.js";
 import "./tool-policy-match-53jrVIH7.js";
 import "./accounts-DD9J-j_R.js";
-import { i as getMe, n as ZaloApiError, t as resolveZaloProxyFetch } from "./proxy-C7PPeq1Q.js";
 import { t as sendMessageZalo } from "./send-4SXhrvck.js";
+import { l as normalizeSecretInputString } from "./types.secrets-BEA4gMCN.js";
 import "./runtime-api-j7kJbVIJ.js";
 //#region extensions/zalo/src/probe.ts
 async function probeZalo(token, timeoutMs = 5e3, fetcher) {
-	if (!token?.trim()) return {
-		ok: false,
-		error: "No token provided",
-		elapsedMs: 0
-	};
-	const startTime = Date.now();
-	try {
-		const response = await getMe(token.trim(), timeoutMs, fetcher);
-		const elapsedMs = Date.now() - startTime;
-		if (response.ok && response.result) return {
-			ok: true,
-			bot: response.result,
-			elapsedMs
-		};
-		return {
-			ok: false,
-			error: "Invalid response from Zalo API",
-			elapsedMs
-		};
-	} catch (err) {
-		const elapsedMs = Date.now() - startTime;
-		if (err instanceof ZaloApiError) return {
-			ok: false,
-			error: err.description ?? err.message,
-			elapsedMs
-		};
-		if (err instanceof Error) {
-			if (err.name === "AbortError") return {
-				ok: false,
-				error: `Request timed out after ${timeoutMs}ms`,
-				elapsedMs
-			};
-			return {
-				ok: false,
-				error: err.message,
-				elapsedMs
-			};
-		}
-		return {
-			ok: false,
-			error: String(err),
-			elapsedMs
-		};
-	}
+  if (!token?.trim())
+    return {
+      ok: false,
+      error: "No token provided",
+      elapsedMs: 0,
+    };
+  const startTime = Date.now();
+  try {
+    const response = await getMe(token.trim(), timeoutMs, fetcher);
+    const elapsedMs = Date.now() - startTime;
+    if (response.ok && response.result)
+      return {
+        ok: true,
+        bot: response.result,
+        elapsedMs,
+      };
+    return {
+      ok: false,
+      error: "Invalid response from Zalo API",
+      elapsedMs,
+    };
+  } catch (err) {
+    const elapsedMs = Date.now() - startTime;
+    if (err instanceof ZaloApiError)
+      return {
+        ok: false,
+        error: err.description ?? err.message,
+        elapsedMs,
+      };
+    if (err instanceof Error) {
+      if (err.name === "AbortError")
+        return {
+          ok: false,
+          error: `Request timed out after ${timeoutMs}ms`,
+          elapsedMs,
+        };
+      return {
+        ok: false,
+        error: err.message,
+        elapsedMs,
+      };
+    }
+    return {
+      ok: false,
+      error: String(err),
+      elapsedMs,
+    };
+  }
 }
 //#endregion
 //#region extensions/zalo/src/channel.runtime.ts
 async function notifyZaloPairingApproval(params) {
-	const { resolveZaloAccount } = await import("./accounts-bdgYFtfP.js");
-	const account = resolveZaloAccount({ cfg: params.cfg });
-	if (!account.token) throw new Error("Zalo token not configured");
-	await sendMessageZalo(params.id, PAIRING_APPROVED_MESSAGE, { token: account.token });
+  const { resolveZaloAccount } = await import("./accounts-bdgYFtfP.js");
+  const account = resolveZaloAccount({ cfg: params.cfg });
+  if (!account.token) throw new Error("Zalo token not configured");
+  await sendMessageZalo(params.id, PAIRING_APPROVED_MESSAGE, { token: account.token });
 }
 async function sendZaloText(params) {
-	return await sendMessageZalo(params.to, params.text, params);
+  return await sendMessageZalo(params.to, params.text, params);
 }
 async function probeZaloAccount(params) {
-	return await probeZalo(params.account.token, params.timeoutMs, resolveZaloProxyFetch(params.account.config.proxy));
+  return await probeZalo(
+    params.account.token,
+    params.timeoutMs,
+    resolveZaloProxyFetch(params.account.config.proxy),
+  );
 }
 async function startZaloGatewayAccount(ctx) {
-	const account = ctx.account;
-	const token = account.token.trim();
-	const mode = account.config.webhookUrl ? "webhook" : "polling";
-	let zaloBotLabel = "";
-	const fetcher = resolveZaloProxyFetch(account.config.proxy);
-	try {
-		const probe = await probeZalo(token, 2500, fetcher);
-		const name = probe.ok ? probe.bot?.name?.trim() : null;
-		if (name) zaloBotLabel = ` (${name})`;
-		if (!probe.ok) ctx.log?.warn?.(`[${account.accountId}] Zalo probe failed before provider start (${String(probe.elapsedMs)}ms): ${probe.error}`);
-		ctx.setStatus({
-			accountId: account.accountId,
-			bot: probe.bot
-		});
-	} catch (err) {
-		ctx.log?.warn?.(`[${account.accountId}] Zalo probe threw before provider start: ${err instanceof Error ? err.stack ?? err.message : String(err)}`);
-	}
-	const statusSink = createAccountStatusSink({
-		accountId: ctx.accountId,
-		setStatus: ctx.setStatus
-	});
-	ctx.log?.info(`[${account.accountId}] starting provider${zaloBotLabel} mode=${mode}`);
-	const { monitorZaloProvider } = await import("./monitor-DSADUVj4.js");
-	return monitorZaloProvider({
-		token,
-		account,
-		config: ctx.cfg,
-		runtime: ctx.runtime,
-		abortSignal: ctx.abortSignal,
-		useWebhook: Boolean(account.config.webhookUrl),
-		webhookUrl: account.config.webhookUrl,
-		webhookSecret: normalizeSecretInputString(account.config.webhookSecret),
-		webhookPath: account.config.webhookPath,
-		fetcher,
-		statusSink
-	});
+  const account = ctx.account;
+  const token = account.token.trim();
+  const mode = account.config.webhookUrl ? "webhook" : "polling";
+  let zaloBotLabel = "";
+  const fetcher = resolveZaloProxyFetch(account.config.proxy);
+  try {
+    const probe = await probeZalo(token, 2500, fetcher);
+    const name = probe.ok ? probe.bot?.name?.trim() : null;
+    if (name) zaloBotLabel = ` (${name})`;
+    if (!probe.ok)
+      ctx.log?.warn?.(
+        `[${account.accountId}] Zalo probe failed before provider start (${String(probe.elapsedMs)}ms): ${probe.error}`,
+      );
+    ctx.setStatus({
+      accountId: account.accountId,
+      bot: probe.bot,
+    });
+  } catch (err) {
+    ctx.log?.warn?.(
+      `[${account.accountId}] Zalo probe threw before provider start: ${err instanceof Error ? (err.stack ?? err.message) : String(err)}`,
+    );
+  }
+  const statusSink = createAccountStatusSink({
+    accountId: ctx.accountId,
+    setStatus: ctx.setStatus,
+  });
+  ctx.log?.info(`[${account.accountId}] starting provider${zaloBotLabel} mode=${mode}`);
+  const { monitorZaloProvider } = await import("./monitor-DSADUVj4.js");
+  return monitorZaloProvider({
+    token,
+    account,
+    config: ctx.cfg,
+    runtime: ctx.runtime,
+    abortSignal: ctx.abortSignal,
+    useWebhook: Boolean(account.config.webhookUrl),
+    webhookUrl: account.config.webhookUrl,
+    webhookSecret: normalizeSecretInputString(account.config.webhookSecret),
+    webhookPath: account.config.webhookPath,
+    fetcher,
+    statusSink,
+  });
 }
 //#endregion
 export { notifyZaloPairingApproval, probeZaloAccount, sendZaloText, startZaloGatewayAccount };

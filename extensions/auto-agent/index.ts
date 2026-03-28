@@ -204,9 +204,9 @@ async function runAutonomousTask(
 
 const FALLBACK_MODELS = [
   "openai-codex/gpt-5.2",
-  "openai/gpt-4.5",
-  "anthropic/claude-3.5-sonnet",
-  "google/gemini-2.0-flash",
+  "openai/gpt-5.4",
+  "anthropic/claude-4.6-sonnet",
+  "google/gemini-2.5-flash",
 ];
 
 async function attemptSelfHealing(api: OpenClawPluginApi, error: string): Promise<void> {

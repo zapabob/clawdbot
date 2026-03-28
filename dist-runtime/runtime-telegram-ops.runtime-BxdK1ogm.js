@@ -1,7 +1,20 @@
 import "./redact-CPjO5IzK.js";
 import "./errors-CHvVoeNX.js";
 import "./unhandled-rejections-BUxLQs1F.js";
-import { Ba as auditTelegramGroupMembership, Gd as renameForumTopicTelegram, Hd as editMessageReplyMarkupTelegram, Jd as sendTypingTelegram, Kd as sendMessageTelegram, Ud as editMessageTelegram, Vd as deleteMessageTelegram, Wd as pinMessageTelegram, Yd as unpinMessageTelegram, ba as monitorTelegramProvider, qd as sendPollTelegram, ya as probeTelegram } from "./account-resolution-YAil9v6G.js";
+import {
+  Ba as auditTelegramGroupMembership,
+  Gd as renameForumTopicTelegram,
+  Hd as editMessageReplyMarkupTelegram,
+  Jd as sendTypingTelegram,
+  Kd as sendMessageTelegram,
+  Ud as editMessageTelegram,
+  Vd as deleteMessageTelegram,
+  Wd as pinMessageTelegram,
+  Yd as unpinMessageTelegram,
+  ba as monitorTelegramProvider,
+  qd as sendPollTelegram,
+  ya as probeTelegram,
+} from "./account-resolution-YAil9v6G.js";
 import "./io-BeL7sW7Y.js";
 import "./paths-Chd_ukvM.js";
 import "./globals-BKVgh_pY.js";
@@ -116,20 +129,20 @@ import "./mcp-config-Dbre4f6_.js";
 import "./tool-policy-match-53jrVIH7.js";
 //#region src/plugins/runtime/runtime-telegram-ops.runtime.ts
 const runtimeTelegramOps = {
-	auditGroupMembership: auditTelegramGroupMembership,
-	probeTelegram,
-	sendMessageTelegram,
-	sendPollTelegram,
-	monitorTelegramProvider,
-	typing: { pulse: sendTypingTelegram },
-	conversationActions: {
-		editMessage: editMessageTelegram,
-		editReplyMarkup: editMessageReplyMarkupTelegram,
-		deleteMessage: deleteMessageTelegram,
-		renameTopic: renameForumTopicTelegram,
-		pinMessage: pinMessageTelegram,
-		unpinMessage: unpinMessageTelegram
-	}
+  auditGroupMembership: auditTelegramGroupMembership,
+  probeTelegram,
+  sendMessageTelegram,
+  sendPollTelegram,
+  monitorTelegramProvider,
+  typing: { pulse: sendTypingTelegram },
+  conversationActions: {
+    editMessage: editMessageTelegram,
+    editReplyMarkup: editMessageReplyMarkupTelegram,
+    deleteMessage: deleteMessageTelegram,
+    renameTopic: renameForumTopicTelegram,
+    pinMessage: pinMessageTelegram,
+    unpinMessage: unpinMessageTelegram,
+  },
 };
 //#endregion
 export { runtimeTelegramOps };

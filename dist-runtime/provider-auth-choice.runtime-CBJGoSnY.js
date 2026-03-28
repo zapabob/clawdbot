@@ -114,16 +114,19 @@ import "./query-expansion-Bjd1_3ef.js";
 import "./search-manager-D577MWWo.js";
 import "./mcp-config-Dbre4f6_.js";
 import "./tool-policy-match-53jrVIH7.js";
-import { i as runProviderModelSelectedHook$1, n as resolveProviderPluginChoice$1 } from "./provider-wizard-BQbWbqDv.js";
+import {
+  i as runProviderModelSelectedHook$1,
+  n as resolveProviderPluginChoice$1,
+} from "./provider-wizard-BQbWbqDv.js";
 //#region src/plugins/provider-auth-choice.runtime.ts
 function resolveProviderPluginChoice(...args) {
-	return resolveProviderPluginChoice$1(...args);
+  return resolveProviderPluginChoice$1(...args);
 }
 function runProviderModelSelectedHook(...args) {
-	return runProviderModelSelectedHook$1(...args);
+  return runProviderModelSelectedHook$1(...args);
 }
 function resolvePluginProviders(...args) {
-	return resolvePluginProviders$1(...args);
+  return resolvePluginProviders$1(...args);
 }
 //#endregion
 export { resolvePluginProviders, resolveProviderPluginChoice, runProviderModelSelectedHook };

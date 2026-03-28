@@ -76,7 +76,13 @@ import "./exec-approvals-BmEFrzOW.js";
 import "./system-events-CGA-tC6k.js";
 import "./templating-B3EHfDLb.js";
 import "./commands-registry.data-DRqYbvKo.js";
-import { f as resolveCommandArgMenu$1, n as findCommandByNativeName$1, s as listNativeCommandSpecsForConfig$1, t as buildCommandTextFromArgs$1, u as parseCommandArgs$1 } from "./commands-registry-CbQzy3s0.js";
+import {
+  f as resolveCommandArgMenu$1,
+  n as findCommandByNativeName$1,
+  s as listNativeCommandSpecsForConfig$1,
+  t as buildCommandTextFromArgs$1,
+  u as parseCommandArgs$1,
+} from "./commands-registry-CbQzy3s0.js";
 import "./frontmatter-CtATI79x.js";
 import "./env-overrides-CeZEiW-3.js";
 import "./skills-remote-VhS_1zlI.js";
@@ -116,19 +122,25 @@ import "./mcp-config-Dbre4f6_.js";
 import "./tool-policy-match-53jrVIH7.js";
 //#region extensions/slack/src/monitor/slash-commands.runtime.ts
 function buildCommandTextFromArgs(...args) {
-	return buildCommandTextFromArgs$1(...args);
+  return buildCommandTextFromArgs$1(...args);
 }
 function findCommandByNativeName(...args) {
-	return findCommandByNativeName$1(...args);
+  return findCommandByNativeName$1(...args);
 }
 function listNativeCommandSpecsForConfig(...args) {
-	return listNativeCommandSpecsForConfig$1(...args);
+  return listNativeCommandSpecsForConfig$1(...args);
 }
 function parseCommandArgs(...args) {
-	return parseCommandArgs$1(...args);
+  return parseCommandArgs$1(...args);
 }
 function resolveCommandArgMenu(...args) {
-	return resolveCommandArgMenu$1(...args);
+  return resolveCommandArgMenu$1(...args);
 }
 //#endregion
-export { buildCommandTextFromArgs, findCommandByNativeName, listNativeCommandSpecsForConfig, parseCommandArgs, resolveCommandArgMenu };
+export {
+  buildCommandTextFromArgs,
+  findCommandByNativeName,
+  listNativeCommandSpecsForConfig,
+  parseCommandArgs,
+  resolveCommandArgMenu,
+};

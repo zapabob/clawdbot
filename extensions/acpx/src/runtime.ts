@@ -944,6 +944,9 @@ export class AcpxRuntime implements AcpRuntime {
       stripProviderAuthEnvVars: this.config.stripProviderAuthEnvVars,
       spawnOptions: this.spawnCommandOptions,
     });
+    if (!targetCommand) {
+      return null;
+    }
     const resolved = buildMcpProxyAgentCommand({
       targetCommand,
       mcpServers: toAcpMcpServers(this.config.mcpServers),

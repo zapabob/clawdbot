@@ -1,7 +1,10 @@
 import "./redact-CPjO5IzK.js";
 import "./errors-CHvVoeNX.js";
 import "./unhandled-rejections-BUxLQs1F.js";
-import { mb as resolveOwningPluginIdsForProvider, py as resolvePluginProviders } from "./account-resolution-YAil9v6G.js";
+import {
+  mb as resolveOwningPluginIdsForProvider,
+  py as resolvePluginProviders,
+} from "./account-resolution-YAil9v6G.js";
 import "./io-BeL7sW7Y.js";
 import "./paths-Chd_ukvM.js";
 import "./globals-BKVgh_pY.js";
@@ -117,9 +120,9 @@ import "./tool-policy-match-53jrVIH7.js";
 import { n as resolveProviderPluginChoice } from "./provider-wizard-BQbWbqDv.js";
 //#region src/commands/onboard-non-interactive/local/auth-choice.plugin-providers.runtime.ts
 const authChoicePluginProvidersRuntime = {
-	resolveOwningPluginIdsForProvider,
-	resolveProviderPluginChoice,
-	resolvePluginProviders
+  resolveOwningPluginIdsForProvider,
+  resolveProviderPluginChoice,
+  resolvePluginProviders,
 };
 //#endregion
 export { authChoicePluginProvidersRuntime };

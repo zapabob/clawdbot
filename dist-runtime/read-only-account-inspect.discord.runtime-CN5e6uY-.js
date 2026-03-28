@@ -116,7 +116,7 @@ import "./mcp-config-Dbre4f6_.js";
 import "./tool-policy-match-53jrVIH7.js";
 //#region src/channels/read-only-account-inspect.discord.runtime.ts
 function inspectDiscordAccount(...args) {
-	return inspectDiscordAccount$1(...args);
+  return inspectDiscordAccount$1(...args);
 }
 //#endregion
 export { inspectDiscordAccount };

@@ -1,0 +1,5 @@
+﻿
+> openclaw@2026.3.27 config:schema:gen C:\Users\downl\Desktop\clawdbot-main3\clawdbot-main
+> node --import tsx scripts/generate-base-config-schema.ts --write
+
+窶右LIFECYCLE窶・Command failed with exit code 1.

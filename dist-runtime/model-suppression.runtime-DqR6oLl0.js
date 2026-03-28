@@ -116,7 +116,7 @@ import "./mcp-config-Dbre4f6_.js";
 import "./tool-policy-match-53jrVIH7.js";
 //#region src/agents/model-suppression.runtime.ts
 function shouldSuppressBuiltInModel(...args) {
-	return shouldSuppressBuiltInModel$1(...args);
+  return shouldSuppressBuiltInModel$1(...args);
 }
 //#endregion
 export { shouldSuppressBuiltInModel };

@@ -115,18 +115,27 @@ import "./search-manager-D577MWWo.js";
 import "./mcp-config-Dbre4f6_.js";
 import "./tool-policy-match-53jrVIH7.js";
 import "./replies-DQh1Kx2g.js";
-import { n as resolveSlackUserAllowlist, r as handleSlackAction, t as resolveSlackChannelAllowlist } from "./resolve-channels-DRbGghq8.js";
-import { i as listSlackDirectoryPeersLive, n as monitorSlackProvider, r as listSlackDirectoryGroupsLive, t as probeSlack } from "./runtime-api-Ccdgy1cI.js";
+import {
+  n as resolveSlackUserAllowlist,
+  r as handleSlackAction,
+  t as resolveSlackChannelAllowlist,
+} from "./resolve-channels-DRbGghq8.js";
+import {
+  i as listSlackDirectoryPeersLive,
+  n as monitorSlackProvider,
+  r as listSlackDirectoryGroupsLive,
+  t as probeSlack,
+} from "./runtime-api-Ccdgy1cI.js";
 //#region src/plugins/runtime/runtime-slack-ops.runtime.ts
 const runtimeSlackOps = {
-	listDirectoryGroupsLive: listSlackDirectoryGroupsLive,
-	listDirectoryPeersLive: listSlackDirectoryPeersLive,
-	probeSlack,
-	resolveChannelAllowlist: resolveSlackChannelAllowlist,
-	resolveUserAllowlist: resolveSlackUserAllowlist,
-	sendMessageSlack,
-	monitorSlackProvider,
-	handleSlackAction
+  listDirectoryGroupsLive: listSlackDirectoryGroupsLive,
+  listDirectoryPeersLive: listSlackDirectoryPeersLive,
+  probeSlack,
+  resolveChannelAllowlist: resolveSlackChannelAllowlist,
+  resolveUserAllowlist: resolveSlackUserAllowlist,
+  sendMessageSlack,
+  monitorSlackProvider,
+  handleSlackAction,
 };
 //#endregion
 export { runtimeSlackOps };

@@ -5,9 +5,12 @@ import "./account-resolution-YAil9v6G.js";
 import "./io-BeL7sW7Y.js";
 import "./paths-Chd_ukvM.js";
 import "./globals-BKVgh_pY.js";
-import { r as theme } from "./theme-CWrxY1-_.js";
+import { n as runCommandWithRuntime } from "./cli-utils-psLCXXsK.js";
 import "./utils-DGUUVa38.js";
-import { l as defaultRuntime } from "./subsystem-BZRyMoTO.js";
+import {
+  n as configureCommandFromSectionsArg,
+  o as CONFIGURE_WIZARD_SECTIONS,
+} from "./configure-C6zsOC1C.js";
 import "./ansi-D3lUajt1.js";
 import "./agent-scope-BIySJgkJ.js";
 import "./file-identity-DgWfjfnD.js";
@@ -138,7 +141,7 @@ import "./install-B-SbSPl-.js";
 import "./installs-CCuNe7gp.js";
 import "./audit-BuJR4P8I.js";
 import "./progress-DTkg56p1.js";
-import { n as runCommandWithRuntime } from "./cli-utils-psLCXXsK.js";
+import { l as defaultRuntime } from "./subsystem-BZRyMoTO.js";
 import "./catalog-CG5xLIMc.js";
 import "./note-DRnYkG2j.js";
 import "./clack-prompter-D1DpTgMx.js";
@@ -174,7 +177,7 @@ import "./auth-choice.apply-helpers-CWaRSEc2.js";
 import "./provider-auth-choice-preference-BHbVkkWV.js";
 import "./auth-choice-CyZhqJ33.js";
 import "./resolve-channels-DRbGghq8.js";
-import { n as configureCommandFromSectionsArg, o as CONFIGURE_WIZARD_SECTIONS } from "./configure-C6zsOC1C.js";
+import { r as theme } from "./theme-CWrxY1-_.js";
 import "./systemd-linger-4XkeWSyW.js";
 import "./model-picker-2IDlC5Jq.js";
 import "./onboard-custom-DMtNOQ1w.js";
@@ -184,11 +187,25 @@ import "./onboard-remote-DOmV2vC9.js";
 import "./onboard-skills-CU2OnM2D.js";
 //#region src/cli/program/register.configure.ts
 function registerConfigureCommand(program) {
-	program.command("configure").description("Interactive configuration for credentials, channels, gateway, and agent defaults").addHelpText("after", () => `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/configure", "docs.openclaw.ai/cli/configure")}\n`).option("--section <section>", `Configuration sections (repeatable). Options: ${CONFIGURE_WIZARD_SECTIONS.join(", ")}`, (value, previous) => [...previous, value], []).action(async (opts) => {
-		await runCommandWithRuntime(defaultRuntime, async () => {
-			await configureCommandFromSectionsArg(opts.section, defaultRuntime);
-		});
-	});
+  program
+    .command("configure")
+    .description("Interactive configuration for credentials, channels, gateway, and agent defaults")
+    .addHelpText(
+      "after",
+      () =>
+        `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/configure", "docs.openclaw.ai/cli/configure")}\n`,
+    )
+    .option(
+      "--section <section>",
+      `Configuration sections (repeatable). Options: ${CONFIGURE_WIZARD_SECTIONS.join(", ")}`,
+      (value, previous) => [...previous, value],
+      [],
+    )
+    .action(async (opts) => {
+      await runCommandWithRuntime(defaultRuntime, async () => {
+        await configureCommandFromSectionsArg(opts.section, defaultRuntime);
+      });
+    });
 }
 //#endregion
 export { registerConfigureCommand };

@@ -5,7 +5,7 @@ import "./account-resolution-YAil9v6G.js";
 import "./io-BeL7sW7Y.js";
 import "./paths-Chd_ukvM.js";
 import "./globals-BKVgh_pY.js";
-import { r as theme } from "./theme-CWrxY1-_.js";
+import { t as formatDocsLink } from "./links-CZOLMG0R.js";
 import "./utils-DGUUVa38.js";
 import "./subsystem-BZRyMoTO.js";
 import "./ansi-D3lUajt1.js";
@@ -67,7 +67,7 @@ import "./pairing-store-C5UkJF1E.js";
 import "./connection-auth-C0gZDDKX.js";
 import "./archive-Ccs4T-SG.js";
 import "./fs-safe-D6gPP2TP.js";
-import { t as formatDocsLink } from "./links-CZOLMG0R.js";
+import { t as registerQrCli } from "./qr-cli-DC-ppGWn.js";
 import "./logging-BF1_y1Nb.js";
 import "./issue-format-DHPo_blg.js";
 import "./commands-Bhtcd2Bj.js";
@@ -115,10 +115,19 @@ import "./search-manager-D577MWWo.js";
 import "./mcp-config-Dbre4f6_.js";
 import "./tool-policy-match-53jrVIH7.js";
 import "./device-bootstrap-DbC-CbpI.js";
-import { t as registerQrCli } from "./qr-cli-DC-ppGWn.js";
+import { r as theme } from "./theme-CWrxY1-_.js";
 //#region src/cli/clawbot-cli.ts
 function registerClawbotCli(program) {
-	registerQrCli(program.command("clawbot").description("Legacy clawbot command aliases").addHelpText("after", () => `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/clawbot", "docs.openclaw.ai/cli/clawbot")}\n`));
+  registerQrCli(
+    program
+      .command("clawbot")
+      .description("Legacy clawbot command aliases")
+      .addHelpText(
+        "after",
+        () =>
+          `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/clawbot", "docs.openclaw.ai/cli/clawbot")}\n`,
+      ),
+  );
 }
 //#endregion
 export { registerClawbotCli };

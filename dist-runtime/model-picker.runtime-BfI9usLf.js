@@ -115,15 +115,19 @@ import "./search-manager-D577MWWo.js";
 import "./mcp-config-Dbre4f6_.js";
 import "./tool-policy-match-53jrVIH7.js";
 import "./provider-auth-choice-helpers-BdoguTQ_.js";
-import { i as runProviderModelSelectedHook, n as resolveProviderPluginChoice, t as resolveProviderModelPickerEntries } from "./provider-wizard-BQbWbqDv.js";
 import { n as runProviderPluginAuthMethod } from "./provider-auth-choice-C5Z9IukI.js";
+import {
+  i as runProviderModelSelectedHook,
+  n as resolveProviderPluginChoice,
+  t as resolveProviderModelPickerEntries,
+} from "./provider-wizard-BQbWbqDv.js";
 //#region src/commands/model-picker.runtime.ts
 const modelPickerRuntime = {
-	resolveProviderModelPickerEntries,
-	resolveProviderPluginChoice,
-	runProviderModelSelectedHook,
-	resolvePluginProviders,
-	runProviderPluginAuthMethod
+  resolveProviderModelPickerEntries,
+  resolveProviderPluginChoice,
+  runProviderModelSelectedHook,
+  resolvePluginProviders,
+  runProviderPluginAuthMethod,
 };
 //#endregion
 export { modelPickerRuntime };

@@ -1,0 +1,41 @@
+﻿node.exe : TypeError: Canno
+t read properties of undefi
+ned (reading 'channelPlugin
+')
+発生場所 C:\nvm4w\nodejs\npx.ps
+1:29 文字:3
++   & $NODE_EXE $NPX_CLI_JS
+ $args
++   ~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~
+    + CategoryInfo         
+     : NotSpecified: (Typ  
+  eError: Cann...channel   
+ Plugin'):String) [], R    
+emoteException
+    + FullyQualifiedErrorI 
+   d : NativeCommandError
+ 
+    at <anonymous> (C:\User
+s\downl\Desktop\clawdbot-ma
+in3\clawdbot-main\src\chann
+els\plugins\bundled.ts:20:2
+4)
+    at Array.map (<anonymou
+s>)
+    at <anonymous> (C:\User
+s\downl\Desktop\clawdbot-ma
+in3\clawdbot-main\src\chann
+els\plugins\bundled.ts:19:6
+9)
+    at ModuleJob.run (node:
+internal/modules/esm/module
+_job:274:25)
+    at async onImport.trace
+Promise.__proto__ (node:int
+ernal/modules/esm/loader:64
+4:26)
+    at async <anonymous> (C
+:\Users\downl\Desktop\clawd
+bot-main3\clawdbot-main\tes
+t3.mjs:2:3)

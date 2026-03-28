@@ -1,7 +1,14 @@
 import "./redact-CPjO5IzK.js";
 import "./errors-CHvVoeNX.js";
 import "./unhandled-rejections-BUxLQs1F.js";
-import { $s as resolveSignalAccount, Ph as createDetectedBinaryStatus, Zs as listSignalAccountIds, dg as setSetupChannelEnabled, mg as detectBinary, pg as installSignalCli } from "./account-resolution-YAil9v6G.js";
+import {
+  $s as resolveSignalAccount,
+  Ph as createDetectedBinaryStatus,
+  Zs as listSignalAccountIds,
+  dg as setSetupChannelEnabled,
+  mg as detectBinary,
+  pg as installSignalCli,
+} from "./account-resolution-YAil9v6G.js";
 import "./io-BeL7sW7Y.js";
 import "./paths-Chd_ukvM.js";
 import "./globals-BKVgh_pY.js";
@@ -115,57 +122,78 @@ import "./search-manager-D577MWWo.js";
 import "./mcp-config-Dbre4f6_.js";
 import "./tool-policy-match-53jrVIH7.js";
 import "./setup-tools-yT-yzyl3.js";
-import { a as signalNumberTextInput, i as signalDmPolicy, r as signalCompletionNote, t as createSignalCliPathTextInput } from "./setup-core-w7EBN6u4.js";
+import {
+  a as signalNumberTextInput,
+  i as signalDmPolicy,
+  r as signalCompletionNote,
+  t as createSignalCliPathTextInput,
+} from "./setup-core-w7EBN6u4.js";
 //#region extensions/signal/src/setup-surface.ts
 const channel = "signal";
 //#endregion
 //#region extensions/signal/src/channel.runtime.ts
 const signalSetupWizard = {
-	channel,
-	status: createDetectedBinaryStatus({
-		channelLabel: "Signal",
-		binaryLabel: "signal-cli",
-		configuredLabel: "configured",
-		unconfiguredLabel: "needs setup",
-		configuredHint: "signal-cli found",
-		unconfiguredHint: "signal-cli missing",
-		configuredScore: 1,
-		unconfiguredScore: 0,
-		resolveConfigured: ({ cfg }) => listSignalAccountIds(cfg).some((accountId) => resolveSignalAccount({
-			cfg,
-			accountId
-		}).configured),
-		resolveBinaryPath: ({ cfg }) => cfg.channels?.signal?.cliPath ?? "signal-cli",
-		detectBinary
-	}),
-	prepare: async ({ cfg, accountId, credentialValues, runtime, prompter, options }) => {
-		if (!options?.allowSignalInstall) return;
-		const cliDetected = await detectBinary((typeof credentialValues.cliPath === "string" ? credentialValues.cliPath : void 0) ?? resolveSignalAccount({
-			cfg,
-			accountId
-		}).config.cliPath ?? "signal-cli");
-		if (!await prompter.confirm({
-			message: cliDetected ? "signal-cli detected. Reinstall/update now?" : "signal-cli not found. Install now?",
-			initialValue: !cliDetected
-		})) return;
-		try {
-			const result = await installSignalCli(runtime);
-			if (result.ok && result.cliPath) {
-				await prompter.note(`Installed signal-cli at ${result.cliPath}`, "Signal");
-				return { credentialValues: { cliPath: result.cliPath } };
-			}
-			if (!result.ok) await prompter.note(result.error ?? "signal-cli install failed.", "Signal");
-		} catch (error) {
-			await prompter.note(`signal-cli install failed: ${String(error)}`, "Signal");
-		}
-	},
-	credentials: [],
-	textInputs: [createSignalCliPathTextInput(async ({ currentValue }) => {
-		return !await detectBinary(currentValue ?? "signal-cli");
-	}), signalNumberTextInput],
-	completionNote: signalCompletionNote,
-	dmPolicy: signalDmPolicy,
-	disable: (cfg) => setSetupChannelEnabled(cfg, channel, false)
+  channel,
+  status: createDetectedBinaryStatus({
+    channelLabel: "Signal",
+    binaryLabel: "signal-cli",
+    configuredLabel: "configured",
+    unconfiguredLabel: "needs setup",
+    configuredHint: "signal-cli found",
+    unconfiguredHint: "signal-cli missing",
+    configuredScore: 1,
+    unconfiguredScore: 0,
+    resolveConfigured: ({ cfg }) =>
+      listSignalAccountIds(cfg).some(
+        (accountId) =>
+          resolveSignalAccount({
+            cfg,
+            accountId,
+          }).configured,
+      ),
+    resolveBinaryPath: ({ cfg }) => cfg.channels?.signal?.cliPath ?? "signal-cli",
+    detectBinary,
+  }),
+  prepare: async ({ cfg, accountId, credentialValues, runtime, prompter, options }) => {
+    if (!options?.allowSignalInstall) return;
+    const cliDetected = await detectBinary(
+      (typeof credentialValues.cliPath === "string" ? credentialValues.cliPath : void 0) ??
+        resolveSignalAccount({
+          cfg,
+          accountId,
+        }).config.cliPath ??
+        "signal-cli",
+    );
+    if (
+      !(await prompter.confirm({
+        message: cliDetected
+          ? "signal-cli detected. Reinstall/update now?"
+          : "signal-cli not found. Install now?",
+        initialValue: !cliDetected,
+      }))
+    )
+      return;
+    try {
+      const result = await installSignalCli(runtime);
+      if (result.ok && result.cliPath) {
+        await prompter.note(`Installed signal-cli at ${result.cliPath}`, "Signal");
+        return { credentialValues: { cliPath: result.cliPath } };
+      }
+      if (!result.ok) await prompter.note(result.error ?? "signal-cli install failed.", "Signal");
+    } catch (error) {
+      await prompter.note(`signal-cli install failed: ${String(error)}`, "Signal");
+    }
+  },
+  credentials: [],
+  textInputs: [
+    createSignalCliPathTextInput(async ({ currentValue }) => {
+      return !(await detectBinary(currentValue ?? "signal-cli"));
+    }),
+    signalNumberTextInput,
+  ],
+  completionNote: signalCompletionNote,
+  dmPolicy: signalDmPolicy,
+  disable: (cfg) => setSetupChannelEnabled(cfg, channel, false),
 };
 //#endregion
 export { signalSetupWizard };

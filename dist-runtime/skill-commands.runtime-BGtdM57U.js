@@ -36,5 +36,8 @@ import "./env-overrides-CeZEiW-3.js";
 import "./skills-remote-VhS_1zlI.js";
 import "./workspace-dirs-D6iR1-jr.js";
 import "./pairing-token-C6MdDkB2.js";
-import { n as listSkillCommandsForWorkspace, t as listSkillCommandsForAgents } from "./skill-commands-DnBwBMmQ.js";
+import {
+  n as listSkillCommandsForWorkspace,
+  t as listSkillCommandsForAgents,
+} from "./skill-commands-DnBwBMmQ.js";
 export { listSkillCommandsForAgents, listSkillCommandsForWorkspace };

@@ -183,161 +183,159 @@ export class CompanionPanel extends LitElement {
         >
           <span class="companion-panel__idol-star">✦</span>
           <span class="companion-panel__title">
-            ${
-              this.collapsed
-                ? nothing
-                : html`
-                    <span>コンパニオン</span>
-                  `
-            }
+            ${this.collapsed ? nothing : html` <span>コンパニオン</span> `}
           </span>
-          <span class="companion-panel__status-dot ${this.online ? "companion-panel__status-dot--online" : ""} ${speaking ? "companion-panel__status-dot--speaking" : ""}"></span>
+          <span
+            class="companion-panel__status-dot ${this.online
+              ? "companion-panel__status-dot--online"
+              : ""} ${speaking ? "companion-panel__status-dot--speaking" : ""}"
+          ></span>
         </button>
 
-        ${
-          this.collapsed
-            ? nothing
-            : html`
-          <div class="companion-panel__body">
-            <!-- Online status -->
-            <div class="companion-panel__badge ${this.online ? "companion-panel__badge--on" : "companion-panel__badge--off"}">
-              ${
-                this.online
-                  ? speaking
-                    ? html`
-                        <span class="companion-wave">♫</span> 発話中
-                      `
-                    : "● オンライン"
-                  : "○ オフライン"
-              }
-            </div>
+        ${this.collapsed
+          ? nothing
+          : html`
+              <div class="companion-panel__body">
+                <!-- Online status -->
+                <div
+                  class="companion-panel__badge ${this.online
+                    ? "companion-panel__badge--on"
+                    : "companion-panel__badge--off"}"
+                >
+                  ${this.online
+                    ? speaking
+                      ? html` <span class="companion-wave">♫</span> 発話中 `
+                      : "● オンライン"
+                    : "○ オフライン"}
+                </div>
 
-            <!-- Show / Hide toggle -->
-            <button
-              class="companion-panel__action-btn ${isVisible ? "companion-panel__action-btn--active" : ""}"
-              @click=${this._toggleVisible}
-              ?disabled=${!this.online}
-              title="${isVisible ? "コンパニオンを非表示" : "コンパニオンを表示"}"
-            >
-              <span class="companion-idol-icon">${isVisible ? "◉" : "◎"}</span>
-              ${isVisible ? "表示中" : "非表示"}
-            </button>
-
-            ${
-              agents.length > 0
-                ? html`
-              <!-- Agent selector -->
-              <div class="companion-panel__field">
-                <label class="companion-panel__label">
-                  <span class="companion-idol-icon">♔</span> エージェント
-                </label>
-                <select
-                  class="companion-panel__select"
-                  .value=${agentId}
-                  @change=${this._setAgent}
+                <!-- Show / Hide toggle -->
+                <button
+                  class="companion-panel__action-btn ${isVisible
+                    ? "companion-panel__action-btn--active"
+                    : ""}"
+                  @click=${this._toggleVisible}
                   ?disabled=${!this.online}
+                  title="${isVisible ? "コンパニオンを非表示" : "コンパニオンを表示"}"
                 >
-                  ${agents.map(
-                    (a) => html`
-                    <option value=${a.id} ?selected=${a.id === agentId}>
-                      ${a.identity?.name ?? a.name ?? a.id}
+                  <span class="companion-idol-icon">${isVisible ? "◉" : "◎"}</span>
+                  ${isVisible ? "表示中" : "非表示"}
+                </button>
+
+                ${agents.length > 0
+                  ? html`
+                      <!-- Agent selector -->
+                      <div class="companion-panel__field">
+                        <label class="companion-panel__label">
+                          <span class="companion-idol-icon">♔</span> エージェント
+                        </label>
+                        <select
+                          class="companion-panel__select"
+                          .value=${agentId}
+                          @change=${this._setAgent}
+                          ?disabled=${!this.online}
+                        >
+                          ${agents.map(
+                            (a) => html`
+                              <option value=${a.id} ?selected=${a.id === agentId}>
+                                ${a.identity?.name ?? a.name ?? a.id}
+                              </option>
+                            `,
+                          )}
+                        </select>
+                      </div>
+                    `
+                  : nothing}
+
+                <!-- TTS provider selector -->
+                <div class="companion-panel__field">
+                  <label class="companion-panel__label">
+                    <span class="companion-idol-icon">♬</span> 音声TTS
+                  </label>
+                  <select
+                    class="companion-panel__select"
+                    .value=${ttsProvider}
+                    @change=${this._setTts}
+                    ?disabled=${!this.online}
+                  >
+                    <option value="voicevox" ?selected=${ttsProvider === "voicevox"}>
+                      VOICEVOX
                     </option>
-                  `,
-                  )}
-                </select>
-              </div>
-            `
-                : nothing
-            }
+                    <option value="web-speech" ?selected=${ttsProvider === "web-speech"}>
+                      Web Speech (無料)
+                    </option>
+                  </select>
+                </div>
 
-            <!-- TTS provider selector -->
-            <div class="companion-panel__field">
-              <label class="companion-panel__label">
-                <span class="companion-idol-icon">♬</span> 音声TTS
-              </label>
-              <select
-                class="companion-panel__select"
-                .value=${ttsProvider}
-                @change=${this._setTts}
-                ?disabled=${!this.online}
-              >
-                <option value="voicevox" ?selected=${ttsProvider === "voicevox"}>
-                  VOICEVOX
-                </option>
-                <option value="web-speech" ?selected=${ttsProvider === "web-speech"}>
-                  Web Speech (無料)
-                </option>
-              </select>
-            </div>
-
-            <!-- Hypura Harness -->
-            <div
-              class="companion-panel__hypura ${hypuraOff ? "companion-panel__hypura--offline" : ""}"
-            >
-              <div class="companion-panel__hypura-head">
-                <span class="companion-panel__hypura-title"
-                  >── Hypura Harness ──────────────────────</span
+                <!-- Hypura Harness -->
+                <div
+                  class="companion-panel__hypura ${hypuraOff
+                    ? "companion-panel__hypura--offline"
+                    : ""}"
                 >
+                  <div class="companion-panel__hypura-head">
+                    <span class="companion-panel__hypura-title"
+                      >── Hypura Harness ──────────────────────</span
+                    >
+                  </div>
+                  <div class="companion-panel__hypura-row">
+                    <span class="companion-panel__hypura-pill">
+                      <span
+                        class="companion-panel__hypura-dot ${oscOk
+                          ? "companion-panel__hypura-dot--ok"
+                          : "companion-panel__hypura-dot--bad"}"
+                      ></span>
+                      OSC
+                    </span>
+                    <span class="companion-panel__hypura-pill">
+                      <span
+                        class="companion-panel__hypura-dot ${vxOk
+                          ? "companion-panel__hypura-dot--ok"
+                          : "companion-panel__hypura-dot--bad"}"
+                      ></span>
+                      VoiceVox
+                    </span>
+                    <span class="companion-panel__hypura-pill">
+                      <span
+                        class="companion-panel__hypura-dot ${olOk
+                          ? "companion-panel__hypura-dot--ok"
+                          : "companion-panel__hypura-dot--bad"}"
+                      ></span>
+                      Ollama
+                    </span>
+                  </div>
+                  <div class="companion-panel__hypura-actions">
+                    <button
+                      type="button"
+                      class="companion-panel__hypura-btn"
+                      @click=${this._hypuraOscQuick}
+                      ?disabled=${hypuraOff}
+                      title="OSC chatbox: こんにちは！"
+                    >
+                      [OSC: こんにちは]
+                    </button>
+                    <button
+                      type="button"
+                      class="companion-panel__hypura-btn"
+                      @click=${this._hypuraSpeakQuick}
+                      ?disabled=${hypuraOff}
+                      title="Speak: 起動完了しました"
+                    >
+                      [Speak: 起動完了]
+                    </button>
+                    <button
+                      type="button"
+                      class="companion-panel__hypura-btn"
+                      @click=${this._hypuraRun}
+                      ?disabled=${hypuraOff}
+                      title="Run task"
+                    >
+                      [Run ▶]
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div class="companion-panel__hypura-row">
-                <span class="companion-panel__hypura-pill">
-                  <span
-                    class="companion-panel__hypura-dot ${
-                      oscOk ? "companion-panel__hypura-dot--ok" : "companion-panel__hypura-dot--bad"
-                    }"
-                  ></span>
-                  OSC
-                </span>
-                <span class="companion-panel__hypura-pill">
-                  <span
-                    class="companion-panel__hypura-dot ${
-                      vxOk ? "companion-panel__hypura-dot--ok" : "companion-panel__hypura-dot--bad"
-                    }"
-                  ></span>
-                  VoiceVox
-                </span>
-                <span class="companion-panel__hypura-pill">
-                  <span
-                    class="companion-panel__hypura-dot ${
-                      olOk ? "companion-panel__hypura-dot--ok" : "companion-panel__hypura-dot--bad"
-                    }"
-                  ></span>
-                  Ollama
-                </span>
-              </div>
-              <div class="companion-panel__hypura-actions">
-                <button
-                  type="button"
-                  class="companion-panel__hypura-btn"
-                  @click=${this._hypuraOscQuick}
-                  ?disabled=${hypuraOff}
-                  title="OSC chatbox: こんにちは！"
-                >
-                  [OSC: こんにちは]
-                </button>
-                <button
-                  type="button"
-                  class="companion-panel__hypura-btn"
-                  @click=${this._hypuraSpeakQuick}
-                  ?disabled=${hypuraOff}
-                  title="Speak: 起動完了しました"
-                >
-                  [Speak: 起動完了]
-                </button>
-                <button
-                  type="button"
-                  class="companion-panel__hypura-btn"
-                  @click=${this._hypuraRun}
-                  ?disabled=${hypuraOff}
-                  title="Run task"
-                >
-                  [Run ▶]
-                </button>
-              </div>
-            </div>
-          </div>
-        `
-        }
+            `}
       </div>
 
       <style>
@@ -408,8 +406,14 @@ export class CompanionPanel extends LitElement {
         }
 
         @keyframes companion-pulse {
-          from { transform: scale(1); opacity: 0.8; }
-          to   { transform: scale(1.4); opacity: 1; }
+          from {
+            transform: scale(1);
+            opacity: 0.8;
+          }
+          to {
+            transform: scale(1.4);
+            opacity: 1;
+          }
         }
 
         .companion-panel__body {
@@ -443,8 +447,12 @@ export class CompanionPanel extends LitElement {
           animation: companion-wave-anim 0.5s ease-in-out infinite alternate;
         }
         @keyframes companion-wave-anim {
-          from { transform: translateY(0); }
-          to   { transform: translateY(-2px); }
+          from {
+            transform: translateY(0);
+          }
+          to {
+            transform: translateY(-2px);
+          }
         }
 
         .companion-panel__action-btn {
@@ -595,7 +603,9 @@ export class CompanionPanel extends LitElement {
           font-size: 9.5px;
           font-weight: 600;
           cursor: pointer;
-          transition: background 0.2s, border-color 0.2s;
+          transition:
+            background 0.2s,
+            border-color 0.2s;
         }
         .companion-panel__hypura-btn:hover:not(:disabled) {
           background: rgba(160, 100, 240, 0.16);

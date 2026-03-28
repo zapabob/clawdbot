@@ -2,14 +2,17 @@ import "./redact-CPjO5IzK.js";
 import "./errors-CHvVoeNX.js";
 import "./unhandled-rejections-BUxLQs1F.js";
 import { hy as loadOpenClawPlugins } from "./account-resolution-YAil9v6G.js";
-import { s as loadConfig } from "./io-BeL7sW7Y.js";
+import {
+  d as resolveAgentWorkspaceDir,
+  f as resolveDefaultAgentId,
+} from "./agent-scope-BIySJgkJ.js";
 import "./paths-Chd_ukvM.js";
 import "./globals-BKVgh_pY.js";
 import "./theme-CWrxY1-_.js";
 import "./utils-DGUUVa38.js";
-import { t as createSubsystemLogger } from "./subsystem-BZRyMoTO.js";
+import { s as loadConfig } from "./io-BeL7sW7Y.js";
 import "./ansi-D3lUajt1.js";
-import { d as resolveAgentWorkspaceDir, f as resolveDefaultAgentId } from "./agent-scope-BIySJgkJ.js";
+import { t as createSubsystemLogger } from "./subsystem-BZRyMoTO.js";
 import "./file-identity-DgWfjfnD.js";
 import "./boundary-file-read-DZTg2Wyt.js";
 import "./logger-BsvC8P6f.js";
@@ -117,44 +120,47 @@ import "./tool-policy-match-53jrVIH7.js";
 //#region src/plugins/cli.ts
 const log = createSubsystemLogger("plugins");
 function registerPluginCliCommands(program, cfg, env) {
-	const config = cfg ?? loadConfig();
-	const workspaceDir = resolveAgentWorkspaceDir(config, resolveDefaultAgentId(config));
-	const logger = {
-		info: (msg) => log.info(msg),
-		warn: (msg) => log.warn(msg),
-		error: (msg) => log.error(msg),
-		debug: (msg) => log.debug(msg)
-	};
-	const registry = loadOpenClawPlugins({
-		config,
-		workspaceDir,
-		env,
-		logger
-	});
-	const existingCommands = new Set(program.commands.map((cmd) => cmd.name()));
-	for (const entry of registry.cliRegistrars) {
-		if (entry.commands.length > 0) {
-			const overlaps = entry.commands.filter((command) => existingCommands.has(command));
-			if (overlaps.length > 0) {
-				log.debug(`plugin CLI register skipped (${entry.pluginId}): command already registered (${overlaps.join(", ")})`);
-				continue;
-			}
-		}
-		try {
-			const result = entry.register({
-				program,
-				config,
-				workspaceDir,
-				logger
-			});
-			if (result && typeof result.then === "function") result.catch((err) => {
-				log.warn(`plugin CLI register failed (${entry.pluginId}): ${String(err)}`);
-			});
-			for (const command of entry.commands) existingCommands.add(command);
-		} catch (err) {
-			log.warn(`plugin CLI register failed (${entry.pluginId}): ${String(err)}`);
-		}
-	}
+  const config = cfg ?? loadConfig();
+  const workspaceDir = resolveAgentWorkspaceDir(config, resolveDefaultAgentId(config));
+  const logger = {
+    info: (msg) => log.info(msg),
+    warn: (msg) => log.warn(msg),
+    error: (msg) => log.error(msg),
+    debug: (msg) => log.debug(msg),
+  };
+  const registry = loadOpenClawPlugins({
+    config,
+    workspaceDir,
+    env,
+    logger,
+  });
+  const existingCommands = new Set(program.commands.map((cmd) => cmd.name()));
+  for (const entry of registry.cliRegistrars) {
+    if (entry.commands.length > 0) {
+      const overlaps = entry.commands.filter((command) => existingCommands.has(command));
+      if (overlaps.length > 0) {
+        log.debug(
+          `plugin CLI register skipped (${entry.pluginId}): command already registered (${overlaps.join(", ")})`,
+        );
+        continue;
+      }
+    }
+    try {
+      const result = entry.register({
+        program,
+        config,
+        workspaceDir,
+        logger,
+      });
+      if (result && typeof result.then === "function")
+        result.catch((err) => {
+          log.warn(`plugin CLI register failed (${entry.pluginId}): ${String(err)}`);
+        });
+      for (const command of entry.commands) existingCommands.add(command);
+    } catch (err) {
+      log.warn(`plugin CLI register failed (${entry.pluginId}): ${String(err)}`);
+    }
+  }
 }
 //#endregion
 export { registerPluginCliCommands };

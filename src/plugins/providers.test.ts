@@ -14,6 +14,41 @@ vi.mock("./manifest-registry.js", () => ({
 let resolveOwningPluginIdsForProvider: typeof import("./providers.js").resolveOwningPluginIdsForProvider;
 let resolvePluginProviders: typeof import("./providers.runtime.js").resolvePluginProviders;
 
+function getLastLoadPluginsCall(): Record<string, unknown> {
+  const call = loadOpenClawPluginsMock.mock.calls.at(-1)?.[0];
+  expect(call).toBeDefined();
+  return (call ?? {}) as Record<string, unknown>;
+}
+
+function cloneOptions<T>(value: T): T {
+  return structuredClone(value);
+}
+
+function expectLastLoadPluginsCall(params?: {
+  env?: NodeJS.ProcessEnv;
+  onlyPluginIds?: readonly string[];
+}) {
+  expect(loadOpenClawPluginsMock).toHaveBeenCalledWith(
+    expect.objectContaining({
+      cache: false,
+      activate: false,
+      ...(params?.env ? { env: params.env } : {}),
+      ...(params?.onlyPluginIds ? { onlyPluginIds: params.onlyPluginIds } : {}),
+    }),
+  );
+}
+
+function getLastResolvedPluginConfig() {
+  return getLastLoadPluginsCall().config as
+    | {
+        plugins?: {
+          allow?: string[];
+          entries?: Record<string, { enabled?: boolean }>;
+        };
+      }
+    | undefined;
+}
+
 describe("resolvePluginProviders", () => {
   beforeEach(async () => {
     vi.resetModules();
@@ -25,6 +60,7 @@ describe("resolvePluginProviders", () => {
     loadPluginManifestRegistryMock.mockReturnValue({
       plugins: [
         { id: "google", providers: ["google"], origin: "bundled" },
+        { id: "browser", providers: [], origin: "bundled" },
         { id: "kilocode", providers: ["kilocode"], origin: "bundled" },
         { id: "moonshot", providers: ["moonshot"], origin: "bundled" },
         { id: "google-gemini-cli-auth", providers: [], origin: "bundled" },
@@ -55,118 +91,144 @@ describe("resolvePluginProviders", () => {
     );
   });
 
-  it("can augment restrictive allowlists for bundled provider compatibility", () => {
-    resolvePluginProviders({
-      config: {
-        plugins: {
-          allow: ["openrouter"],
+  it.each([
+    {
+      name: "can augment restrictive allowlists for bundled provider compatibility",
+      options: {
+        config: {
+          plugins: {
+            allow: ["openrouter"],
+          },
         },
+        bundledProviderAllowlistCompat: true,
       },
-      bundledProviderAllowlistCompat: true,
-    });
+      expectedAllow: ["openrouter", "google", "kilocode", "moonshot"],
+      expectedEntries: {
+        google: { enabled: true },
+        kilocode: { enabled: true },
+        moonshot: { enabled: true },
+      },
+    },
+    {
+      name: "does not reintroduce the retired google auth plugin id into compat allowlists",
+      options: {
+        config: {
+          plugins: {
+            allow: ["openrouter"],
+          },
+        },
+        bundledProviderAllowlistCompat: true,
+      },
+      expectedAllow: ["google"],
+      unexpectedAllow: ["google-gemini-cli-auth"],
+    },
+    {
+      name: "does not inject non-bundled provider plugin ids into compat allowlists",
+      options: {
+        config: {
+          plugins: {
+            allow: ["openrouter"],
+          },
+        },
+        bundledProviderAllowlistCompat: true,
+      },
+      unexpectedAllow: ["workspace-provider"],
+    },
+    {
+      name: "scopes bundled provider compat expansion to the requested plugin ids",
+      options: {
+        config: {
+          plugins: {
+            allow: ["openrouter"],
+          },
+        },
+        bundledProviderAllowlistCompat: true,
+        onlyPluginIds: ["moonshot"],
+      },
+      expectedAllow: ["openrouter", "moonshot"],
+      unexpectedAllow: ["google", "kilocode"],
+      expectedOnlyPluginIds: ["moonshot"],
+    },
+  ] as const)(
+    "$name",
+    ({ options, expectedAllow, expectedEntries, expectedOnlyPluginIds, unexpectedAllow }) => {
+      resolvePluginProviders(
+        cloneOptions(options) as unknown as Parameters<typeof resolvePluginProviders>[0],
+      );
 
-    expect(loadOpenClawPluginsMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        config: expect.objectContaining({
-          plugins: expect.objectContaining({
-            allow: expect.arrayContaining(["openrouter", "google", "kilocode", "moonshot"]),
-            entries: expect.objectContaining({
-              google: { enabled: true },
-              kilocode: { enabled: true },
-              moonshot: { enabled: true },
-            }),
-          }),
-        }),
-        cache: false,
-        activate: false,
-      }),
-    );
-  });
+      expectLastLoadPluginsCall(
+        expectedOnlyPluginIds ? { onlyPluginIds: expectedOnlyPluginIds } : undefined,
+      );
+
+      const config = getLastResolvedPluginConfig();
+      const allow = config?.plugins?.allow ?? [];
+
+      if (expectedAllow) {
+        expect(allow).toEqual(expect.arrayContaining([...expectedAllow]));
+      }
+      if (expectedEntries) {
+        expect(config?.plugins?.entries).toEqual(expect.objectContaining(expectedEntries));
+      }
+      for (const disallowedPluginId of unexpectedAllow ?? []) {
+        expect(allow).not.toContain(disallowedPluginId);
+      }
+    },
+  );
+
   it("can enable bundled provider plugins under Vitest when no explicit plugin config exists", () => {
     resolvePluginProviders({
       env: { VITEST: "1" } as NodeJS.ProcessEnv,
       bundledProviderVitestCompat: true,
     });
 
-    expect(loadOpenClawPluginsMock).toHaveBeenCalledWith(
+    expectLastLoadPluginsCall();
+    expect(getLastResolvedPluginConfig()).toEqual(
       expect.objectContaining({
-        config: expect.objectContaining({
-          plugins: expect.objectContaining({
-            enabled: true,
-            allow: expect.arrayContaining(["google", "moonshot"]),
-            entries: expect.objectContaining({
-              google: { enabled: true },
-              moonshot: { enabled: true },
-            }),
-          }),
-        }),
-        cache: false,
-        activate: false,
-      }),
-    );
-  });
-
-  it("does not reintroduce the retired google auth plugin id into compat allowlists", () => {
-    resolvePluginProviders({
-      config: {
-        plugins: {
-          allow: ["openrouter"],
-        },
-      },
-      bundledProviderAllowlistCompat: true,
-    });
-
-    const call = loadOpenClawPluginsMock.mock.calls.at(-1)?.[0];
-    const allow = call?.config?.plugins?.allow;
-
-    expect(allow).toContain("google");
-    expect(allow).not.toContain("google-gemini-cli-auth");
-  });
-
-  it("does not inject non-bundled provider plugin ids into compat allowlists", () => {
-    resolvePluginProviders({
-      config: {
-        plugins: {
-          allow: ["openrouter"],
-        },
-      },
-      bundledProviderAllowlistCompat: true,
-    });
-
-    const call = loadOpenClawPluginsMock.mock.calls.at(-1)?.[0];
-    const allow = call?.config?.plugins?.allow;
-
-    expect(allow).not.toContain("workspace-provider");
-  });
-
-  it("scopes bundled provider compat expansion to the requested plugin ids", () => {
-    resolvePluginProviders({
-      config: {
-        plugins: {
-          allow: ["openrouter"],
-        },
-      },
-      bundledProviderAllowlistCompat: true,
-      onlyPluginIds: ["moonshot"],
-    });
-
-    expect(loadOpenClawPluginsMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        onlyPluginIds: ["moonshot"],
-        config: expect.objectContaining({
-          plugins: expect.objectContaining({
-            allow: expect.arrayContaining(["openrouter", "moonshot"]),
+        plugins: expect.objectContaining({
+          enabled: true,
+          allow: expect.arrayContaining(["google", "moonshot"]),
+          entries: expect.objectContaining({
+            google: { enabled: true },
+            moonshot: { enabled: true },
           }),
         }),
       }),
     );
-
-    const call = loadOpenClawPluginsMock.mock.calls.at(-1)?.[0];
-    const allow = call?.config?.plugins?.allow;
-    expect(allow).not.toContain("google");
-    expect(allow).not.toContain("kilocode");
   });
 
+  it("does not leak host Vitest env into an explicit non-Vitest env", () => {
+    const previousVitest = process.env.VITEST;
+    process.env.VITEST = "1";
+    try {
+      resolvePluginProviders({
+        env: {} as NodeJS.ProcessEnv,
+        bundledProviderVitestCompat: true,
+      });
+
+      expect(loadOpenClawPluginsMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          config: undefined,
+          env: {},
+        }),
+      );
+    } finally {
+      if (previousVitest === undefined) {
+        delete process.env.VITEST;
+      } else {
+        process.env.VITEST = previousVitest;
+      }
+    }
+  });
+
+  it("loads only provider plugins on the provider runtime path", () => {
+    resolvePluginProviders({
+      bundledProviderAllowlistCompat: true,
+    });
+
+    expectLastLoadPluginsCall({
+      onlyPluginIds: ["google", "kilocode", "moonshot"],
+    });
+  });
   it("maps provider ids to owning plugin ids via manifests", () => {
     loadPluginManifestRegistryMock.mockReturnValue({
       plugins: [

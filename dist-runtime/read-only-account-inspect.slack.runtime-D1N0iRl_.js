@@ -116,7 +116,7 @@ import "./mcp-config-Dbre4f6_.js";
 import "./tool-policy-match-53jrVIH7.js";
 //#region src/channels/read-only-account-inspect.slack.runtime.ts
 function inspectSlackAccount(...args) {
-	return inspectSlackAccount$1(...args);
+  return inspectSlackAccount$1(...args);
 }
 //#endregion
 export { inspectSlackAccount };

@@ -119,6 +119,6 @@ import "./provider-auth-guidance-B-gnRxyp.js";
 import "./provider-auth-choices-DchVXz9c.js";
 import "./provider-auth-choice-C5Z9IukI.js";
 import "./auth-choice.apply-helpers-CWaRSEc2.js";
-import { t as resolvePreferredProviderForAuthChoice } from "./provider-auth-choice-preference-BHbVkkWV.js";
 import { n as applyAuthChoice, t as warnIfModelConfigLooksOff } from "./auth-choice-CyZhqJ33.js";
+import { t as resolvePreferredProviderForAuthChoice } from "./provider-auth-choice-preference-BHbVkkWV.js";
 export { applyAuthChoice, resolvePreferredProviderForAuthChoice, warnIfModelConfigLooksOff };

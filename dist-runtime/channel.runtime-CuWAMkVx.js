@@ -114,16 +114,24 @@ import "./query-expansion-Bjd1_3ef.js";
 import "./search-manager-D577MWWo.js";
 import "./mcp-config-Dbre4f6_.js";
 import "./tool-policy-match-53jrVIH7.js";
-import { E as probeBlueBubbles, n as resolveWebhookPathFromConfig } from "./webhook-shared-DemgUaBR.js";
-import { i as sendBlueBubblesMedia, m as sendMessageBlueBubbles, r as resolveBlueBubblesMessageId, t as monitorBlueBubblesProvider } from "./monitor-CmtNnk0v.js";
+import {
+  i as sendBlueBubblesMedia,
+  m as sendMessageBlueBubbles,
+  r as resolveBlueBubblesMessageId,
+  t as monitorBlueBubblesProvider,
+} from "./monitor-CmtNnk0v.js";
+import {
+  E as probeBlueBubbles,
+  n as resolveWebhookPathFromConfig,
+} from "./webhook-shared-DemgUaBR.js";
 //#region extensions/bluebubbles/src/channel.runtime.ts
 const blueBubblesChannelRuntime = {
-	sendBlueBubblesMedia,
-	resolveBlueBubblesMessageId,
-	monitorBlueBubblesProvider,
-	resolveWebhookPathFromConfig,
-	probeBlueBubbles,
-	sendMessageBlueBubbles
+  sendBlueBubblesMedia,
+  resolveBlueBubblesMessageId,
+  monitorBlueBubblesProvider,
+  resolveWebhookPathFromConfig,
+  probeBlueBubbles,
+  sendMessageBlueBubbles,
 };
 //#endregion
 export { blueBubblesChannelRuntime };

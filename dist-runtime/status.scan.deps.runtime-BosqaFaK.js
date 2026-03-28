@@ -84,7 +84,7 @@ import "./workspace-dirs-D6iR1-jr.js";
 import "./pairing-token-C6MdDkB2.js";
 import "./skill-commands-DnBwBMmQ.js";
 import "./config-DKL8TOiP.js";
-import { o as getTailnetHostname } from "./tailscale-D5EfGD33.js";
+import { n as getMemorySearchManager$1 } from "./search-manager-D577MWWo.js";
 import "./tailnet-BgVZoAmn.js";
 import "./net-B1gQyBKw.js";
 import "./auth-DQHfNzzJ.js";
@@ -111,22 +111,24 @@ import "./channel-summary-9wLP0Z1l.js";
 import "./multimodal-Bsw_Ctum.js";
 import "./memory-search-BR1Y4hk3.js";
 import "./query-expansion-Bjd1_3ef.js";
-import { n as getMemorySearchManager$1 } from "./search-manager-D577MWWo.js";
+import { o as getTailnetHostname } from "./tailscale-D5EfGD33.js";
 import "./mcp-config-Dbre4f6_.js";
 import "./tool-policy-match-53jrVIH7.js";
 //#region src/commands/status.scan.deps.runtime.ts
 async function getMemorySearchManager(params) {
-	const { manager } = await getMemorySearchManager$1(params);
-	if (!manager) return { manager: null };
-	return { manager: {
-		async probeVectorAvailability() {
-			return await manager.probeVectorAvailability();
-		},
-		status() {
-			return manager.status();
-		},
-		close: manager.close ? async () => await manager.close?.() : void 0
-	} };
+  const { manager } = await getMemorySearchManager$1(params);
+  if (!manager) return { manager: null };
+  return {
+    manager: {
+      async probeVectorAvailability() {
+        return await manager.probeVectorAvailability();
+      },
+      status() {
+        return manager.status();
+      },
+      close: manager.close ? async () => await manager.close?.() : void 0,
+    },
+  };
 }
 //#endregion
 export { getMemorySearchManager, getTailnetHostname };

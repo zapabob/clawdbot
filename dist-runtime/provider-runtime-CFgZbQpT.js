@@ -1,7 +1,31 @@
 import "./redact-CPjO5IzK.js";
 import "./errors-CHvVoeNX.js";
 import "./unhandled-rejections-BUxLQs1F.js";
-import { $v as refreshProviderOAuthCredentialWithPlugin, Gv as buildProviderAuthDoctorHintWithPlugin, Jv as formatProviderAuthProfileApiKeyWithPlugin, Kv as buildProviderMissingAuthMessageWithPlugin, Qv as prepareProviderRuntimeAuth, Wv as augmentModelCatalogWithProviderPlugins, Xv as prepareProviderDynamicModel, Yv as normalizeProviderResolvedModelWithPlugin, Zv as prepareProviderExtraParams, ay as resolveProviderDefaultThinkingLevel, cy as resolveProviderUsageAuthWithPlugin, dy as runProviderDynamicModel, ey as resetProviderRuntimeHookCacheForTest, fy as wrapProviderStreamFn, iy as resolveProviderCapabilitiesWithPlugin, ly as resolveProviderUsageSnapshotWithPlugin, ny as resolveProviderBuiltInModelSuppression, oy as resolveProviderModernModelRef, qv as clearProviderRuntimeHookCache, ry as resolveProviderCacheTtlEligibility, sy as resolveProviderRuntimePlugin, ty as resolveProviderBinaryThinking, uy as resolveProviderXHighThinking } from "./account-resolution-YAil9v6G.js";
+import {
+  $v as refreshProviderOAuthCredentialWithPlugin,
+  Gv as buildProviderAuthDoctorHintWithPlugin,
+  Jv as formatProviderAuthProfileApiKeyWithPlugin,
+  Kv as buildProviderMissingAuthMessageWithPlugin,
+  Qv as prepareProviderRuntimeAuth,
+  Wv as augmentModelCatalogWithProviderPlugins,
+  Xv as prepareProviderDynamicModel,
+  Yv as normalizeProviderResolvedModelWithPlugin,
+  Zv as prepareProviderExtraParams,
+  ay as resolveProviderDefaultThinkingLevel,
+  cy as resolveProviderUsageAuthWithPlugin,
+  dy as runProviderDynamicModel,
+  ey as resetProviderRuntimeHookCacheForTest,
+  fy as wrapProviderStreamFn,
+  iy as resolveProviderCapabilitiesWithPlugin,
+  ly as resolveProviderUsageSnapshotWithPlugin,
+  ny as resolveProviderBuiltInModelSuppression,
+  oy as resolveProviderModernModelRef,
+  qv as clearProviderRuntimeHookCache,
+  ry as resolveProviderCacheTtlEligibility,
+  sy as resolveProviderRuntimePlugin,
+  ty as resolveProviderBinaryThinking,
+  uy as resolveProviderXHighThinking,
+} from "./account-resolution-YAil9v6G.js";
 import "./io-BeL7sW7Y.js";
 import "./paths-Chd_ukvM.js";
 import "./globals-BKVgh_pY.js";
@@ -114,4 +138,28 @@ import "./query-expansion-Bjd1_3ef.js";
 import "./search-manager-D577MWWo.js";
 import "./mcp-config-Dbre4f6_.js";
 import "./tool-policy-match-53jrVIH7.js";
-export { augmentModelCatalogWithProviderPlugins, buildProviderAuthDoctorHintWithPlugin, buildProviderMissingAuthMessageWithPlugin, clearProviderRuntimeHookCache, formatProviderAuthProfileApiKeyWithPlugin, normalizeProviderResolvedModelWithPlugin, prepareProviderDynamicModel, prepareProviderExtraParams, prepareProviderRuntimeAuth, refreshProviderOAuthCredentialWithPlugin, resetProviderRuntimeHookCacheForTest, resolveProviderBinaryThinking, resolveProviderBuiltInModelSuppression, resolveProviderCacheTtlEligibility, resolveProviderCapabilitiesWithPlugin, resolveProviderDefaultThinkingLevel, resolveProviderModernModelRef, resolveProviderRuntimePlugin, resolveProviderUsageAuthWithPlugin, resolveProviderUsageSnapshotWithPlugin, resolveProviderXHighThinking, runProviderDynamicModel, wrapProviderStreamFn };
+export {
+  augmentModelCatalogWithProviderPlugins,
+  buildProviderAuthDoctorHintWithPlugin,
+  buildProviderMissingAuthMessageWithPlugin,
+  clearProviderRuntimeHookCache,
+  formatProviderAuthProfileApiKeyWithPlugin,
+  normalizeProviderResolvedModelWithPlugin,
+  prepareProviderDynamicModel,
+  prepareProviderExtraParams,
+  prepareProviderRuntimeAuth,
+  refreshProviderOAuthCredentialWithPlugin,
+  resetProviderRuntimeHookCacheForTest,
+  resolveProviderBinaryThinking,
+  resolveProviderBuiltInModelSuppression,
+  resolveProviderCacheTtlEligibility,
+  resolveProviderCapabilitiesWithPlugin,
+  resolveProviderDefaultThinkingLevel,
+  resolveProviderModernModelRef,
+  resolveProviderRuntimePlugin,
+  resolveProviderUsageAuthWithPlugin,
+  resolveProviderUsageSnapshotWithPlugin,
+  resolveProviderXHighThinking,
+  runProviderDynamicModel,
+  wrapProviderStreamFn,
+};

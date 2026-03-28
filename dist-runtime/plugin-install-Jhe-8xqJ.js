@@ -119,5 +119,8 @@ import "./install-B-SbSPl-.js";
 import "./installs-CCuNe7gp.js";
 import "./plugin-install-plan-Bu5o27QQ.js";
 import "./bundled-sources-CWR9atlH.js";
-import { n as loadChannelSetupPluginRegistrySnapshotForChannel, t as ensureChannelSetupPluginInstalled } from "./plugin-install-BOzKUolT.js";
+import {
+  n as loadChannelSetupPluginRegistrySnapshotForChannel,
+  t as ensureChannelSetupPluginInstalled,
+} from "./plugin-install-BOzKUolT.js";
 export { ensureChannelSetupPluginInstalled, loadChannelSetupPluginRegistrySnapshotForChannel };

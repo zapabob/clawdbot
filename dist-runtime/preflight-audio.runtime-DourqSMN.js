@@ -116,7 +116,7 @@ import "./mcp-config-Dbre4f6_.js";
 import "./tool-policy-match-53jrVIH7.js";
 //#region extensions/discord/src/monitor/preflight-audio.runtime.ts
 async function transcribeFirstAudio(...args) {
-	return await transcribeFirstAudio$1(...args);
+  return await transcribeFirstAudio$1(...args);
 }
 //#endregion
 export { transcribeFirstAudio };

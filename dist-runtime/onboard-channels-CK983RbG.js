@@ -107,7 +107,12 @@ import "./stagger-BsxqMI41.js";
 import "./restart-stale-pids-BP2oA1F2.js";
 import "./command-secret-targets-DGJ4EPM0.js";
 import "./delivery-queue-BzK7sSYd.js";
-import { i as setupChannels, n as noteChannelStatus, r as runCollectedChannelOnboardingPostWriteHooks, t as createChannelOnboardingPostWriteHookCollector } from "./onboard-channels-a3AV7afv.js";
+import {
+  i as setupChannels,
+  n as noteChannelStatus,
+  r as runCollectedChannelOnboardingPostWriteHooks,
+  t as createChannelOnboardingPostWriteHookCollector,
+} from "./onboard-channels-a3AV7afv.js";
 import "./channel-summary-9wLP0Z1l.js";
 import "./multimodal-Bsw_Ctum.js";
 import "./memory-search-BR1Y4hk3.js";
@@ -142,4 +147,9 @@ import "./bundled-sources-CWR9atlH.js";
 import "./plugin-install-BOzKUolT.js";
 import "./setup-group-access-CJUzc8dq.js";
 import "./resolve-channels-DRbGghq8.js";
-export { createChannelOnboardingPostWriteHookCollector, noteChannelStatus, runCollectedChannelOnboardingPostWriteHooks, setupChannels };
+export {
+  createChannelOnboardingPostWriteHookCollector,
+  noteChannelStatus,
+  runCollectedChannelOnboardingPostWriteHooks,
+  setupChannels,
+};

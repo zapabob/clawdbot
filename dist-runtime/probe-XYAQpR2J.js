@@ -13,5 +13,10 @@ import "./ip-CWtG939A.js";
 import "./tailnet-BgVZoAmn.js";
 import "./net-B1gQyBKw.js";
 import "./method-scopes-Le0rX1x3.js";
-import { i as probeGateway, n as MIN_PROBE_TIMEOUT_MS, r as clampProbeTimeoutMs, t as MAX_TIMER_DELAY_MS } from "./probe-DqwGbaLM.js";
+import {
+  i as probeGateway,
+  n as MIN_PROBE_TIMEOUT_MS,
+  r as clampProbeTimeoutMs,
+  t as MAX_TIMER_DELAY_MS,
+} from "./probe-DqwGbaLM.js";
 export { MAX_TIMER_DELAY_MS, MIN_PROBE_TIMEOUT_MS, clampProbeTimeoutMs, probeGateway };

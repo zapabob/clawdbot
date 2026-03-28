@@ -116,7 +116,7 @@ import "./mcp-config-Dbre4f6_.js";
 import "./tool-policy-match-53jrVIH7.js";
 //#region extensions/slack/src/monitor/slash-skill-commands.runtime.ts
 function listSkillCommandsForAgents(...args) {
-	return listSkillCommandsForAgents$1(...args);
+  return listSkillCommandsForAgents$1(...args);
 }
 //#endregion
 export { listSkillCommandsForAgents };

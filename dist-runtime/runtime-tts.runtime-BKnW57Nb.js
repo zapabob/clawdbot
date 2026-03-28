@@ -1,7 +1,11 @@
 import "./redact-CPjO5IzK.js";
 import "./errors-CHvVoeNX.js";
 import "./unhandled-rejections-BUxLQs1F.js";
-import { _d as textToSpeech, id as listSpeechVoices, vd as textToSpeechTelephony } from "./account-resolution-YAil9v6G.js";
+import {
+  _d as textToSpeech,
+  id as listSpeechVoices,
+  vd as textToSpeechTelephony,
+} from "./account-resolution-YAil9v6G.js";
 import "./io-BeL7sW7Y.js";
 import "./paths-Chd_ukvM.js";
 import "./globals-BKVgh_pY.js";

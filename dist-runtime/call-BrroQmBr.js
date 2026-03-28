@@ -32,5 +32,27 @@ import "./tailnet-BgVZoAmn.js";
 import "./net-B1gQyBKw.js";
 import "./credentials-ISiLam_U.js";
 import "./method-scopes-Le0rX1x3.js";
-import { a as callGatewayLeastPrivilege, c as randomIdempotencyKey, i as callGatewayCli, l as resolveExplicitGatewayAuth, n as buildGatewayConnectionDetails, o as callGatewayScoped, r as callGateway, s as ensureExplicitGatewayAuth, t as __testing, u as resolveGatewayCredentialsWithSecretInputs } from "./call-C8P8TkMb.js";
-export { __testing, buildGatewayConnectionDetails, callGateway, callGatewayCli, callGatewayLeastPrivilege, callGatewayScoped, ensureExplicitGatewayAuth, randomIdempotencyKey, resolveExplicitGatewayAuth, resolveGatewayCredentialsWithSecretInputs };
+import {
+  a as callGatewayLeastPrivilege,
+  c as randomIdempotencyKey,
+  i as callGatewayCli,
+  l as resolveExplicitGatewayAuth,
+  n as buildGatewayConnectionDetails,
+  o as callGatewayScoped,
+  r as callGateway,
+  s as ensureExplicitGatewayAuth,
+  t as __testing,
+  u as resolveGatewayCredentialsWithSecretInputs,
+} from "./call-C8P8TkMb.js";
+export {
+  __testing,
+  buildGatewayConnectionDetails,
+  callGateway,
+  callGatewayCli,
+  callGatewayLeastPrivilege,
+  callGatewayScoped,
+  ensureExplicitGatewayAuth,
+  randomIdempotencyKey,
+  resolveExplicitGatewayAuth,
+  resolveGatewayCredentialsWithSecretInputs,
+};

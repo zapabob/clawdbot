@@ -1,7 +1,13 @@
 import "./redact-CPjO5IzK.js";
 import "./errors-CHvVoeNX.js";
 import "./unhandled-rejections-BUxLQs1F.js";
-import { Bb as resolveAgentRoute$1, Jf as recordInboundSessionMetaSafe$1, ih as resolveMarkdownTableMode$1, lb as resolveChunkMode$1, yi as dispatchReplyWithDispatcher$1 } from "./account-resolution-YAil9v6G.js";
+import {
+  Bb as resolveAgentRoute$1,
+  Jf as recordInboundSessionMetaSafe$1,
+  ih as resolveMarkdownTableMode$1,
+  lb as resolveChunkMode$1,
+  yi as dispatchReplyWithDispatcher$1,
+} from "./account-resolution-YAil9v6G.js";
 import "./io-BeL7sW7Y.js";
 import { t as resolveConversationLabel$1 } from "./conversation-label-DjXilbMM.js";
 import "./paths-Chd_ukvM.js";
@@ -75,7 +81,7 @@ import "./commands-Bhtcd2Bj.js";
 import "./level-overrides-DfXHgPB9.js";
 import "./exec-approvals-BmEFrzOW.js";
 import "./system-events-CGA-tC6k.js";
-import { x as finalizeInboundContext$1 } from "./templating-B3EHfDLb.js";
+import { r as deliverSlackSlashReplies$1 } from "./replies-DQh1Kx2g.js";
 import "./commands-registry.data-DRqYbvKo.js";
 import "./commands-registry-CbQzy3s0.js";
 import "./frontmatter-CtATI79x.js";
@@ -115,31 +121,40 @@ import "./query-expansion-Bjd1_3ef.js";
 import "./search-manager-D577MWWo.js";
 import "./mcp-config-Dbre4f6_.js";
 import "./tool-policy-match-53jrVIH7.js";
-import { r as deliverSlackSlashReplies$1 } from "./replies-DQh1Kx2g.js";
+import { x as finalizeInboundContext$1 } from "./templating-B3EHfDLb.js";
 //#region extensions/slack/src/monitor/slash-dispatch.runtime.ts
 function resolveChunkMode(...args) {
-	return resolveChunkMode$1(...args);
+  return resolveChunkMode$1(...args);
 }
 function finalizeInboundContext(...args) {
-	return finalizeInboundContext$1(...args);
+  return finalizeInboundContext$1(...args);
 }
 function dispatchReplyWithDispatcher(...args) {
-	return dispatchReplyWithDispatcher$1(...args);
+  return dispatchReplyWithDispatcher$1(...args);
 }
 function resolveConversationLabel(...args) {
-	return resolveConversationLabel$1(...args);
+  return resolveConversationLabel$1(...args);
 }
 function recordInboundSessionMetaSafe(...args) {
-	return recordInboundSessionMetaSafe$1(...args);
+  return recordInboundSessionMetaSafe$1(...args);
 }
 function resolveMarkdownTableMode(...args) {
-	return resolveMarkdownTableMode$1(...args);
+  return resolveMarkdownTableMode$1(...args);
 }
 function resolveAgentRoute(...args) {
-	return resolveAgentRoute$1(...args);
+  return resolveAgentRoute$1(...args);
 }
 function deliverSlackSlashReplies(...args) {
-	return deliverSlackSlashReplies$1(...args);
+  return deliverSlackSlashReplies$1(...args);
 }
 //#endregion
-export { deliverSlackSlashReplies, dispatchReplyWithDispatcher, finalizeInboundContext, recordInboundSessionMetaSafe, resolveAgentRoute, resolveChunkMode, resolveConversationLabel, resolveMarkdownTableMode };
+export {
+  deliverSlackSlashReplies,
+  dispatchReplyWithDispatcher,
+  finalizeInboundContext,
+  recordInboundSessionMetaSafe,
+  resolveAgentRoute,
+  resolveChunkMode,
+  resolveConversationLabel,
+  resolveMarkdownTableMode,
+};

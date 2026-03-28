@@ -116,7 +116,7 @@ import "./mcp-config-Dbre4f6_.js";
 import "./tool-policy-match-53jrVIH7.js";
 //#region src/agents/pi-embedded-runner/compact.runtime.ts
 function compactEmbeddedPiSessionDirect(...args) {
-	return compactEmbeddedPiSessionDirect$1(...args);
+  return compactEmbeddedPiSessionDirect$1(...args);
 }
 //#endregion
 export { compactEmbeddedPiSessionDirect };

@@ -117,6 +117,8 @@ import "./tool-policy-match-53jrVIH7.js";
 import { n as createDiscordSetupWizardProxy } from "./setup-core-CQ8M6fSi.js";
 import "./setup-tools-yT-yzyl3.js";
 //#region extensions/discord/src/channel.runtime.ts
-const discordSetupWizard = createDiscordSetupWizardProxy(async () => (await import("./setup-surface-BYsyOp1m.js")).discordSetupWizard);
+const discordSetupWizard = createDiscordSetupWizardProxy(
+  async () => (await import("./setup-surface-BYsyOp1m.js")).discordSetupWizard,
+);
 //#endregion
 export { discordSetupWizard };

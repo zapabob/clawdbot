@@ -1,7 +1,10 @@
 import "./redact-CPjO5IzK.js";
 import "./errors-CHvVoeNX.js";
 import "./unhandled-rejections-BUxLQs1F.js";
-import { Ga as closeAllMemoryIndexManagers, Wa as MemoryIndexManager } from "./account-resolution-YAil9v6G.js";
+import {
+  Ga as closeAllMemoryIndexManagers,
+  Wa as MemoryIndexManager,
+} from "./account-resolution-YAil9v6G.js";
 import "./io-BeL7sW7Y.js";
 import "./paths-Chd_ukvM.js";
 import "./globals-BKVgh_pY.js";

@@ -1,13 +1,23 @@
 import "./redact-CPjO5IzK.js";
 import "./errors-CHvVoeNX.js";
 import "./unhandled-rejections-BUxLQs1F.js";
-import { Bl as listBundledWebSearchProviders, Rl as resolvePluginWebSearchProviders, Vl as resolveBundledWebSearchPluginId, eu as enablePluginInConfig, zl as sortWebSearchProviders } from "./account-resolution-YAil9v6G.js";
+import {
+  Bl as listBundledWebSearchProviders,
+  Rl as resolvePluginWebSearchProviders,
+  Vl as resolveBundledWebSearchPluginId,
+  eu as enablePluginInConfig,
+  zl as sortWebSearchProviders,
+} from "./account-resolution-YAil9v6G.js";
 import "./io-BeL7sW7Y.js";
 import "./paths-Chd_ukvM.js";
 import "./globals-BKVgh_pY.js";
 import "./theme-CWrxY1-_.js";
 import "./utils-DGUUVa38.js";
-import { a as hasConfiguredSecretInput, l as normalizeSecretInputString, t as DEFAULT_SECRET_PROVIDER_ALIAS } from "./types.secrets-BEA4gMCN.js";
+import {
+  a as hasConfiguredSecretInput,
+  l as normalizeSecretInputString,
+  t as DEFAULT_SECRET_PROVIDER_ALIAS,
+} from "./types.secrets-BEA4gMCN.js";
 import "./subsystem-BZRyMoTO.js";
 import "./ansi-D3lUajt1.js";
 import "./agent-scope-BIySJgkJ.js";
@@ -117,248 +127,317 @@ import "./mcp-config-Dbre4f6_.js";
 import "./tool-policy-match-53jrVIH7.js";
 //#region src/commands/onboard-search.ts
 function resolveSearchProviderCredentialLabel(entry) {
-	if (entry.requiresCredential === false) return `${entry.label} setup`;
-	return entry.credentialLabel?.trim() || `${entry.label} API key`;
+  if (entry.requiresCredential === false) return `${entry.label} setup`;
+  return entry.credentialLabel?.trim() || `${entry.label} API key`;
 }
 const SEARCH_PROVIDER_OPTIONS = resolvePluginWebSearchProviders({ bundledAllowlistCompat: true });
 function canRepairBundledProviderSelection(config, provider) {
-	const pluginId = provider.pluginId ?? resolveBundledWebSearchPluginId(provider.id);
-	if (!pluginId) return false;
-	if (config.plugins?.enabled === false) return false;
-	return !config.plugins?.deny?.includes(pluginId);
+  const pluginId = provider.pluginId ?? resolveBundledWebSearchPluginId(provider.id);
+  if (!pluginId) return false;
+  if (config.plugins?.enabled === false) return false;
+  return !config.plugins?.deny?.includes(pluginId);
 }
 function resolveSearchProviderOptions(config) {
-	if (!config) return SEARCH_PROVIDER_OPTIONS;
-	const merged = new Map(resolvePluginWebSearchProviders({
-		config,
-		bundledAllowlistCompat: true,
-		env: process.env
-	}).map((entry) => [entry.id, entry]));
-	for (const entry of listBundledWebSearchProviders()) {
-		if (merged.has(entry.id) || !canRepairBundledProviderSelection(config, entry)) continue;
-		merged.set(entry.id, entry);
-	}
-	return sortWebSearchProviders([...merged.values()]);
+  if (!config) return SEARCH_PROVIDER_OPTIONS;
+  const merged = new Map(
+    resolvePluginWebSearchProviders({
+      config,
+      bundledAllowlistCompat: true,
+      env: process.env,
+    }).map((entry) => [entry.id, entry]),
+  );
+  for (const entry of listBundledWebSearchProviders()) {
+    if (merged.has(entry.id) || !canRepairBundledProviderSelection(config, entry)) continue;
+    merged.set(entry.id, entry);
+  }
+  return sortWebSearchProviders([...merged.values()]);
 }
 function resolveSearchProviderEntry(config, provider) {
-	return resolveSearchProviderOptions(config).find((entry) => entry.id === provider);
+  return resolveSearchProviderOptions(config).find((entry) => entry.id === provider);
 }
 function hasKeyInEnv(entry) {
-	return entry.envVars.some((k) => Boolean(process.env[k]?.trim()));
+  return entry.envVars.some((k) => Boolean(process.env[k]?.trim()));
 }
 function providerNeedsCredential(entry) {
-	return entry.requiresCredential !== false;
+  return entry.requiresCredential !== false;
 }
 function providerIsReady(config, entry) {
-	if (!providerNeedsCredential(entry)) return true;
-	return hasExistingKey(config, entry.id) || hasKeyInEnv(entry);
+  if (!providerNeedsCredential(entry)) return true;
+  return hasExistingKey(config, entry.id) || hasKeyInEnv(entry);
 }
 function rawKeyValue(config, provider) {
-	const search = config.tools?.web?.search;
-	const entry = resolveSearchProviderEntry(config, provider);
-	return entry?.getConfiguredCredentialValue?.(config) ?? entry?.getCredentialValue(search);
+  const search = config.tools?.web?.search;
+  const entry = resolveSearchProviderEntry(config, provider);
+  return entry?.getConfiguredCredentialValue?.(config) ?? entry?.getCredentialValue(search);
 }
 /** Returns the plaintext key string, or undefined for SecretRefs/missing. */
 function resolveExistingKey(config, provider) {
-	return normalizeSecretInputString(rawKeyValue(config, provider));
+  return normalizeSecretInputString(rawKeyValue(config, provider));
 }
 /** Returns true if a key is configured (plaintext string or SecretRef). */
 function hasExistingKey(config, provider) {
-	return hasConfiguredSecretInput(rawKeyValue(config, provider));
+  return hasConfiguredSecretInput(rawKeyValue(config, provider));
 }
 /** Build an env-backed SecretRef for a search provider. */
 function buildSearchEnvRef(config, provider) {
-	const entry = resolveSearchProviderEntry(config, provider) ?? SEARCH_PROVIDER_OPTIONS.find((candidate) => candidate.id === provider) ?? listBundledWebSearchProviders().find((candidate) => candidate.id === provider);
-	const envVar = entry?.envVars.find((k) => Boolean(process.env[k]?.trim())) ?? entry?.envVars[0];
-	if (!envVar) throw new Error(`No env var mapping for search provider "${provider}" at ${entry?.credentialPath ?? "unknown path"} in secret-input-mode=ref.`);
-	return {
-		source: "env",
-		provider: DEFAULT_SECRET_PROVIDER_ALIAS,
-		id: envVar
-	};
+  const entry =
+    resolveSearchProviderEntry(config, provider) ??
+    SEARCH_PROVIDER_OPTIONS.find((candidate) => candidate.id === provider) ??
+    listBundledWebSearchProviders().find((candidate) => candidate.id === provider);
+  const envVar = entry?.envVars.find((k) => Boolean(process.env[k]?.trim())) ?? entry?.envVars[0];
+  if (!envVar)
+    throw new Error(
+      `No env var mapping for search provider "${provider}" at ${entry?.credentialPath ?? "unknown path"} in secret-input-mode=ref.`,
+    );
+  return {
+    source: "env",
+    provider: DEFAULT_SECRET_PROVIDER_ALIAS,
+    id: envVar,
+  };
 }
 /** Resolve a plaintext key into the appropriate SecretInput based on mode. */
 function resolveSearchSecretInput(config, provider, key, secretInputMode) {
-	if (secretInputMode === "ref") return buildSearchEnvRef(config, provider);
-	return key;
+  if (secretInputMode === "ref") return buildSearchEnvRef(config, provider);
+  return key;
 }
 function applySearchKey(config, provider, key) {
-	const providerEntry = resolveSearchProviderEntry(config, provider);
-	if (!providerEntry) return config;
-	const search = {
-		...config.tools?.web?.search,
-		provider,
-		enabled: true
-	};
-	if (!providerEntry.setConfiguredCredentialValue) providerEntry.setCredentialValue(search, key);
-	const next = applySearchProviderSelectionConfig({
-		...config,
-		tools: {
-			...config.tools,
-			web: {
-				...config.tools?.web,
-				search
-			}
-		}
-	}, providerEntry);
-	providerEntry.setConfiguredCredentialValue?.(next, key);
-	return next;
+  const providerEntry = resolveSearchProviderEntry(config, provider);
+  if (!providerEntry) return config;
+  const search = {
+    ...config.tools?.web?.search,
+    provider,
+    enabled: true,
+  };
+  if (!providerEntry.setConfiguredCredentialValue) providerEntry.setCredentialValue(search, key);
+  const next = applySearchProviderSelectionConfig(
+    {
+      ...config,
+      tools: {
+        ...config.tools,
+        web: {
+          ...config.tools?.web,
+          search,
+        },
+      },
+    },
+    providerEntry,
+  );
+  providerEntry.setConfiguredCredentialValue?.(next, key);
+  return next;
 }
 function applySearchProviderSelectionConfig(config, providerEntry) {
-	if (providerEntry.applySelectionConfig) return providerEntry.applySelectionConfig(config);
-	if (providerEntry.pluginId) return enablePluginInConfig(config, providerEntry.pluginId).config;
-	return config;
+  if (providerEntry.applySelectionConfig) return providerEntry.applySelectionConfig(config);
+  if (providerEntry.pluginId) return enablePluginInConfig(config, providerEntry.pluginId).config;
+  return config;
 }
 function applySearchProviderSelection(config, provider) {
-	const providerEntry = resolveSearchProviderEntry(config, provider);
-	if (!providerEntry) return config;
-	const search = {
-		...config.tools?.web?.search,
-		provider,
-		enabled: true
-	};
-	return applySearchProviderSelectionConfig({
-		...config,
-		tools: {
-			...config.tools,
-			web: {
-				...config.tools?.web,
-				search
-			}
-		}
-	}, providerEntry);
+  const providerEntry = resolveSearchProviderEntry(config, provider);
+  if (!providerEntry) return config;
+  const search = {
+    ...config.tools?.web?.search,
+    provider,
+    enabled: true,
+  };
+  return applySearchProviderSelectionConfig(
+    {
+      ...config,
+      tools: {
+        ...config.tools,
+        web: {
+          ...config.tools?.web,
+          search,
+        },
+      },
+    },
+    providerEntry,
+  );
 }
 function preserveDisabledState(original, result) {
-	if (original.tools?.web?.search?.enabled !== false) return result;
-	const next = {
-		...result,
-		tools: {
-			...result.tools,
-			web: {
-				...result.tools?.web,
-				search: {
-					...result.tools?.web?.search,
-					enabled: false
-				}
-			}
-		}
-	};
-	const provider = next.tools?.web?.search?.provider;
-	if (typeof provider !== "string") return next;
-	const providerEntry = resolveSearchProviderEntry(original, provider);
-	if (!providerEntry?.pluginId) return next;
-	const pluginId = providerEntry.pluginId;
-	const originalPluginEntry = (original.plugins?.entries)?.[pluginId];
-	const resultPluginEntry = (next.plugins?.entries)?.[pluginId];
-	const nextPlugins = { ...next.plugins };
-	if (Array.isArray(original.plugins?.allow)) nextPlugins.allow = [...original.plugins.allow];
-	else delete nextPlugins.allow;
-	if (resultPluginEntry || originalPluginEntry) {
-		const nextEntries = { ...nextPlugins.entries };
-		const patchedEntry = { ...resultPluginEntry };
-		if (typeof originalPluginEntry?.enabled === "boolean") patchedEntry.enabled = originalPluginEntry.enabled;
-		else delete patchedEntry.enabled;
-		nextEntries[pluginId] = patchedEntry;
-		nextPlugins.entries = nextEntries;
-	}
-	return {
-		...next,
-		plugins: nextPlugins
-	};
+  if (original.tools?.web?.search?.enabled !== false) return result;
+  const next = {
+    ...result,
+    tools: {
+      ...result.tools,
+      web: {
+        ...result.tools?.web,
+        search: {
+          ...result.tools?.web?.search,
+          enabled: false,
+        },
+      },
+    },
+  };
+  const provider = next.tools?.web?.search?.provider;
+  if (typeof provider !== "string") return next;
+  const providerEntry = resolveSearchProviderEntry(original, provider);
+  if (!providerEntry?.pluginId) return next;
+  const pluginId = providerEntry.pluginId;
+  const originalPluginEntry = original.plugins?.entries?.[pluginId];
+  const resultPluginEntry = next.plugins?.entries?.[pluginId];
+  const nextPlugins = { ...next.plugins };
+  if (Array.isArray(original.plugins?.allow)) nextPlugins.allow = [...original.plugins.allow];
+  else delete nextPlugins.allow;
+  if (resultPluginEntry || originalPluginEntry) {
+    const nextEntries = { ...nextPlugins.entries };
+    const patchedEntry = { ...resultPluginEntry };
+    if (typeof originalPluginEntry?.enabled === "boolean")
+      patchedEntry.enabled = originalPluginEntry.enabled;
+    else delete patchedEntry.enabled;
+    nextEntries[pluginId] = patchedEntry;
+    nextPlugins.entries = nextEntries;
+  }
+  return {
+    ...next,
+    plugins: nextPlugins,
+  };
 }
 async function setupSearch(config, _runtime, prompter, opts) {
-	const providerOptions = resolveSearchProviderOptions(config);
-	if (providerOptions.length === 0) {
-		await prompter.note([
-			"No web search providers are currently available under this plugin policy.",
-			"Enable plugins or remove deny rules, then run setup again.",
-			"Docs: https://docs.openclaw.ai/tools/web"
-		].join("\n"), "Web search");
-		return config;
-	}
-	await prompter.note([
-		"Web search lets your agent look things up online.",
-		"Choose a provider. Some providers need an API key, and some work key-free.",
-		"Docs: https://docs.openclaw.ai/tools/web"
-	].join("\n"), "Web search");
-	const existingProvider = config.tools?.web?.search?.provider;
-	const options = providerOptions.map((entry) => {
-		const hint = entry.requiresCredential === false ? `${entry.hint} · key-free` : providerIsReady(config, entry) ? `${entry.hint} · configured` : entry.hint;
-		return {
-			value: entry.id,
-			label: entry.label,
-			hint
-		};
-	});
-	const defaultProvider = (() => {
-		if (existingProvider && providerOptions.some((entry) => entry.id === existingProvider)) return existingProvider;
-		const detected = providerOptions.find((entry) => providerIsReady(config, entry));
-		if (detected) return detected.id;
-		return providerOptions[0].id;
-	})();
-	const choice = await prompter.select({
-		message: "Search provider",
-		options: [...options, {
-			value: "__skip__",
-			label: "Skip for now",
-			hint: "Configure later with openclaw configure --section web"
-		}],
-		initialValue: defaultProvider
-	});
-	if (choice === "__skip__") return config;
-	const entry = resolveSearchProviderEntry(config, choice) ?? providerOptions.find((e) => e.id === choice);
-	if (!entry) return config;
-	const credentialLabel = resolveSearchProviderCredentialLabel(entry);
-	const existingKey = resolveExistingKey(config, choice);
-	const keyConfigured = hasExistingKey(config, choice);
-	const envAvailable = hasKeyInEnv(entry);
-	const needsCredential = providerNeedsCredential(entry);
-	if (opts?.quickstartDefaults && (keyConfigured || envAvailable)) return preserveDisabledState(config, existingKey ? applySearchKey(config, choice, existingKey) : applySearchProviderSelection(config, choice));
-	if (!needsCredential) {
-		await prompter.note([
-			`${entry.label} works without an API key.`,
-			"OpenClaw will enable the plugin and use it as your web_search provider.",
-			`Docs: ${entry.docsUrl ?? "https://docs.openclaw.ai/tools/web"}`
-		].join("\n"), "Web search");
-		return preserveDisabledState(config, applySearchProviderSelection(config, choice));
-	}
-	if (opts?.secretInputMode === "ref") {
-		if (keyConfigured) return preserveDisabledState(config, applySearchProviderSelection(config, choice));
-		const ref = buildSearchEnvRef(config, choice);
-		await prompter.note([
-			"Secret references enabled — OpenClaw will store a reference instead of the API key.",
-			`Env var: ${ref.id}${envAvailable ? " (detected)" : ""}.`,
-			...envAvailable ? [] : [`Set ${ref.id} in the Gateway environment.`],
-			"Docs: https://docs.openclaw.ai/tools/web"
-		].join("\n"), "Web search");
-		return applySearchKey(config, choice, ref);
-	}
-	const key = (await prompter.text({
-		message: keyConfigured ? `${credentialLabel} (leave blank to keep current)` : envAvailable ? `${credentialLabel} (leave blank to use env var)` : credentialLabel,
-		placeholder: keyConfigured ? "Leave blank to keep current" : entry.placeholder
-	}))?.trim() ?? "";
-	if (key) return applySearchKey(config, choice, resolveSearchSecretInput(config, choice, key, opts?.secretInputMode));
-	if (existingKey) return preserveDisabledState(config, applySearchKey(config, choice, existingKey));
-	if (keyConfigured || envAvailable) return preserveDisabledState(config, applySearchProviderSelection(config, choice));
-	await prompter.note([
-		`No ${credentialLabel} stored — web_search won't work until a key is available.`,
-		`Get your key at: ${entry.signupUrl}`,
-		"Docs: https://docs.openclaw.ai/tools/web"
-	].join("\n"), "Web search");
-	const search = {
-		...config.tools?.web?.search,
-		provider: choice
-	};
-	return {
-		...config,
-		tools: {
-			...config.tools,
-			web: {
-				...config.tools?.web,
-				search
-			}
-		}
-	};
+  const providerOptions = resolveSearchProviderOptions(config);
+  if (providerOptions.length === 0) {
+    await prompter.note(
+      [
+        "No web search providers are currently available under this plugin policy.",
+        "Enable plugins or remove deny rules, then run setup again.",
+        "Docs: https://docs.openclaw.ai/tools/web",
+      ].join("\n"),
+      "Web search",
+    );
+    return config;
+  }
+  await prompter.note(
+    [
+      "Web search lets your agent look things up online.",
+      "Choose a provider. Some providers need an API key, and some work key-free.",
+      "Docs: https://docs.openclaw.ai/tools/web",
+    ].join("\n"),
+    "Web search",
+  );
+  const existingProvider = config.tools?.web?.search?.provider;
+  const options = providerOptions.map((entry) => {
+    const hint =
+      entry.requiresCredential === false
+        ? `${entry.hint} · key-free`
+        : providerIsReady(config, entry)
+          ? `${entry.hint} · configured`
+          : entry.hint;
+    return {
+      value: entry.id,
+      label: entry.label,
+      hint,
+    };
+  });
+  const defaultProvider = (() => {
+    if (existingProvider && providerOptions.some((entry) => entry.id === existingProvider))
+      return existingProvider;
+    const detected = providerOptions.find((entry) => providerIsReady(config, entry));
+    if (detected) return detected.id;
+    return providerOptions[0].id;
+  })();
+  const choice = await prompter.select({
+    message: "Search provider",
+    options: [
+      ...options,
+      {
+        value: "__skip__",
+        label: "Skip for now",
+        hint: "Configure later with openclaw configure --section web",
+      },
+    ],
+    initialValue: defaultProvider,
+  });
+  if (choice === "__skip__") return config;
+  const entry =
+    resolveSearchProviderEntry(config, choice) ?? providerOptions.find((e) => e.id === choice);
+  if (!entry) return config;
+  const credentialLabel = resolveSearchProviderCredentialLabel(entry);
+  const existingKey = resolveExistingKey(config, choice);
+  const keyConfigured = hasExistingKey(config, choice);
+  const envAvailable = hasKeyInEnv(entry);
+  const needsCredential = providerNeedsCredential(entry);
+  if (opts?.quickstartDefaults && (keyConfigured || envAvailable))
+    return preserveDisabledState(
+      config,
+      existingKey
+        ? applySearchKey(config, choice, existingKey)
+        : applySearchProviderSelection(config, choice),
+    );
+  if (!needsCredential) {
+    await prompter.note(
+      [
+        `${entry.label} works without an API key.`,
+        "OpenClaw will enable the plugin and use it as your web_search provider.",
+        `Docs: ${entry.docsUrl ?? "https://docs.openclaw.ai/tools/web"}`,
+      ].join("\n"),
+      "Web search",
+    );
+    return preserveDisabledState(config, applySearchProviderSelection(config, choice));
+  }
+  if (opts?.secretInputMode === "ref") {
+    if (keyConfigured)
+      return preserveDisabledState(config, applySearchProviderSelection(config, choice));
+    const ref = buildSearchEnvRef(config, choice);
+    await prompter.note(
+      [
+        "Secret references enabled — OpenClaw will store a reference instead of the API key.",
+        `Env var: ${ref.id}${envAvailable ? " (detected)" : ""}.`,
+        ...(envAvailable ? [] : [`Set ${ref.id} in the Gateway environment.`]),
+        "Docs: https://docs.openclaw.ai/tools/web",
+      ].join("\n"),
+      "Web search",
+    );
+    return applySearchKey(config, choice, ref);
+  }
+  const key =
+    (
+      await prompter.text({
+        message: keyConfigured
+          ? `${credentialLabel} (leave blank to keep current)`
+          : envAvailable
+            ? `${credentialLabel} (leave blank to use env var)`
+            : credentialLabel,
+        placeholder: keyConfigured ? "Leave blank to keep current" : entry.placeholder,
+      })
+    )?.trim() ?? "";
+  if (key)
+    return applySearchKey(
+      config,
+      choice,
+      resolveSearchSecretInput(config, choice, key, opts?.secretInputMode),
+    );
+  if (existingKey)
+    return preserveDisabledState(config, applySearchKey(config, choice, existingKey));
+  if (keyConfigured || envAvailable)
+    return preserveDisabledState(config, applySearchProviderSelection(config, choice));
+  await prompter.note(
+    [
+      `No ${credentialLabel} stored — web_search won't work until a key is available.`,
+      `Get your key at: ${entry.signupUrl}`,
+      "Docs: https://docs.openclaw.ai/tools/web",
+    ].join("\n"),
+    "Web search",
+  );
+  const search = {
+    ...config.tools?.web?.search,
+    provider: choice,
+  };
+  return {
+    ...config,
+    tools: {
+      ...config.tools,
+      web: {
+        ...config.tools?.web,
+        search,
+      },
+    },
+  };
 }
 //#endregion
-export { applySearchKey, applySearchProviderSelection, hasExistingKey, hasKeyInEnv, resolveExistingKey, resolveSearchProviderOptions, setupSearch };
+export {
+  applySearchKey,
+  applySearchProviderSelection,
+  hasExistingKey,
+  hasKeyInEnv,
+  resolveExistingKey,
+  resolveSearchProviderOptions,
+  setupSearch,
+};

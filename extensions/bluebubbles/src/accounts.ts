@@ -1,8 +1,5 @@
-import {
-  createAccountListHelpers,
-  normalizeAccountId,
-  resolveMergedAccountConfig,
-} from "openclaw/plugin-sdk/account-resolution";
+import { createAccountListHelpers, resolveMergedAccountConfig } from "openclaw/plugin-sdk/core";
+import { normalizeAccountId } from "openclaw/plugin-sdk/core";
 import type { OpenClawConfig } from "openclaw/plugin-sdk/core";
 import { hasConfiguredSecretInput, normalizeSecretInputString } from "./secret-input.js";
 import { normalizeBlueBubblesServerUrl, type BlueBubblesAccountConfig } from "./types.js";

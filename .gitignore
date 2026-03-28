@@ -217,3 +217,27 @@ scripts/hypura/evolved/*.py
 !scripts/hypura/
 !extensions/hypura-harness/
 nul
+
+# Local temporary and conflict-related files
+temp_violations_detailed.csv
+temp_git_status.txt
+temp_modified_files.log
+temp_file_list.json
+temp_modified_files.json
+conflicted.json
+ollama_conflict.json
+pkg_conflict.json
+debug_bundled.ts
+test.mjs
+test2.mjs
+test3.mjs
+test4.mjs
+_docs/resonance/
+
+# ASI Sovereignty: Identity & Soul (NEVER COMMIT/PUBLISH)
+identity/
+SOUL.md
+IDENTITY.md
+USER.md
+MEMORY.md
+AGENT.md

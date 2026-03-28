@@ -27,26 +27,30 @@ import "./network-mode-JwypQ_rG.js";
 import "./ip-CWtG939A.js";
 import "./config-Cfud9qZm.js";
 import "./runtime-Bd4XqlOP.js";
-import { l as updateSessionStore } from "./store-Bo1TX1Sc.js";
+import {
+  n as hasAbortCutoff,
+  t as applyAbortCutoffToSessionEntry,
+} from "./abort-cutoff-tvZDYFHB.js";
 import "./plugins-AUGbKgu9.js";
 import "./paths-0NHK4yJk.js";
 import "./session-write-lock-D4oaWfci.js";
-import { n as hasAbortCutoff, t as applyAbortCutoffToSessionEntry } from "./abort-cutoff-tvZDYFHB.js";
+import { l as updateSessionStore } from "./store-Bo1TX1Sc.js";
 //#region src/auto-reply/reply/abort-cutoff.runtime.ts
 async function clearAbortCutoffInSessionRuntime(params) {
-	const { sessionEntry, sessionStore, sessionKey, storePath } = params;
-	if (!sessionEntry || !sessionStore || !sessionKey || !hasAbortCutoff(sessionEntry)) return false;
-	applyAbortCutoffToSessionEntry(sessionEntry, void 0);
-	sessionEntry.updatedAt = Date.now();
-	sessionStore[sessionKey] = sessionEntry;
-	if (storePath) await updateSessionStore(storePath, (store) => {
-		const existing = store[sessionKey] ?? sessionEntry;
-		if (!existing) return;
-		applyAbortCutoffToSessionEntry(existing, void 0);
-		existing.updatedAt = Date.now();
-		store[sessionKey] = existing;
-	});
-	return true;
+  const { sessionEntry, sessionStore, sessionKey, storePath } = params;
+  if (!sessionEntry || !sessionStore || !sessionKey || !hasAbortCutoff(sessionEntry)) return false;
+  applyAbortCutoffToSessionEntry(sessionEntry, void 0);
+  sessionEntry.updatedAt = Date.now();
+  sessionStore[sessionKey] = sessionEntry;
+  if (storePath)
+    await updateSessionStore(storePath, (store) => {
+      const existing = store[sessionKey] ?? sessionEntry;
+      if (!existing) return;
+      applyAbortCutoffToSessionEntry(existing, void 0);
+      existing.updatedAt = Date.now();
+      store[sessionKey] = existing;
+    });
+  return true;
 }
 //#endregion
 export { clearAbortCutoffInSessionRuntime };

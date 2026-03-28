@@ -32,7 +32,7 @@ import "./audit-fs-BVqUNCSg.js";
 import "./resolve-BNoFF8j-.js";
 //#region src/agents/auth-profiles.runtime.ts
 function ensureAuthProfileStore(...args) {
-	return ensureAuthProfileStore$1(...args);
+  return ensureAuthProfileStore$1(...args);
 }
 //#endregion
 export { ensureAuthProfileStore };

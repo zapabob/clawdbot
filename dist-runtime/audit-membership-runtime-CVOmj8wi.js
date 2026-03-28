@@ -1,12 +1,16 @@
 import "./redact-CPjO5IzK.js";
 import "./errors-CHvVoeNX.js";
 import "./unhandled-rejections-BUxLQs1F.js";
-import { Tm as makeProxyFetch, np as resolveTelegramFetch, tp as resolveTelegramApiBase } from "./account-resolution-YAil9v6G.js";
+import {
+  Tm as makeProxyFetch,
+  np as resolveTelegramFetch,
+  tp as resolveTelegramApiBase,
+} from "./account-resolution-YAil9v6G.js";
 import "./io-BeL7sW7Y.js";
 import "./paths-Chd_ukvM.js";
 import "./globals-BKVgh_pY.js";
 import "./theme-CWrxY1-_.js";
-import { d as isRecord } from "./utils-DGUUVa38.js";
+import { n as fetchWithTimeout } from "./fetch-timeout-B4-ZGZLQ.js";
 import "./subsystem-BZRyMoTO.js";
 import "./ansi-D3lUajt1.js";
 import "./agent-scope-BIySJgkJ.js";
@@ -37,7 +41,7 @@ import "./network-mode-JwypQ_rG.js";
 import "./ip-CWtG939A.js";
 import "./config-Cfud9qZm.js";
 import "./diagnostic-Bah53Phe.js";
-import { n as fetchWithTimeout } from "./fetch-timeout-B4-ZGZLQ.js";
+import { d as isRecord } from "./utils-DGUUVa38.js";
 import "./config-presence-D04hcCoX.js";
 import "./runtime-Bd4XqlOP.js";
 import "./runtime-whatsapp-boundary-Di5xVA5u.js";
@@ -117,51 +121,62 @@ import "./mcp-config-Dbre4f6_.js";
 import "./tool-policy-match-53jrVIH7.js";
 //#region extensions/telegram/src/audit-membership-runtime.ts
 async function auditTelegramGroupMembershipImpl(params) {
-	const fetcher = resolveTelegramFetch(params.proxyUrl ? makeProxyFetch(params.proxyUrl) : void 0, { network: params.network });
-	const base = `${resolveTelegramApiBase(params.apiRoot)}/bot${params.token}`;
-	const groups = [];
-	for (const chatId of params.groupIds) try {
-		const res = await fetchWithTimeout(`${base}/getChatMember?chat_id=${encodeURIComponent(chatId)}&user_id=${encodeURIComponent(String(params.botId))}`, {}, params.timeoutMs, fetcher);
-		const json = await res.json();
-		if (!res.ok || !isRecord(json) || !json.ok) {
-			const desc = isRecord(json) && !json.ok && typeof json.description === "string" ? json.description : `getChatMember failed (${res.status})`;
-			groups.push({
-				chatId,
-				ok: false,
-				status: null,
-				error: desc,
-				matchKey: chatId,
-				matchSource: "id"
-			});
-			continue;
-		}
-		const status = isRecord(json.result) ? json.result.status ?? null : null;
-		const ok = status === "creator" || status === "administrator" || status === "member";
-		groups.push({
-			chatId,
-			ok,
-			status,
-			error: ok ? null : "bot not in group",
-			matchKey: chatId,
-			matchSource: "id"
-		});
-	} catch (err) {
-		groups.push({
-			chatId,
-			ok: false,
-			status: null,
-			error: err instanceof Error ? err.message : String(err),
-			matchKey: chatId,
-			matchSource: "id"
-		});
-	}
-	return {
-		ok: groups.every((g) => g.ok),
-		checkedGroups: groups.length,
-		unresolvedGroups: 0,
-		hasWildcardUnmentionedGroups: false,
-		groups
-	};
+  const fetcher = resolveTelegramFetch(params.proxyUrl ? makeProxyFetch(params.proxyUrl) : void 0, {
+    network: params.network,
+  });
+  const base = `${resolveTelegramApiBase(params.apiRoot)}/bot${params.token}`;
+  const groups = [];
+  for (const chatId of params.groupIds)
+    try {
+      const res = await fetchWithTimeout(
+        `${base}/getChatMember?chat_id=${encodeURIComponent(chatId)}&user_id=${encodeURIComponent(String(params.botId))}`,
+        {},
+        params.timeoutMs,
+        fetcher,
+      );
+      const json = await res.json();
+      if (!res.ok || !isRecord(json) || !json.ok) {
+        const desc =
+          isRecord(json) && !json.ok && typeof json.description === "string"
+            ? json.description
+            : `getChatMember failed (${res.status})`;
+        groups.push({
+          chatId,
+          ok: false,
+          status: null,
+          error: desc,
+          matchKey: chatId,
+          matchSource: "id",
+        });
+        continue;
+      }
+      const status = isRecord(json.result) ? (json.result.status ?? null) : null;
+      const ok = status === "creator" || status === "administrator" || status === "member";
+      groups.push({
+        chatId,
+        ok,
+        status,
+        error: ok ? null : "bot not in group",
+        matchKey: chatId,
+        matchSource: "id",
+      });
+    } catch (err) {
+      groups.push({
+        chatId,
+        ok: false,
+        status: null,
+        error: err instanceof Error ? err.message : String(err),
+        matchKey: chatId,
+        matchSource: "id",
+      });
+    }
+  return {
+    ok: groups.every((g) => g.ok),
+    checkedGroups: groups.length,
+    unresolvedGroups: 0,
+    hasWildcardUnmentionedGroups: false,
+    groups,
+  };
 }
 //#endregion
 export { auditTelegramGroupMembershipImpl };

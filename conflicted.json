@@ -1,0 +1,8 @@
+[
+  "extensions/acpx/src/config.ts",
+  "extensions/ollama/src/stream.ts",
+  "package.json",
+  "pnpm-lock.yaml",
+  "src/gateway/server-methods.ts",
+  "vendor/a2ui/renderers/lit/tsconfig.json"
+]

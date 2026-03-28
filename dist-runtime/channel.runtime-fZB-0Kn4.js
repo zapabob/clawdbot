@@ -1,7 +1,14 @@
 import "./redact-CPjO5IzK.js";
 import "./errors-CHvVoeNX.js";
 import "./unhandled-rejections-BUxLQs1F.js";
-import { Hg as resolveOutboundSendDep, Ph as createDetectedBinaryStatus, __ as PAIRING_APPROVED_MESSAGE, dg as setSetupChannelEnabled, lf as resolveChannelMediaMaxBytes, mg as detectBinary } from "./account-resolution-YAil9v6G.js";
+import {
+  Hg as resolveOutboundSendDep,
+  Ph as createDetectedBinaryStatus,
+  __ as PAIRING_APPROVED_MESSAGE,
+  dg as setSetupChannelEnabled,
+  lf as resolveChannelMediaMaxBytes,
+  mg as detectBinary,
+} from "./account-resolution-YAil9v6G.js";
 import "./io-BeL7sW7Y.js";
 import "./paths-Chd_ukvM.js";
 import "./globals-BKVgh_pY.js";
@@ -116,72 +123,92 @@ import "./mcp-config-Dbre4f6_.js";
 import "./tool-policy-match-53jrVIH7.js";
 import "./setup-tools-yT-yzyl3.js";
 import { r as probeIMessage, t as monitorIMessageProvider } from "./runtime-api-mA2BgZV0.js";
-import { i as imessageDmPolicy, o as imessageSetupStatusBase, r as imessageCompletionNote, s as getIMessageRuntime, t as createIMessageCliPathTextInput } from "./setup-core-C5AO0Myq2.js";
+import {
+  i as imessageDmPolicy,
+  o as imessageSetupStatusBase,
+  r as imessageCompletionNote,
+  s as getIMessageRuntime,
+  t as createIMessageCliPathTextInput,
+} from "./setup-core-C5AO0Myq2.js";
 //#region extensions/imessage/src/setup-surface.ts
 const channel = "imessage";
 const imessageSetupWizard = {
-	channel,
-	status: createDetectedBinaryStatus({
-		channelLabel: "iMessage",
-		binaryLabel: "imsg",
-		configuredLabel: imessageSetupStatusBase.configuredLabel,
-		unconfiguredLabel: imessageSetupStatusBase.unconfiguredLabel,
-		configuredHint: imessageSetupStatusBase.configuredHint,
-		unconfiguredHint: imessageSetupStatusBase.unconfiguredHint,
-		configuredScore: imessageSetupStatusBase.configuredScore,
-		unconfiguredScore: imessageSetupStatusBase.unconfiguredScore,
-		resolveConfigured: imessageSetupStatusBase.resolveConfigured,
-		resolveBinaryPath: ({ cfg }) => cfg.channels?.imessage?.cliPath ?? "imsg",
-		detectBinary
-	}),
-	credentials: [],
-	textInputs: [createIMessageCliPathTextInput(async ({ currentValue }) => {
-		return !await detectBinary(currentValue ?? "imsg");
-	})],
-	completionNote: imessageCompletionNote,
-	dmPolicy: imessageDmPolicy,
-	disable: (cfg) => setSetupChannelEnabled(cfg, channel, false)
+  channel,
+  status: createDetectedBinaryStatus({
+    channelLabel: "iMessage",
+    binaryLabel: "imsg",
+    configuredLabel: imessageSetupStatusBase.configuredLabel,
+    unconfiguredLabel: imessageSetupStatusBase.unconfiguredLabel,
+    configuredHint: imessageSetupStatusBase.configuredHint,
+    unconfiguredHint: imessageSetupStatusBase.unconfiguredHint,
+    configuredScore: imessageSetupStatusBase.configuredScore,
+    unconfiguredScore: imessageSetupStatusBase.unconfiguredScore,
+    resolveConfigured: imessageSetupStatusBase.resolveConfigured,
+    resolveBinaryPath: ({ cfg }) => cfg.channels?.imessage?.cliPath ?? "imsg",
+    detectBinary,
+  }),
+  credentials: [],
+  textInputs: [
+    createIMessageCliPathTextInput(async ({ currentValue }) => {
+      return !(await detectBinary(currentValue ?? "imsg"));
+    }),
+  ],
+  completionNote: imessageCompletionNote,
+  dmPolicy: imessageDmPolicy,
+  disable: (cfg) => setSetupChannelEnabled(cfg, channel, false),
 };
 //#endregion
 //#region extensions/imessage/src/channel.runtime.ts
 async function sendIMessageOutbound(params) {
-	const send = resolveOutboundSendDep(params.deps, "imessage") ?? getIMessageRuntime().channel.imessage.sendMessageIMessage;
-	const maxBytes = resolveChannelMediaMaxBytes({
-		cfg: params.cfg,
-		resolveChannelLimitMb: ({ cfg, accountId }) => cfg.channels?.imessage?.accounts?.[accountId]?.mediaMaxMb ?? cfg.channels?.imessage?.mediaMaxMb,
-		accountId: params.accountId
-	});
-	return await send(params.to, params.text, {
-		config: params.cfg,
-		...params.mediaUrl ? { mediaUrl: params.mediaUrl } : {},
-		...params.mediaLocalRoots?.length ? { mediaLocalRoots: params.mediaLocalRoots } : {},
-		maxBytes,
-		accountId: params.accountId ?? void 0,
-		replyToId: params.replyToId ?? void 0
-	});
+  const send =
+    resolveOutboundSendDep(params.deps, "imessage") ??
+    getIMessageRuntime().channel.imessage.sendMessageIMessage;
+  const maxBytes = resolveChannelMediaMaxBytes({
+    cfg: params.cfg,
+    resolveChannelLimitMb: ({ cfg, accountId }) =>
+      cfg.channels?.imessage?.accounts?.[accountId]?.mediaMaxMb ??
+      cfg.channels?.imessage?.mediaMaxMb,
+    accountId: params.accountId,
+  });
+  return await send(params.to, params.text, {
+    config: params.cfg,
+    ...(params.mediaUrl ? { mediaUrl: params.mediaUrl } : {}),
+    ...(params.mediaLocalRoots?.length ? { mediaLocalRoots: params.mediaLocalRoots } : {}),
+    maxBytes,
+    accountId: params.accountId ?? void 0,
+    replyToId: params.replyToId ?? void 0,
+  });
 }
 async function notifyIMessageApproval(id) {
-	await getIMessageRuntime().channel.imessage.sendMessageIMessage(id, PAIRING_APPROVED_MESSAGE);
+  await getIMessageRuntime().channel.imessage.sendMessageIMessage(id, PAIRING_APPROVED_MESSAGE);
 }
 async function probeIMessageAccount(timeoutMs) {
-	return await probeIMessage(timeoutMs);
+  return await probeIMessage(timeoutMs);
 }
 async function startIMessageGatewayAccount(ctx) {
-	const account = ctx.account;
-	const cliPath = account.config.cliPath?.trim() || "imsg";
-	const dbPath = account.config.dbPath?.trim();
-	ctx.setStatus({
-		accountId: account.accountId,
-		cliPath,
-		dbPath: dbPath ?? null
-	});
-	ctx.log?.info?.(`[${account.accountId}] starting provider (${cliPath}${dbPath ? ` db=${dbPath}` : ""})`);
-	return await monitorIMessageProvider({
-		accountId: account.accountId,
-		config: ctx.cfg,
-		runtime: ctx.runtime,
-		abortSignal: ctx.abortSignal
-	});
+  const account = ctx.account;
+  const cliPath = account.config.cliPath?.trim() || "imsg";
+  const dbPath = account.config.dbPath?.trim();
+  ctx.setStatus({
+    accountId: account.accountId,
+    cliPath,
+    dbPath: dbPath ?? null,
+  });
+  ctx.log?.info?.(
+    `[${account.accountId}] starting provider (${cliPath}${dbPath ? ` db=${dbPath}` : ""})`,
+  );
+  return await monitorIMessageProvider({
+    accountId: account.accountId,
+    config: ctx.cfg,
+    runtime: ctx.runtime,
+    abortSignal: ctx.abortSignal,
+  });
 }
 //#endregion
-export { imessageSetupWizard, notifyIMessageApproval, probeIMessageAccount, sendIMessageOutbound, startIMessageGatewayAccount };
+export {
+  imessageSetupWizard,
+  notifyIMessageApproval,
+  probeIMessageAccount,
+  sendIMessageOutbound,
+  startIMessageGatewayAccount,
+};
