@@ -142,20 +142,20 @@ open(f, 'w', encoding='utf-8').write(data)
 
 ## 並列構文チェック結果（6並列）
 
-| ファイル | 結果 | 備考 |
-|---------|------|------|
-| `scripts/launchers/Start-TUI.ps1` | OK | |
-| `scripts/launchers/_parse_all_errors.ps1` | OK | 新規 |
-| `scripts/launchers/_snippet_test.ps1` | OK | 新規 |
-| `scripts/launchers/_brace_check.py` | OK | 新規 |
+| ファイル                                               | 結果        | 備考     |
+| ------------------------------------------------------ | ----------- | -------- |
+| `scripts/launchers/Start-TUI.ps1`                      | OK          |          |
+| `scripts/launchers/_parse_all_errors.ps1`              | OK          | 新規     |
+| `scripts/launchers/_snippet_test.ps1`                  | OK          | 新規     |
+| `scripts/launchers/_brace_check.py`                    | OK          | 新規     |
 | `extensions/hypura-harness/config/harness.config.json` | OK (修正後) | BOM 除去 |
 
 ---
 
 ## コミット履歴
 
-| ハッシュ | 内容 |
-|---------|------|
+| ハッシュ     | 内容                                                                                   |
+| ------------ | -------------------------------------------------------------------------------------- |
 | `4d19f6fbb9` | fix(gateway): stop schtasks service before port sanitization, remove redundant --force |
 | `75cad89710` | fix(config): remove UTF-8 BOM from harness.config.json; add parse/debug helper scripts |
 

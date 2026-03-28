@@ -48,6 +48,7 @@ if (-not (Test-Path $Script)) {
     throw "harness_daemon.py not found at $Script"
 }
 
+[System.IO.Directory]::SetCurrentDirectory($HarnessDir)
 Set-Location $HarnessDir
 if (Get-Command uv -ErrorAction SilentlyContinue) {
     uv run harness_daemon.py

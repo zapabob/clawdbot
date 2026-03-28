@@ -83,6 +83,13 @@ foreach ($port in $criticalPorts) {
 }
 Start-Sleep -Milliseconds 400
 
+# --- [Repo Config Sync] ---
+$syncPs1 = Join-Path $ProjectDir "scripts\Sync-OpenClawDesktop.ps1"
+if (Test-Path $syncPs1) {
+    Write-Host "  [SYNC] Syncing repo config -> .openclaw-desktop..." -ForegroundColor DarkCyan
+    & $syncPs1 -ProjectDir $ProjectDir -Quiet
+}
+
 # --- [Asynchronous Initiation] ---
 Write-Host "  [ASI_ACCEL] Synchronizing Skill Substrate..." -ForegroundColor Cyan
 $WorkspaceRoot = if ($env:OPENCLAW_AGENT_WORKSPACE) { $env:OPENCLAW_AGENT_WORKSPACE } else { $ProjectDir }
