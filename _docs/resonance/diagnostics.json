@@ -1,9 +1,9 @@
 {
-  "timestamp": "1774614885.025383",
+  "timestamp": "1774619475.4515128",
   "substrate": {
-    "Gateway": "ONLINE",
+    "Gateway": "OFFLINE",
     "Harness": "OFFLINE",
-    "VOICEVOX": "ONLINE",
+    "VOICEVOX": "OFFLINE",
     "ngrok_control": "ONLINE",
     "Ollama": "ONLINE",
     "Ollama_Model": "MANIFESTED"

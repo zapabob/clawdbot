@@ -27,7 +27,7 @@ logging.basicConfig(
 
 SOVEREIGN_PORTS = {
     "Gateway": 18789,
-    "Harness": 18800,
+    "Harness": 18794,
     "VOICEVOX": 50021,
     "ngrok_control": 4040,
     "Ollama": 11434
