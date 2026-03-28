@@ -241,3 +241,11 @@ IDENTITY.md
 USER.md
 MEMORY.md
 AGENT.md
+
+# Temporary and Workspace artifacts
+tmp/
+.temp/
+.cache/
+logs/
+*.log
+nul

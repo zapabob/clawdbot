@@ -183,7 +183,7 @@ if ($harnessConfig) {
 
 # --- [Sovereign Preflight Hub] ---
 Write-Host "`n  [DIAG] Executing Institutional Preflight..." -ForegroundColor Cyan
-$diagScript = Join-Path $ProjectDir "scripts\sovereign_diagnostics.py"
+$diagScript = Join-Path $ProjectDir "scripts\tools\sovereign_diagnostics.py"
 py -3 $diagScript
 
 if ($LASTEXITCODE -ne 0) {
@@ -231,7 +231,7 @@ if (-not $SkipHypuraHarness) {
 }
 
 # 2. Verify VOICEVOX Substrate (Asynchronous Phase 2)
-$vvScript = Join-Path $ProjectDir "scripts\verify_voicevox.py"
+$vvScript = Join-Path $ProjectDir "scripts\tools\verify_voicevox.py"
 Write-Host "  [VOICE] Verifying Audio Substrate (Port 50021)..." -ForegroundColor Gray
 Start-Process -FilePath $PythonExe -ArgumentList @($vvScript) -WorkingDirectory $ProjectDir -WindowStyle Hidden
 

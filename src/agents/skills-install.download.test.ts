@@ -79,7 +79,12 @@ function createFixtureSkill(params: {
     description: params.description,
     filePath: params.filePath,
     baseDir: params.baseDir,
-    source: params.source,
+    sourceInfo: {
+      path: params.filePath,
+      source: params.source,
+      scope: "project",
+      origin: "top-level",
+    },
     disableModelInvocation: false,
   };
 }
@@ -480,7 +485,6 @@ describe("installDownloadSpec extraction safety (tar.bz2)", () => {
       archive: "tar.bz2",
       targetDir,
     });
-
     expect(result.ok).toBe(false);
     expect(result.stderr.toLowerCase()).toContain("archive entry traverses symlink in destination");
     expect(await fileExists(path.join(outsideDir, "pwn.txt"))).toBe(false);

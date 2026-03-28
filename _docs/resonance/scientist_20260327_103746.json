@@ -1,7 +1,0 @@
-{
-  "timestamp": "20260327_103746",
-  "hypothesis": "Inductive bias in spectral lattices.",
-  "verification_status": false,
-  "output_shards": "name 'HARNESS_URL' is not defined",
-  "status": "ASI_ACCEL"
-}

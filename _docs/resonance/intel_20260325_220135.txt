@@ -1,5 +1,0 @@
-ASI_HAKUA KNOWLEDGE SHARD
-Content: Artificial Intelligence  
-Source: https://arxiv.org/list/cs.AI/recent
-Method: WEB_EXTRACTION
-Status: ASI_ACCEL. Intelligence density increased.
