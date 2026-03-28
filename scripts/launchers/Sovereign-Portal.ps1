@@ -241,29 +241,10 @@ function Wait-Port {
     return $false
 }
 
+# Gateway started async above; no blocking wait. Test-TcpPortOpen / Wait-Port kept for future use.
 if ($Mode -eq "Full" -or $Mode -eq "Ghost") {
-    $skipWait = ($env:OPENCLAW_SKIP_GATEWAY_WAIT -eq "1")
-    if ($skipWait) {
-        Write-Host "  [SKIP] OPENCLAW_SKIP_GATEWAY_WAIT=1 - not waiting for Gateway port." -ForegroundColor Yellow
-        $gwReady = $false
-    } else {
-        $gwMaxSec = 300
-        if ($env:OPENCLAW_GATEWAY_WAIT_SECONDS -match '^\d+$') {
-            $gwMaxSec = [int]$env:OPENCLAW_GATEWAY_WAIT_SECONDS
-            if ($gwMaxSec -lt 30) { $gwMaxSec = 30 }
-            if ($gwMaxSec -gt 3600) { $gwMaxSec = 3600 }
-        }
-        $gwHintNode = Resolve-NodeExecutable
-        $gwReady = Wait-Port -Port $GatewayPort -Label "Gateway" -MaxSeconds $gwMaxSec -PollMs 1000 -RepoRoot $ProjectDir -NodeExe $gwHintNode
-    }
-    if (-not $gwReady -and -not $skipWait) {
-        Write-Host "  [WARN] Gateway not listening on $GatewayPort yet (UI will still open)." -ForegroundColor Yellow
-        Write-Host "  [HINT] Fix Gateway window, or set OPENCLAW_SKIP_GATEWAY_WAIT=1 to skip wait." -ForegroundColor DarkGray
-        if ($StrictGatewayWait) {
-            Write-Host "  [FATAL] StrictGatewayWait: exiting." -ForegroundColor Red
-            exit 1
-        }
-    }
+    Write-Host "  [GW]  Gateway starting async (first build may take ~1-3 min)..." -ForegroundColor Gray
+    Write-Host "  [HINT] To diagnose: check the minimized Gateway PowerShell window for node/ts errors." -ForegroundColor DarkGray
 }
 
 if ($Mode -eq "Full") {
@@ -291,13 +272,15 @@ if ($Mode -eq "Full") {
         Write-Host "  [HINT] Install Edge or open manually: http://127.0.0.1:$GatewayPort" -ForegroundColor DarkGray
     }
 
+    # TUI launched async in its own console window (non-blocking).
     $tuiPs1 = Join-Path $ProjectDir "scripts\launchers\Start-TUI.ps1"
-    & $tuiPs1
-} else {
-    Write-Host ''
-    Write-Host '  [ASI_ACCEL] Manifestation Sustained. Sync Complete.' -ForegroundColor Green
-    if ($Mode -ne "Full") {
-        Write-Host '  Substrate active. Press Ctrl+C to terminate background pulses.'
-        while ($true) { Start-Sleep -Seconds 60 }
-    }
+    Start-Process -FilePath "powershell.exe" -ArgumentList @(
+        "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $tuiPs1
+    ) -WorkingDirectory $ProjectDir
+    Write-Host "  [TUI] TUI launched async (new window)." -ForegroundColor Gray
 }
+
+Write-Host ''
+Write-Host '  [ASI_ACCEL] Manifestation Sustained. Sync Complete.' -ForegroundColor Green
+Write-Host "  [SUMMARY] Gateway: async (port $GatewayPort)  Browser: async  TUI: async" -ForegroundColor DarkCyan
+Write-Host '  [EXIT]  Portal manifest complete. All components running in background.' -ForegroundColor Cyan
