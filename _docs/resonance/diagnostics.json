@@ -1,18 +1,16 @@
 {
-  "timestamp": "1774619475.4515128",
+  "timestamp": "1774662243.549602",
   "substrate": {
-    "Gateway": "OFFLINE",
-    "Harness": "OFFLINE",
+    "Gateway": "ONLINE",
     "VOICEVOX": "OFFLINE",
     "ngrok_control": "ONLINE",
-    "Ollama": "ONLINE",
-    "Ollama_Model": "MANIFESTED"
+    "Ollama": "ONLINE"
   },
-  "dependencies": {
-    "node_modules": "Healthy"
+  "native_tools": {
+    "Manifest_Plugin": "MANIFESTED",
+    "Pulse_Hook": "MANIFESTED"
   },
   "environment": {
-    "env_exists": true,
-    "has_webhook": true
+    "env_exists": true
   }
 }

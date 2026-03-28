@@ -243,10 +243,10 @@ Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile -ExecutionPol
 # Wait for Gateway stabilization
 Start-Sleep -Seconds 3
 
-# 4. Start VRChat Evolution Pulse (Asynchronous Phase 4)
-$evoScript = Join-Path $ProjectDir "scripts\vrchat_evolution_pulse.py"
-Write-Host "  [EVO] Launching VRChat Evolution Pulse..." -ForegroundColor Gray
-Start-Process -FilePath $PythonExe -ArgumentList @($evoScript) -WorkingDirectory $ProjectDir -WindowStyle Hidden
+# 4. Start VRChat Evolution Pulse (Native Manifestation)
+# Note: vrchat_evolution_pulse.py has been refactored into a native TypeScript Gateway hook.
+# Native hook: src/hooks/bundled/hakua-pulse/handler.ts
+Write-Host "  [EVO] VRChat Evolution Pulse Manifested via Native Gateway Hook." -ForegroundColor Gray
 
 # 5. Start Browser Manifestation (Asynchronous Phase 5)
 Write-Host "  [WEB] Manifesting Edge UI Dashboard..." -ForegroundColor Gray
