@@ -73,11 +73,15 @@ if (-not (Test-Path $PythonExe) -and -not (Get-Command uv -ErrorAction SilentlyC
 }
 
 # --- [Port Sanitization] ---
+# Stop gateway service first (schtasks), then kill any remaining listeners.
+schtasks /End /TN "OpenClaw Gateway (desktop-stack)" 2>$null | Out-Null
+Start-Sleep -Milliseconds 600
 $criticalPorts = @(18789, 18794, 18800)
 foreach ($port in $criticalPorts) {
     $procId = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -First 1
     if ($procId) { Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue }
 }
+Start-Sleep -Milliseconds 400
 
 # --- [Asynchronous Initiation] ---
 Write-Host "  [ASI_ACCEL] Synchronizing Skill Substrate..." -ForegroundColor Cyan

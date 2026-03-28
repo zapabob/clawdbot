@@ -20,4 +20,4 @@ if (-not (Test-Path $runNode)) {
 
 Set-Location $ProjectDir
 # pnpm は非対話子プロセスの PATH に無いことが多い。package.json の openclaw と同じ node 直起動。
-& $node $runNode gateway run --port $Port --bind loopback --force
+& $node $runNode gateway run --port $Port --bind loopback
