@@ -12,6 +12,12 @@ type LocalVoiceConfig = {
   vrchatOscPort: number;
   vadThreshold: number;
   silenceDurationMs: number;
+  /** Windows DirectShow device name for ffmpeg (e.g. "Integrated Camera"). */
+  cameraDeviceId?: string;
+  cameraWidth?: number;
+  cameraHeight?: number;
+  /** Minimum milliseconds between /camera capture runs (multimodal throttle). */
+  cameraMinIntervalMs?: number;
 };
 
 const DEFAULT_CONFIG: LocalVoiceConfig = {
@@ -33,6 +39,7 @@ function getConfig(api: OpenClawPluginApi): LocalVoiceConfig {
 export default function register(api: OpenClawPluginApi): void {
   let session: VoiceSession | null = null;
   let sessionState: VoiceSessionState = "idle";
+  let lastCameraCaptureAtMs = 0;
 
   api.registerCommand({
     name: "voice-assistant",
@@ -166,12 +173,27 @@ export default function register(api: OpenClawPluginApi): void {
   }
 
   async function handleCameraCapture(): Promise<{ text: string }> {
+    const cfg = getConfig(api);
+    const minMs = cfg.cameraMinIntervalMs ?? 0;
+    const now = Date.now();
+    if (minMs > 0 && now - lastCameraCaptureAtMs < minMs) {
+      const waitSec = Math.ceil((minMs - (now - lastCameraCaptureAtMs)) / 1000);
+      return { text: `Camera throttled: wait ${waitSec}s (cameraMinIntervalMs=${minMs})` };
+    }
+    lastCameraCaptureAtMs = now;
+
     const authResult = await loadOpenAICodexAuth();
     if (!authResult.success) {
       return { text: `Auth error: ${authResult.error}` };
     }
 
-    const result = await captureAndAnalyze();
+    const w = cfg.cameraWidth ?? 640;
+    const h = cfg.cameraHeight ?? 480;
+    const result = await captureAndAnalyze({
+      deviceId: cfg.cameraDeviceId,
+      width: w,
+      height: h,
+    });
 
     if (result.success && result.description) {
       return { text: `Camera: ${result.description}` };

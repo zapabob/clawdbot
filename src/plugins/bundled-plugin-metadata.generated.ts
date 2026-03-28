@@ -12048,6 +12048,39 @@ export const GENERATED_BUNDLED_PLUGIN_METADATA = [
     },
   },
   {
+    dirName: "python-exec",
+    idHint: "python-exec",
+    source: {
+      source: "./index.ts",
+      built: "index.js",
+    },
+    packageName: "@openclaw/python-exec",
+    packageVersion: "2026.3.28",
+    packageDescription: "OpenClaw Python execution plugin via uv",
+    packageManifest: {
+      extensions: ["./index.ts"],
+    },
+    manifest: {
+      id: "python-exec",
+      configSchema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          uvPath: {
+            type: "string",
+            description: "Custom uv binary path (default 'uv')",
+          },
+          defaultPythonVersion: {
+            type: "string",
+            description: "Default Python version to run scripts with (default '3.14')",
+          },
+        },
+      },
+      name: "Python Exec",
+      description: "Execute Python code via uv (Python 3.14 by default).",
+    },
+  },
+  {
     dirName: "qianfan",
     idHint: "qianfan",
     source: {

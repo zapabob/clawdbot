@@ -64,8 +64,18 @@ export function captureImage(config?: Partial<CameraConfig>): CaptureResult {
   }
 }
 
-function getWindowsCaptureCommand(outputPath: string, _config: CameraConfig): string {
-  return `ffmpeg -f dshow -i video="Integrated Camera" -frames:v 1 -y "${outputPath}" 2>nul`;
+function escapeDshowDeviceName(name: string): string {
+  return name.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+function getWindowsCaptureCommand(outputPath: string, config: CameraConfig): string {
+  const device =
+    config.deviceId?.trim() ||
+    process.env.OPENCLAW_CAMERA_DSHOW_NAME?.trim() ||
+    "Integrated Camera";
+  const sizeArg =
+    config.width > 0 && config.height > 0 ? ` -video_size ${config.width}x${config.height}` : "";
+  return `ffmpeg -f dshow${sizeArg} -i video="${escapeDshowDeviceName(device)}" -frames:v 1 -y "${outputPath}" 2>nul`;
 }
 
 function getMacCaptureCommand(outputPath: string, _config: CameraConfig): string {

@@ -338,7 +338,10 @@ export default definePluginEntry({
         "GET /status — Redis ループ状態を確認する。training:examples / atlas:failures / TinyLoRA adapter 状況を返す。",
       parameters: Type.Object({}),
       async execute() {
-        const data = (await harnessJson(api, "/status", undefined, 10_000)) as Record<string, unknown>;
+        const data = (await harnessJson(api, "/status", undefined, 10_000)) as Record<
+          string,
+          unknown
+        >;
         const loop = (data.loop ?? {}) as Record<string, unknown>;
         const summary = [
           `Redis: ${loop.redis ?? "unknown"}`,
@@ -360,9 +363,7 @@ export default definePluginEntry({
         "POST /lora/train — TinyLoRA (arXiv:2602.04118) で qwen-hakua-core2 を学習する。" +
         "13 パラメータで秒〜分単位の高速学習。mode=tinylora|sft|auto を選択できる。",
       parameters: Type.Object({
-        mode: Type.Optional(
-          stringEnum(["auto", "tinylora", "sft"], "auto"),
-        ),
+        mode: Type.Optional(stringEnum(["auto", "tinylora", "sft"] as const, { default: "auto" })),
         dry_run: Type.Optional(Type.Boolean()),
         dataset_path: Type.Optional(Type.String()),
       }),
@@ -374,10 +375,15 @@ export default definePluginEntry({
         if (typeof params.dataset_path === "string") {
           body.dataset_path = params.dataset_path;
         }
-        const data = (await harnessJson(api, "/lora/train", {
-          method: "POST",
-          body: JSON.stringify(body),
-        }, 600_000)) as Record<string, unknown>;
+        const data = (await harnessJson(
+          api,
+          "/lora/train",
+          {
+            method: "POST",
+            body: JSON.stringify(body),
+          },
+          600_000,
+        )) as Record<string, unknown>;
         return okText(JSON.stringify(data, null, 2), data);
       },
     });

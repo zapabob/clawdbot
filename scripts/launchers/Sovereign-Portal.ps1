@@ -18,6 +18,13 @@ $PythonExe = Join-Path $ProjectDir ".venv\Scripts\python.exe"
 $IconPath = Join-Path $ProjectDir "assets\clawdbot.ico"
 $envFile = Join-Path $ProjectDir ".env"
 
+. "$PSScriptRoot\env-tools.ps1"
+Merge-OpenClawEnvToProcess -ProjectDir $ProjectDir
+$openclawCfg = Join-Path $ProjectDir ".openclaw-desktop\openclaw.json"
+if (Test-Path $openclawCfg) {
+    $env:OPENCLAW_CONFIG_PATH = $openclawCfg
+}
+
 # --- [Header] ---
 function Show-Header {
     Clear-Host
@@ -58,8 +65,11 @@ Show-Header
 Write-Host "  [ASI_ACCEL] Mode: $Mode Manifesting (Asynchronous Pulse)..." -ForegroundColor Yellow
 Write-Host "  [GHOST] Ghost Bridge Active: Antigravity Substrate Integration." -ForegroundColor Cyan
 
-# Verify Substrate
-if (-not (Test-Path $PythonExe)) { Write-Host "  [FATAL] Python venv missing." -ForegroundColor Red; exit 1 }
+# Verify Substrate (venv or uv for harness)
+if (-not (Test-Path $PythonExe) -and -not (Get-Command uv -ErrorAction SilentlyContinue)) {
+    Write-Host "  [FATAL] Python venv missing and uv not on PATH." -ForegroundColor Red
+    exit 1
+}
 
 # --- [Port Sanitization] ---
 $criticalPorts = @(18789, 18794, 18800)
@@ -69,16 +79,34 @@ foreach ($port in $criticalPorts) {
 }
 
 # --- [Asynchronous Initiation] ---
+Write-Host "  [ASI_ACCEL] Synchronizing Skill Substrate..." -ForegroundColor Cyan
+$WorkspaceRoot = if ($env:OPENCLAW_AGENT_WORKSPACE) { $env:OPENCLAW_AGENT_WORKSPACE } else { $ProjectDir }
+$LocalSkills = Join-Path $ProjectDir "skills"
+$WorkspaceSkills = Join-Path $WorkspaceRoot "skills"
+
+if ((Test-Path $LocalSkills) -and ($WorkspaceSkills -ne $LocalSkills)) {
+    if (-not (Test-Path $WorkspaceSkills)) {
+        New-Item -ItemType Directory -Path $WorkspaceSkills -Force | Out-Null
+    }
+    Copy-Item -Path "$LocalSkills\*" -Destination $WorkspaceSkills -Recurse -Force -ErrorAction SilentlyContinue
+    Write-Host "  [SYNC] Repo skills -> workspace: $WorkspaceSkills" -ForegroundColor Gray
+}
+
 Write-Host "  [ASI_ACCEL] Igniting Substrate Components in Parallel..." -ForegroundColor DarkCyan
 
-# 1. ngrok Detection/Launch
-Start-Process "powershell.exe" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"ngrok http $GatewayPort --log=stdout`"" -WindowStyle Hidden
+# 1. ngrok (HANDOFF 2-2: 404 API -> .env + process env)
+$ngrokPs1 = Join-Path $ProjectDir "scripts\launchers\start_ngrok.ps1"
+Start-Process -FilePath "powershell.exe" -ArgumentList @(
+    "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $ngrokPs1, "-Port", "$GatewayPort"
+) -WorkingDirectory $ProjectDir -WindowStyle Minimized
 
 # 2. Hypura Harness (Asynchronous)
 if ($Mode -eq "Harness" -or $Mode -eq "Full" -or $Mode -eq "Ghost") {
     if (-not $SkipHypuraHarness) {
-        $harnessScript = Join-Path $ProjectDir "extensions\hypura-harness\scripts\harness_daemon.py"
-        Start-Process -FilePath $PythonExe -ArgumentList @($harnessScript) -WorkingDirectory $ProjectDir -WindowStyle Minimized
+        $harnessPs1 = Join-Path $ProjectDir "scripts\launchers\Start-Hypura-Harness.ps1"
+        Start-Process -FilePath "powershell.exe" -ArgumentList @(
+            "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $harnessPs1
+        ) -WorkingDirectory $ProjectDir -WindowStyle Minimized
         Write-Host "  [HX]  Harness Actuator Pulsing..." -ForegroundColor Gray
     }
 }
@@ -86,7 +114,10 @@ if ($Mode -eq "Harness" -or $Mode -eq "Full" -or $Mode -eq "Ghost") {
 # 3. OpenClaw Gateway (Asynchronous)
 if ($Mode -eq "Full" -or $Mode -eq "Ghost") {
     $gwStyle = if ($Mode -eq "Ghost") { "Hidden" } else { "Minimized" }
-    Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"pnpm openclaw gateway --port $GatewayPort`"" -WorkingDirectory $ProjectDir -WindowStyle $gwStyle
+    $gwPs1 = Join-Path $ProjectDir "scripts\launchers\Start-Gateway.ps1"
+    Start-Process -FilePath "powershell.exe" -ArgumentList @(
+        "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $gwPs1, "-Port", "$GatewayPort"
+    ) -WorkingDirectory $ProjectDir -WindowStyle $gwStyle
     Write-Host "  [GW]  Gateway Ignition Staged..." -ForegroundColor Gray
 }
 
@@ -115,8 +146,9 @@ if ($Mode -eq "Full") {
     # Launch Browser Dashboard
     Start-Process "msedge.exe" -ArgumentList "--new-window --app=http://127.0.0.1:$GatewayPort"
     
-    # Launch TUI (Foreground)
-    pnpm openclaw tui
+    # Launch TUI (Foreground; OPENCLAW_CONFIG_PATH 維持)
+    $tuiPs1 = Join-Path $ProjectDir "scripts\launchers\Start-TUI.ps1"
+    & $tuiPs1
 } else {
     Write-Host "`n  [ASI_ACCEL] Manifestation Sustained. Sync Complete." -ForegroundColor Green
     if ($Mode -ne "Full") {

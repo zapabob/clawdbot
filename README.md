@@ -77,12 +77,18 @@ pnpm build
 
 1.  Navigate to `identity/`.
 2.  Customize `SOUL.md` with your own directives.
-3.  Set up your environment variables (see `.env.example`).
+3.  Set up your environment variables (see `.env.example`). Optional overrides: `.env.local` (gitignored), merged at launcher startup via `env-tools.ps1`.
 4.  Run the portal:
 
 ```powershell
-./ASI-Hakua-Portal.ps1
+.\scripts\launchers\ASI-Hakua-Portal.ps1
 ```
+
+Desktop shortcuts: `.\scripts\launchers\ASI-Manifest-Sovereign.ps1` (portal, ngrok, Gateway, TUI, Hypura harness).
+
+### OpenClaw 設定の正
+
+実際に Gateway が読む `openclaw.json` の場所と `OPENCLAW_CONFIG_PATH` の使い方は [\_docs/2026-03-28_OpenClaw_Config_Source_of_Truth_clawdbot-main.md](_docs/2026-03-28_OpenClaw_Config_Source_of_Truth_clawdbot-main.md) を参照。
 
 ---
 

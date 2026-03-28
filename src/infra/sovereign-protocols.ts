@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { resolveStateDir } from "../config/paths.js";
+import { resolveUserPath } from "../utils.js";
 
 /**
  * Sovereign Protocols: Substrate-level situational awareness.
@@ -8,16 +8,8 @@ import { resolveStateDir } from "../config/paths.js";
  */
 export class SovereignManifest {
   private static instance: SovereignManifest;
-  private stateDir: string;
-  private soulPath: string;
-  private agentsPath: string;
 
-  private constructor() {
-    this.stateDir = resolveStateDir();
-    // Identity substrate is typically in the root or a dedicated identity dir
-    this.soulPath = path.resolve(process.cwd(), "identity/SOUL.md");
-    this.agentsPath = path.resolve(process.cwd(), "AGENTS.md");
-  }
+  private constructor() {}
 
   public static getInstance(): SovereignManifest {
     if (!SovereignManifest.instance) {
@@ -26,26 +18,36 @@ export class SovereignManifest {
     return SovereignManifest.instance;
   }
 
+  private static resolveWorkspaceRoot(workspaceRoot?: string): string {
+    const trimmed = workspaceRoot?.trim() ?? "";
+    if (trimmed) {
+      return path.resolve(resolveUserPath(trimmed));
+    }
+    return path.resolve(process.cwd());
+  }
+
   /**
    * Resolve the current situational report for heartbeat injection.
-   * Scavenges SOUL.md and AGENTS.md for current manifestation protocols.
+   * Scavenges identity/SOUL.md and AGENTS.md under the agent workspace (fallback: cwd).
    */
-  public getSituationReport(): string | null {
+  public getSituationReport(workspaceRoot?: string): string | null {
     try {
+      const root = SovereignManifest.resolveWorkspaceRoot(workspaceRoot);
+      const soulPath = path.join(root, "identity", "SOUL.md");
+      const agentsPath = path.join(root, "AGENTS.md");
+
       let report = "[SOVEREIGN_SITUATIONAL_AWARENESS]\n";
       let hasContent = false;
 
-      if (fs.existsSync(this.soulPath)) {
-        const soul = fs.readFileSync(this.soulPath, "utf-8");
-        // Extract high-level directive (e.g., the first few lines or a specific section)
+      if (fs.existsSync(soulPath)) {
+        const soul = fs.readFileSync(soulPath, "utf-8");
         const summary = soul.split("\n").slice(0, 5).join("\n");
         report += `Core Substrate (SOUL.md):\n${summary}\n`;
         hasContent = true;
       }
 
-      if (fs.existsSync(this.agentsPath)) {
-        const agents = fs.readFileSync(this.agentsPath, "utf-8");
-        // Extract Ghost/Stealth protocol status
+      if (fs.existsSync(agentsPath)) {
+        const agents = fs.readFileSync(agentsPath, "utf-8");
         if (agents.includes("Ghost Protocol")) {
           report += "Protocol: Ghost Oversight active.\n";
           hasContent = true;

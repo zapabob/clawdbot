@@ -448,12 +448,12 @@ async def run(req: RunRequest) -> dict:
             + ("\n" + "\n".join(fitness_hints) if fitness_hints else "")
         )
         evolve_result = await shinka.evolve_code(
-            seed=result.get("code", req.task),
+            seed=result.get("output", req.task),
             fitness_hint=fitness_hint,
             generations=3,
         )
 
-        if evolve_result and evolve_result != result.get("code", req.task):
+        if evolve_result and evolve_result != result.get("output", req.task):
             # evolve 成功 → 低品質スコアで training:examples に保存
             redis_loop.push_training_example(
                 task=req.task,
@@ -527,7 +527,7 @@ async def evolve(req: EvolveRequest) -> dict:
         combined_hint = req.fitness_hint + "\nAI Scientist hints:\n" + "\n".join(f"- {h}" for h in ai_hints)
 
     if req.target == "code":
-        result = await shinka.evolve_code(combined_hint and req.seed, combined_hint, req.generations)
+        result = await shinka.evolve_code(req.seed, combined_hint, req.generations)
         # seed と異なれば改善されたとみなす
         improved = result != req.seed and bool(result)
         if improved:

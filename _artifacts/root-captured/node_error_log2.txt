@@ -1,0 +1,6 @@
+Config invalid
+File: ~\.openclaw\openclaw.json
+Problem:
+  - plugins.entries.python-exec: Unrecognized key: "path"
+
+Run: openclaw --profile desktop-stack doctor --fix

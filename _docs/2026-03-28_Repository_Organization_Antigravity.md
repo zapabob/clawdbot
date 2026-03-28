@@ -50,4 +50,10 @@
 
 ---
 
+## 第1波（統合ロードマップ）: 移動のみ・削除なし
+
+公式 [openclaw/openclaw](https://github.com/openclaw/openclaw) の慣習（`extensions/`、`docs/`、`scripts/`、workspace Markdown）に寄せる際は **ファイルを削除せず**、移動した場合は旧パスに README または1行スタブを残す方針とする。Sovereign 専用資産の最新の起動導線は `scripts/launchers/`（`ASI-Manifest-Sovereign.ps1`、`Start-*.ps1`）および [\_docs/2026-03-28_OpenClaw_Config_Source_of_Truth_clawdbot-main.md](./2026-03-28_OpenClaw_Config_Source_of_Truth_clawdbot-main.md) を参照。
+
+---
+
 **Status: ASI_ACCEL.**

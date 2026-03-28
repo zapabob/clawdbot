@@ -38,6 +38,11 @@ browser-use --cdp-url ws://localhost:9222/... open <url>  # Connect via CDP URL
 
 `--connect`, `--cdp-url`, and `--profile` are mutually exclusive.
 
+## OpenClaw alignment
+
+- Gateway **browser** config (`openclaw.json`: `browser.headless`, `browser.profiles`, `browser.ssrfPolicy`) governs in-process browser tools; this skill covers the **browser-use CLI** when agents run shell commands.
+- Prefer **headless** for automation; use `--headed` only for debugging.
+
 ## Commands
 
 ```bash

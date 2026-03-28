@@ -148,3 +148,30 @@ function Get-OrCreateGatewayToken {
 
     return $token
 }
+
+<#
+ Merge .env then .env.local (later wins). Applies each KEY to the current process only.
+ Secrets stay in files; do not commit .env.local.
+#>
+function Merge-OpenClawEnvToProcess {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ProjectDir
+    )
+
+    $merged = @{}
+    foreach ($rel in @(".env", ".env.local")) {
+        $path = Join-Path $ProjectDir $rel
+        if (-not (Test-Path $path)) {
+            continue
+        }
+        $map = Get-EnvMap -EnvFile $path
+        foreach ($key in $map.Keys) {
+            $merged[$key] = $map[$key]
+        }
+    }
+
+    foreach ($key in $merged.Keys) {
+        Set-Item -Path "Env:$key" -Value $merged[$key]
+    }
+}

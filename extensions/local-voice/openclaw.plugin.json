@@ -57,6 +57,26 @@
         "type": "number",
         "description": "Silence duration in ms before considering speech ended",
         "default": 800
+      },
+      "cameraDeviceId": {
+        "type": "string",
+        "description": "Windows: ffmpeg dshow video device name (Device Manager / ffmpeg -list_devices)",
+        "default": "Integrated Camera"
+      },
+      "cameraWidth": {
+        "type": "number",
+        "description": "Capture width (ffmpeg -video_size)",
+        "default": 640
+      },
+      "cameraHeight": {
+        "type": "number",
+        "description": "Capture height (ffmpeg -video_size)",
+        "default": 480
+      },
+      "cameraMinIntervalMs": {
+        "type": "number",
+        "description": "Minimum ms between vision captures (token/GPU throttle)",
+        "default": 0
       }
     }
   }

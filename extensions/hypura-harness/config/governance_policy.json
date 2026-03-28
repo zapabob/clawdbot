@@ -4,6 +4,7 @@
   "governance": {
     "immune_files": [
       "SOUL.md",
+      "identity/SOUL.md",
       "AGENT.md",
       "MEMORY.md",
       ".env",
@@ -14,7 +15,14 @@
       ".python/*",
       ".venv/*"
     ],
-    "restricted_directories": [".git", "node_modules", "dist", "dist-runtime", "vendor/ATLAS", "vendor/ShinkaEvolve"],
+    "restricted_directories": [
+      ".git",
+      "node_modules",
+      "dist",
+      "dist-runtime",
+      "vendor/ATLAS",
+      "vendor/ShinkaEvolve"
+    ],
     "evolution_permissions": {
       "src/": "READ_WRITE",
       "extensions/": "READ_WRITE",

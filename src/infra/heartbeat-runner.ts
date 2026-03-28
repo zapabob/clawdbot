@@ -540,7 +540,7 @@ async function resolveHeartbeatRunPrompt(params: {
   // --- Sovereign Situational Awareness Injection ---
   // If identity/SOUL.md exists, inject the Scavenger and Ghost report.
   const sovereign = SovereignManifest.getInstance();
-  const sovereignReport = sovereign.getSituationReport();
+  const sovereignReport = sovereign.getSituationReport(params.workspaceDir);
   if (sovereignReport) {
     prompt += `\n\n${sovereignReport}`;
   }
