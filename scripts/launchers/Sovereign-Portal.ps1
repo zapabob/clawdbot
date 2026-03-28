@@ -264,12 +264,25 @@ if ($Mode -eq "Full") {
     }
     if (-not $edgeExe) { $edgeExe = 'msedge.exe' }
 
-    $edgeApp = '--app=http://127.0.0.1:{0}' -f $GatewayPort
+    # Inject gateway auth token from openclaw.json dynamically.
+    $gwToken = $null
+    $ocJsonPath = Join-Path $ProjectDir ".openclaw-desktop\openclaw.json"
+    if (Test-Path $ocJsonPath) {
+        try {
+            $ocCfg = Get-Content $ocJsonPath -Raw -Encoding UTF8 | ConvertFrom-Json
+            $gwToken = [string]$ocCfg.gateway.auth.token
+        } catch { }
+    }
+    if (-not $gwToken) { $gwToken = $env:OPENCLAW_GATEWAY_TOKEN }
+    $baseUrl = 'http://127.0.0.1:{0}' -f $GatewayPort
+    $edgeUrl  = if ($gwToken) { '{0}?token={1}' -f $baseUrl, $gwToken } else { $baseUrl }
+    $edgeApp  = '--app={0}' -f $edgeUrl
     try {
         Start-Process -FilePath $edgeExe -ArgumentList @('--new-window', $edgeApp) -ErrorAction Stop
+        Write-Host ("  [EDGE] Browser launched async (token injected: {0})." -f $(if ($gwToken) { 'yes' } else { 'no' })) -ForegroundColor Gray
     } catch {
         Write-Host "  [WARN] Could not start Edge ($edgeExe): $_" -ForegroundColor Yellow
-        Write-Host "  [HINT] Install Edge or open manually: http://127.0.0.1:$GatewayPort" -ForegroundColor DarkGray
+        Write-Host "  [HINT] Install Edge or open manually: $edgeUrl" -ForegroundColor DarkGray
     }
 
     # TUI launched async in its own console window (non-blocking).
