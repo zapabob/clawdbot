@@ -25,6 +25,11 @@ _OLLAMA_URL = _config.get("models", {}).get("ollama_base_url", "http://127.0.0.1
 _PRIMARY_MODEL = _config.get("models", {}).get("primary", "qwen-hakua-core")
 _LITE_MODEL = _config.get("models", {}).get("lite", "qwen-hakua-core-lite")
 
+# Docker環境: LLAMA_API_BASE が設定されている場合は llama-server に接続
+LLAMA_API_BASE = os.environ.get("LLAMA_API_BASE", "")
+LLAMA_MODEL_NAME = os.environ.get("LLAMA_MODEL_NAME", "Qwen3.5-9B")
+REDIS_URL = os.environ.get("REDIS_URL", "redis://redis:6379")
+
 os.environ.setdefault("OLLAMA_BASE_URL", _OLLAMA_URL)
 os.environ.setdefault("OLLAMA_API_KEY", "ollama-local")
 
@@ -59,13 +64,25 @@ async def _check_fitness(code: str) -> bool:
 
 class ShinkaAdapter:
     def __init__(self) -> None:
-        os.environ.setdefault("OLLAMA_BASE_URL", _OLLAMA_URL)
         if AsyncLLMClient is not None:
-            self._client = AsyncLLMClient(
-                model_names=[_PRIMARY_MODEL, _LITE_MODEL],
-                temperatures=[0.8, 0.6],
-                model_sample_probs=[0.7, 0.3],
-            )
+            if LLAMA_API_BASE:
+                # Docker環境: llama-server に直接接続 (local/<model>@<url> 形式)
+                model_spec = f"local/{LLAMA_MODEL_NAME}@{LLAMA_API_BASE}"
+                self._client = AsyncLLMClient(
+                    model_names=[model_spec],
+                    temperatures=[0.8],
+                    model_sample_probs=[1.0],
+                )
+                logger.info("ShinkaAdapter: using llama-server at %s", LLAMA_API_BASE)
+            else:
+                # ローカル開発: Ollama フォールバック
+                os.environ.setdefault("OLLAMA_BASE_URL", _OLLAMA_URL)
+                self._client = AsyncLLMClient(
+                    model_names=[_PRIMARY_MODEL, _LITE_MODEL],
+                    temperatures=[0.8, 0.6],
+                    model_sample_probs=[0.7, 0.3],
+                )
+                logger.info("ShinkaAdapter: using Ollama at %s", _OLLAMA_URL)
         else:
             self._client = None
 
@@ -95,6 +112,19 @@ class ShinkaAdapter:
 
         return (0.5 + density) * growth_bonus
 
+    async def get_fitness_hint_from_redis(self) -> str:
+        """Redis の shinka:fitness_hints キューから AI Scientist Lite の仮説を取得する。"""
+        try:
+            import aioredis
+            r = await aioredis.from_url(REDIS_URL)
+            hint = await r.lpop("shinka:fitness_hints")
+            await r.aclose()
+            if hint:
+                return hint.decode() if isinstance(hint, bytes) else hint
+        except Exception as e:
+            logger.debug("Redis fitness hint unavailable: %s", e)
+        return ""
+
     async def evolve_code(
         self, seed: str, fitness_hint: str, generations: int = 5
     ) -> str:
@@ -102,6 +132,12 @@ class ShinkaAdapter:
             logger.warning("ShinkaEvolve unavailable, returning seed unchanged")
             return seed
         from code_runner import extract_code_block
+
+        # AI Scientist Lite からの改善ヒントを Redis から取得してマージ
+        redis_hint = await self.get_fitness_hint_from_redis()
+        if redis_hint:
+            fitness_hint = f"{fitness_hint}\n\nResearch hint: {redis_hint}"
+            logger.info("[evolve] using AI Scientist hint from Redis")
 
         best = seed
         for gen in range(generations):

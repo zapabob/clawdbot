@@ -36,6 +36,9 @@ lora = [
   "datasets>=2.18.0",
   "trl>=0.9.0",
   "accelerate>=0.30.0",
+  "bitsandbytes>=0.43.0",
+  "aioredis>=2.0.0",
+  "docker>=7.0.0",
 ]
 studio = ["gradio>=4.0.0"]
 

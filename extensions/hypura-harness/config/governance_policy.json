@@ -14,7 +14,7 @@
       ".python/*",
       ".venv/*"
     ],
-    "restricted_directories": [".git", "node_modules", "dist", "dist-runtime"],
+    "restricted_directories": [".git", "node_modules", "dist", "dist-runtime", "vendor/ATLAS", "vendor/ShinkaEvolve"],
     "evolution_permissions": {
       "src/": "READ_WRITE",
       "extensions/": "READ_WRITE",

@@ -16,7 +16,7 @@ from lora_paths import (
     resolve_curriculum_dirs,
     resolve_soul_path,
 )
-from lora_trainer import train_sft_lora
+from lora_trainer import train_sft_lora, train_tiny_lora
 
 logger = logging.getLogger(__name__)
 
@@ -95,8 +95,26 @@ async def run_train_job(
     cfg: dict[str, Any],
     dataset_path: Path | None,
     dry_run: bool,
+    mode: str = "auto",
+    extra_options: dict[str, Any] | None = None,
 ) -> None:
-    store.update(job_id, status="running", message="training")
+    """
+    LoRA 学習ジョブを実行する。
+
+    mode:
+      "auto"      : config の tinylora.enabled フラグで自動選択
+      "tinylora"  : TinyLoRA GRPO (arXiv:2602.04118, 13 params, 秒単位)
+      "sft"       : 標準 QLoRA SFT (数千 params, 分単位)
+    """
+    lora_cfg = cfg.get("lora") or {}
+
+    # モード選択
+    if mode == "auto":
+        tinylora_cfg = lora_cfg.get("tinylora") or {}
+        use_tiny = bool(tinylora_cfg.get("enabled", False))
+        mode = "tinylora" if use_tiny else "sft"
+
+    store.update(job_id, status="running", message=f"training [{mode}]")
     try:
         base = resolve_base_model_dir(cfg)
         if base is None or not base.exists():
@@ -116,21 +134,45 @@ async def run_train_job(
             )
             return
         out = art / "train_runs" / job_id
-        lora_cfg = cfg.get("lora") or {}
-        sft_opts = lora_cfg.get("sft") if isinstance(lora_cfg.get("sft"), dict) else {}
-        result = await asyncio.to_thread(
-            train_sft_lora,
-            base_model_dir=base,
-            dataset_path=ds,
-            output_dir=out,
-            dry_run=dry_run,
-            train_options=sft_opts,
-        )
+
+        if mode == "tinylora":
+            tinylora_defaults = lora_cfg.get("tinylora") or {}
+            opts = {
+                "tinylora_r": tinylora_defaults.get("r", 2),
+                "tinylora_u": tinylora_defaults.get("u", 1),
+                "tinylora_tying": tinylora_defaults.get("tying", "tile"),
+                "grpo_group_size": tinylora_defaults.get("grpo_group_size", 4),
+                "learning_rate": tinylora_defaults.get("learning_rate", 1e-3),
+                "use_qlora": tinylora_defaults.get("use_qlora_base", True),
+                "num_train_epochs": tinylora_defaults.get("n_epochs", 1),
+            }
+            opts.update(extra_options or {})
+            result = await asyncio.to_thread(
+                train_tiny_lora,
+                base_model_dir=base,
+                dataset_path=ds,
+                output_dir=out,
+                dry_run=dry_run,
+                train_options=opts,
+            )
+        else:
+            sft_opts = lora_cfg.get("sft") if isinstance(lora_cfg.get("sft"), dict) else {}
+            sft_opts = dict(sft_opts)
+            sft_opts.update(extra_options or {})
+            result = await asyncio.to_thread(
+                train_sft_lora,
+                base_model_dir=base,
+                dataset_path=ds,
+                output_dir=out,
+                dry_run=dry_run,
+                train_options=sft_opts,
+            )
+
         if result.get("success"):
             store.update(
                 job_id,
                 status="completed",
-                message="train finished",
+                message=f"train [{mode}] finished",
                 result=result,
             )
         else:

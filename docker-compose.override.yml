@@ -1,0 +1,317 @@
+# ATLAS × ShinkaEvolve × TinyLoRA — Docker Compose override
+# 既存の docker-compose.yml (openclaw-gateway + openclaw-cli) に自動マージされる
+#
+# 起動: docker compose up -d
+# .env.atlas を .env にマージしてから起動すること
+
+services:
+
+  # ── LLM 推論 (GPU) ────────────────────────────────────────────────────────
+  llama-service:
+    build:
+      context: ./vendor/ATLAS/llama-server
+      dockerfile: Dockerfile
+    image: atlas-llama-server:rtx3060
+    entrypoint: /entrypoint-rtx3060.sh
+    environment:
+      CONTEXT_LENGTH: "${CONTEXT_LENGTH:-8192}"
+      PARALLEL_SLOTS: "1"
+      DRAFT_MODEL: "/models/${DRAFT_MODEL_FILE:-Qwen3-0.6B-Q8_0.gguf}"
+      KV_CACHE_TYPE: "q4_0"
+      CHAT_TEMPLATE: "Qwen3-custom.jinja"
+      GGML_CUDA_NO_PINNED: "0"
+      CUDA_DEVICE_MAX_CONNECTIONS: "1"
+      CUDA_MODULE_LOADING: "LAZY"
+      LORA_ADAPTER_PATH: "${LORA_ADAPTER_PATH:-}"
+    volumes:
+      - "${MODELS_PATH:?MODELS_PATH を .env に設定してください}:/models:ro"
+      - lora-adapters:/models/lora
+      - llama-slots:/tmp/slots
+    ports:
+      - "8000:8000"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    ulimits:
+      memlock: -1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  # ── OpenAI 互換プロキシ (:8081 — hypura-provider :8080 と衝突回避) ────────
+  llm-proxy:
+    build:
+      context: ./vendor/ATLAS/llm-proxy
+      dockerfile: Dockerfile
+    image: atlas-llm-proxy:latest
+    environment:
+      LLAMA_URL: "http://llama-service:8000"
+      API_PORTAL_URL: "http://api-portal:3000"
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+      DEFAULT_RATE_LIMIT: "1000"
+      LOG_LEVEL: "INFO"
+      LOG_REQUESTS: "true"
+    ports:
+      - "8081:8000"
+    depends_on:
+      llama-service:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── RAG / 検索 API ────────────────────────────────────────────────────────
+  rag-api:
+    build:
+      context: ./vendor/ATLAS/rag-api
+      dockerfile: Dockerfile
+    image: atlas-rag-api:latest
+    environment:
+      LLAMA_URL: "http://llama-service:8000"
+      LLAMA_EMBED_URL: "http://llama-service:8000"
+      API_PORTAL_URL: "http://api-portal:3000"
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+      CONTEXT_BUDGET: "8000"
+      TOP_K: "20"
+      MAX_FILES: "10000"
+      LOG_LEVEL: "INFO"
+      ENABLE_PROVENANCE: "true"
+      RETRIEVAL_MODE: "pageindex"
+      ROUTING_ENABLED: "true"
+      GEOMETRIC_LENS_ENABLED: "true"
+    volumes:
+      - projects-data:/data/projects
+    ports:
+      - "8001:8001"
+    depends_on:
+      llama-service:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── タスクワーカー (ATLAS V3 RALPH ループ) ─────────────────────────────────
+  task-worker:
+    build:
+      context: ./vendor/ATLAS/atlas/task-worker
+      dockerfile: Dockerfile
+    image: atlas-task-worker:latest
+    environment:
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+      RAG_API_URL: "http://rag-api:8001"
+      LLAMA_URL: "http://llama-service:8000"
+      LLAMA_MODEL: "${MAIN_MODEL_FILE:-Qwen3.5-9B-Uncensored-HauhauCS-Aggressive-Q8_0.gguf}"
+      SANDBOX_URL: "http://sandbox:8020"
+      TASK_TIMEOUT: "300"
+      RALPH_MAX_RETRIES: "5"
+      RALPH_BASE_TEMP: "0.7"
+      RALPH_TEMP_INCREMENT: "0.1"
+      RALPH_MAX_TEMP: "1.2"
+      LOG_LEVEL: "INFO"
+      # Hypura 統合
+      HYPURA_URL: "http://hypura-harness:18794"
+      HYPURA_EVOLVE_ENABLED: "true"
+    depends_on:
+      llama-service:
+        condition: service_healthy
+      rag-api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      hypura-harness:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── コード実行サンドボックス ───────────────────────────────────────────────
+  sandbox:
+    build:
+      context: ./vendor/ATLAS/atlas/sandbox
+      dockerfile: Dockerfile
+    image: atlas-sandbox:latest
+    environment:
+      MAX_EXECUTION_TIME: "60"
+      MAX_MEMORY_MB: "512"
+    volumes:
+      - sandbox-workspace:/tmp/sandbox
+    ports:
+      - "8020:8020"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8020/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── API ポータル (認証・キー管理) ─────────────────────────────────────────
+  api-portal:
+    build:
+      context: ./vendor/ATLAS/api-portal
+      dockerfile: Dockerfile
+    image: atlas-api-portal:latest
+    environment:
+      JWT_SECRET: "${JWT_SECRET:?JWT_SECRET を .env に設定してください}"
+      JWT_EXPIRY_HOURS: "24"
+      DEFAULT_RATE_LIMIT: "1000"
+      LLAMA_URL: "http://llama-service:8000"
+      LOG_LEVEL: "INFO"
+    volumes:
+      - api-portal-data:/app/data
+    ports:
+      - "3000:3000"
+    depends_on:
+      - redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── ダッシュボード ────────────────────────────────────────────────────────
+  atlas-dashboard:
+    build:
+      context: ./vendor/ATLAS/atlas/dashboard
+      dockerfile: Dockerfile
+    image: atlas-dashboard:latest
+    environment:
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+      LOG_LEVEL: "INFO"
+    ports:
+      - "3001:3001"
+    depends_on:
+      - redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3001/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── Hypura ハーネス (ShinkaEvolve + LoRA 管理) ────────────────────────────
+  hypura-harness:
+    build:
+      context: ./extensions/hypura-harness
+      dockerfile: Dockerfile
+    image: hypura-harness:latest
+    environment:
+      HARNESS_CONFIG: "/app/config/harness.atlas.docker.json"
+      LLAMA_URL: "http://llama-service:8000"
+      LLAMA_API_BASE: "http://llama-service:8000/v1"
+      LLAMA_MODEL_NAME: "${MAIN_MODEL_FILE:-Qwen3.5-9B-Uncensored-HauhauCS-Aggressive-Q8_0.gguf}"
+      REDIS_URL: "redis://redis:6379"
+    volumes:
+      - "${MODELS_PATH:?MODELS_PATH を .env に設定してください}:/models:ro"
+      - lora-adapters:/models/lora
+      - lora-artifacts:/artifacts/lora
+      - "${HF_MODEL_DIR:-/tmp/hf-model}:/models/hf/Qwen3.5-9B:ro"
+    ports:
+      - "18794:18794"
+    depends_on:
+      llama-service:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:18794/status"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # ── TinyLoRA 継続学習デーモン (arXiv:2602.04118) ──────────────────────────
+  lora-watcher:
+    build:
+      context: ./extensions/hypura-harness
+      dockerfile: Dockerfile
+    image: hypura-harness:latest
+    command: ["python", "lora_watcher.py"]
+    environment:
+      REDIS_URL: "redis://redis:6379"
+      HYPURA_URL: "http://hypura-harness:18794"
+      LORA_TRAINING_THRESHOLD: "${LORA_TRAINING_THRESHOLD:-50}"
+      LLAMA_CONTAINER_NAME: "${LORA_CONTAINER_NAME:-clawdbot-main3-llama-service-1}"
+      LORA_OUTPUT_PATH: "/models/lora/current.gguf"
+      HF_BASE_MODEL_DIR: "/models/hf/Qwen3.5-9B"
+      # TinyLoRA モード: qwen-hakua-core2 を動かしながら学習
+      USE_TINY_LORA: "true"
+      OLLAMA_MODEL_NAME: "qwen-Hakua-core2"
+      OLLAMA_URL: "http://host.docker.internal:11434"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - lora-adapters:/models/lora
+      - lora-artifacts:/artifacts/lora
+      - "${HF_MODEL_DIR:-/tmp/hf-model}:/models/hf/Qwen3.5-9B:ro"
+    depends_on:
+      hypura-harness:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── AI Scientist Lite (仮説生成デーモン) ──────────────────────────────────
+  ai-scientist-lite:
+    build:
+      context: ./extensions/hypura-harness
+      dockerfile: Dockerfile
+    image: hypura-harness:latest
+    command: ["python", "ai_scientist_lite.py"]
+    environment:
+      REDIS_URL: "redis://redis:6379"
+      LLAMA_URL: "http://llama-service:8000"
+      LLAMA_MODEL: "${MAIN_MODEL_FILE:-Qwen3.5-9B-Uncensored-HauhauCS-Aggressive-Q8_0.gguf}"
+      AI_SCIENTIST_INTERVAL_SEC: "3600"
+    depends_on:
+      llama-service:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Redis ─────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    command:
+      - redis-server
+      - --appendonly yes
+      - --maxmemory 4gb
+      - --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  redis-data:
+  api-portal-data:
+  projects-data:
+  sandbox-workspace:
+  llama-slots:
+  lora-adapters:
+  lora-artifacts:

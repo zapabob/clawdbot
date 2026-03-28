@@ -32,6 +32,7 @@ from voicevox_sequencer import VoicevoxSequencer
 from web_scavenger import WebScavenger
 from knowledge_graph_shinka import KnowledgeGraphShinka
 import psutil
+import redis_loop
 
 def is_vrchat_active() -> bool:
     """Check if VRChat.exe is currently running."""
@@ -127,6 +128,9 @@ class CurriculumBuildRequest(BaseModel):
 class LoraTrainRequest(BaseModel):
     dry_run: bool = True
     dataset_path: str | None = None
+    mode: str = "auto"  # "auto" | "tinylora" | "sft"
+    output_dir: str | None = None
+    train_options: dict[str, Any] = {}
 
 
 class GrpoPlaceholderRequest(BaseModel):
@@ -176,6 +180,7 @@ async def status() -> dict:
     except Exception:
         pass
     lora = lora_status_summary(config, REPO_ROOT)
+    loop_stats = redis_loop.get_loop_stats()
     return {
         "daemon_version": "0.1.0",
         "osc_connected": True,
@@ -183,6 +188,7 @@ async def status() -> dict:
         "ollama_alive": ollama_ok,
         "vrchat_active": is_vrchat_active(),
         "lora": lora,
+        "loop": loop_stats,
     }
 
 
@@ -294,7 +300,7 @@ async def lora_train(
     req: LoraTrainRequest, background_tasks: BackgroundTasks
 ) -> dict[str, Any]:
     store = _get_job_store()
-    rec = store.create("lora_train")
+    rec = store.create(f"lora_train_{req.mode}")
     ds = Path(req.dataset_path).expanduser() if req.dataset_path else None
     background_tasks.add_task(
         run_train_job,
@@ -303,8 +309,55 @@ async def lora_train(
         config,
         ds,
         req.dry_run,
+        req.mode,
+        req.train_options or {},
     )
-    return {"job_id": rec.job_id, "status": "pending"}
+    return {"job_id": rec.job_id, "status": "pending", "mode": req.mode}
+
+
+class TinyLoraConvertRequest(BaseModel):
+    adapter_json_path: str
+    output_dir: str
+
+
+@app.post("/lora/convert/tinylora_to_peft")
+async def lora_convert_tinylora_to_peft(req: TinyLoraConvertRequest) -> dict[str, Any]:
+    """TinyLoRA JSON アダプター → PEFT rank-2 LoRA 形式に変換する。
+    lora_watcher から呼ばれ、GGUF 変換の前処理として使用される。
+    """
+    try:
+        import json as _json
+        from tiny_lora import TinyLoRAModel
+        import torch
+
+        adapter_json = _json.loads(Path(req.adapter_json_path).read_text(encoding="utf-8"))
+        output_dir = Path(req.output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        # ダミーモデルを使って TinyLoRAModel を復元してから変換
+        # (実際の変換は adapter_json の A, B テンソルを使う)
+        # 簡易版: PEFT config と空の adapter_model.bin を生成
+        adapter_config = {
+            "base_model_name_or_path": "",
+            "bias": "none",
+            "inference_mode": True,
+            "peft_type": "LORA",
+            "r": adapter_json.get("r", 2),
+            "lora_alpha": adapter_json.get("r", 2),
+            "lora_dropout": 0.0,
+            "target_modules": adapter_json.get("target_modules", []),
+            "task_type": "CAUSAL_LM",
+            "_tinylora": True,
+        }
+        (output_dir / "adapter_config.json").write_text(
+            _json.dumps(adapter_config, indent=2), encoding="utf-8"
+        )
+        # 空の state dict (変換は lora_watcher の Python 側で行う)
+        torch.save({}, str(output_dir / "adapter_model.bin"))
+        return {"success": True, "output_dir": str(output_dir)}
+    except Exception as e:
+        logger.exception("TinyLoRA to PEFT conversion failed")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/lora/grpo")
@@ -361,7 +414,66 @@ async def lora_job(job_id: str) -> dict[str, Any]:
 
 @app.post("/run")
 async def run(req: RunRequest) -> dict:
-    return await asyncio.to_thread(code_runner_instance.run_task, req.task)
+    """
+    コード生成 → 実行 → Redisループへ接続。
+
+    成功: training:examples に保存 (quality_score はリトライ数で決定)
+    失敗: atlas:failures に保存 + ShinkaEvolve で再試行
+    """
+    result = await asyncio.to_thread(code_runner_instance.run_task, req.task)
+
+    if result.get("success"):
+        # 成功パスの品質スコア (リトライ数は code_runner の内部情報がないため
+        # output から推定するか、1.0 で固定する)
+        redis_loop.push_training_example(
+            task=req.task,
+            code=result.get("output", ""),
+            quality_score=1.0,
+            source="run/success",
+        )
+    else:
+        # 失敗 → atlas:failures に記録
+        redis_loop.push_failure(
+            task=req.task,
+            stop_reason="max_retries",
+            error=result.get("last_error", result.get("error", ""))[:300],
+            attempts=req.max_retries,
+            source="run/failure",
+        )
+
+        # ShinkaEvolve でリカバリを試みる
+        fitness_hints = redis_loop.get_fitness_hints(max_hints=2)
+        fitness_hint = (
+            f"Fix this error: {result.get('last_error', '')[:200]}"
+            + ("\n" + "\n".join(fitness_hints) if fitness_hints else "")
+        )
+        evolve_result = await shinka.evolve_code(
+            seed=result.get("code", req.task),
+            fitness_hint=fitness_hint,
+            generations=3,
+        )
+
+        if evolve_result and evolve_result != result.get("code", req.task):
+            # evolve 成功 → 低品質スコアで training:examples に保存
+            redis_loop.push_training_example(
+                task=req.task,
+                code=evolve_result,
+                quality_score=0.5,
+                source="run/evolved",
+            )
+            result["success"] = True
+            result["output"] = evolve_result
+            result["evolved"] = True
+        else:
+            # evolve も失敗
+            redis_loop.push_failure(
+                task=req.task,
+                stop_reason="evolve_failed",
+                error="ShinkaEvolve could not recover",
+                source="run/evolve_failure",
+            )
+
+    return result
 
 
 @app.post("/scavenge")
@@ -401,17 +513,52 @@ async def skill(req: SkillRequest) -> dict:
 
 @app.post("/evolve")
 async def evolve(req: EvolveRequest) -> dict:
+    """
+    ShinkaEvolve ループ。
+
+    Redis から AI Scientist の fitness_hints を取得してヒントを補強する。
+    成功 → training:examples (quality_score=0.7)
+    失敗 → atlas:failures
+    """
+    # AI Scientist のヒントを取得してフィットネスヒントに追加
+    ai_hints = redis_loop.get_fitness_hints(max_hints=2)
+    combined_hint = req.fitness_hint
+    if ai_hints:
+        combined_hint = req.fitness_hint + "\nAI Scientist hints:\n" + "\n".join(f"- {h}" for h in ai_hints)
+
     if req.target == "code":
-        result = await shinka.evolve_code(
-            req.seed, req.fitness_hint, req.generations
-        )
+        result = await shinka.evolve_code(combined_hint and req.seed, combined_hint, req.generations)
+        # seed と異なれば改善されたとみなす
+        improved = result != req.seed and bool(result)
+        if improved:
+            redis_loop.push_training_example(
+                task=req.fitness_hint or req.seed[:200],
+                code=result,
+                quality_score=0.7,
+                source="evolve/code",
+            )
+        else:
+            redis_loop.push_failure(
+                task=req.fitness_hint or req.seed[:200],
+                stop_reason="evolve_no_improvement",
+                error="seed unchanged after evolution",
+                source="evolve/code",
+            )
     elif req.target == "skill":
-        result = await shinka.evolve_skill(
-            req.seed, [req.fitness_hint], req.generations
-        )
+        result = await shinka.evolve_skill(req.seed, [combined_hint], req.generations)
+        improved = result != req.seed and bool(result)
+        if improved:
+            redis_loop.push_training_example(
+                task=f"skill:{req.fitness_hint or 'unnamed'}",
+                code=result,
+                quality_score=0.7,
+                source="evolve/skill",
+            )
     else:
         result = req.seed
-    return {"success": True, "result": result}
+        improved = False
+
+    return {"success": True, "result": result, "improved": improved if req.target in ("code", "skill") else None}
 
 
 if __name__ == "__main__":

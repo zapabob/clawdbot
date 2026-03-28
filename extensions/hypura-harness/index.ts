@@ -329,14 +329,69 @@ export default definePluginEntry({
       },
     });
 
+    // ── 継続改善ループ ────────────────────────────────────────────────────────
+
+    api.registerTool({
+      name: "hypura_loop_status",
+      label: "Hypura Loop Status",
+      description:
+        "GET /status — Redis ループ状態を確認する。training:examples / atlas:failures / TinyLoRA adapter 状況を返す。",
+      parameters: Type.Object({}),
+      async execute() {
+        const data = (await harnessJson(api, "/status", undefined, 10_000)) as Record<string, unknown>;
+        const loop = (data.loop ?? {}) as Record<string, unknown>;
+        const summary = [
+          `Redis: ${loop.redis ?? "unknown"}`,
+          `training:examples = ${loop.training_examples ?? "?"}`,
+          `atlas:failures = ${loop.failures ?? "?"}`,
+          `shinka:fitness_hints = ${loop.fitness_hints ?? "?"}`,
+          `TinyLoRA adapter ready: ${loop.tinylora_adapter_ready ?? false}`,
+          `Training in progress: ${loop.training_in_progress ?? false}`,
+          loop.last_trained ? `Last trained: ${loop.last_trained}` : "Never trained",
+        ].join("\n");
+        return okText(summary, { loop });
+      },
+    });
+
+    api.registerTool({
+      name: "hypura_tinylora_train",
+      label: "Hypura TinyLoRA Train",
+      description:
+        "POST /lora/train — TinyLoRA (arXiv:2602.04118) で qwen-hakua-core2 を学習する。" +
+        "13 パラメータで秒〜分単位の高速学習。mode=tinylora|sft|auto を選択できる。",
+      parameters: Type.Object({
+        mode: Type.Optional(
+          stringEnum(["auto", "tinylora", "sft"], "auto"),
+        ),
+        dry_run: Type.Optional(Type.Boolean()),
+        dataset_path: Type.Optional(Type.String()),
+      }),
+      async execute(_id: string, params: Record<string, unknown>) {
+        const body: Record<string, unknown> = {
+          mode: params.mode ?? "auto",
+          dry_run: params.dry_run ?? true,
+        };
+        if (typeof params.dataset_path === "string") {
+          body.dataset_path = params.dataset_path;
+        }
+        const data = (await harnessJson(api, "/lora/train", {
+          method: "POST",
+          body: JSON.stringify(body),
+        }, 600_000)) as Record<string, unknown>;
+        return okText(JSON.stringify(data, null, 2), data);
+      },
+    });
+
     api.on("before_prompt_build", () => ({
       appendSystemContext: [
         "## Hypura Python harness (hypura-harness plugin)",
         "",
         "- Prefer **`hypura_harness_status`** before other harness tools.",
         "- VRChat / VOICEVOX: **`hypura_harness_osc`**, **`hypura_harness_speak`**.",
-        "- Code execution: **`hypura_harness_run`** (delegates to harness `code_runner`).",
+        "- Code execution: **`hypura_harness_run`** (→ 成功時に training:examples へ保存、失敗時に ShinkaEvolve → atlas:failures へ記録).",
         "- Skills / evolution / LoRA: **`hypura_harness_skill`**, **`hypura_harness_evolve`**, `hypura_harness_lora_*`.",
+        "- Loop monitoring: **`hypura_loop_status`** で training:examples / failures / TinyLoRA adapter 状況を確認.",
+        "- TinyLoRA training: **`hypura_tinylora_train`** (qwen-hakua-core2 を 13 params で学習; mode=auto/tinylora/sft).",
         `- Default URL: ${DEFAULT_BASE_URL} (override via plugins.entries["hypura-harness"].config.baseUrl).`,
         "- If tools fail to connect: `cd scripts/hypura && uv run harness_daemon.py`",
       ].join("\n"),
