@@ -16,7 +16,7 @@ SHINKA_PATH = REPO_ROOT / "vendor" / "ShinkaEvolve"
 if SHINKA_PATH.exists() and str(SHINKA_PATH) not in sys.path:
     sys.path.insert(0, str(SHINKA_PATH))
 
-CONFIG_PATH = ROOT / "harness.config.json"
+CONFIG_PATH = ROOT.parent / "config" / "harness.config.json"
 _config: dict = {}
 if CONFIG_PATH.exists():
     _config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))

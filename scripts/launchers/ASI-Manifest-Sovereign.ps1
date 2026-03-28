@@ -64,11 +64,13 @@ $ngrokLauncher = Join-Path $ProjectRoot "scripts\launchers\start_ngrok.ps1"
 $gwLauncher = Join-Path $ProjectRoot "scripts\launchers\Start-Gateway.ps1"
 $tuiLauncher = Join-Path $ProjectRoot "scripts\launchers\Start-TUI.ps1"
 $harnessLauncher = Join-Path $ProjectRoot "scripts\launchers\Start-Hypura-Harness.ps1"
+$voicevoxLauncher = Join-Path $ProjectRoot "scripts\launchers\start-voicevox-engine.ps1"
 
 New-ASIDesktopShortcut "ASI-ngrok" "-NoProfile -ExecutionPolicy Bypass -File `"$ngrokLauncher`"" "ngrok tunnel + .env URL (404 API)"
 New-ASIDesktopShortcut "ASI-Gateway" "-NoProfile -ExecutionPolicy Bypass -File `"$gwLauncher`"" "OpenClaw Gateway (OPENCLAW_CONFIG_PATH)"
 New-ASIDesktopShortcut "ASI-TUI" "-NoProfile -ExecutionPolicy Bypass -File `"$tuiLauncher`"" "OpenClaw TUI"
 New-ASIDesktopShortcut "ASI-Hypura-Harness" "-NoProfile -ExecutionPolicy Bypass -File `"$harnessLauncher`"" "Hypura harness daemon (18794)"
+New-ASIDesktopShortcut "ASI-VOICEVOX" "-NoProfile -ExecutionPolicy Bypass -File `"$voicevoxLauncher`"" "VOICEVOX ENGINE :50021 + verify_voicevox.py"
 
 Write-ASI "Manifestation SUCCESS. Portal active on Desktop." "Green"
 

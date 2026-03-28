@@ -1,70 +1,111 @@
-# Sovereign VOICEVOX Manifestation Launcher
-# Synchronizes the audio substrate with the OpenClaw gateway.
+# VOICEVOX ENGINE CLI launcher (Windows)
+# Default: vv-engine run.exe --host 127.0.0.1 --port 50021
+# Path: env VOICEVOX_ENGINE_PATH or .env, else %LOCALAPPDATA%\Programs\VOICEVOX\vv-engine\run.exe
 
+param(
+    [string]$ListenHost = "127.0.0.1",
+    [int]$Port = 50021,
+    [switch]$Quiet,
+    [switch]$NoVerify,
+    [switch]$SkipPortKill,
+    [string[]]$ExtraEngineArgs = @()
+)
+
+$ErrorActionPreference = "Stop"
 $ProjectDir = (Get-Item $PSScriptRoot).Parent.Parent.FullName
-$envFile = Join-Path $ProjectDir ".env"
-$vvPort = 50021
+. "$PSScriptRoot\env-tools.ps1"
+Merge-OpenClawEnvToProcess -ProjectDir $ProjectDir
 
-# --- [Header] ---
-Clear-Host
-Write-Host "      _    _   _ _  _ _   _   _ " -ForegroundColor Cyan
-Write-Host "     | |  | | / \ | |/ / | | | / \ " -ForegroundColor Cyan
-Write-Host "     | |__| |/ _ \| ' /  | | |/ _ \ " -ForegroundColor Cyan
-Write-Host "     |  __  / ___ \ . \  | |_/ ___ \ " -ForegroundColor Cyan
-Write-Host "     |_|  |_/_/   \_\_|\_\\___/_/   \_\ " -ForegroundColor Cyan
-Write-Host "                       [ VOICEVOX SUBSTRATE HUB ]" -ForegroundColor DarkCyan
-
-# --- [Environment Injection] ---
-Write-Host "  [ASI_ACCEL] Injecting Environment Substrate..." -ForegroundColor Gray
-if (Test-Path $envFile) {
-    Get-Content $envFile | ForEach-Object {
-        if ($_ -match '^(?<name>[^#=]+)=(?<value>.*)$') {
-            $name = $Matches['name'].Trim()
-            $value = $Matches['value'].Trim()
-            [Environment]::SetEnvironmentVariable($name, $value, "Process")
-        }
-    }
+if (-not $Quiet) {
+    Clear-Host
+    Write-Host "      _    _   _ _  _ _   _   _ " -ForegroundColor Cyan
+    Write-Host "     | |  | | / \ | |/ / | | | / \ " -ForegroundColor Cyan
+    Write-Host "     | |__| |/ _ \| ' /  | | |/ _ \ " -ForegroundColor Cyan
+    Write-Host "     |  __  / ___ \ . \  | |_/ ___ \ " -ForegroundColor Cyan
+    Write-Host "     |_|  |_/_/   \_\_|\_\\___/_/   \_\ " -ForegroundColor Cyan
+    Write-Host "                       [ VOICEVOX SUBSTRATE HUB ]" -ForegroundColor DarkCyan
 }
 
 $vvEngine = [Environment]::GetEnvironmentVariable("VOICEVOX_ENGINE_PATH")
-$PythonExe = Join-Path $ProjectDir ".venv\Scripts\python.exe"
-
 if (-not $vvEngine) {
-    # Fallback to AppData path if not in .env
     $vvEngine = "$env:LOCALAPPDATA\Programs\VOICEVOX\vv-engine\run.exe"
 }
 
 if (-not (Test-Path $vvEngine)) {
-    Write-Host "  [FATAL] VOICEVOX Engine not found at: $vvEngine" -ForegroundColor Red
+    Write-Host "  [FATAL] VOICEVOX Engine not found: $vvEngine" -ForegroundColor Red
+    Write-Host "  [HINT] Set VOICEVOX_ENGINE_PATH in .env to run.exe (vv-engine folder)." -ForegroundColor Yellow
     exit 1
 }
 
-# --- [Port Sanitization] ---
-Write-Host "  [SAN] Sanitizing Audio Port $vvPort..." -ForegroundColor Gray
-$procId = Get-NetTCPConnection -LocalPort $vvPort -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -First 1
-if ($procId) {
-    Write-Host "  [SAN] Terminating process $procId..." -ForegroundColor Yellow
-    Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
+if (-not $SkipPortKill) {
+    if (-not $Quiet) {
+        Write-Host "  [SAN] Port $Port listen check..." -ForegroundColor Gray
+    }
+    $procId = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue |
+        Select-Object -ExpandProperty OwningProcess -First 1
+    if ($procId) {
+        if (-not $Quiet) {
+            Write-Host "  [SAN] Stopping PID $procId on port $Port" -ForegroundColor Yellow
+        }
+        Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
+    }
 }
 
-# --- [Manifestation Ignition] ---
-Write-Host "  [VOICE] Igniting VOICEVOX Engine (Asynchronous Pulse)..." -ForegroundColor Yellow
-Start-Process -FilePath $vvEngine -WorkingDirectory (Split-Path -Parent $vvEngine) -WindowStyle Minimized
+$argList = @("--host", $ListenHost, "--port", "$Port") + $ExtraEngineArgs
+$workDir = Split-Path -Parent $vvEngine
 
-# --- [Reactive Verification] ---
-Write-Host "  [WAIT] Verifying Synthesis Reactivity..." -ForegroundColor Gray -NoNewline
+if (-not $Quiet) {
+    Write-Host "  [VOICE] Start: $vvEngine $($argList -join ' ')" -ForegroundColor Yellow
+}
+Start-Process -FilePath $vvEngine -WorkingDirectory $workDir -ArgumentList $argList -WindowStyle Minimized
+
+if ($NoVerify) {
+    exit 0
+}
+
 $verifyScript = Join-Path $ProjectDir "scripts\tools\verify_voicevox.py"
+if (-not (Test-Path $verifyScript)) {
+    Write-Host "  [WARN] verify_voicevox.py missing; skip verify." -ForegroundColor Yellow
+    exit 0
+}
 
-for ($i=0; $i -lt 30; $i++) {
-    & $PythonExe $verifyScript | Out-Null
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host " [ONLINE]" -ForegroundColor Green
-        Write-Host "  [ASI_ACCEL] Audio Synthesis Substrate: MANIFESTED." -ForegroundColor Green
-        exit 0
+$venvPy = Join-Path $ProjectDir ".venv\Scripts\python.exe"
+if (-not $Quiet) {
+    Write-Host "  [WAIT] VOICEVOX HTTP probe (port $Port)..." -ForegroundColor Gray -NoNewline
+}
+
+$env:VOICEVOX_ENDPOINT = "http://${ListenHost}:$Port"
+for ($i = 0; $i -lt 45; $i++) {
+    if (Test-Path $venvPy) {
+        & $venvPy $verifyScript --probe-only --quiet 2>$null
+    } else {
+        & py -3 $verifyScript --probe-only --quiet 2>$null
     }
-    Write-Host "." -NoNewline
+    if ($LASTEXITCODE -eq 0) {
+        if (-not $Quiet) {
+            Write-Host " [ONLINE]" -ForegroundColor Green
+        }
+        if (-not $Quiet) {
+            Write-Host "  [VOICE] Full synthesis check..." -ForegroundColor Gray
+        }
+        if (Test-Path $venvPy) {
+            & $venvPy $verifyScript --quiet
+        } else {
+            & py -3 $verifyScript --quiet
+        }
+        if ($LASTEXITCODE -eq 0) {
+            if (-not $Quiet) {
+                Write-Host "  [ASI_ACCEL] VOICEVOX: REACTIVE (SOUL voice substrate)." -ForegroundColor Green
+            }
+            exit 0
+        }
+    }
+    if (-not $Quiet) {
+        Write-Host "." -NoNewline
+    }
     Start-Sleep -Seconds 1
 }
 
-Write-Host "`n  [FATAL] Audio Substrate manifestation timeout." -ForegroundColor Red
+Write-Host ""
+Write-Host "  [FATAL] VOICEVOX verify timeout (http://${ListenHost}:$Port)." -ForegroundColor Red
 exit 1

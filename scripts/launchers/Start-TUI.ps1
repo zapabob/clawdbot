@@ -8,5 +8,14 @@ if (Test-Path $cfg) {
     $env:OPENCLAW_CONFIG_PATH = $cfg
 }
 
+$node = Resolve-NodeExecutable
+if (-not $node) {
+    throw "node.exe not found. Install Node.js 22+ or fix PATH."
+}
+$runNode = Join-Path $ProjectDir "scripts\run-node.mjs"
+if (-not (Test-Path $runNode)) {
+    throw "Missing $runNode"
+}
+
 Set-Location $ProjectDir
-pnpm openclaw tui
+& $node $runNode tui

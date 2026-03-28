@@ -150,6 +150,50 @@ function Get-OrCreateGatewayToken {
 }
 
 <#
+  Start-Process で起動した非対話 PowerShell には、対話シェルで PATH に載っている
+  node / pnpm が無いことが多い。標準インストール先を PATH 先頭に足す。
+#>
+function Add-SovereignDevToolsToPath {
+    $pf86 = ${env:ProgramFiles(x86)}
+    $prefixes = @(
+        "$env:ProgramFiles\nodejs",
+        $(if ($pf86) { Join-Path $pf86 "nodejs" } else { $null }),
+        "$env:APPDATA\npm",
+        "$env:LOCALAPPDATA\pnpm",
+        "$env:LOCALAPPDATA\Microsoft\WinGet\Links"
+    )
+    foreach ($p in $prefixes) {
+        if (-not $p) { continue }
+        if (-not (Test-Path $p)) { continue }
+        if ($env:Path -notlike "*$p*") {
+            $env:Path = "$p;$env:Path"
+        }
+    }
+}
+
+<#
+  pnpm に依存せず Gateway/TUI を起動するための node.exe 絶対パス。
+#>
+function Resolve-NodeExecutable {
+    Add-SovereignDevToolsToPath
+    $fromCmd = Get-Command node.exe -ErrorAction SilentlyContinue
+    if ($fromCmd -and $fromCmd.Source -and (Test-Path $fromCmd.Source)) {
+        return $fromCmd.Source
+    }
+    $pf86 = ${env:ProgramFiles(x86)}
+    foreach ($name in @(
+            "$env:ProgramFiles\nodejs\node.exe",
+            $(if ($pf86) { Join-Path $pf86 "nodejs\node.exe" } else { $null })
+        )) {
+        if (-not $name) { continue }
+        if (Test-Path $name) {
+            return $name
+        }
+    }
+    return $null
+}
+
+<#
  Merge .env then .env.local (later wins). Applies each KEY to the current process only.
  Secrets stay in files; do not commit .env.local.
 #>
@@ -173,5 +217,26 @@ function Merge-OpenClawEnvToProcess {
 
     foreach ($key in $merged.Keys) {
         Set-Item -Path "Env:$key" -Value $merged[$key]
+    }
+}
+
+<#
+  Repo-local desktop config: <repo>\.openclaw-desktop\openclaw.json
+  Sets OPENCLAW_STATE_DIR to that folder when unset so doctor does not split ~/.openclaw vs repo state.
+#>
+function Set-OpenClawDesktopConfigEnv {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ProjectDir
+    )
+    $cfg = Join-Path $ProjectDir ".openclaw-desktop\openclaw.json"
+    if (-not (Test-Path -LiteralPath $cfg)) {
+        return
+    }
+    $env:OPENCLAW_CONFIG_PATH = $cfg
+    $stateRoot = Split-Path -Parent $cfg
+    $existing = [string]$env:OPENCLAW_STATE_DIR
+    if ([string]::IsNullOrWhiteSpace($existing)) {
+        $env:OPENCLAW_STATE_DIR = $stateRoot
     }
 }
