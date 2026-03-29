@@ -177,6 +177,74 @@ def get_loop_stats() -> dict:
             "training_in_progress": bool(r.exists("lora:training_lock")),
             "last_trained": r.get("lora:last_trained"),
             "tinylora_adapter_ready": bool(r.exists("lora:tinylora_adapter")),
+            "scientist_findings": r.llen("ai_scientist:findings"),
+            "scientist_tasks": r.llen("ai_scientist:tasks"),
         }
     except Exception as e:
         return {"redis": "error", "error": str(e)}
+
+
+# ── AI Scientist ループヘルパー ───────────────────────────────────────────
+
+def push_scientist_finding(
+    *,
+    topic: str,
+    idea: dict,
+    result: dict,
+) -> bool:
+    """
+    AI-Scientist の発見を ai_scientist:findings に保存する (max 200 件)。
+    有用な fitness_hint があれば shinka:fitness_hints にも追加する。
+    """
+    r = _get_redis()
+    if r is None:
+        return False
+    try:
+        record = {
+            "topic": topic[:300],
+            "idea": idea,
+            "result": result,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+        r.rpush("ai_scientist:findings", json.dumps(record, ensure_ascii=False))
+        r.ltrim("ai_scientist:findings", -200, -1)
+
+        hint = (idea.get("fitness_hint") or idea.get("Interestingness") or "")
+        if hint:
+            r.rpush("shinka:fitness_hints", str(hint)[:100])
+            r.ltrim("shinka:fitness_hints", -100, -1)
+
+        logger.info(
+            "ai_scientist:findings: +1 (topic=%s, hints_added=%s)",
+            topic[:40],
+            bool(hint),
+        )
+        return True
+    except Exception as e:
+        logger.warning("push_scientist_finding failed: %s", e)
+        return False
+
+
+def get_scientist_tasks(max_tasks: int = 3) -> list[dict]:
+    """
+    ai_scientist:tasks キューから最大 max_tasks 件のタスクを取り出す。
+    外部 (openclaw agent 等) からタスクを投入できる。
+
+    タスク形式: {"topic": "...", "num_ideas": 3, "model": "ollama/..."}
+    """
+    r = _get_redis()
+    if r is None:
+        return []
+    tasks = []
+    try:
+        for _ in range(max_tasks):
+            raw = r.lpop("ai_scientist:tasks")
+            if raw is None:
+                break
+            try:
+                tasks.append(json.loads(raw))
+            except json.JSONDecodeError:
+                pass
+    except Exception as e:
+        logger.warning("get_scientist_tasks failed: %s", e)
+    return tasks

@@ -561,6 +561,80 @@ async def evolve(req: EvolveRequest) -> dict:
     return {"success": True, "result": result, "improved": improved if req.target in ("code", "skill") else None}
 
 
+# ── AI Scientist エンドポイント ───────────────────────────────────────────
+
+class ScientistRunRequest(BaseModel):
+    topic: str = ""
+    num_ideas: int = 3
+    run_experiment: bool = False
+    model: str = "ollama/qwen-Hakua-core2"
+
+
+def _get_scientist() -> Any:
+    """AiScientistRunner を遅延初期化する。"""
+    try:
+        from ai_scientist_runner import AiScientistRunner
+        return AiScientistRunner()
+    except ImportError as e:
+        raise HTTPException(status_code=503, detail=f"ai_scientist_runner not available: {e}")
+
+
+@app.post("/scientist/run")
+async def scientist_run(req: ScientistRunRequest) -> dict:
+    """
+    AI-Scientist アイデア生成 (+実験) を実行して Redis に保存する。
+
+    topic が空の場合は atlas:failures から自動設定する。
+    run_experiment=true の場合は perform_experiments も実行する (時間がかかる)。
+    """
+    runner = await asyncio.to_thread(_get_scientist)
+    if req.topic:
+        ideas = await asyncio.to_thread(runner.run_ideas, req.topic, req.num_ideas, req.model)
+        topic = req.topic
+    else:
+        result = await asyncio.to_thread(runner.run_from_failures, req.model)
+        return result
+
+    stored = 0
+    exp_results = []
+    for idea in ideas:
+        exp_result: dict = {}
+        if req.run_experiment:
+            exp_result = await asyncio.to_thread(runner.run_experiment, idea, req.model)
+        redis_loop.push_scientist_finding(topic=topic, idea=idea, result=exp_result)
+        stored += 1
+        if exp_result:
+            exp_results.append(exp_result)
+
+    return {
+        "success": True,
+        "topic": topic,
+        "ideas_generated": len(ideas),
+        "findings_stored": stored,
+        "experiments": exp_results if req.run_experiment else None,
+    }
+
+
+@app.post("/scientist/ideas")
+async def scientist_ideas(req: ScientistRunRequest) -> dict:
+    """アイデア生成のみ実行して返す (Redis 保存なし)。"""
+    runner = await asyncio.to_thread(_get_scientist)
+    topic = req.topic or "improve code generation quality"
+    ideas = await asyncio.to_thread(runner.run_ideas, topic, req.num_ideas, req.model)
+    return {"success": True, "topic": topic, "ideas": ideas}
+
+
+@app.get("/scientist/status")
+async def scientist_status() -> dict:
+    """ai_scientist:findings / ai_scientist:tasks のキュー状態を返す。"""
+    stats = redis_loop.get_loop_stats()
+    return {
+        "findings": stats.get("scientist_findings", 0),
+        "tasks": stats.get("scientist_tasks", 0),
+        "redis": stats.get("redis", "unknown"),
+    }
+
+
 if __name__ == "__main__":
     try:
         logging.basicConfig(level=logging.INFO)

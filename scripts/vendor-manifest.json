@@ -1,0 +1,34 @@
+{
+  "python": {
+    "url": "https://www.python.org/ftp/python/3.14.3/python-3.14.3-embed-amd64.zip",
+    "target": ".python",
+    "type": "zip-extract",
+    "install": false,
+    "description": "Python 3.14 embeddable (Windows amd64)"
+  },
+  "ATLAS": {
+    "repo": "zapabob/ATLAS",
+    "ref": "main",
+    "target": "vendor/ATLAS",
+    "type": "github-tarball",
+    "install": true,
+    "description": "ATLAS V3 coding pipeline (zapabob fork with Hypura integration)"
+  },
+  "ShinkaEvolve": {
+    "repo": "SakanaAI/ShinkaEvolve",
+    "ref": "main",
+    "target": "vendor/ShinkaEvolve",
+    "type": "github-tarball",
+    "install": true,
+    "description": "ShinkaEvolve evolutionary optimization engine"
+  },
+  "AI-Scientist": {
+    "repo": "SakanaAI/AI-Scientist",
+    "ref": "main",
+    "target": "vendor/AI-Scientist",
+    "type": "github-tarball",
+    "install": true,
+    "post_patch": "scripts/patches/ai_scientist_ollama.py",
+    "description": "SakanaAI AI-Scientist (Ollama-patched, slim mode — no LaTeX)"
+  }
+}

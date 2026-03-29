@@ -388,6 +388,101 @@ export default definePluginEntry({
       },
     });
 
+    // ── AI Scientist ──────────────────────────────────────────────────────
+
+    api.registerTool({
+      name: "hypura_scientist_run",
+      label: "Hypura AI Scientist Run",
+      description:
+        "POST /scientist/run — AI-Scientist (SakanaAI, Ollama モード) でリサーチアイデアを生成して Redis に保存する。" +
+        "topic が空なら atlas:failures から自動設定。run_experiment=true で実験実行まで行う。",
+      parameters: Type.Object({
+        topic: Type.Optional(
+          Type.String({ description: "研究テーマ (空=atlas:failuresから自動設定)" }),
+        ),
+        num_ideas: Type.Optional(Type.Number({ default: 3, description: "生成するアイデア数" })),
+        run_experiment: Type.Optional(
+          Type.Boolean({ default: false, description: "実験実行も行う" }),
+        ),
+        model: Type.Optional(Type.String({ default: "ollama/qwen-Hakua-core2" })),
+      }),
+      async execute(_id: string, params: Record<string, unknown>) {
+        const body: Record<string, unknown> = {
+          topic: params.topic ?? "",
+          num_ideas: params.num_ideas ?? 3,
+          run_experiment: params.run_experiment ?? false,
+          model: params.model ?? "ollama/qwen-Hakua-core2",
+        };
+        const data = (await harnessJson(
+          api,
+          "/scientist/run",
+          {
+            method: "POST",
+            body: JSON.stringify(body),
+          },
+          300_000,
+        )) as Record<string, unknown>;
+        return okText(JSON.stringify(data, null, 2), data);
+      },
+    });
+
+    api.registerTool({
+      name: "hypura_scientist_ideas",
+      label: "Hypura AI Scientist Ideas",
+      description:
+        "POST /scientist/ideas — AI-Scientist でアイデア一覧のみ生成して返す (Redis 保存なし)。" +
+        "Ollama の qwen-Hakua-core2 を使用。",
+      parameters: Type.Object({
+        topic: Type.String({ description: "研究テーマ" }),
+        num_ideas: Type.Optional(Type.Number({ default: 3 })),
+        model: Type.Optional(Type.String({ default: "ollama/qwen-Hakua-core2" })),
+      }),
+      async execute(_id: string, params: Record<string, unknown>) {
+        const body: Record<string, unknown> = {
+          topic: params.topic ?? "",
+          num_ideas: params.num_ideas ?? 3,
+          model: params.model ?? "ollama/qwen-Hakua-core2",
+        };
+        const data = (await harnessJson(
+          api,
+          "/scientist/ideas",
+          {
+            method: "POST",
+            body: JSON.stringify(body),
+          },
+          120_000,
+        )) as Record<string, unknown>;
+        const ideas = (data.ideas as unknown[]) ?? [];
+        const summary = ideas
+          .map((idea: unknown, i: number) => {
+            const obj = idea as Record<string, unknown>;
+            return `[${i + 1}] ${obj.Name ?? obj.Title ?? "idea"}: ${obj.fitness_hint ?? ""}`;
+          })
+          .join("\n");
+        return okText(summary || JSON.stringify(data, null, 2), data);
+      },
+    });
+
+    api.registerTool({
+      name: "hypura_scientist_status",
+      label: "Hypura AI Scientist Status",
+      description:
+        "GET /scientist/status — ai_scientist:findings / ai_scientist:tasks のキュー状態を確認する。",
+      parameters: Type.Object({}),
+      async execute() {
+        const data = (await harnessJson(api, "/scientist/status", undefined, 10_000)) as Record<
+          string,
+          unknown
+        >;
+        const summary = [
+          `Findings stored: ${data.findings ?? "?"}`,
+          `Tasks queued:    ${data.tasks ?? "?"}`,
+          `Redis:           ${data.redis ?? "unknown"}`,
+        ].join("\n");
+        return okText(summary, data);
+      },
+    });
+
     api.on("before_prompt_build", () => ({
       appendSystemContext: [
         "## Hypura Python harness (hypura-harness plugin)",
@@ -398,6 +493,7 @@ export default definePluginEntry({
         "- Skills / evolution / LoRA: **`hypura_harness_skill`**, **`hypura_harness_evolve`**, `hypura_harness_lora_*`.",
         "- Loop monitoring: **`hypura_loop_status`** で training:examples / failures / TinyLoRA adapter 状況を確認.",
         "- TinyLoRA training: **`hypura_tinylora_train`** (qwen-hakua-core2 を 13 params で学習; mode=auto/tinylora/sft).",
+        "- AI Scientist: **`hypura_scientist_run`** (SakanaAI/AI-Scientist, Ollama モード; アイデア生成→Redis保存), **`hypura_scientist_ideas`** (アイデアのみ取得), **`hypura_scientist_status`** (findings/tasks キュー確認).",
         `- Default URL: ${DEFAULT_BASE_URL} (override via plugins.entries["hypura-harness"].config.baseUrl).`,
         "- If tools fail to connect: `cd scripts/hypura && uv run harness_daemon.py`",
       ].join("\n"),
