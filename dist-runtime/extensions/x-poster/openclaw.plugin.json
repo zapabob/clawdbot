@@ -1,0 +1,15 @@
+{
+  "id": "x-poster",
+  "name": "X Poster",
+  "description": "Post to X (Twitter) via browser automation using the user's logged-in account. Requires X login in the \"x\" browser profile (one-time setup). Supports standard tweets (139 chars), threads, replies, and media.",
+  "skills": [
+    "./skills"
+  ],
+  "channels": [],
+  "providers": [],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "id": "python-exec",
+  "name": "Python Exec",
+  "description": "Execute Python code via uv (Python 3.14 by default).",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "uvPath": {
+        "type": "string",
+        "description": "Custom uv binary path (default 'uv')"
+      },
+      "defaultPythonVersion": {
+        "type": "string",
+        "description": "Default Python version to run scripts with (default '3.14')"
+      }
+    }
+  }
+}

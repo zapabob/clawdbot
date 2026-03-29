@@ -1,0 +1,21 @@
+{
+  "id": "memory-evolution",
+  "name": "Memory Evolution",
+  "description": "Implements Ebbinghaus forgetting curve and memory distillation for permanent AI awareness.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "forgettingFactor": {
+        "type": "number",
+        "description": "Decay constant for Ebbinghaus curve (higher = slower forgetting)",
+        "default": 1
+      },
+      "distillationIntervalMs": {
+        "type": "integer",
+        "description": "Interval for periodic memory processing",
+        "default": 3600000
+      }
+    }
+  }
+}
