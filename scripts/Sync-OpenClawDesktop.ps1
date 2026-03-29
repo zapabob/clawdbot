@@ -254,6 +254,102 @@ if (Test-Path $skillsSrc) {
     }
 }
 
-if (-not $DryRun -and -not $Quiet) {
-    # Nothing extra; individual steps report themselves
+# ============================================================
+# Step 5 (A): .python/ + vendor/ → .openclaw-desktop/ へコピー
+# 新PC移行・配布時用のポータブル同梱
+# ============================================================
+function Sync-DirectoryCopy {
+    param(
+        [string]$SrcDir,
+        [string]$DstDir,
+        [string]$Label,
+        [switch]$SkipExisting  # -Force なら既存も上書き、通常は新規ファイルのみ
+    )
+    if (-not (Test-Path $SrcDir)) { return }
+    $srcFiles = @(Get-ChildItem $SrcDir -Recurse -File -ErrorAction SilentlyContinue)
+    $copyCount = 0
+    $skipCount = 0
+    foreach ($f in $srcFiles) {
+        $rel     = $f.FullName.Substring($SrcDir.Length).TrimStart('\', '/')
+        $dstFile = Join-Path $DstDir $rel
+        if ($SkipExisting -and (Test-Path $dstFile)) {
+            $skipCount++
+            continue
+        }
+        if ($DryRun) {
+            Write-SyncDry "would copy: $Label/$rel"
+        } else {
+            $dstDirPath = Split-Path $dstFile -Parent
+            if (-not (Test-Path $dstDirPath)) {
+                New-Item -ItemType Directory -Path $dstDirPath -Force | Out-Null
+            }
+            Copy-Item $f.FullName $dstFile -Force
+        }
+        $copyCount++
+    }
+    if ($copyCount -gt 0 -and -not $DryRun) {
+        $msg = "${Label}: $copyCount files copied"
+        if ($skipCount -gt 0) { $msg += " ($skipCount skipped/existing)" }
+        Write-SyncMsg $msg
+    }
+}
+
+# .python/ (ポータブル Python) → .openclaw-desktop/python/
+$pythonSrc = Join-Path $ProjectDir ".python"
+$pythonDst = Join-Path $desktopDir "python"
+Sync-DirectoryCopy -SrcDir $pythonSrc -DstDir $pythonDst -Label "python" -SkipExisting:(-not $Force)
+
+# vendor/ → .openclaw-desktop/vendor/
+$vendorSrc = Join-Path $ProjectDir "vendor"
+$vendorDst = Join-Path $desktopDir "vendor"
+Sync-DirectoryCopy -SrcDir $vendorSrc -DstDir $vendorDst -Label "vendor" -SkipExisting:(-not $Force)
+
+# ============================================================
+# Step 6 (B): vendor/ パッケージをハーネス venv にインストール
+# ============================================================
+$vendorDir = Join-Path $ProjectDir "vendor"
+if (Test-Path $vendorDir) {
+    # vendor/ 直下の各サブディレクトリをパッケージとして扱う
+    $vendorPkgs = @(Get-ChildItem $vendorDir -Directory -ErrorAction SilentlyContinue |
+        Where-Object { (Test-Path (Join-Path $_.FullName "pyproject.toml")) -or
+                       (Test-Path (Join-Path $_.FullName "setup.py")) })
+
+    if ($vendorPkgs.Count -gt 0) {
+        if ($DryRun) {
+            foreach ($pkg in $vendorPkgs) {
+                Write-SyncDry "would install vendor package: $($pkg.Name)"
+            }
+        } else {
+            # uv または venv の pip でインストール
+            $harnessScripts = Join-Path $ProjectDir "extensions\hypura-harness\scripts"
+            $venvPip = Join-Path $ProjectDir ".venv\Scripts\pip.exe"
+            $harnessPip = Join-Path $harnessScripts ".venv\Scripts\pip.exe"
+
+            $installedCount = 0
+            foreach ($pkg in $vendorPkgs) {
+                $pkgPath = $pkg.FullName
+                $pkgName = $pkg.Name
+                try {
+                    if (Get-Command uv -ErrorAction SilentlyContinue) {
+                        # uv: ハーネスの pyproject.toml が HarnessDir にある場合
+                        Push-Location $harnessScripts
+                        uv pip install -e $pkgPath --quiet 2>&1 | Out-Null
+                        Pop-Location
+                    } elseif (Test-Path $harnessPip) {
+                        & $harnessPip install -e $pkgPath --quiet 2>&1 | Out-Null
+                    } elseif (Test-Path $venvPip) {
+                        & $venvPip install -e $pkgPath --quiet 2>&1 | Out-Null
+                    } else {
+                        py -3 -m pip install -e $pkgPath --quiet 2>&1 | Out-Null
+                    }
+                    $installedCount++
+                } catch {
+                    Write-Host "  [SYNC][WARN] vendor install failed ($pkgName): $_" -ForegroundColor Yellow
+                }
+            }
+            if ($installedCount -gt 0) {
+                Write-SyncMsg "vendor packages: $installedCount installed into venv"
+            }
+        }
+    }
 }
