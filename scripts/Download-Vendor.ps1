@@ -113,6 +113,18 @@ foreach ($name in $manifest.PSObject.Properties.Name) {
             Write-Host "  [DL][ERROR] $name failed: $_" -ForegroundColor Red
         }
 
+    } elseif ($entry.type -eq "git-clone-shallow") {
+        $repoUrl = "https://github.com/$($entry.repo).git"
+        Write-DL "  git clone --depth 1 $repoUrl ..."
+        try {
+            if (Test-Path $target) { Remove-Item $target -Recurse -Force }
+            git clone --depth 1 $repoUrl $target 2>&1 | Out-Null
+            Write-DL "$name`: cloned to $target" -Color Green
+            $ok = $true
+        } catch {
+            Write-Host "  [DL][ERROR] $name failed: $_" -ForegroundColor Red
+        }
+
     } else {
         Write-Host "  [DL][WARN] Unknown type: $($entry.type) -- skipping $name" -ForegroundColor Yellow
     }

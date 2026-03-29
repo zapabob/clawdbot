@@ -49,6 +49,10 @@ if ($Mode -eq "Menu") {
     Write-Host "      (Voicevox/Python Actuator, Port 18794)" -ForegroundColor Gray
     Write-Host "  [4] Sovereign Diagnostics" -ForegroundColor Green
     Write-Host "      (Preflight Substrate Check)" -ForegroundColor Gray
+    Write-Host "  [5] Docker Manifestation" -ForegroundColor Blue
+    Write-Host "      (Docker Compose UP -d)" -ForegroundColor Gray
+    Write-Host "  [6] Full Manifestation (Local + Docker)" -ForegroundColor Cyan
+    Write-Host "      (Gateway + Harness + UI + Docker Compose)" -ForegroundColor Gray
     Write-Host "  [Q] Exit Portal`n" -ForegroundColor Red
     
     $choice = Read-Host "  Select Manifestation Mode"
@@ -57,6 +61,8 @@ if ($Mode -eq "Menu") {
         "2" { $Mode = "Ghost" }
         "3" { $Mode = "Harness" }
         "4" { $Mode = "Diag" }
+        "5" { $Mode = "Docker" }
+        "6" { $Mode = "Full-Docker" }
         "Q" { exit 0 }
         Default { exit 0 }
     }
@@ -106,8 +112,19 @@ if ((Test-Path $LocalSkills) -and ($WorkspaceSkills -ne $LocalSkills)) {
 
 Write-Host "  [ASI_ACCEL] Igniting Substrate Components in Parallel..." -ForegroundColor DarkCyan
 
+# 0. Docker Manifestation (Compose)
+if ($Mode -eq "Docker" -or $Mode -eq "Full-Docker") {
+    Write-Host "  [DOCKER] Manifesting containers via docker-compose..." -ForegroundColor Blue
+    try {
+        Start-Process -FilePath "docker" -ArgumentList "compose", "up", "-d" -WorkingDirectory $ProjectDir -WindowStyle Minimized -Wait
+        Write-Host "  [DOCKER] Containers Ignited." -ForegroundColor Green
+    } catch {
+        Write-Host "  [ERROR] Docker manifestation failed: $_" -ForegroundColor Red
+    }
+}
+
 # 0. VOICEVOX ENGINE (SOUL.md: metaverse / voice substrate; Hypura + local-voice expect :50021)
-if ($Mode -eq "Harness" -or $Mode -eq "Full" -or $Mode -eq "Ghost") {
+if ($Mode -eq "Harness" -or $Mode -eq "Full" -or $Mode -eq "Ghost" -or $Mode -eq "Full-Docker") {
     if ($env:SKIP_VOICEVOX_START -ne "1") {
         $vvPs1 = Join-Path $ProjectDir "scripts\launchers\start-voicevox-engine.ps1"
         Start-Process -FilePath "powershell.exe" -ArgumentList @(
@@ -125,7 +142,7 @@ Start-Process -FilePath "powershell.exe" -ArgumentList @(
 ) -WorkingDirectory $ProjectDir -WindowStyle Minimized
 
 # 2. Hypura Harness (Asynchronous)
-if ($Mode -eq "Harness" -or $Mode -eq "Full" -or $Mode -eq "Ghost") {
+if ($Mode -eq "Harness" -or $Mode -eq "Full" -or $Mode -eq "Ghost" -or $Mode -eq "Full-Docker") {
     if (-not $SkipHypuraHarness) {
         $harnessPs1 = Join-Path $ProjectDir "scripts\launchers\Start-Hypura-Harness.ps1"
         Start-Process -FilePath "powershell.exe" -ArgumentList @(
@@ -136,7 +153,7 @@ if ($Mode -eq "Harness" -or $Mode -eq "Full" -or $Mode -eq "Ghost") {
 }
 
 # 3. OpenClaw Gateway (Asynchronous)
-if ($Mode -eq "Full" -or $Mode -eq "Ghost") {
+if ($Mode -eq "Full" -or $Mode -eq "Ghost" -or $Mode -eq "Full-Docker") {
     $gwStyle = if ($Mode -eq "Ghost") { "Hidden" } else { "Minimized" }
     $gwPs1 = Join-Path $ProjectDir "scripts\launchers\Start-Gateway.ps1"
     Start-Process -FilePath "powershell.exe" -ArgumentList @(
@@ -254,7 +271,7 @@ if ($Mode -eq "Full" -or $Mode -eq "Ghost") {
     Write-Host "  [HINT] To diagnose: check the minimized Gateway PowerShell window for node/ts errors." -ForegroundColor DarkGray
 }
 
-if ($Mode -eq "Full") {
+if ($Mode -eq "Full" -or $Mode -eq "Full-Docker") {
     Write-Host '  [UI]  Deploying Cognitive Interfaces...' -ForegroundColor DarkCyan
 
     $edgeExe = $null
@@ -298,6 +315,22 @@ if ($Mode -eq "Full") {
         "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $tuiPs1
     ) -WorkingDirectory $ProjectDir
     Write-Host "  [TUI] TUI launched async (new window)." -ForegroundColor Gray
+}
+
+# --- [Shortcut Management] ---
+if ($ForceShortcutUpdate -or -not (Test-Path "$HOME\Desktop\Sovereign-Portal.lnk")) {
+    try {
+        $WshShell = New-Object -ComObject WScript.Shell
+        $Shortcut = $WshShell.CreateShortcut("$HOME\Desktop\Sovereign-Portal.lnk")
+        $Shortcut.TargetPath = "powershell.exe"
+        $Shortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$ScriptPath`" -Mode Full-Docker"
+        $Shortcut.WorkingDirectory = $ProjectDir
+        if (Test-Path $IconPath) { $Shortcut.IconLocation = $IconPath }
+        $Shortcut.Save()
+        Write-Host "  [LNK] Desktop shortcut updated: Sovereign-Portal.lnk" -ForegroundColor Gray
+    } catch {
+        Write-Host "  [WARN] Failed to update desktop shortcut: $_" -ForegroundColor Yellow
+    }
 }
 
 Write-Host ''

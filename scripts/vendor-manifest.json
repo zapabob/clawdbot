@@ -26,7 +26,7 @@
     "repo": "SakanaAI/AI-Scientist",
     "ref": "main",
     "target": "vendor/AI-Scientist",
-    "type": "github-tarball",
+    "type": "git-clone-shallow",
     "install": true,
     "post_patch": "scripts/patches/ai_scientist_ollama.py",
     "description": "SakanaAI AI-Scientist (Ollama-patched, slim mode — no LaTeX)"

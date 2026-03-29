@@ -37,7 +37,7 @@ def patch(target_dir: Path) -> None:
 
     src = llm_py.read_text(encoding="utf-8")
 
-    if 'startswith("ollama/')' in src or '"ollama"' in src:
+    if 'startswith("ollama/")' in src or 'model == "ollama"' in src:
         print("[PATCH] Ollama block already present — skipping")
         return
 

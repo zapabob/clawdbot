@@ -108,9 +108,9 @@ repos:
     hooks:
       - id: skills-python-tests
         name: skills python tests
-        entry: pytest -q skills
+        entry: pytest -q skills -n auto
         language: python
-        additional_dependencies: [pytest>=8, <9]
+        additional_dependencies: [pytest>=8, <9, pytest-xdist>=3]
         pass_filenames: false
         files: "^skills/.*\\.py$"
 
