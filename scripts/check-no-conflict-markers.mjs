@@ -33,6 +33,7 @@ export function listTrackedFiles(cwd = process.cwd()) {
   return output
     .split("\0")
     .filter(Boolean)
+    .filter((p) => !p.startsWith(".openclaw-desktop") && !p.startsWith("logs") && !p.startsWith("_docs"))
     .map((relativePath) => path.join(cwd, relativePath));
 }
 

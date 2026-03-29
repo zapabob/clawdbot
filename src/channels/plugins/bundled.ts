@@ -22,7 +22,7 @@ export const bundledChannelPlugins = generatedBundledChannelEntries.map(({ id, e
       `bundled channel plugin "${id}" entry is undefined. This likely indicates a circular dependency.`,
     );
   }
-  const plugin = (entry as any).channelPlugin;
+  const plugin = entry.channelPlugin;
   if (!plugin) {
     throw new Error(
       `bundled channel plugin "${id}" entry is defined but .channelPlugin is undefined. Possible TDZ in ${id}.`,

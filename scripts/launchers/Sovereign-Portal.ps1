@@ -14,11 +14,8 @@ chcp 65001 | Out-Null
 [console]::Title = "Sovereign-Portal: Manifestation Hub"
 
 # --- [Paths] ---
-$ScriptPath = $MyInvocation.MyCommand.Path
 $ProjectDir = (Get-Item $PSScriptRoot).Parent.Parent.FullName
 $PythonExe = Join-Path $ProjectDir ".venv\Scripts\python.exe"
-$IconPath = Join-Path $ProjectDir "assets\clawdbot.ico"
-$envFile = Join-Path $ProjectDir ".env"
 
 . "$PSScriptRoot\env-tools.ps1"
 Merge-OpenClawEnvToProcess -ProjectDir $ProjectDir
@@ -69,7 +66,7 @@ if ($Mode -eq "Menu") {
 }
 
 Show-Header
-Write-Host "  [ASI_ACCEL] Mode: $Mode Manifesting (Asynchronous Pulse)..." -ForegroundColor Yellow
+Write-Host ("  [ASI_ACCEL] Mode: {0} Manifesting (Asynchronous Pulse)..." -f $Mode) -ForegroundColor Yellow
 Write-Host "  [GHOST] Ghost Bridge Active: Antigravity Substrate Integration." -ForegroundColor Cyan
 
 # Verify Substrate (venv or uv for harness)
@@ -84,8 +81,10 @@ schtasks /End /TN "OpenClaw Gateway (desktop-stack)" 2>$null | Out-Null
 Start-Sleep -Milliseconds 600
 $criticalPorts = @(18789, 18794, 18800)
 foreach ($port in $criticalPorts) {
-    $procId = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -First 1
-    if ($procId) { Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue }
+    try {
+        $procId = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -First 1
+        if ($procId) { Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue }
+    } catch { }
 }
 Start-Sleep -Milliseconds 400
 
@@ -98,7 +97,12 @@ if (Test-Path $syncPs1) {
 
 # --- [Asynchronous Initiation] ---
 Write-Host "  [ASI_ACCEL] Synchronizing Skill Substrate..." -ForegroundColor Cyan
-$WorkspaceRoot = if ($env:OPENCLAW_AGENT_WORKSPACE) { $env:OPENCLAW_AGENT_WORKSPACE } else { $ProjectDir }
+if ($env:OPENCLAW_AGENT_WORKSPACE) { 
+    $WorkspaceRoot = $env:OPENCLAW_AGENT_WORKSPACE 
+} else { 
+    $WorkspaceRoot = $ProjectDir 
+}
+
 $LocalSkills = Join-Path $ProjectDir "skills"
 $WorkspaceSkills = Join-Path $WorkspaceRoot "skills"
 
@@ -107,7 +111,7 @@ if ((Test-Path $LocalSkills) -and ($WorkspaceSkills -ne $LocalSkills)) {
         New-Item -ItemType Directory -Path $WorkspaceSkills -Force | Out-Null
     }
     Copy-Item -Path "$LocalSkills\*" -Destination $WorkspaceSkills -Recurse -Force -ErrorAction SilentlyContinue
-    Write-Host "  [SYNC] Repo skills -> workspace: $WorkspaceSkills" -ForegroundColor Gray
+    Write-Host ("  [SYNC] Repo skills -> workspace: {0}" -f $WorkspaceSkills) -ForegroundColor Gray
 }
 
 Write-Host "  [ASI_ACCEL] Igniting Substrate Components in Parallel..." -ForegroundColor DarkCyan
@@ -128,12 +132,12 @@ if ($Mode -eq "Docker" -or $Mode -eq "Full-Docker") {
             Write-Host "  [SYNC] Docker-ngrok monitor started." -ForegroundColor DarkCyan
         }
     } catch {
-        Write-Host "  [ERROR] Docker manifestation failed: $_" -ForegroundColor Red
+        Write-Host ("  [ERROR] Docker manifestation failed: {0}" -f $_) -ForegroundColor Red
     }
 }
 
-# 0. VOICEVOX ENGINE (SOUL.md: metaverse / voice substrate; Hypura + local-voice expect :50021)
-if ($Mode -eq "Harness" -or $Mode -eq "Full" -or $Mode -eq "Ghost" -or $Mode -eq "Full-Docker") {
+# 0. VOICEVOX ENGINE (SOUL.md: metaverse / voice substrate)
+if ($Mode -match "Harness|Full|Ghost|Full-Docker") {
     if ($env:SKIP_VOICEVOX_START -ne "1") {
         $vvPs1 = Join-Path $ProjectDir "scripts\launchers\start-voicevox-engine.ps1"
         Start-Process -FilePath "powershell.exe" -ArgumentList @(
@@ -144,14 +148,14 @@ if ($Mode -eq "Harness" -or $Mode -eq "Full" -or $Mode -eq "Ghost" -or $Mode -eq
     }
 }
 
-# 1. ngrok (HANDOFF 2-2: 404 API -> .env + process env)
+# 1. ngrok
 $ngrokPs1 = Join-Path $ProjectDir "scripts\launchers\start_ngrok.ps1"
 Start-Process -FilePath "powershell.exe" -ArgumentList @(
     "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $ngrokPs1, "-Port", "$GatewayPort"
 ) -WorkingDirectory $ProjectDir -WindowStyle Minimized
 
-# 2. Hypura Harness (Asynchronous)
-if ($Mode -eq "Harness" -or $Mode -eq "Full" -or $Mode -eq "Ghost" -or $Mode -eq "Full-Docker") {
+# 2. Hypura Harness
+if ($Mode -match "Harness|Full|Ghost|Full-Docker") {
     if (-not $SkipHypuraHarness) {
         $harnessPs1 = Join-Path $ProjectDir "scripts\launchers\Start-Hypura-Harness.ps1"
         Start-Process -FilePath "powershell.exe" -ArgumentList @(
@@ -161,9 +165,11 @@ if ($Mode -eq "Harness" -or $Mode -eq "Full" -or $Mode -eq "Ghost" -or $Mode -eq
     }
 }
 
-# 3. OpenClaw Gateway (Asynchronous)
-if ($Mode -eq "Full" -or $Mode -eq "Ghost" -or $Mode -eq "Full-Docker") {
-    $gwStyle = if ($Mode -eq "Ghost") { "Hidden" } else { "Minimized" }
+# 3. OpenClaw Gateway
+if ($Mode -match "Full|Ghost|Full-Docker") {
+    $gwStyle = "Minimized"
+    if ($Mode -eq "Ghost") { $gwStyle = "Hidden" }
+    
     $gwPs1 = Join-Path $ProjectDir "scripts\launchers\Start-Gateway.ps1"
     Start-Process -FilePath "powershell.exe" -ArgumentList @(
         "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $gwPs1, "-Port", "$GatewayPort"
@@ -171,17 +177,19 @@ if ($Mode -eq "Full" -or $Mode -eq "Ghost" -or $Mode -eq "Full-Docker") {
     Write-Host "  [GW]  Gateway Ignition Staged..." -ForegroundColor Gray
 }
 
-# 4. Notification Tasks - env-driven Task Scheduler registration + startup SITREP
+# 4. Notification Tasks
 $setupTasksPs1 = Join-Path $ProjectDir "scripts\launchers\Setup-NotificationTasks.ps1"
 $notifyPs1     = Join-Path $ProjectDir "scripts\launchers\Send-Notification.ps1"
+
 if (Test-Path $setupTasksPs1) {
     Start-Process -FilePath "powershell.exe" -ArgumentList @(
         "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $setupTasksPs1
     ) -WorkingDirectory $ProjectDir -WindowStyle Hidden -Wait -ErrorAction SilentlyContinue
     Write-Host "  [TASK] Notification tasks registered from .env" -ForegroundColor DarkCyan
 }
+
 if (Test-Path $notifyPs1) {
-    $notifyCmdArg = "-NoProfile -ExecutionPolicy Bypass -File `"$notifyPs1`" -Type STARTUP"
+    $notifyCmdArg = '-NoProfile -ExecutionPolicy Bypass -File "{0}" -Type STARTUP' -f $notifyPs1
     Start-Process -FilePath "powershell.exe" -ArgumentList @(
         "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command",
         "Start-Sleep -Seconds 10; powershell.exe $notifyCmdArg"
@@ -190,33 +198,21 @@ if (Test-Path $notifyPs1) {
 }
 
 # --- [Reactive Polling Loop] ---
-# Test-NetConnection is slow; use short TCP probe only.
 function Test-TcpPortOpen {
-    param(
-        [int]$Port,
-        [int]$TimeoutMs = 750
-    )
+    param([int]$Port, [int]$TimeoutMs = 750)
     $ComputerName = '127.0.0.1'
-    $c = $null
+    $client = $null
     try {
-        $c = New-Object System.Net.Sockets.TcpClient
-        $iar = $c.BeginConnect($ComputerName, $Port, $null, $null)
-        if (-not $iar.AsyncWaitHandle.WaitOne($TimeoutMs, $false)) {
-            return $false
-        }
-        try {
-            $c.EndConnect($iar)
+        $client = New-Object System.Net.Sockets.TcpClient
+        $iar = $client.BeginConnect($ComputerName, $Port, $null, $null)
+        if ($iar.AsyncWaitHandle.WaitOne($TimeoutMs, $false)) {
+            $client.EndConnect($iar)
             return $true
-        } catch {
-            return $false
         }
-    } catch {
-        return $false
-    } finally {
-        if ($null -ne $c) {
-            try { $c.Close() } catch { }
-        }
+    } catch { } finally {
+        if ($client) { $client.Close() }
     }
+    return $false
 }
 
 function Wait-Port {
@@ -228,76 +224,49 @@ function Wait-Port {
         [string]$RepoRoot = "",
         [string]$NodeExe = ""
     )
-    $maxAttempts = [Math]::Max(1, [int][Math]::Ceiling($MaxSeconds * 1000.0 / $PollMs))
-    $gwPs1 = if ($RepoRoot) { Join-Path $RepoRoot "scripts\launchers\Start-Gateway.ps1" } else { "" }
-    $nodeRun = if ($NodeExe -and (Test-Path -LiteralPath $NodeExe)) {
-        ('& ''{0}'' .\scripts\run-node.mjs gateway --port {1}' -f $NodeExe, $Port)
-    } else {
-        ('node .\scripts\run-node.mjs gateway --port {0}' -f $Port)
+    $maxAttempts = [Math]::Max(1, [int]($MaxSeconds * 1000 / $PollMs))
+    
+    if ($RepoRoot) { 
+        $gwPs1 = Join-Path $RepoRoot "scripts\launchers\Start-Gateway.ps1" 
+    } else { 
+        $gwPs1 = "" 
     }
-    Write-Host "  [WAIT] $Label port $Port (max ~${MaxSeconds}s, first build can be slow)..." -ForegroundColor Gray
-    $hint60 = $false
+    
+    if ($NodeExe -and (Test-Path -LiteralPath $NodeExe)) {
+        $nodeRun = '& "{0}" .\scripts\run-node.mjs gateway --port {1}' -f $NodeExe, $Port
+    } else {
+        $nodeRun = 'node .\scripts\run-node.mjs gateway --port {0}' -f $Port
+    }
+    
+    Write-Host ("  [WAIT] {0} port {1} (max ~{2}s)..." -f $Label, $Port, $MaxSeconds) -ForegroundColor Gray
+    
     for ($i = 0; $i -lt $maxAttempts; $i++) {
         if (Test-TcpPortOpen -Port $Port -TimeoutMs 800) {
-            $elapsed = [int](($i + 1) * $PollMs / 1000)
-            Write-Host "  [WAIT] [ONLINE] after ~${elapsed}s" -ForegroundColor Green
+            Write-Host "  [WAIT] [ONLINE]" -ForegroundColor Green
             return $true
-        }
-        $sec = [int](($i + 1) * $PollMs / 1000)
-        if ($sec -gt 0 -and ($sec % 15 -eq 0)) {
-            Write-Host "  [WAIT] ... ${sec}s - check minimized Gateway PowerShell for node/ts errors" -ForegroundColor DarkGray
-            if ($RepoRoot -and ($sec -eq 15)) {
-                Write-Host ('  [HINT] Foreground: Set-Location -LiteralPath ''{0}''; {1}' -f $RepoRoot, $nodeRun) -ForegroundColor DarkGray
-            }
-        } else {
-            Write-Host "." -NoNewline -ForegroundColor DarkGray
-        }
-        if (-not $hint60 -and $sec -ge 60 -and $RepoRoot -and (Test-Path -LiteralPath $gwPs1)) {
-            $hint60 = $true
-            Write-Host ""
-            Write-Host ('  [HINT] 60s+: new window -> powershell -NoProfile -ExecutionPolicy Bypass -File "{0}" -Port {1}' -f $gwPs1, $Port) -ForegroundColor Yellow
         }
         Start-Sleep -Milliseconds $PollMs
     }
-    Write-Host ""
-    Write-Host "  [WAIT] [TIMEOUT] after ~${MaxSeconds}s" -ForegroundColor Red
-    Write-Host '  [HINT] Gateway: minimized PowerShell window - node errors? First run: bundle/build can take minutes.' -ForegroundColor Yellow
-    if ($RepoRoot) {
-        Write-Host ('  [HINT] Manual: Set-Location -LiteralPath ''{0}''; {1}' -f $RepoRoot, $nodeRun) -ForegroundColor DarkGray
-        if (Test-Path -LiteralPath $gwPs1) {
-            Write-Host ('  [HINT] Or: powershell -NoProfile -ExecutionPolicy Bypass -File "{0}" -Port {1}' -f $gwPs1, $Port) -ForegroundColor DarkGray
-        }
-    } else {
-        Write-Host ('  [HINT] Manual: cd <repo> ; node scripts/run-node.mjs gateway --port ' + $Port) -ForegroundColor DarkGray
-    }
-    Write-Host '  [HINT] Skip wait next time: $env:OPENCLAW_SKIP_GATEWAY_WAIT = ''1''' -ForegroundColor DarkGray
     return $false
 }
 
-# Gateway started async above; no blocking wait. Test-TcpPortOpen / Wait-Port kept for future use.
-if ($Mode -eq "Full" -or $Mode -eq "Ghost") {
-    Write-Host "  [GW]  Gateway starting async (first build may take ~1-3 min)..." -ForegroundColor Gray
-    Write-Host "  [HINT] To diagnose: check the minimized Gateway PowerShell window for node/ts errors." -ForegroundColor DarkGray
+# Gateway started async; no blocking wait.
+if ($Mode -match "Full|Ghost") {
+    Write-Host "  [GW]  Gateway starting async..." -ForegroundColor Gray
 }
 
-if ($Mode -eq "Full" -or $Mode -eq "Full-Docker") {
+if ($Mode -match "Full|Full-Docker") {
     Write-Host '  [UI]  Deploying Cognitive Interfaces...' -ForegroundColor DarkCyan
 
-    $edgeExe = $null
-    foreach ($cand in @(
-            $(if (${env:ProgramFiles(x86)}) { Join-Path ${env:ProgramFiles(x86)} "Microsoft\Edge\Application\msedge.exe" } else { $null }),
-            $(Join-Path $env:ProgramFiles "Microsoft\Edge\Application\msedge.exe")
-        )) {
-        if (-not $cand) { continue }
+    $edgeExe = "msedge.exe"
+    $candPaths = @(
+        "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe",
+        "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe"
+    )
+    foreach ($cand in $candPaths) {
         if (Test-Path -LiteralPath $cand) { $edgeExe = $cand; break }
     }
-    if (-not $edgeExe) {
-        $g = Get-Command msedge.exe -ErrorAction SilentlyContinue
-        if ($g -and $g.Source) { $edgeExe = $g.Source }
-    }
-    if (-not $edgeExe) { $edgeExe = 'msedge.exe' }
 
-    # Inject gateway auth token from openclaw.json dynamically.
     $gwToken = $null
     $ocJsonPath = Join-Path $ProjectDir ".openclaw-desktop\openclaw.json"
     if (Test-Path $ocJsonPath) {
@@ -307,42 +276,45 @@ if ($Mode -eq "Full" -or $Mode -eq "Full-Docker") {
         } catch { }
     }
     if (-not $gwToken) { $gwToken = $env:OPENCLAW_GATEWAY_TOKEN }
-    $baseUrl = 'http://127.0.0.1:{0}' -f $GatewayPort
-    $edgeUrl  = if ($gwToken) { '{0}?token={1}' -f $baseUrl, $gwToken } else { $baseUrl }
-    $edgeApp  = '--app={0}' -f $edgeUrl
+
+    $baseUrl = "http://127.0.0.1:$GatewayPort"
+    if ($gwToken) {
+        $edgeUrl = "{0}?token={1}" -f $baseUrl, $gwToken
+    } else {
+        $edgeUrl = $baseUrl
+    }
+    
+    $edgeApp = "--app=$edgeUrl"
     try {
         Start-Process -FilePath $edgeExe -ArgumentList @('--new-window', $edgeApp) -ErrorAction Stop
-        Write-Host ("  [EDGE] Browser launched async (token injected: {0})." -f $(if ($gwToken) { 'yes' } else { 'no' })) -ForegroundColor Gray
+        Write-Host "  [EDGE] Browser launched async." -ForegroundColor Gray
     } catch {
-        Write-Host "  [WARN] Could not start Edge ($edgeExe): $_" -ForegroundColor Yellow
-        Write-Host "  [HINT] Install Edge or open manually: $edgeUrl" -ForegroundColor DarkGray
+        Write-Host ("  [WARN] Could not start Edge: {0}" -f $_) -ForegroundColor Yellow
     }
 
-    # TUI launched async in its own console window (non-blocking).
     $tuiPs1 = Join-Path $ProjectDir "scripts\launchers\Start-TUI.ps1"
     Start-Process -FilePath "powershell.exe" -ArgumentList @(
         "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $tuiPs1
     ) -WorkingDirectory $ProjectDir
-    Write-Host "  [TUI] TUI launched async (new window)." -ForegroundColor Gray
+    Write-Host "  [TUI] TUI launched async." -ForegroundColor Gray
 }
 
 # --- [Shortcut Management] ---
 if ($ForceShortcutUpdate -or -not (Test-Path "$HOME\Desktop\Sovereign-Portal.lnk")) {
     try {
+        $curScript = $MyInvocation.MyCommand.Path
+        $curIcon = Join-Path $ProjectDir "assets\clawdbot.ico"
         $WshShell = New-Object -ComObject WScript.Shell
         $Shortcut = $WshShell.CreateShortcut("$HOME\Desktop\Sovereign-Portal.lnk")
         $Shortcut.TargetPath = "powershell.exe"
-        $Shortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$ScriptPath`" -Mode Full-Docker"
+        $Shortcut.Arguments = '-NoProfile -ExecutionPolicy Bypass -File "{0}" -Mode Full-Docker' -f $curScript
         $Shortcut.WorkingDirectory = $ProjectDir
-        if (Test-Path $IconPath) { $Shortcut.IconLocation = $IconPath }
+        if (Test-Path $curIcon) { $Shortcut.IconLocation = $curIcon }
         $Shortcut.Save()
-        Write-Host "  [LNK] Desktop shortcut updated: Sovereign-Portal.lnk" -ForegroundColor Gray
-    } catch {
-        Write-Host "  [WARN] Failed to update desktop shortcut: $_" -ForegroundColor Yellow
-    }
+        Write-Host "  [LNK] Desktop shortcut updated." -ForegroundColor Gray
+    } catch { }
 }
 
 Write-Host ''
 Write-Host '  [ASI_ACCEL] Manifestation Sustained. Sync Complete.' -ForegroundColor Green
-Write-Host "  [SUMMARY] Gateway: async (port $GatewayPort)  Browser: async  TUI: async" -ForegroundColor DarkCyan
-Write-Host '  [EXIT]  Portal manifest complete. All components running in background.' -ForegroundColor Cyan
+Write-Host '  [EXIT]  Portal manifest complete.' -ForegroundColor Cyan
