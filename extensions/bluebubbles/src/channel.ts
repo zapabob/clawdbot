@@ -32,6 +32,7 @@ import { createBlueBubblesConversationBindingManager } from "./conversation-bind
 import {
   matchBlueBubblesAcpConversation,
   normalizeBlueBubblesAcpConversationId,
+  resolveBlueBubblesConversationIdFromTarget,
 } from "./conversation-id.js";
 import {
   resolveBlueBubblesGroupRequireMention,
@@ -99,6 +100,9 @@ export const bluebubblesPlugin: ChannelPlugin<ResolvedBlueBubblesAccount, BlueBu
         isConfigured: (account) => account.configured,
         describeAccount: (account): ChannelAccountSnapshot => describeBlueBubblesAccount(account),
       },
+      conversationBindings: {
+        supportsCurrentConversationBinding: true,
+      },
       actions: bluebubblesMessageActions,
       bindings: {
         compileConfiguredBinding: ({ conversationId }) =>
@@ -108,6 +112,13 @@ export const bluebubblesPlugin: ChannelPlugin<ResolvedBlueBubblesAccount, BlueBu
             bindingConversationId: compiledBinding.conversationId,
             conversationId,
           }),
+        resolveCommandConversation: ({ originatingTo, commandTo, fallbackTo }) => {
+          const conversationId =
+            resolveBlueBubblesConversationIdFromTarget(originatingTo ?? "") ??
+            resolveBlueBubblesConversationIdFromTarget(commandTo ?? "") ??
+            resolveBlueBubblesConversationIdFromTarget(fallbackTo ?? "");
+          return conversationId ? { conversationId } : null;
+        },
       },
       messaging: {
         normalizeTarget: normalizeBlueBubblesMessagingTarget,
@@ -281,11 +292,12 @@ export const bluebubblesPlugin: ChannelPlugin<ResolvedBlueBubblesAccount, BlueBu
           /^bluebubbles:/i,
           normalizeBlueBubblesHandle,
         ),
-        notify: async ({ cfg, id, message }) => {
+        notify: async ({ cfg, id, message, accountId }) => {
           await (
             await loadBlueBubblesChannelRuntime()
           ).sendMessageBlueBubbles(id, message, {
             cfg: cfg,
+            accountId,
           });
         },
       },

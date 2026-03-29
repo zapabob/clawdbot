@@ -35,8 +35,9 @@ if Path(_AI_SCIENTIST_DIR).exists() and _AI_SCIENTIST_DIR not in sys.path:
     sys.path.insert(0, _AI_SCIENTIST_DIR)
 
 REDIS_URL       = os.environ.get("REDIS_URL", "redis://localhost:6379")
-OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434/v1")
-OLLAMA_MODEL    = os.environ.get("OLLAMA_MODEL", "qwen-Hakua-core2")
+_ollama_raw     = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434/v1").rstrip("/")
+OLLAMA_BASE_URL = _ollama_raw if _ollama_raw.endswith("/v1") else _ollama_raw + "/v1"
+OLLAMA_MODEL    = os.environ.get("OLLAMA_MODEL", "qwen-hakua-core:latest")
 INTERVAL_SEC    = int(os.environ.get("AI_SCIENTIST_INTERVAL_SEC", "7200"))
 MAX_IDEAS       = int(os.environ.get("AI_SCIENTIST_MAX_IDEAS", "5"))
 MAX_FINDINGS    = 200
@@ -100,32 +101,31 @@ class AiScientistRunner:
     def run_ideas(
         self,
         topic: str,
+        template: str = "nanoGPT",
         num_ideas: int = 3,
         model: Optional[str] = None,
     ) -> list[dict]:
         """
         AI-Scientist のアイデア生成を実行する。
-        LaTeX/実験実行はしない — アイデアオブジェクトのリストを返す。
         """
         if not self._available:
             return self._fallback_ideas(topic, num_ideas, model)
 
         try:
-            return self._run_ideas_sakana(topic, num_ideas, model)
+            return self._run_ideas_sakana(topic, template, num_ideas, model)
         except Exception as e:
             logger.warning("SakanaAI idea generation failed (%s), falling back: %s", type(e).__name__, e)
             return self._fallback_ideas(topic, num_ideas, model)
 
-    def run_experiment(self, idea: dict, model: Optional[str] = None) -> dict:
+    def run_experiment(self, idea: dict, template: str = "nanoGPT", model: Optional[str] = None) -> dict:
         """
         AI-Scientist の実験実行 (perform_experiments) を呼ぶ。
-        論文生成 (perform_writeup) はスキップ。
         """
         if not self._available:
             return {"success": False, "error": "ai_scientist not available"}
 
         try:
-            return self._run_experiment_sakana(idea, model)
+            return self._run_experiment_sakana(idea, template, model)
         except Exception as e:
             logger.warning("SakanaAI experiment failed: %s", e)
             return {"success": False, "error": str(e)}
@@ -186,12 +186,12 @@ class AiScientistRunner:
             "top_p": 0.95,
         }
 
-    def _run_ideas_sakana(self, topic: str, num_ideas: int, model: Optional[str]) -> list[dict]:
+    def _run_ideas_sakana(self, topic: str, template: str, num_ideas: int, model: Optional[str]) -> list[dict]:
         from ai_scientist.generate_ideas import generate_ideas  # type: ignore[import]
 
         llm_kwargs = self._make_llm_kwargs(model)
         ideas = generate_ideas(
-            base_dir=_AI_SCIENTIST_DIR,
+            base_dir=str(Path(_AI_SCIENTIST_DIR) / "templates" / template),
             model=llm_kwargs["model"],
             skip_generation=False,
             max_num_generations=num_ideas,
@@ -199,13 +199,13 @@ class AiScientistRunner:
         )
         return ideas if isinstance(ideas, list) else []
 
-    def _run_experiment_sakana(self, idea: dict, model: Optional[str]) -> dict:
+    def _run_experiment_sakana(self, idea: dict, template: str, model: Optional[str]) -> dict:
         from ai_scientist.perform_experiments import perform_experiments  # type: ignore[import]
 
         llm_kwargs = self._make_llm_kwargs(model)
         success, msg = perform_experiments(
             idea=idea,
-            folder_name=str(Path(_AI_SCIENTIST_DIR) / "templates" / "nanoGPT"),
+            folder_name=str(Path(_AI_SCIENTIST_DIR) / "templates" / template),
             results_dir=str(Path(_AI_SCIENTIST_DIR) / "_results"),
             model=llm_kwargs["model"],
             run_num=1,

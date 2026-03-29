@@ -251,3 +251,8 @@ tmp/
 logs/
 *.log
 nul
+
+# Deprecated changelog fragment workflow
+changelog/fragments/
+# Local scratch workspace
+.tmp/

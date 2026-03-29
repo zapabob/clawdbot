@@ -4,11 +4,73 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
+import { resolveGitHead, writeBuildStamp as writeDistBuildStamp } from "./build-stamp.mjs";
+import {
+  BUNDLED_PLUGIN_PATH_PREFIX,
+  BUNDLED_PLUGIN_ROOT_DIR,
+} from "./lib/bundled-plugin-paths.mjs";
+import { runRuntimePostBuild } from "./runtime-postbuild.mjs";
 
-const compiler = "tsdown";
-const compilerArgs = ["exec", compiler, "--no-clean"];
+const buildScript = "scripts/tsdown-build.mjs";
+const compilerArgs = [buildScript, "--no-clean"];
 
-export const runNodeWatchedPaths = ["src", "tsconfig.json", "package.json"];
+const runNodeSourceRoots = ["src", BUNDLED_PLUGIN_ROOT_DIR];
+const runNodeConfigFiles = ["tsconfig.json", "package.json", "tsdown.config.ts"];
+export const runNodeWatchedPaths = [...runNodeSourceRoots, ...runNodeConfigFiles];
+const extensionSourceFilePattern = /\.(?:[cm]?[jt]sx?)$/;
+const extensionRestartMetadataFiles = new Set(["openclaw.plugin.json", "package.json"]);
+
+const normalizePath = (filePath) => String(filePath ?? "").replaceAll("\\", "/");
+
+const isIgnoredSourcePath = (relativePath) => {
+  const normalizedPath = normalizePath(relativePath);
+  return (
+    normalizedPath.endsWith(".test.ts") ||
+    normalizedPath.endsWith(".test.tsx") ||
+    normalizedPath.endsWith("test-helpers.ts")
+  );
+};
+
+const isBuildRelevantSourcePath = (relativePath) => {
+  const normalizedPath = normalizePath(relativePath);
+  return extensionSourceFilePattern.test(normalizedPath) && !isIgnoredSourcePath(normalizedPath);
+};
+
+export const isBuildRelevantRunNodePath = (repoPath) => {
+  const normalizedPath = normalizePath(repoPath).replace(/^\.\/+/, "");
+  if (runNodeConfigFiles.includes(normalizedPath)) {
+    return true;
+  }
+  if (normalizedPath.startsWith("src/")) {
+    return !isIgnoredSourcePath(normalizedPath.slice("src/".length));
+  }
+  if (normalizedPath.startsWith(BUNDLED_PLUGIN_PATH_PREFIX)) {
+    return isBuildRelevantSourcePath(normalizedPath.slice(BUNDLED_PLUGIN_PATH_PREFIX.length));
+  }
+  return false;
+};
+
+const isRestartRelevantExtensionPath = (relativePath) => {
+  const normalizedPath = normalizePath(relativePath);
+  if (extensionRestartMetadataFiles.has(path.posix.basename(normalizedPath))) {
+    return true;
+  }
+  return isBuildRelevantSourcePath(normalizedPath);
+};
+
+export const isRestartRelevantRunNodePath = (repoPath) => {
+  const normalizedPath = normalizePath(repoPath).replace(/^\.\/+/, "");
+  if (runNodeConfigFiles.includes(normalizedPath)) {
+    return true;
+  }
+  if (normalizedPath.startsWith("src/")) {
+    return !isIgnoredSourcePath(normalizedPath.slice("src/".length));
+  }
+  if (normalizedPath.startsWith(BUNDLED_PLUGIN_PATH_PREFIX)) {
+    return isRestartRelevantExtensionPath(normalizedPath.slice(BUNDLED_PLUGIN_PATH_PREFIX.length));
+  }
+  return false;
+};
 
 const statMtime = (filePath, fsImpl = fs) => {
   try {
@@ -18,16 +80,12 @@ const statMtime = (filePath, fsImpl = fs) => {
   }
 };
 
-const isExcludedSource = (filePath, srcRoot) => {
-  const relativePath = path.relative(srcRoot, filePath);
+const isExcludedSource = (filePath, sourceRoot, sourceRootName) => {
+  const relativePath = normalizePath(path.relative(sourceRoot, filePath));
   if (relativePath.startsWith("..")) {
     return false;
   }
-  return (
-    relativePath.endsWith(".test.ts") ||
-    relativePath.endsWith(".test.tsx") ||
-    relativePath.endsWith(`test-helpers.ts`)
-  );
+  return !isBuildRelevantRunNodePath(path.posix.join(sourceRootName, relativePath));
 };
 
 const findLatestMtime = (dirPath, shouldSkip, deps) => {
@@ -68,36 +126,39 @@ const findLatestMtime = (dirPath, shouldSkip, deps) => {
   return latest;
 };
 
-const runGit = (gitArgs, deps) => {
+const readGitStatus = (deps) => {
   try {
-    const result = deps.spawnSync("git", gitArgs, {
-      cwd: deps.cwd,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    });
+    const result = deps.spawnSync(
+      "git",
+      ["status", "--porcelain", "--untracked-files=normal", "--", ...runNodeWatchedPaths],
+      {
+        cwd: deps.cwd,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+      },
+    );
     if (result.status !== 0) {
       return null;
     }
-    return (result.stdout ?? "").trim();
+    return result.stdout ?? "";
   } catch {
     return null;
   }
 };
 
-const resolveGitHead = (deps) => {
-  const head = runGit(["rev-parse", "HEAD"], deps);
-  return head || null;
-};
+const parseGitStatusPaths = (output) =>
+  output
+    .split("\n")
+    .flatMap((line) => line.slice(3).split(" -> "))
+    .map((entry) => normalizePath(entry.trim()))
+    .filter(Boolean);
 
 const hasDirtySourceTree = (deps) => {
-  const output = runGit(
-    ["status", "--porcelain", "--untracked-files=normal", "--", ...runNodeWatchedPaths],
-    deps,
-  );
+  const output = readGitStatus(deps);
   if (output === null) {
     return null;
   }
-  return output.length > 0;
+  return parseGitStatusPaths(output).some((repoPath) => isBuildRelevantRunNodePath(repoPath));
 };
 
 const readBuildStamp = (deps) => {
@@ -119,12 +180,18 @@ const readBuildStamp = (deps) => {
 };
 
 const hasSourceMtimeChanged = (stampMtime, deps) => {
-  const srcMtime = findLatestMtime(
-    deps.srcRoot,
-    (candidate) => isExcludedSource(candidate, deps.srcRoot),
-    deps,
-  );
-  return srcMtime != null && srcMtime > stampMtime;
+  let latestSourceMtime = null;
+  for (const sourceRoot of deps.sourceRoots) {
+    const sourceMtime = findLatestMtime(
+      sourceRoot.path,
+      (candidate) => isExcludedSource(candidate, sourceRoot.path, sourceRoot.name),
+      deps,
+    );
+    if (sourceMtime != null && (latestSourceMtime == null || sourceMtime > latestSourceMtime)) {
+      latestSourceMtime = sourceMtime;
+    }
+  }
+  return latestSourceMtime != null && latestSourceMtime > stampMtime;
 };
 
 const shouldBuild = (deps) => {
@@ -148,10 +215,10 @@ const shouldBuild = (deps) => {
 
   const currentHead = resolveGitHead(deps);
   if (currentHead && !stamp.head) {
-    return hasSourceMtimeChanged(stamp.mtime, deps);
+    return true;
   }
   if (currentHead && stamp.head && currentHead !== stamp.head) {
-    return hasSourceMtimeChanged(stamp.mtime, deps);
+    return true;
   }
   if (currentHead) {
     const dirty = hasDirtySourceTree(deps);
@@ -176,95 +243,6 @@ const logRunner = (message, deps) => {
   deps.stderr.write(`[openclaw] ${message}\n`);
 };
 
-const checkNodeModules = (deps) => {
-  const nodeModulesBin = path.join(deps.cwd, "node_modules", ".bin");
-  const nodeModulesPnpm = path.join(deps.cwd, "node_modules", ".pnpm");
-
-  if (!deps.fs.existsSync(nodeModulesBin) || !deps.fs.existsSync(nodeModulesPnpm)) {
-    return { ok: false, reason: "node_modules is missing or incomplete" };
-  }
-
-  const tsdownBin =
-    deps.platform === "win32"
-      ? path.join(nodeModulesBin, `${compiler}.cmd`)
-      : path.join(nodeModulesBin, compiler);
-
-  if (!deps.fs.existsSync(tsdownBin)) {
-    return { ok: false, reason: `build tool '${compiler}' is not in node_modules/.bin` };
-  }
-
-  return { ok: true };
-};
-
-const runtimeRequiredPackages = ["@anthropic-ai/vertex-sdk"];
-
-const checkRuntimeRequiredDeps = (deps) => {
-  const missing = [];
-  for (const packageName of runtimeRequiredPackages) {
-    const packageJsonPath = path.join(
-      deps.cwd,
-      "node_modules",
-      ...packageName.split("/"),
-      "package.json",
-    );
-    if (!deps.fs.existsSync(packageJsonPath)) {
-      missing.push(packageName);
-    }
-  }
-  if (missing.length > 0) {
-    return {
-      ok: false,
-      missing,
-    };
-  }
-  return { ok: true, missing: [] };
-};
-
-const resolvePnpmCommand = (deps) => {
-  if (deps.platform === "win32") {
-    const pnpmCheck = deps.spawnSync("cmd.exe", ["/d", "/s", "/c", "where pnpm"], {
-      cwd: deps.cwd,
-      env: deps.env,
-      stdio: "ignore",
-    });
-    if (pnpmCheck.status === 0) {
-      return { command: "cmd.exe", args: ["/d", "/s", "/c", "pnpm", ...compilerArgs] };
-    }
-
-    const corepackCheck = deps.spawnSync("cmd.exe", ["/d", "/s", "/c", "where corepack"], {
-      cwd: deps.cwd,
-      env: deps.env,
-      stdio: "ignore",
-    });
-    if (corepackCheck.status === 0) {
-      return {
-        command: "cmd.exe",
-        args: ["/d", "/s", "/c", "corepack", "pnpm", ...compilerArgs],
-      };
-    }
-  } else {
-    const pnpmCheck = deps.spawnSync("sh", ["-lc", "command -v pnpm"], {
-      cwd: deps.cwd,
-      env: deps.env,
-      stdio: "ignore",
-    });
-    if (pnpmCheck.status === 0) {
-      return { command: "pnpm", args: compilerArgs };
-    }
-
-    const corepackCheck = deps.spawnSync("sh", ["-lc", "command -v corepack"], {
-      cwd: deps.cwd,
-      env: deps.env,
-      stdio: "ignore",
-    });
-    if (corepackCheck.status === 0) {
-      return { command: "corepack", args: ["pnpm", ...compilerArgs] };
-    }
-  }
-
-  return null;
-};
-
 const runOpenClaw = async (deps) => {
   const nodeProcess = deps.spawn(deps.execPath, ["openclaw.mjs", ...deps.args], {
     cwd: deps.cwd,
@@ -282,14 +260,26 @@ const runOpenClaw = async (deps) => {
   return res.exitCode ?? 1;
 };
 
+const syncRuntimeArtifacts = (deps) => {
+  try {
+    runRuntimePostBuild({ cwd: deps.cwd });
+  } catch (error) {
+    logRunner(
+      `Failed to write runtime build artifacts: ${error?.message ?? "unknown error"}`,
+      deps,
+    );
+    return false;
+  }
+  return true;
+};
+
 const writeBuildStamp = (deps) => {
   try {
-    deps.fs.mkdirSync(deps.distRoot, { recursive: true });
-    const stamp = {
-      builtAt: Date.now(),
-      head: resolveGitHead(deps),
-    };
-    deps.fs.writeFileSync(deps.buildStampPath, `${JSON.stringify(stamp)}\n`);
+    writeDistBuildStamp({
+      cwd: deps.cwd,
+      fs: deps.fs,
+      spawnSync: deps.spawnSync,
+    });
   } catch (error) {
     // Best-effort stamp; still allow the runner to start.
     logRunner(`Failed to write build stamp: ${error?.message ?? "unknown error"}`, deps);
@@ -306,43 +296,28 @@ export async function runNodeMain(params = {}) {
     cwd: params.cwd ?? process.cwd(),
     args: params.args ?? process.argv.slice(2),
     env: params.env ? { ...params.env } : { ...process.env },
-    platform: params.platform ?? process.platform,
   };
 
   deps.distRoot = path.join(deps.cwd, "dist");
   deps.distEntry = path.join(deps.distRoot, "/entry.js");
   deps.buildStampPath = path.join(deps.distRoot, ".buildstamp");
-  deps.srcRoot = path.join(deps.cwd, "src");
-  deps.configFiles = [path.join(deps.cwd, "tsconfig.json"), path.join(deps.cwd, "package.json")];
-
-  const runtimeDepsCheck = checkRuntimeRequiredDeps(deps);
-  if (!runtimeDepsCheck.ok) {
-    logRunner(
-      `Missing required runtime dependencies (${runtimeDepsCheck.missing.join(", ")}); run \`pnpm install\` in the project root to restore them.`,
-      deps,
-    );
-    return 1;
-  }
+  deps.sourceRoots = runNodeSourceRoots.map((sourceRoot) => ({
+    name: sourceRoot,
+    path: path.join(deps.cwd, sourceRoot),
+  }));
+  deps.configFiles = runNodeConfigFiles.map((filePath) => path.join(deps.cwd, filePath));
 
   if (!shouldBuild(deps)) {
+    if (!syncRuntimeArtifacts(deps)) {
+      return 1;
+    }
     return await runOpenClaw(deps);
   }
 
   logRunner("Building TypeScript (dist is stale).", deps);
-  const buildPlan = resolvePnpmCommand(deps);
-  if (!buildPlan) {
-    logRunner("Neither pnpm nor corepack was found in PATH.", deps);
-    return 1;
-  }
-  const depsCheck = checkNodeModules(deps);
-  if (!depsCheck.ok) {
-    logRunner(
-      `Dependencies are missing or incomplete (${depsCheck.reason}); run \`pnpm install\` in the project root to restore them.`,
-      deps,
-    );
-    return 1;
-  }
-  const build = deps.spawn(buildPlan.command, buildPlan.args, {
+  const buildCmd = deps.execPath;
+  const buildArgs = compilerArgs;
+  const build = deps.spawn(buildCmd, buildArgs, {
     cwd: deps.cwd,
     env: deps.env,
     stdio: "inherit",
@@ -356,6 +331,9 @@ export async function runNodeMain(params = {}) {
   }
   if (buildRes.exitCode !== 0 && buildRes.exitCode !== null) {
     return buildRes.exitCode;
+  }
+  if (!syncRuntimeArtifacts(deps)) {
+    return 1;
   }
   writeBuildStamp(deps);
   return await runOpenClaw(deps);

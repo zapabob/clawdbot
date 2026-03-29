@@ -23,13 +23,15 @@ import {
 import {
   formatThreadBindingDisabledError,
   formatThreadBindingSpawnDisabledError,
+  requiresNativeThreadContextForThreadHere,
   resolveThreadBindingIdleTimeoutMsForChannel,
   resolveThreadBindingMaxAgeMsForChannel,
+  resolveThreadBindingPlacementForCurrentContext,
   resolveThreadBindingSpawnPolicy,
 } from "../../../channels/thread-bindings-policy.js";
 import type { OpenClawConfig } from "../../../config/config.js";
+import { updateSessionStore } from "../../../config/sessions.js";
 import type { SessionAcpMeta } from "../../../config/sessions/types.js";
-import { callGateway } from "../../../gateway/call.js";
 import {
   getSessionBindingService,
   type SessionBindingRecord,
@@ -55,23 +57,17 @@ import {
 import { resolveAcpTargetSessionKey } from "./targets.js";
 
 function resolveAcpBindingLabelNoun(params: {
-  channel: string;
+  conversationId?: string;
+  placement: "current" | "child";
   threadId?: string;
-  bindMode: "thread" | "current";
 }): string {
-  if (params.bindMode === "current") {
-    if (params.channel === "discord" && !params.threadId) {
-      return "channel";
-    }
-    if (
-      params.channel === "telegram" ||
-      params.channel === "bluebubbles" ||
-      params.channel === "imessage"
-    ) {
-      return "conversation";
-    }
+  if (params.placement === "child") {
+    return "thread";
   }
-  return params.channel === "telegram" ? "conversation" : "thread";
+  if (!params.threadId) {
+    return "conversation";
+  }
+  return params.conversationId === params.threadId ? "thread" : "conversation";
 }
 
 async function bindSpawnedAcpSessionToCurrentConversation(params: {
@@ -158,9 +154,14 @@ async function bindSpawnedAcpSessionToCurrentConversation(params: {
       ? existingBinding.metadata.boundBy.trim()
       : "";
   if (existingBinding && boundBy && boundBy !== "system" && senderId && senderId !== boundBy) {
+    const currentLabel = resolveAcpBindingLabelNoun({
+      placement: "current",
+      threadId: bindingContext.threadId,
+      conversationId: currentConversationId,
+    });
     return {
       ok: false,
-      error: `Only ${boundBy} can rebind this ${channel === "discord" && !bindingContext.threadId ? "channel" : "conversation"}.`,
+      error: `Only ${boundBy} can rebind this ${currentLabel}.`,
     };
   }
 
@@ -287,7 +288,7 @@ async function bindSpawnedAcpSessionToThread(params: {
 
   const currentThreadId = bindingContext.threadId ?? "";
   const currentConversationId = bindingContext.conversationId?.trim() || "";
-  const requiresThreadIdForHere = channel !== "telegram" && channel !== "feishu";
+  const requiresThreadIdForHere = requiresNativeThreadContextForThreadHere(channel);
   if (
     threadMode === "here" &&
     ((requiresThreadIdForHere && !currentThreadId) ||
@@ -299,12 +300,10 @@ async function bindSpawnedAcpSessionToThread(params: {
     };
   }
 
-  const placement =
-    channel === "telegram" || channel === "feishu"
-      ? "current"
-      : currentThreadId
-        ? "current"
-        : "child";
+  const placement = resolveThreadBindingPlacementForCurrentContext({
+    channel,
+    threadId: currentThreadId || undefined,
+  });
   if (!capabilities.placements.includes(placement)) {
     return {
       ok: false,
@@ -335,9 +334,14 @@ async function bindSpawnedAcpSessionToThread(params: {
         ? existingBinding.metadata.boundBy.trim()
         : "";
     if (existingBinding && boundBy && boundBy !== "system" && senderId && senderId !== boundBy) {
+      const currentLabel = resolveAcpBindingLabelNoun({
+        placement,
+        threadId: currentThreadId || undefined,
+        conversationId: currentConversationId,
+      });
       return {
         ok: false,
-        error: `Only ${boundBy} can rebind this ${channel === "telegram" ? "conversation" : "thread"}.`,
+        error: `Only ${boundBy} can rebind this ${currentLabel}.`,
       };
     }
   }
@@ -404,6 +408,43 @@ async function cleanupFailedSpawn(params: {
     shouldDeleteSession: params.shouldDeleteSession,
     deleteTranscript: false,
     runtimeCloseHandle: params.initializedRuntime,
+  });
+}
+
+async function persistSpawnedSessionLabel(params: {
+  commandParams: HandleCommandsParams;
+  sessionKey: string;
+  label?: string;
+}): Promise<void> {
+  const label = params.label?.trim();
+  if (!label) {
+    return;
+  }
+
+  const now = Date.now();
+  if (params.commandParams.sessionStore) {
+    const existing = params.commandParams.sessionStore[params.sessionKey];
+    if (existing) {
+      params.commandParams.sessionStore[params.sessionKey] = {
+        ...existing,
+        label,
+        updatedAt: now,
+      };
+    }
+  }
+  if (!params.commandParams.storePath) {
+    return;
+  }
+  await updateSessionStore(params.commandParams.storePath, (store) => {
+    const existing = store[params.sessionKey];
+    if (!existing) {
+      return;
+    }
+    store[params.sessionKey] = {
+      ...existing,
+      label,
+      updatedAt: now,
+    };
   });
 }
 
@@ -511,13 +552,10 @@ export async function handleAcpSpawnAction(
   }
 
   try {
-    await callGateway({
-      method: "sessions.patch",
-      params: {
-        key: sessionKey,
-        ...(spawn.label ? { label: spawn.label } : {}),
-      },
-      timeoutMs: 10_000,
+    await persistSpawnedSessionLabel({
+      commandParams: params,
+      sessionKey,
+      label: spawn.label,
     });
   } catch (err) {
     await cleanupFailedSpawn({
@@ -537,9 +575,12 @@ export async function handleAcpSpawnAction(
     const currentConversationId = resolveAcpCommandConversationId(params)?.trim() || "";
     const boundConversationId = binding.conversation.conversationId.trim();
     const placementLabel = resolveAcpBindingLabelNoun({
-      channel: binding.conversation.channel,
+      conversationId: currentConversationId,
+      placement:
+        currentConversationId && boundConversationId === currentConversationId
+          ? "current"
+          : "child",
       threadId: resolveAcpCommandThreadId(params),
-      bindMode: spawn.bind !== "off" ? "current" : "thread",
     });
     if (currentConversationId && boundConversationId === currentConversationId) {
       parts.push(`Bound this ${placementLabel} to ${sessionKey}.`);

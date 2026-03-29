@@ -433,7 +433,7 @@ export default definePluginEntry({
         "POST /scientist/ideas — AI-Scientist でアイデア一覧のみ生成して返す (Redis 保存なし)。" +
         "Ollama の qwen-Hakua-core2 を使用。",
       parameters: Type.Object({
-        topic: Type.String({ description: "研究テーマ" }),
+        topic: Type.Optional(Type.String({ description: "研究テーマ" })),
         num_ideas: Type.Optional(Type.Number({ default: 3 })),
         model: Type.Optional(Type.String({ default: "ollama/qwen-Hakua-core2" })),
       }),

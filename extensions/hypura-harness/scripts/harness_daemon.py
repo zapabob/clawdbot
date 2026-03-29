@@ -565,9 +565,10 @@ async def evolve(req: EvolveRequest) -> dict:
 
 class ScientistRunRequest(BaseModel):
     topic: str = ""
+    template: str = "nanoGPT"
     num_ideas: int = 3
     run_experiment: bool = False
-    model: str = "ollama/qwen-Hakua-core2"
+    model: str = "ollama/qwen-hakua-core:latest"
 
 
 def _get_scientist() -> Any:
@@ -589,7 +590,7 @@ async def scientist_run(req: ScientistRunRequest) -> dict:
     """
     runner = await asyncio.to_thread(_get_scientist)
     if req.topic:
-        ideas = await asyncio.to_thread(runner.run_ideas, req.topic, req.num_ideas, req.model)
+        ideas = await asyncio.to_thread(runner.run_ideas, req.topic, req.template, req.num_ideas, req.model)
         topic = req.topic
     else:
         result = await asyncio.to_thread(runner.run_from_failures, req.model)
@@ -600,7 +601,7 @@ async def scientist_run(req: ScientistRunRequest) -> dict:
     for idea in ideas:
         exp_result: dict = {}
         if req.run_experiment:
-            exp_result = await asyncio.to_thread(runner.run_experiment, idea, req.model)
+            exp_result = await asyncio.to_thread(runner.run_experiment, idea, req.template, req.model)
         redis_loop.push_scientist_finding(topic=topic, idea=idea, result=exp_result)
         stored += 1
         if exp_result:
@@ -620,7 +621,7 @@ async def scientist_ideas(req: ScientistRunRequest) -> dict:
     """アイデア生成のみ実行して返す (Redis 保存なし)。"""
     runner = await asyncio.to_thread(_get_scientist)
     topic = req.topic or "improve code generation quality"
-    ideas = await asyncio.to_thread(runner.run_ideas, topic, req.num_ideas, req.model)
+    ideas = await asyncio.to_thread(runner.run_ideas, topic, req.template, req.num_ideas, req.model)
     return {"success": True, "topic": topic, "ideas": ideas}
 
 

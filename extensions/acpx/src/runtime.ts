@@ -80,6 +80,7 @@ function formatPermissionModeGuidance(): string {
 function formatAcpxExitMessage(params: {
   stderr: string;
   exitCode: number | null | undefined;
+  signal?: NodeJS.Signals | null;
 }): string {
   const stderr = params.stderr.trim();
   if (params.exitCode === ACPX_EXIT_CODE_PERMISSION_DENIED) {
@@ -89,7 +90,22 @@ function formatAcpxExitMessage(params: {
       formatPermissionModeGuidance(),
     ].join(" ");
   }
-  return stderr || `acpx exited with code ${params.exitCode ?? "unknown"}`;
+  if (stderr) {
+    return stderr;
+  }
+  if (params.signal) {
+    return `acpx exited with signal ${params.signal}`;
+  }
+  return `acpx exited with code ${params.exitCode ?? "unknown"}`;
+}
+
+function didAcpxProcessExitWithFailure(params: {
+  exitCode: number | null | undefined;
+  signal?: NodeJS.Signals | null;
+}): boolean {
+  return params.exitCode !== null && params.exitCode !== undefined
+    ? params.exitCode !== 0
+    : params.signal !== null && params.signal !== undefined;
 }
 
 function summarizeLogText(text: string, maxChars = 240): string {
@@ -247,7 +263,13 @@ export class AcpxRuntime implements AcpRuntime {
 
     try {
       const result = await this.runHelpCheck();
-      if (result.error != null || (result.code ?? 0) !== 0) {
+      if (
+        result.error != null ||
+        didAcpxProcessExitWithFailure({
+          exitCode: result.code,
+          signal: result.signal,
+        })
+      ) {
         return {
           ok: false,
           failure: {
@@ -638,12 +660,17 @@ export class AcpxRuntime implements AcpRuntime {
         throw new AcpRuntimeError("ACP_TURN_FAILED", exit.error.message, { cause: exit.error });
       }
 
-      if ((exit.code ?? 0) !== 0 && !sawError) {
+      const exitedWithFailure = didAcpxProcessExitWithFailure({
+        exitCode: exit.code,
+        signal: exit.signal,
+      });
+      if (exitedWithFailure && !sawError) {
         yield {
           type: "error",
           message: formatAcpxExitMessage({
             stderr,
             exitCode: exit.code,
+            signal: exit.signal,
           }),
         };
         return;
@@ -1007,12 +1034,18 @@ export class AcpxRuntime implements AcpRuntime {
       );
     }
 
-    if ((result.code ?? 0) !== 0) {
+    if (
+      didAcpxProcessExitWithFailure({
+        exitCode: result.code,
+        signal: result.signal,
+      })
+    ) {
       throw new AcpRuntimeError(
         params.fallbackCode,
         formatAcpxExitMessage({
           stderr: result.stderr,
           exitCode: result.code,
+          signal: result.signal,
         }),
       );
     }

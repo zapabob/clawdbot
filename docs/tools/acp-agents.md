@@ -3,7 +3,7 @@ summary: "Use ACP runtime sessions for Codex, Claude Code, Cursor, Gemini CLI, O
 read_when:
   - Running coding harnesses through ACP
   - Setting up conversation-bound ACP sessions on messaging channels
-  - Binding Discord channels, Telegram topics, BlueBubbles chats, or iMessage chats to persistent ACP sessions
+  - Binding a message channel conversation to a persistent ACP session
   - Troubleshooting ACP backend and plugin wiring
   - Operating /acp commands from chat
 title: "ACP Agents"
@@ -104,12 +104,12 @@ Examples:
 - `/acp spawn codex --thread auto`: OpenClaw may create a child thread/topic and bind the ACP session there
 - `/acp spawn codex --bind here --cwd /workspace/repo`: same chat binding as above, but Codex runs in `/workspace/repo`
 
-Built-in current-conversation binding support:
+Current-conversation binding support:
 
-- Discord current channel or current thread
-- Telegram current chat or current topic
-- BlueBubbles DM or group chat
-- iMessage DM or group chat
+- Chat/message channels that advertise current-conversation binding support can use `--bind here` through the shared conversation-binding path.
+- Channels with custom thread/topic semantics can still provide channel-specific canonicalization behind the same shared interface.
+- `--bind here` always means "bind the current conversation in place".
+- Generic current-conversation binds use the shared OpenClaw binding store and survive normal gateway restarts.
 
 Notes:
 
@@ -437,7 +437,7 @@ Notes:
 
 - `--bind here` is the simplest operator path for "make this channel or chat Codex-backed."
 - `--bind here` does not create a child thread.
-- `--bind here` is only available on adapters that expose current-conversation ACP bindings.
+- `--bind here` is only available on channels that expose current-conversation binding support.
 - `--bind` and `--thread` cannot be combined in the same `/acp spawn` call.
 
 ## Spawn thread modes
@@ -624,7 +624,7 @@ openclaw config set plugins.entries.acpx.enabled true
 Local workspace install during development:
 
 ```bash
-openclaw plugins install ./extensions/acpx
+openclaw plugins install ./path/to/local/acpx-plugin
 ```
 
 Then verify backend health:
@@ -637,7 +637,7 @@ Then verify backend health:
 
 By default, the bundled acpx backend plugin (`acpx`) uses the plugin-local pinned binary:
 
-1. Command defaults to `extensions/acpx/node_modules/.bin/acpx`.
+1. Command defaults to the plugin-local `node_modules/.bin/acpx` inside the ACPX plugin package.
 2. Expected version defaults to the extension pin.
 3. Startup registers ACP backend immediately as not-ready.
 4. A background ensure job verifies `acpx --version`.

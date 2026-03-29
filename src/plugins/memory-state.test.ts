@@ -35,15 +35,44 @@ function createMemoryFlushPlan(relativePath: string) {
   };
 }
 
+function expectClearedMemoryState() {
+  expect(resolveMemoryFlushPlan({})).toBeNull();
+  expect(buildMemoryPromptSection({ availableTools: new Set(["memory_search"]) })).toEqual([]);
+  expect(getMemoryRuntime()).toBeUndefined();
+}
+
+function createMemoryStateSnapshot() {
+  return {
+    promptBuilder: getMemoryPromptSectionBuilder(),
+    flushPlanResolver: getMemoryFlushPlanResolver(),
+    runtime: getMemoryRuntime(),
+  };
+}
+
+function registerMemoryState(params: {
+  promptSection?: string[];
+  relativePath?: string;
+  runtime?: ReturnType<typeof createMemoryRuntime>;
+}) {
+  if (params.promptSection) {
+    registerMemoryPromptSection(() => params.promptSection ?? []);
+  }
+  if (params.relativePath) {
+    const relativePath = params.relativePath;
+    registerMemoryFlushPlanResolver(() => createMemoryFlushPlan(relativePath));
+  }
+  if (params.runtime) {
+    registerMemoryRuntime(params.runtime);
+  }
+}
+
 describe("memory plugin state", () => {
   afterEach(() => {
     clearMemoryPluginState();
   });
 
   it("returns empty defaults when no memory plugin state is registered", () => {
-    expect(resolveMemoryFlushPlan({})).toBeNull();
-    expect(buildMemoryPromptSection({ availableTools: new Set(["memory_search"]) })).toEqual([]);
-    expect(getMemoryRuntime()).toBeUndefined();
+    expectClearedMemoryState();
   });
 
   it("delegates prompt building to the registered memory plugin", () => {
@@ -102,20 +131,16 @@ describe("memory plugin state", () => {
   });
 
   it("restoreMemoryPluginState swaps both prompt and flush state", () => {
-    registerMemoryPromptSection(() => ["first"]);
-    registerMemoryFlushPlanResolver(() => createMemoryFlushPlan("memory/first.md"));
     const runtime = createMemoryRuntime();
-    registerMemoryRuntime(runtime);
-    const snapshot = {
-      promptBuilder: getMemoryPromptSectionBuilder(),
-      flushPlanResolver: getMemoryFlushPlanResolver(),
-      runtime: getMemoryRuntime(),
-    };
+    registerMemoryState({
+      promptSection: ["first"],
+      relativePath: "memory/first.md",
+      runtime,
+    });
+    const snapshot = createMemoryStateSnapshot();
 
     _resetMemoryPluginState();
-    expect(buildMemoryPromptSection({ availableTools: new Set() })).toEqual([]);
-    expect(resolveMemoryFlushPlan({})).toBeNull();
-    expect(getMemoryRuntime()).toBeUndefined();
+    expectClearedMemoryState();
 
     restoreMemoryPluginState(snapshot);
     expect(buildMemoryPromptSection({ availableTools: new Set() })).toEqual(["first"]);
@@ -124,14 +149,14 @@ describe("memory plugin state", () => {
   });
 
   it("clearMemoryPluginState resets both registries", () => {
-    registerMemoryPromptSection(() => ["stale section"]);
-    registerMemoryFlushPlanResolver(() => createMemoryFlushPlan("memory/stale.md"));
-    registerMemoryRuntime(createMemoryRuntime());
+    registerMemoryState({
+      promptSection: ["stale section"],
+      relativePath: "memory/stale.md",
+      runtime: createMemoryRuntime(),
+    });
 
     clearMemoryPluginState();
 
-    expect(buildMemoryPromptSection({ availableTools: new Set() })).toEqual([]);
-    expect(resolveMemoryFlushPlan({})).toBeNull();
-    expect(getMemoryRuntime()).toBeUndefined();
+    expectClearedMemoryState();
   });
 });

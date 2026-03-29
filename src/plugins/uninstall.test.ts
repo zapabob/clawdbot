@@ -68,6 +68,33 @@ async function runDeleteInstalledNpmPluginFixture(baseDir: string): Promise<{
   return { pluginDir, result };
 }
 
+function expectSuccessfulUninstall(result: UninstallResult) {
+  expect(result.ok).toBe(true);
+  if (!result.ok) {
+    throw new Error(`expected uninstall success, got: ${result.error}`);
+  }
+  return result;
+}
+
+function expectSuccessfulUninstallActions(
+  result: UninstallResult,
+  params: {
+    directory: boolean;
+    loadPath?: boolean;
+    warnings?: string[];
+  },
+) {
+  const successfulResult = expectSuccessfulUninstall(result);
+  expect(successfulResult.actions.directory).toBe(params.directory);
+  if (params.loadPath !== undefined) {
+    expect(successfulResult.actions.loadPath).toBe(params.loadPath);
+  }
+  if (params.warnings) {
+    expect(successfulResult.warnings).toEqual(params.warnings);
+  }
+  return successfulResult;
+}
+
 function createSinglePluginEntries(pluginId = "my-plugin") {
   return {
     [pluginId]: { enabled: true },
@@ -138,6 +165,26 @@ function expectRemainingChannels(
   expect(channels as Record<string, unknown> | undefined).toEqual(expected);
 }
 
+function expectChannelCleanupResult(params: {
+  config: OpenClawConfig;
+  pluginId: string;
+  expectedChannels: Record<string, unknown> | undefined;
+  expectedChanged: boolean;
+  options?: { channelIds?: readonly string[] };
+}) {
+  const { config: result, actions } = removePluginFromConfig(
+    params.config,
+    params.pluginId,
+    params.options
+      ? params.options.channelIds
+        ? { channelIds: [...params.options.channelIds] }
+        : {}
+      : undefined,
+  );
+  expectRemainingChannels(result.channels, params.expectedChannels);
+  expect(actions.channelConfig).toBe(params.expectedChanged);
+}
+
 function createSinglePluginWithEmptySlotsConfig(): OpenClawConfig {
   return createPluginConfig({
     entries: createSinglePluginEntries(),
@@ -159,6 +206,15 @@ async function createPluginDirFixture(baseDir: string, pluginId = "my-plugin") {
   await fs.mkdir(pluginDir, { recursive: true });
   await fs.writeFile(path.join(pluginDir, "index.js"), "// plugin");
   return pluginDir;
+}
+
+async function expectPathAccessState(pathToCheck: string, expected: "exists" | "missing") {
+  const accessExpectation = fs.access(pathToCheck);
+  if (expected === "exists") {
+    await expect(accessExpectation).resolves.toBeUndefined();
+    return;
+  }
+  await expect(accessExpectation).rejects.toThrow();
 }
 
 describe("resolveUninstallChannelConfigKeys", () => {
@@ -246,34 +302,38 @@ describe("removePluginFromConfig", () => {
     expect(actions.loadPath).toBe(true);
   });
 
-  it("clears memory slot when uninstalling active memory plugin", () => {
-    const config = createPluginConfig({
-      entries: {
-        "memory-plugin": { enabled: true },
-      },
-      slots: {
-        memory: "memory-plugin",
-      },
-    });
+  it.each([
+    {
+      name: "clears memory slot when uninstalling active memory plugin",
+      config: createPluginConfig({
+        entries: {
+          "memory-plugin": { enabled: true },
+        },
+        slots: {
+          memory: "memory-plugin",
+        },
+      }),
+      pluginId: "memory-plugin",
+      expectedMemory: "memory-core",
+      expectedChanged: true,
+    },
+    {
+      name: "does not modify memory slot when uninstalling non-memory plugin",
+      config: createPluginConfig({
+        entries: createSinglePluginEntries(),
+        slots: {
+          memory: "memory-core",
+        },
+      }),
+      pluginId: "my-plugin",
+      expectedMemory: "memory-core",
+      expectedChanged: false,
+    },
+  ] as const)("$name", ({ config, pluginId, expectedMemory, expectedChanged }) => {
+    const { config: result, actions } = removePluginFromConfig(config, pluginId);
 
-    const { config: result, actions } = removePluginFromConfig(config, "memory-plugin");
-
-    expect(result.plugins?.slots?.memory).toBe("memory-core");
-    expect(actions.memorySlot).toBe(true);
-  });
-
-  it("does not modify memory slot when uninstalling non-memory plugin", () => {
-    const config = createPluginConfig({
-      entries: createSinglePluginEntries(),
-      slots: {
-        memory: "memory-core",
-      },
-    });
-
-    const { config: result, actions } = removePluginFromConfig(config, "my-plugin");
-
-    expect(result.plugins?.slots?.memory).toBe("memory-core");
-    expect(actions.memorySlot).toBe(false);
+    expect(result.plugins?.slots?.memory).toBe(expectedMemory);
+    expect(actions.memorySlot).toBe(expectedChanged);
   });
 
   it("removes plugins object when uninstall leaves only empty slots", () => {
@@ -347,194 +407,191 @@ describe("removePluginFromConfig", () => {
     expect(result.plugins?.deny).toEqual(["denied-plugin"]);
   });
 
-  it("removes channel config for installed extension plugin", () => {
-    const config = createPluginConfig({
-      entries: {
-        timbot: { enabled: true },
-      },
-      installs: {
-        timbot: createNpmInstallRecord("timbot"),
-      },
-      channels: {
-        timbot: { sdkAppId: "123", secretKey: "abc" },
+  it.each([
+    {
+      name: "removes channel config for installed extension plugin",
+      config: createPluginConfig({
+        entries: {
+          timbot: { enabled: true },
+        },
+        installs: {
+          timbot: createNpmInstallRecord("timbot"),
+        },
+        channels: {
+          timbot: { sdkAppId: "123", secretKey: "abc" },
+          telegram: { enabled: true },
+        },
+      }),
+      pluginId: "timbot",
+      expectedChannels: {
         telegram: { enabled: true },
       },
-    });
-
-    const { config: result, actions } = removePluginFromConfig(config, "timbot");
-
-    expectRemainingChannels(result.channels, {
-      telegram: { enabled: true },
-    });
-    expect(actions.channelConfig).toBe(true);
-  });
-
-  it("does not remove channel config for built-in channel without install record", () => {
-    const config = createPluginConfig({
-      entries: {
-        telegram: { enabled: true },
-      },
-      channels: {
+      expectedChanged: true,
+    },
+    {
+      name: "does not remove channel config for built-in channel without install record",
+      config: createPluginConfig({
+        entries: {
+          telegram: { enabled: true },
+        },
+        channels: {
+          telegram: { enabled: true },
+          discord: { enabled: true },
+        },
+      }),
+      pluginId: "telegram",
+      expectedChannels: {
         telegram: { enabled: true },
         discord: { enabled: true },
       },
-    });
-
-    const { config: result, actions } = removePluginFromConfig(config, "telegram");
-
-    expectRemainingChannels(result.channels, {
-      telegram: { enabled: true },
-      discord: { enabled: true },
-    });
-    expect(actions.channelConfig).toBe(false);
-  });
-
-  it("cleans up channels object when removing the only channel config", () => {
-    const config = createPluginConfig({
-      entries: {
-        timbot: { enabled: true },
+      expectedChanged: false,
+    },
+    {
+      name: "cleans up channels object when removing the only channel config",
+      config: createPluginConfig({
+        entries: {
+          timbot: { enabled: true },
+        },
+        installs: {
+          timbot: createNpmInstallRecord("timbot"),
+        },
+        channels: {
+          timbot: { sdkAppId: "123" },
+        },
+      }),
+      pluginId: "timbot",
+      expectedChannels: undefined,
+      expectedChanged: true,
+    },
+    {
+      name: "does not set channelConfig action when no channel config exists",
+      config: createPluginConfig({
+        entries: createSinglePluginEntries(),
+        installs: {
+          "my-plugin": createNpmInstallRecord(),
+        },
+      }),
+      pluginId: "my-plugin",
+      expectedChannels: undefined,
+      expectedChanged: false,
+    },
+    {
+      name: "does not remove channel config when plugin has no install record",
+      config: createPluginConfig({
+        entries: {
+          discord: { enabled: true },
+        },
+        channels: {
+          discord: { enabled: true, token: "abc" },
+        },
+      }),
+      pluginId: "discord",
+      expectedChannels: {
+        discord: {
+          enabled: true,
+          token: "abc",
+        },
       },
-      installs: {
-        timbot: createNpmInstallRecord("timbot"),
+      expectedChanged: false,
+    },
+    {
+      name: "removes channel config using explicit channelIds when pluginId differs",
+      config: createPluginConfig({
+        entries: {
+          "timbot-plugin": { enabled: true },
+        },
+        installs: {
+          "timbot-plugin": createNpmInstallRecord("timbot-plugin"),
+        },
+        channels: {
+          timbot: { sdkAppId: "123" },
+          "timbot-v2": { sdkAppId: "456" },
+          telegram: { enabled: true },
+        },
+      }),
+      pluginId: "timbot-plugin",
+      options: {
+        channelIds: ["timbot", "timbot-v2"],
       },
-      channels: {
-        timbot: { sdkAppId: "123" },
-      },
-    });
-
-    const { config: result, actions } = removePluginFromConfig(config, "timbot");
-
-    expect(result.channels).toBeUndefined();
-    expect(actions.channelConfig).toBe(true);
-  });
-
-  it("does not set channelConfig action when no channel config exists", () => {
-    const config = createPluginConfig({
-      entries: createSinglePluginEntries(),
-      installs: {
-        "my-plugin": createNpmInstallRecord(),
-      },
-    });
-
-    const { actions } = removePluginFromConfig(config, "my-plugin");
-
-    expect(actions.channelConfig).toBe(false);
-  });
-
-  it("does not remove channel config when plugin has no install record", () => {
-    const config = createPluginConfig({
-      entries: {
-        discord: { enabled: true },
-      },
-      channels: {
-        discord: { enabled: true, token: "abc" },
-      },
-    });
-
-    const { config: result, actions } = removePluginFromConfig(config, "discord");
-
-    expectRemainingChannels(result.channels, {
-      discord: {
-        enabled: true,
-        token: "abc",
-      },
-    });
-    expect(actions.channelConfig).toBe(false);
-  });
-
-  it("removes channel config using explicit channelIds when pluginId differs", () => {
-    const config = createPluginConfig({
-      entries: {
-        "timbot-plugin": { enabled: true },
-      },
-      installs: {
-        "timbot-plugin": createNpmInstallRecord("timbot-plugin"),
-      },
-      channels: {
-        timbot: { sdkAppId: "123" },
-        "timbot-v2": { sdkAppId: "456" },
+      expectedChannels: {
         telegram: { enabled: true },
       },
-    });
-
-    const { config: result, actions } = removePluginFromConfig(config, "timbot-plugin", {
-      channelIds: ["timbot", "timbot-v2"],
-    });
-
-    expectRemainingChannels(result.channels, {
-      telegram: { enabled: true },
-    });
-    expect(actions.channelConfig).toBe(true);
-  });
-
-  it("preserves shared channel keys (defaults, modelByChannel)", () => {
-    const config = createPluginConfig({
-      entries: {
-        timbot: { enabled: true },
-      },
-      installs: {
-        timbot: createNpmInstallRecord("timbot"),
-      },
-      channels: {
+      expectedChanged: true,
+    },
+    {
+      name: "preserves shared channel keys (defaults, modelByChannel)",
+      config: createPluginConfig({
+        entries: {
+          timbot: { enabled: true },
+        },
+        installs: {
+          timbot: createNpmInstallRecord("timbot"),
+        },
+        channels: {
+          defaults: { groupPolicy: "opt-in" },
+          modelByChannel: { timbot: "gpt-3.5" } as Record<string, string>,
+          timbot: { sdkAppId: "123" },
+        } as unknown as OpenClawConfig["channels"],
+      }),
+      pluginId: "timbot",
+      expectedChannels: {
         defaults: { groupPolicy: "opt-in" },
-        modelByChannel: { timbot: "gpt-3.5" } as Record<string, string>,
-        timbot: { sdkAppId: "123" },
-      } as unknown as OpenClawConfig["channels"],
-    });
-
-    const { config: result, actions } = removePluginFromConfig(config, "timbot");
-
-    expectRemainingChannels(result.channels, {
-      defaults: { groupPolicy: "opt-in" },
-      modelByChannel: { timbot: "gpt-3.5" },
-    });
-    expect(actions.channelConfig).toBe(true);
-  });
-
-  it("does not remove shared keys even when passed as channelIds", () => {
-    const config = createPluginConfig({
-      entries: {
-        "bad-plugin": { enabled: true },
+        modelByChannel: { timbot: "gpt-3.5" },
       },
-      installs: {
-        "bad-plugin": createNpmInstallRecord("bad-plugin"),
+      expectedChanged: true,
+    },
+    {
+      name: "does not remove shared keys even when passed as channelIds",
+      config: createPluginConfig({
+        entries: {
+          "bad-plugin": { enabled: true },
+        },
+        installs: {
+          "bad-plugin": createNpmInstallRecord("bad-plugin"),
+        },
+        channels: {
+          defaults: { groupPolicy: "opt-in" },
+        } as unknown as OpenClawConfig["channels"],
+      }),
+      pluginId: "bad-plugin",
+      options: {
+        channelIds: ["defaults"],
       },
-      channels: {
+      expectedChannels: {
         defaults: { groupPolicy: "opt-in" },
-      } as unknown as OpenClawConfig["channels"],
-    });
-
-    const { config: result, actions } = removePluginFromConfig(config, "bad-plugin", {
-      channelIds: ["defaults"],
-    });
-
-    expectRemainingChannels(result.channels, {
-      defaults: { groupPolicy: "opt-in" },
-    });
-    expect(actions.channelConfig).toBe(false);
-  });
-
-  it("skips channel cleanup when channelIds is empty array (non-channel plugin)", () => {
-    const config = createPluginConfig({
-      entries: {
+      },
+      expectedChanged: false,
+    },
+    {
+      name: "skips channel cleanup when channelIds is empty array (non-channel plugin)",
+      config: createPluginConfig({
+        entries: {
+          telegram: { enabled: true },
+        },
+        installs: {
+          telegram: createNpmInstallRecord("telegram"),
+        },
+        channels: {
+          telegram: { enabled: true },
+        },
+      }),
+      pluginId: "telegram",
+      options: {
+        channelIds: [],
+      },
+      expectedChannels: {
         telegram: { enabled: true },
       },
-      installs: {
-        telegram: createNpmInstallRecord("telegram"),
-      },
-      channels: {
-        telegram: { enabled: true },
-      },
+      expectedChanged: false,
+    },
+  ] as const)("$name", ({ config, pluginId, expectedChannels, expectedChanged, options }) => {
+    expectChannelCleanupResult({
+      config,
+      pluginId,
+      expectedChannels,
+      expectedChanged,
+      options,
     });
-
-    const { config: result, actions } = removePluginFromConfig(config, "telegram", {
-      channelIds: [],
-    });
-
-    expectRemainingChannels(result.channels, {
-      telegram: { enabled: true },
-    });
-    expect(actions.channelConfig).toBe(false);
   });
 });
 
@@ -577,88 +634,86 @@ describe("uninstallPlugin", () => {
       deleteFiles: false,
     });
 
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.config.plugins?.entries).toBeUndefined();
-      expect(result.config.plugins?.installs).toBeUndefined();
-      expect(result.actions.entry).toBe(true);
-      expect(result.actions.install).toBe(true);
-    }
+    const successfulResult = expectSuccessfulUninstall(result);
+    expect(successfulResult.config.plugins?.entries).toBeUndefined();
+    expect(successfulResult.config.plugins?.installs).toBeUndefined();
+    expect(successfulResult.actions.entry).toBe(true);
+    expect(successfulResult.actions.install).toBe(true);
   });
 
   it("deletes directory when deleteFiles is true", async () => {
     const { pluginDir, result } = await runDeleteInstalledNpmPluginFixture(tempDir);
 
     try {
-      expect(result.ok).toBe(true);
-      if (result.ok) {
-        expect(result.actions.directory).toBe(true);
-        await expect(fs.access(pluginDir)).rejects.toThrow();
-      }
+      expectSuccessfulUninstallActions(result, {
+        directory: true,
+      });
+      await expect(fs.access(pluginDir)).rejects.toThrow();
     } finally {
       await fs.rm(pluginDir, { recursive: true, force: true });
     }
   });
 
-  it("preserves directory for linked plugins", async () => {
-    const pluginDir = await createPluginDirFixture(tempDir);
-
-    const config = createPluginConfig({
-      entries: createSinglePluginEntries(),
-      installs: {
-        "my-plugin": createPathInstallRecord(pluginDir),
+  it.each([
+    {
+      name: "preserves directory for linked plugins",
+      setup: async (baseDir: string) => {
+        const pluginDir = await createPluginDirFixture(baseDir);
+        return {
+          config: createPluginConfig({
+            entries: createSinglePluginEntries(),
+            installs: {
+              "my-plugin": createPathInstallRecord(pluginDir),
+            },
+            loadPaths: [pluginDir],
+          }),
+          deleteFiles: true,
+          accessPath: pluginDir,
+          expectedAccess: "exists" as const,
+          expectedActions: {
+            directory: false,
+            loadPath: true,
+          },
+        };
       },
-      loadPaths: [pluginDir],
-    });
-
+    },
+    {
+      name: "does not delete directory when deleteFiles is false",
+      setup: async (baseDir: string) => {
+        const pluginDir = await createPluginDirFixture(baseDir);
+        return {
+          config: createSingleNpmInstallConfig(pluginDir),
+          deleteFiles: false,
+          accessPath: pluginDir,
+          expectedAccess: "exists" as const,
+          expectedActions: {
+            directory: false,
+          },
+        };
+      },
+    },
+    {
+      name: "succeeds even if directory does not exist",
+      setup: async () => ({
+        config: createSingleNpmInstallConfig("/nonexistent/path"),
+        deleteFiles: true,
+        expectedActions: {
+          directory: false,
+          warnings: [],
+        },
+      }),
+    },
+  ] as const)("$name", async ({ setup }) => {
+    const params = await setup(tempDir);
     const result = await uninstallPlugin({
-      config,
+      config: params.config,
       pluginId: "my-plugin",
-      deleteFiles: true,
+      deleteFiles: params.deleteFiles,
     });
 
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.actions.directory).toBe(false);
-      expect(result.actions.loadPath).toBe(true);
-      // Directory should still exist
-      await expect(fs.access(pluginDir)).resolves.toBeUndefined();
-    }
-  });
-
-  it("does not delete directory when deleteFiles is false", async () => {
-    const pluginDir = await createPluginDirFixture(tempDir);
-
-    const config = createSingleNpmInstallConfig(pluginDir);
-
-    const result = await uninstallPlugin({
-      config,
-      pluginId: "my-plugin",
-      deleteFiles: false,
-    });
-
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.actions.directory).toBe(false);
-      // Directory should still exist
-      await expect(fs.access(pluginDir)).resolves.toBeUndefined();
-    }
-  });
-
-  it("succeeds even if directory does not exist", async () => {
-    const config = createSingleNpmInstallConfig("/nonexistent/path");
-
-    const result = await uninstallPlugin({
-      config,
-      pluginId: "my-plugin",
-      deleteFiles: true,
-    });
-
-    // Should succeed; directory deletion failure is not fatal
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.actions.directory).toBe(false);
-      expect(result.warnings).toEqual([]);
+    expectSuccessfulUninstallActions(result, params.expectedActions);
+    if ("accessPath" in params && "expectedAccess" in params) {
+      await expectPathAccessState(params.accessPath, params.expectedAccess);
     }
   });
 
@@ -667,12 +722,11 @@ describe("uninstallPlugin", () => {
     try {
       const { result } = await runDeleteInstalledNpmPluginFixture(tempDir);
 
-      expect(result.ok).toBe(true);
-      if (result.ok) {
-        expect(result.actions.directory).toBe(false);
-        expect(result.warnings).toHaveLength(1);
-        expect(result.warnings[0]).toContain("Failed to remove plugin directory");
-      }
+      const successfulResult = expectSuccessfulUninstallActions(result, {
+        directory: false,
+      });
+      expect(successfulResult.warnings).toHaveLength(1);
+      expect(successfulResult.warnings[0]).toContain("Failed to remove plugin directory");
     } finally {
       rmSpy.mockRestore();
     }
@@ -693,11 +747,10 @@ describe("uninstallPlugin", () => {
       extensionsDir,
     });
 
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.actions.directory).toBe(false);
-      await expect(fs.access(outsideDir)).resolves.toBeUndefined();
-    }
+    expectSuccessfulUninstallActions(result, {
+      directory: false,
+    });
+    await expect(fs.access(outsideDir)).resolves.toBeUndefined();
   });
 });
 
@@ -724,7 +777,7 @@ describe("resolveUninstallDirectoryTarget", () => {
       installRecord: {
         source: "npm",
         spec: "my-plugin@1.0.0",
-        installPath: "/tmp/not-openclaw-extensions/my-plugin",
+        installPath: "/tmp/not-openclaw-plugin-install/my-plugin",
       },
       extensionsDir,
     });

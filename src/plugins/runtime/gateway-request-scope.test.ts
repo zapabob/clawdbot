@@ -15,26 +15,55 @@ describe("gateway request scope", () => {
     return await import("./gateway-request-scope.js");
   }
 
+  async function withTestGatewayScope<T>(
+    run: (runtimeScope: Awaited<ReturnType<typeof importGatewayRequestScopeModule>>) => Promise<T>,
+  ) {
+    const runtimeScope = await importGatewayRequestScopeModule();
+    return await runtimeScope.withPluginRuntimeGatewayRequestScope(TEST_SCOPE, async () => {
+      return await run(runtimeScope);
+    });
+  }
+
+  function expectGatewayScope(
+    runtimeScope: Awaited<ReturnType<typeof importGatewayRequestScopeModule>>,
+    expected: PluginRuntimeGatewayRequestScope,
+  ) {
+    expect(runtimeScope.getPluginRuntimeGatewayRequestScope()).toEqual(expected);
+  }
+
+  async function expectPluginIdScopedGatewayScope(pluginId: string) {
+    await withPluginIdScope(pluginId, async (runtimeScope) => {
+      expectGatewayScope(runtimeScope, {
+        ...TEST_SCOPE,
+        pluginId,
+      });
+    });
+  }
+
+  async function withPluginIdScope(
+    pluginId: string,
+    run: (
+      runtimeScope: Awaited<ReturnType<typeof importGatewayRequestScopeModule>>,
+    ) => Promise<void>,
+  ) {
+    await withTestGatewayScope(async (runtimeScope) => {
+      await runtimeScope.withPluginRuntimePluginIdScope(pluginId, async () => {
+        await run(runtimeScope);
+      });
+    });
+  }
+
   it("reuses AsyncLocalStorage across reloaded module instances", async () => {
     const first = await importGatewayRequestScopeModule();
 
     await first.withPluginRuntimeGatewayRequestScope(TEST_SCOPE, async () => {
       vi.resetModules();
       const second = await importGatewayRequestScopeModule();
-      expect(second.getPluginRuntimeGatewayRequestScope()).toEqual(TEST_SCOPE);
+      expectGatewayScope(second, TEST_SCOPE);
     });
   });
 
   it("attaches plugin id to the active scope", async () => {
-    const runtimeScope = await importGatewayRequestScopeModule();
-
-    await runtimeScope.withPluginRuntimeGatewayRequestScope(TEST_SCOPE, async () => {
-      await runtimeScope.withPluginRuntimePluginIdScope("voice-call", async () => {
-        expect(runtimeScope.getPluginRuntimeGatewayRequestScope()).toEqual({
-          ...TEST_SCOPE,
-          pluginId: "voice-call",
-        });
-      });
-    });
+    await expectPluginIdScopedGatewayScope("voice-call");
   });
 });

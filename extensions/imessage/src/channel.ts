@@ -21,6 +21,7 @@ import { createIMessageConversationBindingManager } from "./conversation-binding
 import {
   matchIMessageAcpConversation,
   normalizeIMessageAcpConversationId,
+  resolveIMessageConversationIdFromTarget,
 } from "./conversation-id.js";
 import {
   resolveIMessageGroupRequireMention,
@@ -133,6 +134,9 @@ export const imessagePlugin: ChannelPlugin<ResolvedIMessageAccount, IMessageProb
         resolveRequireMention: resolveIMessageGroupRequireMention,
         resolveToolPolicy: resolveIMessageGroupToolPolicy,
       },
+      conversationBindings: {
+        supportsCurrentConversationBinding: true,
+      },
       bindings: {
         compileConfiguredBinding: ({ conversationId }) =>
           normalizeIMessageAcpConversationId(conversationId),
@@ -141,6 +145,13 @@ export const imessagePlugin: ChannelPlugin<ResolvedIMessageAccount, IMessageProb
             bindingConversationId: compiledBinding.conversationId,
             conversationId,
           }),
+        resolveCommandConversation: ({ originatingTo, commandTo, fallbackTo }) => {
+          const conversationId =
+            resolveIMessageConversationIdFromTarget(originatingTo ?? "") ??
+            resolveIMessageConversationIdFromTarget(commandTo ?? "") ??
+            resolveIMessageConversationIdFromTarget(fallbackTo ?? "");
+          return conversationId ? { conversationId } : null;
+        },
       },
       messaging: {
         normalizeTarget: normalizeIMessageMessagingTarget,

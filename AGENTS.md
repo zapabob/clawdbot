@@ -1,3 +1,6 @@
+<!-- upstream: https://github.com/openclaw/openclaw -->
+<!-- Do not edit CODEOWNERS-restricted paths without explicit owner review. -->
+
 # OpenClaw-Sovereign: Framework Manifest & Guidelines
 
 ## 🌌 Substrate Overview: The Vessel
