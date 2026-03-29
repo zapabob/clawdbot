@@ -1,8 +1,8 @@
 param(
     [string]$ProjectDir = (Get-Item $PSScriptRoot).Parent.FullName,
-    [switch]$DryRun,   # 書き込まず変更内容だけ表示
-    [switch]$Quiet,    # 変更があった項目だけ表示（変更なし時は無出力）
-    [switch]$Force     # 既存値も上書き（通常はスキップ）
+    [switch]$DryRun,
+    [switch]$Quiet,
+    [switch]$Force
 )
 
 $ErrorActionPreference = "Stop"
