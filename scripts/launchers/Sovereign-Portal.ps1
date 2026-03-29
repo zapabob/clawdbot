@@ -116,8 +116,17 @@ Write-Host "  [ASI_ACCEL] Igniting Substrate Components in Parallel..." -Foregro
 if ($Mode -eq "Docker" -or $Mode -eq "Full-Docker") {
     Write-Host "  [DOCKER] Manifesting containers via docker-compose..." -ForegroundColor Blue
     try {
-        Start-Process -FilePath "docker" -ArgumentList "compose", "up", "-d" -WorkingDirectory $ProjectDir -WindowStyle Minimized -Wait
+        Start-Process "docker" -ArgumentList "compose", "up", "-d" -WorkingDirectory $ProjectDir -WindowStyle Minimized -Wait
         Write-Host "  [DOCKER] Containers Ignited." -ForegroundColor Green
+
+        # Start ngrok sync sidecar
+        $syncNgrokPs1 = Join-Path $PSScriptRoot "sync-docker-ngrok.ps1"
+        if (Test-Path $syncNgrokPs1) {
+            Start-Process -FilePath "powershell.exe" -ArgumentList @(
+                "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $syncNgrokPs1
+            ) -WorkingDirectory $ProjectDir -WindowStyle Hidden
+            Write-Host "  [SYNC] Docker-ngrok monitor started." -ForegroundColor DarkCyan
+        }
     } catch {
         Write-Host "  [ERROR] Docker manifestation failed: $_" -ForegroundColor Red
     }
