@@ -86,6 +86,18 @@ pnpm build
 
 Desktop shortcuts: `.\scripts\launchers\ASI-Manifest-Sovereign.ps1` (portal, ngrok, Gateway, TUI, Hypura harness).
 
+TUI / Gateway のログは既定で `logs/launcher/`。`.openclaw-desktop` に `OPENCLAW_CONFIG_PATH` を載せたい場合は `.env` に `OPENCLAW_USE_REPO_LAUNCHER=0`（詳細は `.env.example`）。
+
+#### Gateway が 18789 を開かないとき
+
+- リポジトリルートで `pnpm install` と `pnpm build`（`dist/entry.js` が無いと起動できない）。
+- 調査は `logs/launcher/gateway-*.log`（`OPENCLAW_USE_REPO_LAUNCHER=0` なら `.openclaw-desktop/logs`）。**ログ末尾を貼ると原因を絞りやすい**。
+- 他の `node.exe` がポートや `dist` を掴んでいないか確認。`dist/extensions` まわりの EPERM は同期ソフトや別プロセスのロックが典型。詳細は [\_docs/2026-03-29_SovereignShortcut-MenuDefault_clawdbot-main.md](_docs/2026-03-29_SovereignShortcut-MenuDefault_clawdbot-main.md#gateway-18789-トラブルシュート) 。
+
+### Docker（任意）
+
+`Sovereign-Portal.ps1 -Mode Full-Docker` は `docker compose up -d` を実行する。ボリューム元パスは `.env` の `OPENCLAW_CONFIG_DIR` / `OPENCLAW_WORKSPACE_DIR`（未設定時はランチャーが `.openclaw-desktop` と `workspace/` を既定注入）。イメージは `docker build -t openclaw:local` か `OPENCLAW_IMAGE` で GHCR 等を指定。手順の本流は [docs/install/docker.md](docs/install/docker.md)。
+
 ### OpenClaw 設定の正
 
 実際に Gateway が読む `openclaw.json` の場所と `OPENCLAW_CONFIG_PATH` の使い方は [\_docs/2026-03-28_OpenClaw_Config_Source_of_Truth_clawdbot-main.md](_docs/2026-03-28_OpenClaw_Config_Source_of_Truth_clawdbot-main.md) を参照。

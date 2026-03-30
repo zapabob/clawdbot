@@ -321,7 +321,6 @@ services:
     volumes:
       - redis-data:/data
     restart: unless-stopped
-    Restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s

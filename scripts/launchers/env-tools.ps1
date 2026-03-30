@@ -223,12 +223,18 @@ function Merge-OpenClawEnvToProcess {
 <#
   Repo-local desktop config: <repo>\.openclaw-desktop\openclaw.json
   Sets OPENCLAW_STATE_DIR to that folder when unset so doctor does not split ~/.openclaw vs repo state.
+
+  Default: do not set OPENCLAW_CONFIG_PATH (repo / OpenClaw defaults). Set OPENCLAW_USE_REPO_LAUNCHER=0 in .env
+  to opt into .openclaw-desktop paths (used by legacy Sovereign desktop sync).
 #>
 function Set-OpenClawDesktopConfigEnv {
     param(
         [Parameter(Mandatory = $true)]
         [string]$ProjectDir
     )
+    if ([string]$env:OPENCLAW_USE_REPO_LAUNCHER -ne "0") {
+        return
+    }
     $cfg = Join-Path $ProjectDir ".openclaw-desktop\openclaw.json"
     if (-not (Test-Path -LiteralPath $cfg)) {
         return

@@ -2,6 +2,7 @@
 
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { BUNDLED_PLUGIN_PATH_PREFIX } from "./lib/bundled-plugin-paths.mjs";
 
@@ -43,6 +44,20 @@ function pruneStaleRuntimeSymlinks() {
 
 pruneStaleRuntimeSymlinks();
 
+/** Maps abnormal spawn status (e.g. -1 on Windows) to 1 so pnpm does not report 4294967295. */
+function normalizeSpawnExitCode(status) {
+  if (status === 0) {
+    return 0;
+  }
+  if (typeof status !== "number" || Number.isNaN(status)) {
+    return 1;
+  }
+  if (status < 0 || status > 255) {
+    return 1;
+  }
+  return status;
+}
+
 function findFatalUnresolvedImport(lines) {
   for (const line of lines) {
     if (!UNRESOLVED_IMPORT_RE.test(line)) {
@@ -61,15 +76,54 @@ function findFatalUnresolvedImport(lines) {
   return null;
 }
 
+// #region agent log
+try {
+  fs.appendFileSync(
+    path.join(process.cwd(), "debug-2f4832.log"),
+    `${JSON.stringify({
+      sessionId: "2f4832",
+      runId: "gateway-hang",
+      hypothesisId: "H10",
+      location: "scripts/tsdown-build.mjs:before-spawnSync",
+      message: "about to spawnSync pnpm exec tsdown",
+      data: { logLevel, extraArgCount: extraArgs.length, platform: process.platform },
+      timestamp: Date.now(),
+    })}\n`,
+  );
+} catch {
+  /* ignore */
+}
+// #endregion
+const require = createRequire(import.meta.url);
+const tsdownPackagePath = require.resolve("tsdown/package.json");
+const tsdownRunPath = path.join(path.dirname(tsdownPackagePath), "dist", "run.mjs");
 const result = spawnSync(
-  "pnpm",
-  ["exec", "tsdown", "--config-loader", "unrun", "--logLevel", logLevel, ...extraArgs],
+  process.execPath,
+  [tsdownRunPath, "--config-loader", "unrun", "--logLevel", logLevel, ...extraArgs],
   {
     encoding: "utf8",
     stdio: "pipe",
-    shell: process.platform === "win32",
+    shell: false,
+    timeout: 300000,
   },
 );
+
+// #region agent log
+try {
+  fs.appendFileSync(
+    path.join(process.cwd(), "debug-2f4832.log"),
+    `${JSON.stringify({
+      sessionId: "2f4832",
+      runId: "gateway-hang",
+      hypothesisId: "H13",
+      location: "scripts/tsdown-build.mjs:spawnSync-returned",
+      message: "tsdown spawnSync returned",
+      data: { status: result.status, signal: result.signal, error: result.error?.message ?? null },
+      timestamp: Date.now(),
+    })}\n`,
+  );
+} catch {}
+// #endregion
 
 const stdout = result.stdout ?? "";
 const stderr = result.stderr ?? "";
@@ -79,6 +133,33 @@ if (stdout) {
 if (stderr) {
   process.stderr.write(stderr);
 }
+
+// #region agent log
+try {
+  fs.appendFileSync(
+    path.join(process.cwd(), "debug-2f4832.log"),
+    `${JSON.stringify({
+      sessionId: "2f4832",
+      hypothesisId: "H1",
+      location: "scripts/tsdown-build.mjs:post-spawnSync",
+      message: "tsdown spawn result",
+      data: {
+        status: result.status,
+        normalizedExit: normalizeSpawnExitCode(result.status),
+        signal: result.signal,
+        spawnError: result.error?.message,
+        stdoutLen: stdout.length,
+        stderrLen: stderr.length,
+        platform: process.platform,
+        runId: "post-fix",
+      },
+      timestamp: Date.now(),
+    })}\n`,
+  );
+} catch {
+  /* ignore */
+}
+// #endregion
 
 if (result.status === 0 && INEFFECTIVE_DYNAMIC_IMPORT_RE.test(`${stdout}\n${stderr}`)) {
   console.error(
@@ -95,8 +176,4 @@ if (fatalUnresolvedImport) {
   process.exit(1);
 }
 
-if (typeof result.status === "number") {
-  process.exit(result.status);
-}
-
-process.exit(1);
+process.exit(normalizeSpawnExitCode(result.status));

@@ -1,0 +1,59 @@
+{
+  "timeout_seconds": 900,
+  "shards": [
+    {
+      "id": "extensions-acpx",
+      "description": "ACPX extension runtime and tests",
+      "include": ["extensions/acpx/**/*"]
+    },
+    {
+      "id": "extensions-telegram",
+      "description": "Telegram extension runtime and handlers",
+      "include": ["extensions/telegram/**/*"]
+    },
+    {
+      "id": "extensions-others",
+      "description": "All other extensions",
+      "include": ["extensions/**/*"],
+      "exclude": ["extensions/acpx/**/*", "extensions/telegram/**/*"]
+    },
+    {
+      "id": "src-agents",
+      "description": "Agent runtime and skills",
+      "include": ["src/agents/**/*"]
+    },
+    {
+      "id": "src-gateway-cli",
+      "description": "Gateway and CLI surfaces",
+      "include": ["src/gateway/**/*", "src/cli/**/*", "src/secrets/**/*"]
+    },
+    {
+      "id": "src-plugins",
+      "description": "Plugin loading and SDK",
+      "include": ["src/plugins/**/*", "src/plugin-sdk/**/*"]
+    },
+    {
+      "id": "src-core",
+      "description": "Remaining src core modules",
+      "include": ["src/**/*"],
+      "exclude": [
+        "src/agents/**/*",
+        "src/gateway/**/*",
+        "src/cli/**/*",
+        "src/secrets/**/*",
+        "src/plugins/**/*",
+        "src/plugin-sdk/**/*"
+      ]
+    },
+    {
+      "id": "ui",
+      "description": "UI and frontend app",
+      "include": ["ui/**/*"]
+    },
+    {
+      "id": "packages",
+      "description": "Monorepo packages",
+      "include": ["packages/**/*"]
+    }
+  ]
+}

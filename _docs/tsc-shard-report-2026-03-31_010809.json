@@ -1,0 +1,95 @@
+{
+  "started_utc": "2026-03-30T15:45:03Z",
+  "timeout_seconds": 900,
+  "shards": [
+    {
+      "id": "extensions-acpx",
+      "description": "ACPX extension runtime and tests",
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 97.93,
+      "error_count": 0,
+      "error_buckets": {},
+      "errors": [],
+      "output_excerpt": ""
+    },
+    {
+      "id": "extensions-telegram",
+      "description": "Telegram extension runtime and handlers",
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 95.92,
+      "error_count": 0,
+      "error_buckets": {},
+      "errors": [],
+      "output_excerpt": ""
+    },
+    {
+      "id": "extensions-others",
+      "description": "All other extensions",
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 159.98,
+      "error_count": 0,
+      "error_buckets": {},
+      "errors": [],
+      "output_excerpt": ""
+    },
+    {
+      "id": "src-agents",
+      "description": "Agent runtime and skills",
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 158.55,
+      "error_count": 0,
+      "error_buckets": {},
+      "errors": [],
+      "output_excerpt": ""
+    },
+    {
+      "id": "src-gateway-cli",
+      "description": "Gateway and CLI surfaces",
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 244.8,
+      "error_count": 0,
+      "error_buckets": {},
+      "errors": [],
+      "output_excerpt": ""
+    },
+    {
+      "id": "src-plugins",
+      "description": "Plugin loading and SDK",
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 130.17,
+      "error_count": 0,
+      "error_buckets": {},
+      "errors": [],
+      "output_excerpt": ""
+    },
+    {
+      "id": "ui",
+      "description": "UI and frontend app",
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 180.91,
+      "error_count": 0,
+      "error_buckets": {},
+      "errors": [],
+      "output_excerpt": ""
+    },
+    {
+      "id": "packages",
+      "description": "Monorepo packages",
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 318.08,
+      "error_count": 0,
+      "error_buckets": {},
+      "errors": [],
+      "output_excerpt": ""
+    }
+  ],
+  "error_buckets": {}
+}

@@ -1,6 +1,30 @@
 {
-  "added_exports_vs_upstream": [],
+  "added_exports_vs_upstream": [
+    "./plugin-sdk/imessage",
+    "./plugin-sdk/imessage-core",
+    "./plugin-sdk/imessage-policy",
+    "./plugin-sdk/imessage-runtime",
+    "./plugin-sdk/imessage-targets",
+    "./plugin-sdk/provider-catalog",
+    "./plugin-sdk/provider-google",
+    "./plugin-sdk/provider-models",
+    "./plugin-sdk/telegram",
+    "./plugin-sdk/telegram-runtime",
+    "./plugin-sdk/telegram-runtime-surface"
+  ],
   "removed_exports_vs_upstream": [],
-  "shared_exports_count": 136,
-  "usage_counts_in_repo": {}
+  "shared_exports_count": 230,
+  "usage_counts_in_repo": {
+    "./plugin-sdk/imessage": 0,
+    "./plugin-sdk/imessage-core": 0,
+    "./plugin-sdk/imessage-policy": 0,
+    "./plugin-sdk/imessage-runtime": 0,
+    "./plugin-sdk/imessage-targets": 0,
+    "./plugin-sdk/provider-catalog": 0,
+    "./plugin-sdk/provider-google": 0,
+    "./plugin-sdk/provider-models": 0,
+    "./plugin-sdk/telegram": 0,
+    "./plugin-sdk/telegram-runtime": 0,
+    "./plugin-sdk/telegram-runtime-surface": 0
+  }
 }

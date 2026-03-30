@@ -27,8 +27,10 @@ const OPENCLAW_PACKAGE_ROOT =
   }) ?? fileURLToPath(new URL("../..", import.meta.url));
 const CURRENT_MODULE_PATH = fileURLToPath(import.meta.url);
 const RUNNING_FROM_BUILT_ARTIFACT =
-  CURRENT_MODULE_PATH.includes(`${path.sep}dist${path.sep}`) ||
-  CURRENT_MODULE_PATH.includes(`${path.sep}dist-runtime${path.sep}`);
+  CURRENT_MODULE_PATH.toLowerCase().includes(`${path.sep}dist${path.sep}`) ||
+  CURRENT_MODULE_PATH.toLowerCase().includes(`${path.sep}dist-runtime${path.sep}`) ||
+  CURRENT_MODULE_PATH.toLowerCase().includes("/dist/") ||
+  CURRENT_MODULE_PATH.toLowerCase().includes("/dist-runtime/");
 const PUBLIC_SURFACE_SOURCE_EXTENSIONS = [".ts", ".mts", ".js", ".mjs", ".cts", ".cjs"] as const;
 const RUNTIME_SIDECAR_ARTIFACTS = new Set([
   "helper-api.js",
@@ -360,6 +362,7 @@ function collectBundledChannelConfigs(params: {
 function collectBundledPluginMetadataForPackageRoot(
   packageRoot: string,
   includeChannelConfigs: boolean,
+  includeSyntheticChannelConfigs: boolean,
 ): readonly BundledPluginMetadata[] {
   const scanDir = resolveBundledPluginScanDir(packageRoot);
   if (!scanDir || !fs.existsSync(scanDir)) {
@@ -367,11 +370,27 @@ function collectBundledPluginMetadataForPackageRoot(
   }
 
   const entries: BundledPluginMetadata[] = [];
-  for (const dirName of fs
+  const dirNames = fs
     .readdirSync(scanDir, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
-    .toSorted((left, right) => left.localeCompare(right))) {
+    .toSorted((left, right) => left.localeCompare(right));
+
+  const total = dirNames.length;
+  const shouldLogProgress = total > 10 && includeChannelConfigs;
+
+  if (shouldLogProgress) {
+    process.stderr.write(
+      `[openclaw] Scanning ${total} bundled plugins for configuration metadata...\n`,
+    );
+  }
+
+  let count = 0;
+  for (const dirName of dirNames) {
+    count += 1;
+    if (shouldLogProgress && (count === 1 || count === total || count % 20 === 0)) {
+      process.stderr.write(`[openclaw]   ... ${count}/${total} plugins scanned\n`);
+    }
     const pluginDir = path.join(scanDir, dirName);
     const manifestResult = loadPluginManifest(pluginDir, false);
     if (!manifestResult.ok) {
@@ -404,13 +423,14 @@ function collectBundledPluginMetadataForPackageRoot(
       ...(setupSourcePath ? { setupEntry: setupSourcePath } : {}),
     });
     const runtimeSidecarArtifacts = collectRuntimeSidecarArtifacts(publicSurfaceArtifacts);
-    const channelConfigs = includeChannelConfigs
-      ? collectBundledChannelConfigs({
-          pluginDir,
-          manifest: manifestResult.manifest,
-          packageManifest,
-        })
-      : manifestResult.manifest.channelConfigs;
+    const channelConfigs =
+      includeChannelConfigs && includeSyntheticChannelConfigs
+        ? collectBundledChannelConfigs({
+            pluginDir,
+            manifest: manifestResult.manifest,
+            packageManifest,
+          })
+        : manifestResult.manifest.channelConfigs;
 
     entries.push({
       dirName,
@@ -448,16 +468,27 @@ function collectBundledPluginMetadataForPackageRoot(
 export function listBundledPluginMetadata(params?: {
   rootDir?: string;
   includeChannelConfigs?: boolean;
+  includeSyntheticChannelConfigs?: boolean;
 }): readonly BundledPluginMetadata[] {
   const rootDir = path.resolve(params?.rootDir ?? OPENCLAW_PACKAGE_ROOT);
   const includeChannelConfigs = params?.includeChannelConfigs ?? !RUNNING_FROM_BUILT_ARTIFACT;
-  const cacheKey = JSON.stringify({ rootDir, includeChannelConfigs });
+  const includeSyntheticChannelConfigs =
+    params?.includeSyntheticChannelConfigs ?? includeChannelConfigs;
+  const cacheKey = JSON.stringify({
+    rootDir,
+    includeChannelConfigs,
+    includeSyntheticChannelConfigs,
+  });
   const cached = bundledPluginMetadataCache.get(cacheKey);
   if (cached) {
     return cached;
   }
   const entries = Object.freeze(
-    collectBundledPluginMetadataForPackageRoot(rootDir, includeChannelConfigs),
+    collectBundledPluginMetadataForPackageRoot(
+      rootDir,
+      includeChannelConfigs,
+      includeSyntheticChannelConfigs,
+    ),
   );
   bundledPluginMetadataCache.set(cacheKey, entries);
   return entries;

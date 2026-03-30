@@ -1,0 +1,90 @@
+{
+  "default_resolution": "manual",
+  "rules": [
+    {
+      "pattern": "scripts/run-node.mjs",
+      "resolution": "theirs",
+      "note": "Track upstream runtime launcher improvements."
+    },
+    {
+      "pattern": "src/agents/skills-install.download.test.ts",
+      "resolution": "theirs",
+      "note": "Adopt upstream test updates."
+    },
+    {
+      "pattern": "src/agents/skills-status.test.ts",
+      "resolution": "theirs",
+      "note": "Adopt upstream test updates."
+    },
+    {
+      "pattern": "src/agents/skills.buildworkspaceskillstatus.test.ts",
+      "resolution": "theirs",
+      "note": "Adopt upstream test updates."
+    },
+    {
+      "pattern": "src/agents/skills.resolveskillspromptforrun.test.ts",
+      "resolution": "theirs",
+      "note": "Adopt upstream test updates."
+    },
+    {
+      "pattern": "src/agents/skills/compact-format.test.ts",
+      "resolution": "theirs",
+      "note": "Adopt upstream test updates."
+    },
+    {
+      "pattern": "src/channels/plugins/bundled.ts",
+      "resolution": "theirs",
+      "note": "Keep upstream plugin pipeline behavior."
+    },
+    {
+      "pattern": "src/cli/skills-cli.formatting.test.ts",
+      "resolution": "theirs",
+      "note": "Adopt upstream CLI formatting test updates."
+    },
+    {
+      "pattern": "AGENTS.md",
+      "resolution": "custom_agents_md",
+      "note": "Keep local manifesto while preserving upstream header."
+    },
+    {
+      "pattern": ".gitignore",
+      "resolution": "custom_gitignore",
+      "note": "Keep local ignores plus upstream additions."
+    },
+    {
+      "pattern": "extensions/line/src/channel.logout.test.ts",
+      "resolution": "upstream_file",
+      "note": "Prefer upstream file for delete/modify conflict."
+    },
+    {
+      "pattern": "extensions/line/src/channel.sendPayload.test.ts",
+      "resolution": "upstream_file",
+      "note": "Prefer upstream file for delete/modify conflict."
+    },
+    {
+      "pattern": "pnpm-lock.yaml",
+      "resolution": "upstream_file",
+      "note": "Use upstream lockfile snapshot."
+    },
+    {
+      "pattern": "src/agents/skills/source.ts",
+      "resolution": "upstream_delete",
+      "note": "Accept upstream deletion for generated/discovery move."
+    },
+    {
+      "pattern": "src/generated/bundled-plugin-entries.generated.ts",
+      "resolution": "upstream_delete",
+      "note": "Accept upstream generated-file deletion."
+    },
+    {
+      "pattern": "src/plugins/bundled-plugin-metadata.generated.ts",
+      "resolution": "upstream_delete",
+      "note": "Accept upstream generated-file deletion."
+    },
+    {
+      "pattern": "package.json",
+      "resolution": "package_json_fixup",
+      "note": "Adopt upstream then enforce local format:check policy."
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { readFileSync } from "node:fs";
+import { appendFileSync } from "node:fs";
 import { access } from "node:fs/promises";
 import module from "node:module";
 import { fileURLToPath } from "node:url";
@@ -37,6 +38,26 @@ const ensureSupportedNodeVersion = () => {
 };
 
 ensureSupportedNodeVersion();
+
+// #region agent log
+try {
+  appendFileSync(
+    "debug-2f4832.log",
+    `${JSON.stringify({
+      sessionId: "2f4832",
+      runId: "gateway-hang",
+      hypothesisId: "H12",
+      location: "openclaw.mjs:entry",
+      message: "openclaw entry reached",
+      data: { argv: process.argv.slice(2) },
+      timestamp: Date.now(),
+    })}\n`,
+    "utf8",
+  );
+} catch {
+  // ignore logging failures
+}
+// #endregion
 
 // https://nodejs.org/api/module.html#module-compile-cache
 if (module.enableCompileCache && !process.env.NODE_DISABLE_COMPILE_CACHE) {

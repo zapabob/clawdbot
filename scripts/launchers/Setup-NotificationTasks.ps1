@@ -32,6 +32,13 @@ if ($Remove) {
             Write-Host "  [TASK] Removed: $t" -ForegroundColor Yellow
         }
     }
+    # Gateway 自動起動タスクも掃除（存在する場合のみ）
+    $gwTaskName = "OpenClaw Gateway (desktop-stack)"
+    $existingGw = Get-ScheduledTask -TaskName $gwTaskName -ErrorAction SilentlyContinue
+    if ($existingGw) {
+        Unregister-ScheduledTask -TaskName $gwTaskName -Confirm:$false
+        Write-Host "  [TASK] Removed gateway auto-start task: $gwTaskName" -ForegroundColor Yellow
+    }
     return
 }
 

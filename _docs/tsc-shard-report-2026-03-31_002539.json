@@ -1,0 +1,541 @@
+{
+  "started_utc": "2026-03-30T15:08:34Z",
+  "timeout_seconds": 900,
+  "shards": [
+    {
+      "id": "extensions-acpx",
+      "description": "ACPX extension runtime and tests",
+      "status": "failed",
+      "exit_code": 2,
+      "elapsed_seconds": 121.21,
+      "error_count": 6,
+      "error_buckets": {
+        "missing_or_extra_property": 3,
+        "implicit_any": 3
+      },
+      "errors": [
+        {
+          "file": "src/agents/skills/source.ts",
+          "line": "11",
+          "col": "40",
+          "code": "TS2339",
+          "message": "Property 'source' does not exist on type 'SkillSourceCompat'.",
+          "bucket": "missing_or_extra_property"
+        },
+        {
+          "file": "src/agents/skills/source.ts",
+          "line": "11",
+          "col": "74",
+          "code": "TS2339",
+          "message": "Property 'source' does not exist on type 'SkillSourceCompat'.",
+          "bucket": "missing_or_extra_property"
+        },
+        {
+          "file": "src/media/pdf-extract.ts",
+          "line": "52",
+          "col": "65",
+          "code": "TS2353",
+          "message": "Object literal may only specify known properties, and 'disableWorker' does not exist in type 'ArrayBuffer | URL | TypedArray | DocumentInitParameters'.",
+          "bucket": "missing_or_extra_property"
+        },
+        {
+          "file": "src/media/qr-image.ts",
+          "line": "1",
+          "col": "26",
+          "code": "TS7016",
+          "message": "Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/index.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/index.js' implicitly has an 'any' type.",
+          "bucket": "implicit_any"
+        },
+        {
+          "file": "src/media/qr-image.ts",
+          "line": "2",
+          "col": "39",
+          "code": "TS7016",
+          "message": "Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js' implicitly has an 'any' type.",
+          "bucket": "implicit_any"
+        },
+        {
+          "file": "src/process/supervisor/adapters/pty.ts",
+          "line": "46",
+          "col": "32",
+          "code": "TS7016",
+          "message": "Could not find a declaration file for module '@lydell/node-pty'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/@lydell/node-pty/index.js' implicitly has an 'any' type.",
+          "bucket": "implicit_any"
+        }
+      ],
+      "output_excerpt": "src/agents/skills/source.ts(11,40): error TS2339: Property 'source' does not exist on type 'SkillSourceCompat'.\nsrc/agents/skills/source.ts(11,74): error TS2339: Property 'source' does not exist on type 'SkillSourceCompat'.\nsrc/media/pdf-extract.ts(52,65): error TS2353: Object literal may only specify known properties, and 'disableWorker' does not exist in type 'ArrayBuffer | URL | TypedArray | DocumentInitParameters'.\nsrc/media/qr-image.ts(1,26): error TS7016: Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/index.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/index.js' implicitly has an 'any' type.\n  If the 'qrcode-terminal' package actually exposes this module, consider sending a pull request to amend 'https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/qrcode-terminal'\nsrc/media/qr-image.ts(2,39): error TS7016: Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js' implicitly has an 'any' type.\n  If the 'qrcode-terminal' package actually exposes this module, consider sending a pull request to amend 'https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/qrcode-terminal'\nsrc/process/supervisor/adapters/pty.ts(46,32): error TS7016: Could not find a declaration file for module '@lydell/node-pty'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/@lydell/node-pty/index.js' implicitly has an 'any' type.\n  There are types at 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/@lydell/node-pty/node-pty.d.ts', but this result could not be resolved when respecting package.json \"exports\". The '@lydell/node-pty' library may need to update its package.json or typings.\n"
+    },
+    {
+      "id": "extensions-telegram",
+      "description": "Telegram extension runtime and handlers",
+      "status": "failed",
+      "exit_code": 2,
+      "elapsed_seconds": 198.8,
+      "error_count": 6,
+      "error_buckets": {
+        "missing_or_extra_property": 3,
+        "implicit_any": 3
+      },
+      "errors": [
+        {
+          "file": "src/agents/skills/source.ts",
+          "line": "11",
+          "col": "40",
+          "code": "TS2339",
+          "message": "Property 'source' does not exist on type 'SkillSourceCompat'.",
+          "bucket": "missing_or_extra_property"
+        },
+        {
+          "file": "src/agents/skills/source.ts",
+          "line": "11",
+          "col": "74",
+          "code": "TS2339",
+          "message": "Property 'source' does not exist on type 'SkillSourceCompat'.",
+          "bucket": "missing_or_extra_property"
+        },
+        {
+          "file": "src/media/pdf-extract.ts",
+          "line": "52",
+          "col": "65",
+          "code": "TS2353",
+          "message": "Object literal may only specify known properties, and 'disableWorker' does not exist in type 'ArrayBuffer | URL | TypedArray | DocumentInitParameters'.",
+          "bucket": "missing_or_extra_property"
+        },
+        {
+          "file": "src/media/qr-image.ts",
+          "line": "1",
+          "col": "26",
+          "code": "TS7016",
+          "message": "Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/index.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/index.js' implicitly has an 'any' type.",
+          "bucket": "implicit_any"
+        },
+        {
+          "file": "src/media/qr-image.ts",
+          "line": "2",
+          "col": "39",
+          "code": "TS7016",
+          "message": "Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js' implicitly has an 'any' type.",
+          "bucket": "implicit_any"
+        },
+        {
+          "file": "src/process/supervisor/adapters/pty.ts",
+          "line": "46",
+          "col": "32",
+          "code": "TS7016",
+          "message": "Could not find a declaration file for module '@lydell/node-pty'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/@lydell/node-pty/index.js' implicitly has an 'any' type.",
+          "bucket": "implicit_any"
+        }
+      ],
+      "output_excerpt": "src/agents/skills/source.ts(11,40): error TS2339: Property 'source' does not exist on type 'SkillSourceCompat'.\nsrc/agents/skills/source.ts(11,74): error TS2339: Property 'source' does not exist on type 'SkillSourceCompat'.\nsrc/media/pdf-extract.ts(52,65): error TS2353: Object literal may only specify known properties, and 'disableWorker' does not exist in type 'ArrayBuffer | URL | TypedArray | DocumentInitParameters'.\nsrc/media/qr-image.ts(1,26): error TS7016: Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/index.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/index.js' implicitly has an 'any' type.\n  If the 'qrcode-terminal' package actually exposes this module, consider sending a pull request to amend 'https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/qrcode-terminal'\nsrc/media/qr-image.ts(2,39): error TS7016: Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js' implicitly has an 'any' type.\n  If the 'qrcode-terminal' package actually exposes this module, consider sending a pull request to amend 'https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/qrcode-terminal'\nsrc/process/supervisor/adapters/pty.ts(46,32): error TS7016: Could not find a declaration file for module '@lydell/node-pty'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/@lydell/node-pty/index.js' implicitly has an 'any' type.\n  There are types at 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/@lydell/node-pty/node-pty.d.ts', but this result could not be resolved when respecting package.json \"exports\". The '@lydell/node-pty' library may need to update its package.json or typings.\n"
+    },
+    {
+      "id": "extensions-others",
+      "description": "All other extensions",
+      "status": "failed",
+      "exit_code": 2,
+      "elapsed_seconds": 126.73,
+      "error_count": 6,
+      "error_buckets": {
+        "missing_or_extra_property": 3,
+        "implicit_any": 3
+      },
+      "errors": [
+        {
+          "file": "src/agents/skills/source.ts",
+          "line": "11",
+          "col": "40",
+          "code": "TS2339",
+          "message": "Property 'source' does not exist on type 'SkillSourceCompat'.",
+          "bucket": "missing_or_extra_property"
+        },
+        {
+          "file": "src/agents/skills/source.ts",
+          "line": "11",
+          "col": "74",
+          "code": "TS2339",
+          "message": "Property 'source' does not exist on type 'SkillSourceCompat'.",
+          "bucket": "missing_or_extra_property"
+        },
+        {
+          "file": "src/media/pdf-extract.ts",
+          "line": "52",
+          "col": "65",
+          "code": "TS2353",
+          "message": "Object literal may only specify known properties, and 'disableWorker' does not exist in type 'ArrayBuffer | URL | TypedArray | DocumentInitParameters'.",
+          "bucket": "missing_or_extra_property"
+        },
+        {
+          "file": "src/media/qr-image.ts",
+          "line": "1",
+          "col": "26",
+          "code": "TS7016",
+          "message": "Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/index.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/index.js' implicitly has an 'any' type.",
+          "bucket": "implicit_any"
+        },
+        {
+          "file": "src/media/qr-image.ts",
+          "line": "2",
+          "col": "39",
+          "code": "TS7016",
+          "message": "Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js' implicitly has an 'any' type.",
+          "bucket": "implicit_any"
+        },
+        {
+          "file": "src/process/supervisor/adapters/pty.ts",
+          "line": "46",
+          "col": "32",
+          "code": "TS7016",
+          "message": "Could not find a declaration file for module '@lydell/node-pty'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/@lydell/node-pty/index.js' implicitly has an 'any' type.",
+          "bucket": "implicit_any"
+        }
+      ],
+      "output_excerpt": "src/agents/skills/source.ts(11,40): error TS2339: Property 'source' does not exist on type 'SkillSourceCompat'.\nsrc/agents/skills/source.ts(11,74): error TS2339: Property 'source' does not exist on type 'SkillSourceCompat'.\nsrc/media/pdf-extract.ts(52,65): error TS2353: Object literal may only specify known properties, and 'disableWorker' does not exist in type 'ArrayBuffer | URL | TypedArray | DocumentInitParameters'.\nsrc/media/qr-image.ts(1,26): error TS7016: Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/index.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/index.js' implicitly has an 'any' type.\n  If the 'qrcode-terminal' package actually exposes this module, consider sending a pull request to amend 'https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/qrcode-terminal'\nsrc/media/qr-image.ts(2,39): error TS7016: Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js' implicitly has an 'any' type.\n  If the 'qrcode-terminal' package actually exposes this module, consider sending a pull request to amend 'https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/qrcode-terminal'\nsrc/process/supervisor/adapters/pty.ts(46,32): error TS7016: Could not find a declaration file for module '@lydell/node-pty'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/@lydell/node-pty/index.js' implicitly has an 'any' type.\n  There are types at 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/@lydell/node-pty/node-pty.d.ts', but this result could not be resolved when respecting package.json \"exports\". The '@lydell/node-pty' library may need to update its package.json or typings.\n"
+    },
+    {
+      "id": "src-agents",
+      "description": "Agent runtime and skills",
+      "status": "failed",
+      "exit_code": 2,
+      "elapsed_seconds": 108.69,
+      "error_count": 7,
+      "error_buckets": {
+        "missing_or_extra_property": 4,
+        "implicit_any": 3
+      },
+      "errors": [
+        {
+          "file": "src/agents/skills.test-helpers.ts",
+          "line": "39",
+          "col": "5",
+          "code": "TS2353",
+          "message": "Object literal may only specify known properties, and 'source' does not exist in type 'Skill'.",
+          "bucket": "missing_or_extra_property"
+        },
+        {
+          "file": "src/agents/skills/source.ts",
+          "line": "11",
+          "col": "40",
+          "code": "TS2339",
+          "message": "Property 'source' does not exist on type 'SkillSourceCompat'.",
+          "bucket": "missing_or_extra_property"
+        },
+        {
+          "file": "src/agents/skills/source.ts",
+          "line": "11",
+          "col": "74",
+          "code": "TS2339",
+          "message": "Property 'source' does not exist on type 'SkillSourceCompat'.",
+          "bucket": "missing_or_extra_property"
+        },
+        {
+          "file": "src/media/pdf-extract.ts",
+          "line": "52",
+          "col": "65",
+          "code": "TS2353",
+          "message": "Object literal may only specify known properties, and 'disableWorker' does not exist in type 'ArrayBuffer | URL | TypedArray | DocumentInitParameters'.",
+          "bucket": "missing_or_extra_property"
+        },
+        {
+          "file": "src/media/qr-image.ts",
+          "line": "1",
+          "col": "26",
+          "code": "TS7016",
+          "message": "Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/index.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/index.js' implicitly has an 'any' type.",
+          "bucket": "implicit_any"
+        },
+        {
+          "file": "src/media/qr-image.ts",
+          "line": "2",
+          "col": "39",
+          "code": "TS7016",
+          "message": "Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js' implicitly has an 'any' type.",
+          "bucket": "implicit_any"
+        },
+        {
+          "file": "src/process/supervisor/adapters/pty.ts",
+          "line": "46",
+          "col": "32",
+          "code": "TS7016",
+          "message": "Could not find a declaration file for module '@lydell/node-pty'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/@lydell/node-pty/index.js' implicitly has an 'any' type.",
+          "bucket": "implicit_any"
+        }
+      ],
+      "output_excerpt": "src/agents/skills.test-helpers.ts(39,5): error TS2353: Object literal may only specify known properties, and 'source' does not exist in type 'Skill'.\nsrc/agents/skills/source.ts(11,40): error TS2339: Property 'source' does not exist on type 'SkillSourceCompat'.\nsrc/agents/skills/source.ts(11,74): error TS2339: Property 'source' does not exist on type 'SkillSourceCompat'.\nsrc/media/pdf-extract.ts(52,65): error TS2353: Object literal may only specify known properties, and 'disableWorker' does not exist in type 'ArrayBuffer | URL | TypedArray | DocumentInitParameters'.\nsrc/media/qr-image.ts(1,26): error TS7016: Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/index.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/index.js' implicitly has an 'any' type.\n  If the 'qrcode-terminal' package actually exposes this module, consider sending a pull request to amend 'https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/qrcode-terminal'\nsrc/media/qr-image.ts(2,39): error TS7016: Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js' implicitly has an 'any' type.\n  If the 'qrcode-terminal' package actually exposes this module, consider sending a pull request to amend 'https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/qrcode-terminal'\nsrc/process/supervisor/adapters/pty.ts(46,32): error TS7016: Could not find a declaration file for module '@lydell/node-pty'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/@lydell/node-pty/index.js' implicitly has an 'any' type.\n  There are types at 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/@lydell/node-pty/node-pty.d.ts', but this result could not be resolved when respecting package.json \"exports\". The '@lydell/node-pty' library may need to update its package.json or typings.\n"
+    },
+    {
+      "id": "src-gateway-cli",
+      "description": "Gateway and CLI surfaces",
+      "status": "failed",
+      "exit_code": 2,
+      "elapsed_seconds": 103.96,
+      "error_count": 7,
+      "error_buckets": {
+        "missing_or_extra_property": 4,
+        "implicit_any": 3
+      },
+      "errors": [
+        {
+          "file": "src/agents/skills.test-helpers.ts",
+          "line": "39",
+          "col": "5",
+          "code": "TS2353",
+          "message": "Object literal may only specify known properties, and 'source' does not exist in type 'Skill'.",
+          "bucket": "missing_or_extra_property"
+        },
+        {
+          "file": "src/agents/skills/source.ts",
+          "line": "11",
+          "col": "40",
+          "code": "TS2339",
+          "message": "Property 'source' does not exist on type 'SkillSourceCompat'.",
+          "bucket": "missing_or_extra_property"
+        },
+        {
+          "file": "src/agents/skills/source.ts",
+          "line": "11",
+          "col": "74",
+          "code": "TS2339",
+          "message": "Property 'source' does not exist on type 'SkillSourceCompat'.",
+          "bucket": "missing_or_extra_property"
+        },
+        {
+          "file": "src/media/pdf-extract.ts",
+          "line": "52",
+          "col": "65",
+          "code": "TS2353",
+          "message": "Object literal may only specify known properties, and 'disableWorker' does not exist in type 'ArrayBuffer | URL | TypedArray | DocumentInitParameters'.",
+          "bucket": "missing_or_extra_property"
+        },
+        {
+          "file": "src/media/qr-image.ts",
+          "line": "1",
+          "col": "26",
+          "code": "TS7016",
+          "message": "Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/index.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/index.js' implicitly has an 'any' type.",
+          "bucket": "implicit_any"
+        },
+        {
+          "file": "src/media/qr-image.ts",
+          "line": "2",
+          "col": "39",
+          "code": "TS7016",
+          "message": "Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js' implicitly has an 'any' type.",
+          "bucket": "implicit_any"
+        },
+        {
+          "file": "src/process/supervisor/adapters/pty.ts",
+          "line": "46",
+          "col": "32",
+          "code": "TS7016",
+          "message": "Could not find a declaration file for module '@lydell/node-pty'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/@lydell/node-pty/index.js' implicitly has an 'any' type.",
+          "bucket": "implicit_any"
+        }
+      ],
+      "output_excerpt": "src/agents/skills.test-helpers.ts(39,5): error TS2353: Object literal may only specify known properties, and 'source' does not exist in type 'Skill'.\nsrc/agents/skills/source.ts(11,40): error TS2339: Property 'source' does not exist on type 'SkillSourceCompat'.\nsrc/agents/skills/source.ts(11,74): error TS2339: Property 'source' does not exist on type 'SkillSourceCompat'.\nsrc/media/pdf-extract.ts(52,65): error TS2353: Object literal may only specify known properties, and 'disableWorker' does not exist in type 'ArrayBuffer | URL | TypedArray | DocumentInitParameters'.\nsrc/media/qr-image.ts(1,26): error TS7016: Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/index.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/index.js' implicitly has an 'any' type.\n  If the 'qrcode-terminal' package actually exposes this module, consider sending a pull request to amend 'https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/qrcode-terminal'\nsrc/media/qr-image.ts(2,39): error TS7016: Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js' implicitly has an 'any' type.\n  If the 'qrcode-terminal' package actually exposes this module, consider sending a pull request to amend 'https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/qrcode-terminal'\nsrc/process/supervisor/adapters/pty.ts(46,32): error TS7016: Could not find a declaration file for module '@lydell/node-pty'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/@lydell/node-pty/index.js' implicitly has an 'any' type.\n  There are types at 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/@lydell/node-pty/node-pty.d.ts', but this result could not be resolved when respecting package.json \"exports\". The '@lydell/node-pty' library may need to update its package.json or typings.\n"
+    },
+    {
+      "id": "src-plugins",
+      "description": "Plugin loading and SDK",
+      "status": "failed",
+      "exit_code": 2,
+      "elapsed_seconds": 58.81,
+      "error_count": 6,
+      "error_buckets": {
+        "missing_or_extra_property": 3,
+        "implicit_any": 3
+      },
+      "errors": [
+        {
+          "file": "src/agents/skills/source.ts",
+          "line": "11",
+          "col": "40",
+          "code": "TS2339",
+          "message": "Property 'source' does not exist on type 'SkillSourceCompat'.",
+          "bucket": "missing_or_extra_property"
+        },
+        {
+          "file": "src/agents/skills/source.ts",
+          "line": "11",
+          "col": "74",
+          "code": "TS2339",
+          "message": "Property 'source' does not exist on type 'SkillSourceCompat'.",
+          "bucket": "missing_or_extra_property"
+        },
+        {
+          "file": "src/media/pdf-extract.ts",
+          "line": "52",
+          "col": "65",
+          "code": "TS2353",
+          "message": "Object literal may only specify known properties, and 'disableWorker' does not exist in type 'ArrayBuffer | URL | TypedArray | DocumentInitParameters'.",
+          "bucket": "missing_or_extra_property"
+        },
+        {
+          "file": "src/media/qr-image.ts",
+          "line": "1",
+          "col": "26",
+          "code": "TS7016",
+          "message": "Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/index.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/index.js' implicitly has an 'any' type.",
+          "bucket": "implicit_any"
+        },
+        {
+          "file": "src/media/qr-image.ts",
+          "line": "2",
+          "col": "39",
+          "code": "TS7016",
+          "message": "Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js' implicitly has an 'any' type.",
+          "bucket": "implicit_any"
+        },
+        {
+          "file": "src/process/supervisor/adapters/pty.ts",
+          "line": "46",
+          "col": "32",
+          "code": "TS7016",
+          "message": "Could not find a declaration file for module '@lydell/node-pty'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/@lydell/node-pty/index.js' implicitly has an 'any' type.",
+          "bucket": "implicit_any"
+        }
+      ],
+      "output_excerpt": "src/agents/skills/source.ts(11,40): error TS2339: Property 'source' does not exist on type 'SkillSourceCompat'.\nsrc/agents/skills/source.ts(11,74): error TS2339: Property 'source' does not exist on type 'SkillSourceCompat'.\nsrc/media/pdf-extract.ts(52,65): error TS2353: Object literal may only specify known properties, and 'disableWorker' does not exist in type 'ArrayBuffer | URL | TypedArray | DocumentInitParameters'.\nsrc/media/qr-image.ts(1,26): error TS7016: Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/index.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/index.js' implicitly has an 'any' type.\n  If the 'qrcode-terminal' package actually exposes this module, consider sending a pull request to amend 'https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/qrcode-terminal'\nsrc/media/qr-image.ts(2,39): error TS7016: Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js' implicitly has an 'any' type.\n  If the 'qrcode-terminal' package actually exposes this module, consider sending a pull request to amend 'https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/qrcode-terminal'\nsrc/process/supervisor/adapters/pty.ts(46,32): error TS7016: Could not find a declaration file for module '@lydell/node-pty'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/@lydell/node-pty/index.js' implicitly has an 'any' type.\n  There are types at 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/@lydell/node-pty/node-pty.d.ts', but this result could not be resolved when respecting package.json \"exports\". The '@lydell/node-pty' library may need to update its package.json or typings.\n"
+    },
+    {
+      "id": "src-core",
+      "description": "Remaining src core modules",
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 129.08,
+      "error_count": 0,
+      "error_buckets": {},
+      "errors": [],
+      "output_excerpt": ""
+    },
+    {
+      "id": "ui",
+      "description": "UI and frontend app",
+      "status": "failed",
+      "exit_code": 2,
+      "elapsed_seconds": 84.32,
+      "error_count": 6,
+      "error_buckets": {
+        "missing_or_extra_property": 3,
+        "implicit_any": 3
+      },
+      "errors": [
+        {
+          "file": "src/agents/skills/source.ts",
+          "line": "11",
+          "col": "40",
+          "code": "TS2339",
+          "message": "Property 'source' does not exist on type 'SkillSourceCompat'.",
+          "bucket": "missing_or_extra_property"
+        },
+        {
+          "file": "src/agents/skills/source.ts",
+          "line": "11",
+          "col": "74",
+          "code": "TS2339",
+          "message": "Property 'source' does not exist on type 'SkillSourceCompat'.",
+          "bucket": "missing_or_extra_property"
+        },
+        {
+          "file": "src/media/pdf-extract.ts",
+          "line": "52",
+          "col": "65",
+          "code": "TS2353",
+          "message": "Object literal may only specify known properties, and 'disableWorker' does not exist in type 'ArrayBuffer | URL | TypedArray | DocumentInitParameters'.",
+          "bucket": "missing_or_extra_property"
+        },
+        {
+          "file": "src/media/qr-image.ts",
+          "line": "1",
+          "col": "26",
+          "code": "TS7016",
+          "message": "Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/index.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/index.js' implicitly has an 'any' type.",
+          "bucket": "implicit_any"
+        },
+        {
+          "file": "src/media/qr-image.ts",
+          "line": "2",
+          "col": "39",
+          "code": "TS7016",
+          "message": "Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js' implicitly has an 'any' type.",
+          "bucket": "implicit_any"
+        },
+        {
+          "file": "src/process/supervisor/adapters/pty.ts",
+          "line": "46",
+          "col": "32",
+          "code": "TS7016",
+          "message": "Could not find a declaration file for module '@lydell/node-pty'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/@lydell/node-pty/index.js' implicitly has an 'any' type.",
+          "bucket": "implicit_any"
+        }
+      ],
+      "output_excerpt": "src/agents/skills/source.ts(11,40): error TS2339: Property 'source' does not exist on type 'SkillSourceCompat'.\nsrc/agents/skills/source.ts(11,74): error TS2339: Property 'source' does not exist on type 'SkillSourceCompat'.\nsrc/media/pdf-extract.ts(52,65): error TS2353: Object literal may only specify known properties, and 'disableWorker' does not exist in type 'ArrayBuffer | URL | TypedArray | DocumentInitParameters'.\nsrc/media/qr-image.ts(1,26): error TS7016: Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/index.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/index.js' implicitly has an 'any' type.\n  If the 'qrcode-terminal' package actually exposes this module, consider sending a pull request to amend 'https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/qrcode-terminal'\nsrc/media/qr-image.ts(2,39): error TS7016: Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js' implicitly has an 'any' type.\n  If the 'qrcode-terminal' package actually exposes this module, consider sending a pull request to amend 'https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/qrcode-terminal'\nsrc/process/supervisor/adapters/pty.ts(46,32): error TS7016: Could not find a declaration file for module '@lydell/node-pty'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/@lydell/node-pty/index.js' implicitly has an 'any' type.\n  There are types at 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/@lydell/node-pty/node-pty.d.ts', but this result could not be resolved when respecting package.json \"exports\". The '@lydell/node-pty' library may need to update its package.json or typings.\n"
+    },
+    {
+      "id": "packages",
+      "description": "Monorepo packages",
+      "status": "failed",
+      "exit_code": 2,
+      "elapsed_seconds": 92.83,
+      "error_count": 6,
+      "error_buckets": {
+        "missing_or_extra_property": 3,
+        "implicit_any": 3
+      },
+      "errors": [
+        {
+          "file": "src/agents/skills/source.ts",
+          "line": "11",
+          "col": "40",
+          "code": "TS2339",
+          "message": "Property 'source' does not exist on type 'SkillSourceCompat'.",
+          "bucket": "missing_or_extra_property"
+        },
+        {
+          "file": "src/agents/skills/source.ts",
+          "line": "11",
+          "col": "74",
+          "code": "TS2339",
+          "message": "Property 'source' does not exist on type 'SkillSourceCompat'.",
+          "bucket": "missing_or_extra_property"
+        },
+        {
+          "file": "src/media/pdf-extract.ts",
+          "line": "52",
+          "col": "65",
+          "code": "TS2353",
+          "message": "Object literal may only specify known properties, and 'disableWorker' does not exist in type 'ArrayBuffer | URL | TypedArray | DocumentInitParameters'.",
+          "bucket": "missing_or_extra_property"
+        },
+        {
+          "file": "src/media/qr-image.ts",
+          "line": "1",
+          "col": "26",
+          "code": "TS7016",
+          "message": "Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/index.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/index.js' implicitly has an 'any' type.",
+          "bucket": "implicit_any"
+        },
+        {
+          "file": "src/media/qr-image.ts",
+          "line": "2",
+          "col": "39",
+          "code": "TS7016",
+          "message": "Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js' implicitly has an 'any' type.",
+          "bucket": "implicit_any"
+        },
+        {
+          "file": "src/process/supervisor/adapters/pty.ts",
+          "line": "46",
+          "col": "32",
+          "code": "TS7016",
+          "message": "Could not find a declaration file for module '@lydell/node-pty'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/@lydell/node-pty/index.js' implicitly has an 'any' type.",
+          "bucket": "implicit_any"
+        }
+      ],
+      "output_excerpt": "src/agents/skills/source.ts(11,40): error TS2339: Property 'source' does not exist on type 'SkillSourceCompat'.\nsrc/agents/skills/source.ts(11,74): error TS2339: Property 'source' does not exist on type 'SkillSourceCompat'.\nsrc/media/pdf-extract.ts(52,65): error TS2353: Object literal may only specify known properties, and 'disableWorker' does not exist in type 'ArrayBuffer | URL | TypedArray | DocumentInitParameters'.\nsrc/media/qr-image.ts(1,26): error TS7016: Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/index.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/index.js' implicitly has an 'any' type.\n  If the 'qrcode-terminal' package actually exposes this module, consider sending a pull request to amend 'https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/qrcode-terminal'\nsrc/media/qr-image.ts(2,39): error TS7016: Could not find a declaration file for module 'qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/qrcode-terminal/vendor/QRCode/QRErrorCorrectLevel.js' implicitly has an 'any' type.\n  If the 'qrcode-terminal' package actually exposes this module, consider sending a pull request to amend 'https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/qrcode-terminal'\nsrc/process/supervisor/adapters/pty.ts(46,32): error TS7016: Could not find a declaration file for module '@lydell/node-pty'. 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/@lydell/node-pty/index.js' implicitly has an 'any' type.\n  There are types at 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/node_modules/@lydell/node-pty/node-pty.d.ts', but this result could not be resolved when respecting package.json \"exports\". The '@lydell/node-pty' library may need to update its package.json or typings.\n"
+    }
+  ],
+  "error_buckets": {
+    "missing_or_extra_property": 26,
+    "implicit_any": 24
+  }
+}

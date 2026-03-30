@@ -6,7 +6,7 @@ import {
   type ProviderAuthResult,
   type ProviderDiscoveryContext,
 } from "openclaw/plugin-sdk/core";
-import { resolveOllamaApiBase } from "openclaw/plugin-sdk/provider-models";
+import { resolveOllamaApiBase } from "openclaw/plugin-sdk/ollama-surface";
 
 const PROVIDER_ID = "hypura";
 const DEFAULT_BASE_URL = "http://127.0.0.1:8080";

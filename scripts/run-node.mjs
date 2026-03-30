@@ -243,7 +243,42 @@ const logRunner = (message, deps) => {
   deps.stderr.write(`[openclaw] ${message}\n`);
 };
 
+/** Avoid propagating negative/large exit codes (Windows pnpm ELIFECYCLE 4294967295). */
+const normalizeCliExitCode = (code) => {
+  if (code === 0) {
+    return 0;
+  }
+  if (code === null || code === undefined) {
+    return 1;
+  }
+  if (typeof code !== "number" || Number.isNaN(code)) {
+    return 1;
+  }
+  if (code < 0 || code > 255) {
+    return 1;
+  }
+  return code;
+};
+
 const runOpenClaw = async (deps) => {
+  // #region agent log
+  try {
+    fs.appendFileSync(
+      path.join(deps.cwd, "debug-2f4832.log"),
+      `${JSON.stringify({
+        sessionId: "2f4832",
+        runId: "gateway-hang",
+        hypothesisId: "H11",
+        location: "scripts/run-node.mjs:before-openclaw-spawn",
+        message: "about to spawn openclaw.mjs",
+        data: { args: deps.args },
+        timestamp: Date.now(),
+      })}\n`,
+    );
+  } catch {
+    /* ignore */
+  }
+  // #endregion
   const nodeProcess = deps.spawn(deps.execPath, ["openclaw.mjs", ...deps.args], {
     cwd: deps.cwd,
     env: deps.env,
@@ -255,12 +290,66 @@ const runOpenClaw = async (deps) => {
     });
   });
   if (res.exitSignal) {
+    // #region agent log
+    try {
+      fs.appendFileSync(
+        path.join(deps.cwd, "debug-2f4832.log"),
+        `${JSON.stringify({
+          sessionId: "2f4832",
+          runId: "gateway-hang",
+          hypothesisId: "H11",
+          location: "scripts/run-node.mjs:openclaw-exit-signal",
+          message: "openclaw process exited by signal",
+          data: { exitSignal: res.exitSignal },
+          timestamp: Date.now(),
+        })}\n`,
+      );
+    } catch {
+      /* ignore */
+    }
+    // #endregion
     return 1;
   }
-  return res.exitCode ?? 1;
+  // #region agent log
+  try {
+    fs.appendFileSync(
+      path.join(deps.cwd, "debug-2f4832.log"),
+      `${JSON.stringify({
+        sessionId: "2f4832",
+        runId: "gateway-hang",
+        hypothesisId: "H11",
+        location: "scripts/run-node.mjs:openclaw-exit-code",
+        message: "openclaw process exited",
+        data: { exitCode: res.exitCode ?? null },
+        timestamp: Date.now(),
+      })}\n`,
+    );
+  } catch {
+    /* ignore */
+  }
+  // #endregion
+  return normalizeCliExitCode(res.exitCode ?? 1);
 };
 
 const syncRuntimeArtifacts = (deps) => {
+  // #region agent log
+  try {
+    fs.appendFileSync(
+      path.join(deps.cwd, "debug-2f4832.log"),
+      `${JSON.stringify({
+        sessionId: "2f4832",
+        runId: "gateway-hang",
+        hypothesisId: "H15",
+        location: "scripts/run-node.mjs:before-syncRuntimeArtifacts",
+        message: "about to run runtime postbuild sync",
+        data: {},
+        timestamp: Date.now(),
+      })}\n`,
+    );
+  } catch {
+    /* ignore */
+  }
+  // #endregion
   try {
     runRuntimePostBuild({ cwd: deps.cwd });
   } catch (error) {
@@ -270,6 +359,24 @@ const syncRuntimeArtifacts = (deps) => {
     );
     return false;
   }
+  // #region agent log
+  try {
+    fs.appendFileSync(
+      path.join(deps.cwd, "debug-2f4832.log"),
+      `${JSON.stringify({
+        sessionId: "2f4832",
+        runId: "gateway-hang",
+        hypothesisId: "H15",
+        location: "scripts/run-node.mjs:after-syncRuntimeArtifacts",
+        message: "runtime postbuild sync finished",
+        data: {},
+        timestamp: Date.now(),
+      })}\n`,
+    );
+  } catch {
+    /* ignore */
+  }
+  // #endregion
   return true;
 };
 
@@ -311,12 +418,48 @@ export async function runNodeMain(params = {}) {
     if (!syncRuntimeArtifacts(deps)) {
       return 1;
     }
+    // #region agent log
+    try {
+      fs.appendFileSync(
+        path.join(deps.cwd, "debug-2f4832.log"),
+        `${JSON.stringify({
+          sessionId: "2f4832",
+          runId: "gateway-hang",
+          hypothesisId: "H11",
+          location: "scripts/run-node.mjs:before-runOpenClaw-noBuild",
+          message: "about to run openclaw without build",
+          data: { args: deps.args },
+          timestamp: Date.now(),
+        })}\n`,
+      );
+    } catch {
+      /* ignore */
+    }
+    // #endregion
     return await runOpenClaw(deps);
   }
 
   logRunner("Building TypeScript (dist is stale).", deps);
   const buildCmd = deps.execPath;
   const buildArgs = compilerArgs;
+  // #region agent log
+  try {
+    fs.appendFileSync(
+      path.join(deps.cwd, "debug-2f4832.log"),
+      `${JSON.stringify({
+        sessionId: "2f4832",
+        runId: "gateway-hang",
+        hypothesisId: "H10",
+        location: "scripts/run-node.mjs:before-tsdown-build",
+        message: "about to spawn tsdown build",
+        data: { buildCmd, buildArgs },
+        timestamp: Date.now(),
+      })}\n`,
+    );
+  } catch {
+    /* ignore */
+  }
+  // #endregion
   const build = deps.spawn(buildCmd, buildArgs, {
     cwd: deps.cwd,
     env: deps.env,
@@ -326,22 +469,65 @@ export async function runNodeMain(params = {}) {
   const buildRes = await new Promise((resolve) => {
     build.on("exit", (exitCode, exitSignal) => resolve({ exitCode, exitSignal }));
   });
+  // #region agent log
+  try {
+    fs.appendFileSync(
+      path.join(deps.cwd, "debug-2f4832.log"),
+      `${JSON.stringify({
+        sessionId: "2f4832",
+        hypothesisId: "H4",
+        location: "scripts/run-node.mjs:post-tsdown-build",
+        message: "child scripts/tsdown-build.mjs exit",
+        data: {
+          exitCode: buildRes.exitCode,
+          exitSignal: buildRes.exitSignal,
+          normalizedReturn:
+            buildRes.exitCode !== 0 && buildRes.exitCode !== null
+              ? normalizeCliExitCode(buildRes.exitCode)
+              : null,
+          runId: "post-fix",
+        },
+        timestamp: Date.now(),
+      })}\n`,
+    );
+  } catch {
+    /* ignore */
+  }
+  // #endregion
   if (buildRes.exitSignal) {
     return 1;
   }
   if (buildRes.exitCode !== 0 && buildRes.exitCode !== null) {
-    return buildRes.exitCode;
+    return normalizeCliExitCode(buildRes.exitCode);
   }
   if (!syncRuntimeArtifacts(deps)) {
     return 1;
   }
   writeBuildStamp(deps);
+  // #region agent log
+  try {
+    fs.appendFileSync(
+      path.join(deps.cwd, "debug-2f4832.log"),
+      `${JSON.stringify({
+        sessionId: "2f4832",
+        runId: "gateway-hang",
+        hypothesisId: "H11",
+        location: "scripts/run-node.mjs:before-runOpenClaw-afterBuild",
+        message: "about to run openclaw after build",
+        data: { args: deps.args },
+        timestamp: Date.now(),
+      })}\n`,
+    );
+  } catch {
+    /* ignore */
+  }
+  // #endregion
   return await runOpenClaw(deps);
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   void runNodeMain()
-    .then((code) => process.exit(code))
+    .then((code) => process.exit(normalizeCliExitCode(code)))
     .catch((err) => {
       console.error(err);
       process.exit(1);

@@ -18,8 +18,49 @@ function removePathIfExists(targetPath) {
   fs.rmSync(targetPath, { recursive: true, force: true });
 }
 
+function sleepMsSync(ms) {
+  if (!Number.isFinite(ms) || ms <= 0) {
+    return;
+  }
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
 function makeTempDir(parentDir, prefix) {
   return fs.mkdtempSync(path.join(parentDir, prefix));
+}
+
+function replaceDirectoryWithRetries(sourceDir, targetDir) {
+  const attempts = [120, 240, 480, 800, 1200];
+  let lastError = null;
+  for (const waitMs of attempts) {
+    try {
+      removePathIfExists(targetDir);
+      fs.renameSync(sourceDir, targetDir);
+      return;
+    } catch (error) {
+      lastError = error;
+      if (error?.code !== "EPERM" && error?.code !== "EBUSY" && error?.code !== "ENOTEMPTY") {
+        throw error;
+      }
+      sleepMsSync(waitMs);
+    }
+  }
+
+  // Last resort for Windows lock races: copy tree then remove staging.
+  try {
+    removePathIfExists(targetDir);
+    fs.cpSync(sourceDir, targetDir, { recursive: true, force: true });
+    removePathIfExists(sourceDir);
+    return;
+  } catch (copyError) {
+    if (lastError) {
+      throw new Error(
+        `${copyError?.message ?? "failed to replace directory"} (after rename retry failure: ${lastError?.message ?? "unknown error"})`,
+        { cause: copyError },
+      );
+    }
+    throw copyError;
+  }
 }
 
 function listBundledPluginRuntimeDirs(repoRoot) {
@@ -255,8 +296,7 @@ function installPluginRuntimeDeps(params) {
       );
     }
 
-    removePathIfExists(nodeModulesDir);
-    fs.renameSync(stagedNodeModulesDir, nodeModulesDir);
+    replaceDirectoryWithRetries(stagedNodeModulesDir, nodeModulesDir);
     writeJson(stampPath, {
       fingerprint,
       generatedAt: new Date().toISOString(),

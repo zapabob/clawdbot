@@ -13,9 +13,11 @@ import {
   type ConfigFileSnapshot,
   type OpenClawConfig,
   applyConfigOverrides,
+  getRuntimeConfig,
   isNixMode,
   loadConfig,
   migrateLegacyConfig,
+  registerConfigWriteListener,
   readConfigFileSnapshot,
   writeConfigFile,
 } from "../config/config.js";
@@ -73,6 +75,10 @@ import {
 } from "../secrets/runtime.js";
 import { onSessionLifecycleEvent } from "../sessions/session-lifecycle-events.js";
 import { onSessionTranscriptUpdate } from "../sessions/transcript-events.js";
+import {
+  getInspectableTaskRegistrySummary,
+  startTaskRegistryMaintenance,
+} from "../tasks/task-registry.maintenance.js";
 import { runSetupWizard } from "../wizard/setup.js";
 import { createAuthRateLimiter, type AuthRateLimiter } from "./auth-rate-limit.js";
 import { startChannelHealthMonitor } from "./channel-health-monitor.js";
@@ -116,6 +122,7 @@ import { createGatewayRuntimeState } from "./server-runtime-state.js";
 import { resolveSessionKeyForRun } from "./server-session-key.js";
 import { logGatewayStartup } from "./server-startup-log.js";
 import { runStartupMatrixMigration } from "./server-startup-matrix-migration.js";
+import { runStartupSessionMigration } from "./server-startup-session-migration.js";
 import { startGatewaySidecars } from "./server-startup.js";
 import { startGatewayTailscaleExposure } from "./server-tailscale.js";
 import { createWizardSessionTracker } from "./server-wizard-sessions.js";
@@ -292,6 +299,7 @@ async function prepareGatewayStartupConfig(params: {
     authOverride: params.authOverride,
     tailscaleOverride: params.tailscaleOverride,
     persist: true,
+    baseHash: params.configSnapshot.hash,
   });
   const runtimeStartupConfig = applyGatewayAuthOverridesForStartupPreflight(authBootstrap.cfg, {
     auth: params.authOverride,
@@ -382,7 +390,65 @@ export async function startGatewayServer(
     description: "raw stream log path override",
   });
 
+  // #region agent log
+  fetch("http://127.0.0.1:7850/ingest/1f015f2b-3dae-4268-9140-7a3ba92feebe", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Debug-Session-Id": "2f4832",
+    },
+    body: JSON.stringify({
+      sessionId: "2f4832",
+      runId: "gateway-hang",
+      hypothesisId: "H6",
+      location: "src/gateway/server.impl.ts:startGatewayServer-entry",
+      message: "entered startGatewayServer",
+      data: { port },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
+  // #region agent log
+  fetch("http://127.0.0.1:7850/ingest/1f015f2b-3dae-4268-9140-7a3ba92feebe", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Debug-Session-Id": "2f4832",
+    },
+    body: JSON.stringify({
+      sessionId: "2f4832",
+      runId: "gateway-hang",
+      hypothesisId: "H14",
+      location: "src/gateway/server.impl.ts:before-first-readConfigFileSnapshot",
+      message: "about to run first readConfigFileSnapshot",
+      data: { port },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
   let configSnapshot = await readConfigFileSnapshot();
+  // #region agent log
+  fetch("http://127.0.0.1:7850/ingest/1f015f2b-3dae-4268-9140-7a3ba92feebe", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Debug-Session-Id": "2f4832",
+    },
+    body: JSON.stringify({
+      sessionId: "2f4832",
+      runId: "gateway-hang",
+      hypothesisId: "H14",
+      location: "src/gateway/server.impl.ts:after-first-readConfigFileSnapshot",
+      message: "finished first readConfigFileSnapshot",
+      data: {
+        exists: configSnapshot.exists,
+        valid: configSnapshot.valid,
+        legacyIssueCount: configSnapshot.legacyIssues.length,
+      },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
   if (configSnapshot.legacyIssues.length > 0) {
     if (isNixMode) {
       throw new Error(
@@ -395,6 +461,24 @@ export async function startGatewayServer(
         "gateway: legacy config entries detected but no auto-migration changes were produced; continuing with validation.",
       );
     } else {
+      // #region agent log
+      fetch("http://127.0.0.1:7850/ingest/1f015f2b-3dae-4268-9140-7a3ba92feebe", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Debug-Session-Id": "2f4832",
+        },
+        body: JSON.stringify({
+          sessionId: "2f4832",
+          runId: "gateway-hang",
+          hypothesisId: "H14",
+          location: "src/gateway/server.impl.ts:before-writeConfigFile-legacy-migrate",
+          message: "about to persist legacy migration",
+          data: { changeCount: changes.length },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
       await writeConfigFile(migrated);
       if (changes.length > 0) {
         log.info(
@@ -406,7 +490,43 @@ export async function startGatewayServer(
     }
   }
 
+  // #region agent log
+  fetch("http://127.0.0.1:7850/ingest/1f015f2b-3dae-4268-9140-7a3ba92feebe", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Debug-Session-Id": "2f4832",
+    },
+    body: JSON.stringify({
+      sessionId: "2f4832",
+      runId: "gateway-hang",
+      hypothesisId: "H14",
+      location: "src/gateway/server.impl.ts:before-second-readConfigFileSnapshot",
+      message: "about to run second readConfigFileSnapshot",
+      data: {},
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
   configSnapshot = await readConfigFileSnapshot();
+  // #region agent log
+  fetch("http://127.0.0.1:7850/ingest/1f015f2b-3dae-4268-9140-7a3ba92feebe", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Debug-Session-Id": "2f4832",
+    },
+    body: JSON.stringify({
+      sessionId: "2f4832",
+      runId: "gateway-hang",
+      hypothesisId: "H14",
+      location: "src/gateway/server.impl.ts:after-second-readConfigFileSnapshot",
+      message: "finished second readConfigFileSnapshot",
+      data: { exists: configSnapshot.exists, valid: configSnapshot.valid },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
   if (configSnapshot.exists) {
     assertValidGatewayStartupConfigSnapshot(configSnapshot, { includeDoctorHint: true });
   }
@@ -453,7 +573,47 @@ export async function startGatewayServer(
   ) =>
     await runWithSecretsActivationLock(async () => {
       try {
+        // #region agent log
+        fetch("http://127.0.0.1:7850/ingest/1f015f2b-3dae-4268-9140-7a3ba92feebe", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Debug-Session-Id": "2f4832",
+          },
+          body: JSON.stringify({
+            sessionId: "2f4832",
+            runId: "gateway-hang",
+            hypothesisId: "H7",
+            location: "src/gateway/server.impl.ts:before-prepareSecretsRuntimeSnapshot",
+            message: "about to prepare secrets runtime snapshot",
+            data: { reason: params.reason, activate: params.activate },
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+        // #endregion
         const prepared = await prepareSecretsRuntimeSnapshot({ config });
+        // #region agent log
+        fetch("http://127.0.0.1:7850/ingest/1f015f2b-3dae-4268-9140-7a3ba92feebe", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Debug-Session-Id": "2f4832",
+          },
+          body: JSON.stringify({
+            sessionId: "2f4832",
+            runId: "gateway-hang",
+            hypothesisId: "H7",
+            location: "src/gateway/server.impl.ts:after-prepareSecretsRuntimeSnapshot",
+            message: "prepared secrets runtime snapshot",
+            data: {
+              reason: params.reason,
+              activate: params.activate,
+              warnings: prepared.warnings.length,
+            },
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+        // #endregion
         if (params.activate) {
           activateSecretsRuntimeSnapshot(prepared);
           logGatewayAuthSurfaceDiagnostics(prepared);
@@ -495,6 +655,24 @@ export async function startGatewayServer(
 
   let cfgAtStart: OpenClawConfig;
   const startupRuntimeConfig = applyConfigOverrides(configSnapshot.config);
+  // #region agent log
+  fetch("http://127.0.0.1:7850/ingest/1f015f2b-3dae-4268-9140-7a3ba92feebe", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Debug-Session-Id": "2f4832",
+    },
+    body: JSON.stringify({
+      sessionId: "2f4832",
+      runId: "gateway-hang",
+      hypothesisId: "H8",
+      location: "src/gateway/server.impl.ts:before-prepareGatewayStartupConfig",
+      message: "about to run prepareGatewayStartupConfig",
+      data: { configExists: configSnapshot.exists },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
   const authBootstrap = await prepareGatewayStartupConfig({
     configSnapshot,
     runtimeConfig: startupRuntimeConfig,
@@ -503,6 +681,24 @@ export async function startGatewayServer(
     activateRuntimeSecrets,
   });
   cfgAtStart = authBootstrap.cfg;
+  // #region agent log
+  fetch("http://127.0.0.1:7850/ingest/1f015f2b-3dae-4268-9140-7a3ba92feebe", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Debug-Session-Id": "2f4832",
+    },
+    body: JSON.stringify({
+      sessionId: "2f4832",
+      runId: "gateway-hang",
+      hypothesisId: "H8",
+      location: "src/gateway/server.impl.ts:after-prepareGatewayStartupConfig",
+      message: "prepareGatewayStartupConfig completed",
+      data: { generatedToken: !!authBootstrap.generatedToken },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
   if (authBootstrap.generatedToken) {
     if (authBootstrap.persistedGeneratedToken) {
       log.info(
@@ -516,11 +712,15 @@ export async function startGatewayServer(
   }
   const diagnosticsEnabled = isDiagnosticsEnabled(cfgAtStart);
   if (diagnosticsEnabled) {
-    startDiagnosticHeartbeat();
+    startDiagnosticHeartbeat(undefined, { getConfig: getRuntimeConfig });
   }
   setGatewaySigusr1RestartPolicy({ allowExternal: isRestartEnabled(cfgAtStart) });
   setPreRestartDeferralCheck(
-    () => getTotalQueueSize() + getTotalPendingReplies() + getActiveEmbeddedRunCount(),
+    () =>
+      getTotalQueueSize() +
+      getTotalPendingReplies() +
+      getActiveEmbeddedRunCount() +
+      getInspectableTaskRegistrySummary().active,
   );
   // Unconditional startup migration: seed gateway.controlUi.allowedOrigins for existing
   // non-loopback installs that upgraded to v2026.2.26+ without required origins.
@@ -530,6 +730,11 @@ export async function startGatewayServer(
     log,
   });
   await runStartupMatrixMigration({
+    cfg: cfgAtStart,
+    env: process.env,
+    log,
+  });
+  await runStartupSessionMigration({
     cfg: cfgAtStart,
     env: process.env,
     log,
@@ -880,6 +1085,7 @@ export async function startGatewayServer(
         });
 
     if (!minimalTestGateway) {
+      startTaskRegistryMaintenance();
       ({ tickInterval, healthInterval, dedupeCleanup, mediaCleanup } =
         startGatewayMaintenanceTimers({
           broadcast,
@@ -1407,6 +1613,7 @@ export async function startGatewayServer(
           return startGatewayConfigReloader({
             initialConfig: cfgAtStart,
             readSnapshot: readConfigFileSnapshot,
+            subscribeToWrites: registerConfigWriteListener,
             onHotReload: async (plan, nextConfig) => {
               const previousSnapshot = getActiveSecretsRuntimeSnapshot();
               const prepared = await activateRuntimeSecrets(nextConfig, {

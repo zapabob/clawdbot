@@ -1,0 +1,106 @@
+{
+  "started_utc": "2026-03-30T14:55:39Z",
+  "timeout_seconds": 900,
+  "shards": [
+    {
+      "id": "extensions-acpx",
+      "description": "ACPX extension runtime and tests",
+      "status": "failed",
+      "exit_code": 2,
+      "elapsed_seconds": 7.34,
+      "error_count": 0,
+      "error_buckets": {},
+      "errors": [],
+      "output_excerpt": "error TS18003: No inputs were found in config file 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/.tmp/tsc-shards/tsconfig.extensions-acpx.json'. Specified 'include' paths were '[\"extensions/acpx/**/*\"]' and 'exclude' paths were '[\"node_modules\",\"dist\"]'.\n"
+    },
+    {
+      "id": "extensions-telegram",
+      "description": "Telegram extension runtime and handlers",
+      "status": "failed",
+      "exit_code": 2,
+      "elapsed_seconds": 11.47,
+      "error_count": 0,
+      "error_buckets": {},
+      "errors": [],
+      "output_excerpt": "error TS18003: No inputs were found in config file 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/.tmp/tsc-shards/tsconfig.extensions-telegram.json'. Specified 'include' paths were '[\"extensions/telegram/**/*\"]' and 'exclude' paths were '[\"node_modules\",\"dist\"]'.\n"
+    },
+    {
+      "id": "extensions-others",
+      "description": "All other extensions",
+      "status": "failed",
+      "exit_code": 2,
+      "elapsed_seconds": 9.41,
+      "error_count": 0,
+      "error_buckets": {},
+      "errors": [],
+      "output_excerpt": "error TS18003: No inputs were found in config file 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/.tmp/tsc-shards/tsconfig.extensions-others.json'. Specified 'include' paths were '[\"extensions/**/*\"]' and 'exclude' paths were '[\"node_modules\",\"dist\",\"extensions/acpx/**/*\",\"extensions/telegram/**/*\"]'.\n"
+    },
+    {
+      "id": "src-agents",
+      "description": "Agent runtime and skills",
+      "status": "failed",
+      "exit_code": 2,
+      "elapsed_seconds": 8.27,
+      "error_count": 0,
+      "error_buckets": {},
+      "errors": [],
+      "output_excerpt": "error TS18003: No inputs were found in config file 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/.tmp/tsc-shards/tsconfig.src-agents.json'. Specified 'include' paths were '[\"src/agents/**/*\"]' and 'exclude' paths were '[\"node_modules\",\"dist\"]'.\n"
+    },
+    {
+      "id": "src-gateway-cli",
+      "description": "Gateway and CLI surfaces",
+      "status": "failed",
+      "exit_code": 2,
+      "elapsed_seconds": 6.78,
+      "error_count": 0,
+      "error_buckets": {},
+      "errors": [],
+      "output_excerpt": "error TS18003: No inputs were found in config file 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/.tmp/tsc-shards/tsconfig.src-gateway-cli.json'. Specified 'include' paths were '[\"src/gateway/**/*\",\"src/cli/**/*\",\"src/secrets/**/*\"]' and 'exclude' paths were '[\"node_modules\",\"dist\"]'.\n"
+    },
+    {
+      "id": "src-plugins",
+      "description": "Plugin loading and SDK",
+      "status": "failed",
+      "exit_code": 2,
+      "elapsed_seconds": 4.93,
+      "error_count": 0,
+      "error_buckets": {},
+      "errors": [],
+      "output_excerpt": "error TS18003: No inputs were found in config file 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/.tmp/tsc-shards/tsconfig.src-plugins.json'. Specified 'include' paths were '[\"src/plugins/**/*\",\"src/plugin-sdk/**/*\"]' and 'exclude' paths were '[\"node_modules\",\"dist\"]'.\n"
+    },
+    {
+      "id": "src-core",
+      "description": "Remaining src core modules",
+      "status": "failed",
+      "exit_code": 2,
+      "elapsed_seconds": 3.01,
+      "error_count": 0,
+      "error_buckets": {},
+      "errors": [],
+      "output_excerpt": "error TS18003: No inputs were found in config file 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/.tmp/tsc-shards/tsconfig.src-core.json'. Specified 'include' paths were '[\"src/**/*\"]' and 'exclude' paths were '[\"node_modules\",\"dist\",\"src/agents/**/*\",\"src/gateway/**/*\",\"src/cli/**/*\",\"src/secrets/**/*\",\"src/plugins/**/*\",\"src/plugin-sdk/**/*\"]'.\n"
+    },
+    {
+      "id": "ui",
+      "description": "UI and frontend app",
+      "status": "failed",
+      "exit_code": 2,
+      "elapsed_seconds": 4.88,
+      "error_count": 0,
+      "error_buckets": {},
+      "errors": [],
+      "output_excerpt": "error TS18003: No inputs were found in config file 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/.tmp/tsc-shards/tsconfig.ui.json'. Specified 'include' paths were '[\"ui/**/*\"]' and 'exclude' paths were '[\"node_modules\",\"dist\"]'.\n"
+    },
+    {
+      "id": "packages",
+      "description": "Monorepo packages",
+      "status": "failed",
+      "exit_code": 2,
+      "elapsed_seconds": 7.4,
+      "error_count": 0,
+      "error_buckets": {},
+      "errors": [],
+      "output_excerpt": "error TS18003: No inputs were found in config file 'C:/Users/downl/Desktop/clawdbot-main3/clawdbot-main/.tmp/tsc-shards/tsconfig.packages.json'. Specified 'include' paths were '[\"packages/**/*\"]' and 'exclude' paths were '[\"node_modules\",\"dist\"]'.\n"
+    }
+  ],
+  "error_buckets": {}
+}
