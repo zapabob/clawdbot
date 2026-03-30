@@ -1,0 +1,20 @@
+﻿---
+Name: Antigravity.lnk
+TargetPath: C:\Users\downl\AppData\Local\Programs\Antigravity\Antigravity.exe
+Arguments: --remote-debugging-port=9333
+WorkingDirectory: C:\Users\downl\AppData\Local\Programs\Antigravity
+---
+Name: Hakua-Sovereign-Manifestation.lnk
+TargetPath: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+Arguments: -NoProfile -ExecutionPolicy Bypass -WindowStyle Maximized -NoExit -File "C:\Users\downl\Desktop\clawdbot-main3\clawdbot-main\scripts\launchers\Sovereign-Portal.ps1" -Mode Menu
+WorkingDirectory: C:\Users\downl\Desktop\clawdbot-main3\clawdbot-main
+---
+Name: Sovereign-Portal.lnk
+TargetPath: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+Arguments: -NoProfile -ExecutionPolicy Bypass -File "C:\Users\downl\Desktop\clawdbot-main3\clawdbot-main\scripts\launchers\Sovereign-Portal.ps1" -Mode Full-Docker
+WorkingDirectory: C:\Users\downl\Desktop\clawdbot-main3\clawdbot-main
+---
+Name: VOICEVOX.lnk
+TargetPath: C:\Users\downl\AppData\Local\Programs\VOICEVOX\VOICEVOX.exe
+Arguments: 
+WorkingDirectory: C:\Users\downl\AppData\Local\Programs\VOICEVOX
