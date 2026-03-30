@@ -1,9 +1,7 @@
 {
   "id": "brave",
   "providerAuthEnvVars": {
-    "brave": [
-      "BRAVE_API_KEY"
-    ]
+    "brave": ["BRAVE_API_KEY"]
   },
   "uiHints": {
     "webSearch.apiKey": {
@@ -18,9 +16,7 @@
     }
   },
   "contracts": {
-    "webSearchProviders": [
-      "brave"
-    ]
+    "webSearchProviders": ["brave"]
   },
   "configSchema": {
     "type": "object",
@@ -31,17 +27,11 @@
         "additionalProperties": false,
         "properties": {
           "apiKey": {
-            "type": [
-              "string",
-              "object"
-            ]
+            "type": ["string", "object"]
           },
           "mode": {
             "type": "string",
-            "enum": [
-              "web",
-              "llm-context"
-            ]
+            "enum": ["web", "llm-context"]
           }
         }
       }

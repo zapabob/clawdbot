@@ -115,12 +115,7 @@
           },
           "provider": {
             "type": "string",
-            "enum": [
-              "brave",
-              "perplexity",
-              "grok",
-              "duckduckgo"
-            ],
+            "enum": ["brave", "perplexity", "grok", "duckduckgo"],
             "description": "Web search provider.",
             "default": "brave"
           }

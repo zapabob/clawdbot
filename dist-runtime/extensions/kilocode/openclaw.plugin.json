@@ -1,13 +1,9 @@
 {
   "id": "kilocode",
   "enabledByDefault": true,
-  "providers": [
-    "kilocode"
-  ],
+  "providers": ["kilocode"],
   "providerAuthEnvVars": {
-    "kilocode": [
-      "KILOCODE_API_KEY"
-    ]
+    "kilocode": ["KILOCODE_API_KEY"]
   },
   "providerAuthChoices": [
     {

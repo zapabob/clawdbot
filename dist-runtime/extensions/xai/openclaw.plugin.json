@@ -1,13 +1,9 @@
 {
   "id": "xai",
   "enabledByDefault": true,
-  "providers": [
-    "xai"
-  ],
+  "providers": ["xai"],
   "providerAuthEnvVars": {
-    "xai": [
-      "XAI_API_KEY"
-    ]
+    "xai": ["XAI_API_KEY"]
   },
   "providerAuthChoices": [
     {
@@ -56,13 +52,8 @@
     }
   },
   "contracts": {
-    "webSearchProviders": [
-      "grok"
-    ],
-    "tools": [
-      "code_execution",
-      "x_search"
-    ]
+    "webSearchProviders": ["grok"],
+    "tools": ["code_execution", "x_search"]
   },
   "configSchema": {
     "type": "object",
@@ -73,10 +64,7 @@
         "additionalProperties": false,
         "properties": {
           "apiKey": {
-            "type": [
-              "string",
-              "object"
-            ]
+            "type": ["string", "object"]
           },
           "model": {
             "type": "string"

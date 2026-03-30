@@ -1,14 +1,9 @@
 {
   "id": "byteplus",
   "enabledByDefault": true,
-  "providers": [
-    "byteplus",
-    "byteplus-plan"
-  ],
+  "providers": ["byteplus", "byteplus-plan"],
   "providerAuthEnvVars": {
-    "byteplus": [
-      "BYTEPLUS_API_KEY"
-    ]
+    "byteplus": ["BYTEPLUS_API_KEY"]
   },
   "providerAuthChoices": [
     {

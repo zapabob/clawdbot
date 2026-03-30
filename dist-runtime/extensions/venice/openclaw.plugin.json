@@ -1,13 +1,9 @@
 {
   "id": "venice",
   "enabledByDefault": true,
-  "providers": [
-    "venice"
-  ],
+  "providers": ["venice"],
   "providerAuthEnvVars": {
-    "venice": [
-      "VENICE_API_KEY"
-    ]
+    "venice": ["VENICE_API_KEY"]
   },
   "providerAuthChoices": [
     {

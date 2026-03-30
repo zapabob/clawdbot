@@ -1,26 +1,17 @@
 {
   "id": "anthropic",
   "enabledByDefault": true,
-  "providers": [
-    "anthropic"
-  ],
-  "cliBackends": [
-    "claude-cli"
-  ],
+  "providers": ["anthropic"],
+  "cliBackends": ["claude-cli"],
   "providerAuthEnvVars": {
-    "anthropic": [
-      "ANTHROPIC_OAUTH_TOKEN",
-      "ANTHROPIC_API_KEY"
-    ]
+    "anthropic": ["ANTHROPIC_OAUTH_TOKEN", "ANTHROPIC_API_KEY"]
   },
   "providerAuthChoices": [
     {
       "provider": "anthropic",
       "method": "cli",
       "choiceId": "anthropic-cli",
-      "deprecatedChoiceIds": [
-        "claude-cli"
-      ],
+      "deprecatedChoiceIds": ["claude-cli"],
       "choiceLabel": "Anthropic Claude CLI",
       "choiceHint": "Reuse a local Claude CLI login on this host",
       "groupId": "anthropic",
@@ -52,9 +43,7 @@
     }
   ],
   "contracts": {
-    "mediaUnderstandingProviders": [
-      "anthropic"
-    ]
+    "mediaUnderstandingProviders": ["anthropic"]
   },
   "configSchema": {
     "type": "object",

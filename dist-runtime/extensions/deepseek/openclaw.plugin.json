@@ -1,13 +1,9 @@
 {
   "id": "deepseek",
   "enabledByDefault": true,
-  "providers": [
-    "deepseek"
-  ],
+  "providers": ["deepseek"],
   "providerAuthEnvVars": {
-    "deepseek": [
-      "DEEPSEEK_API_KEY"
-    ]
+    "deepseek": ["DEEPSEEK_API_KEY"]
   },
   "providerAuthChoices": [
     {

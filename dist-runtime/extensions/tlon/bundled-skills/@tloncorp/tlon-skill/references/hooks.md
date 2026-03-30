@@ -8,6 +8,7 @@ Hooks are tightly coupled to `channels-server` / `tlon-apps` types.
 When docs/examples drift from runtime types, compilation can fail even if logic is correct.
 
 Recommended practice:
+
 - Pin your local references to a known `tlon-apps` commit/tag
 - Record that version in PRs when adding/updating hooks
 - Prefer examples in this folder that were verified against the current runtime
@@ -50,6 +51,7 @@ Hooks respond to four event types:
 ```
 
 ### on-post events
+
 ```hoon
 +$  on-post
   $%  [%add post=v-post]
@@ -60,6 +62,7 @@ Hooks respond to four event types:
 ```
 
 ### on-reply events
+
 ```hoon
 +$  on-reply
   $%  [%add parent=v-post reply=v-reply]
@@ -88,6 +91,7 @@ Hooks receive ambient state via the bowl:
 ```
 
 **Important:** Access patterns depend on whether you use a face:
+
 - `|= [=event:h =bowl:h]` (with face) → access via `config.bowl`, `channel.bowl`, `state.hook.bowl`
 - `|= [=event:h bowl:h]` (no face) → access via `config`, `channel`, `state.hook`
 
@@ -154,6 +158,7 @@ Use clam (`;;`) to extract typed values with defaults:
 ```
 
 CLI tips:
+
 - Prefer simple text/cord values first (`password=owl-pass`)
 - For booleans/durations, verify with `hooks get <id>` after setting config
 - If a config poke fails, inspect the exact update payload from CLI output
@@ -223,6 +228,7 @@ Basic hook template (without bowl face):
 ```
 
 **Key points:**
+
 - Check `author.post.event` (not `src.bowl`) for self-detection
 - Check `channel.bowl` for null before accessing `u.channel.bowl`
 - Effect structure: `[%channels %channel nest [%post [%add-react ...]]]`
@@ -253,6 +259,7 @@ From [tloncorp/hooks](https://github.com/tloncorp/hooks/blob/master/hooks/disapp
 ```
 
 **Key points:**
+
 - Uses `bowl:h` without face → access `config`, `channel`, `state.hook` directly
 - Uses `on-v-posts:c` ordered map with `lot:` for cutoff filtering
 - Uses `(may:c v-post:c)` type - posts can be deleted (`%|`) or present (`%&`)
@@ -316,6 +323,7 @@ From [tloncorp/hooks](https://github.com/tloncorp/hooks/blob/master/hooks/disapp
 ```
 
 **Key points:**
+
 - Access post content via `content.post.event`
 - Use `lien` to check if any word in list matches
 - Helper arms (`++`) for text processing go inside `|^` ... `--`

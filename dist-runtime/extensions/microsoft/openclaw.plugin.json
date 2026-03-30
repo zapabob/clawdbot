@@ -1,9 +1,7 @@
 {
   "id": "microsoft",
   "contracts": {
-    "speechProviders": [
-      "microsoft"
-    ]
+    "speechProviders": ["microsoft"]
   },
   "configSchema": {
     "type": "object",

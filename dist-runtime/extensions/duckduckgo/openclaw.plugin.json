@@ -11,9 +11,7 @@
     }
   },
   "contracts": {
-    "webSearchProviders": [
-      "duckduckgo"
-    ]
+    "webSearchProviders": ["duckduckgo"]
   },
   "configSchema": {
     "type": "object",
@@ -28,11 +26,7 @@
           },
           "safeSearch": {
             "type": "string",
-            "enum": [
-              "strict",
-              "moderate",
-              "off"
-            ]
+            "enum": ["strict", "moderate", "off"]
           }
         }
       }

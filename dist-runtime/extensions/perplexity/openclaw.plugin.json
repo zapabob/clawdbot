@@ -1,10 +1,7 @@
 {
   "id": "perplexity",
   "providerAuthEnvVars": {
-    "perplexity": [
-      "PERPLEXITY_API_KEY",
-      "OPENROUTER_API_KEY"
-    ]
+    "perplexity": ["PERPLEXITY_API_KEY", "OPENROUTER_API_KEY"]
   },
   "uiHints": {
     "webSearch.apiKey": {
@@ -23,9 +20,7 @@
     }
   },
   "contracts": {
-    "webSearchProviders": [
-      "perplexity"
-    ]
+    "webSearchProviders": ["perplexity"]
   },
   "configSchema": {
     "type": "object",
@@ -36,10 +31,7 @@
         "additionalProperties": false,
         "properties": {
           "apiKey": {
-            "type": [
-              "string",
-              "object"
-            ]
+            "type": ["string", "object"]
           },
           "baseUrl": {
             "type": "string"

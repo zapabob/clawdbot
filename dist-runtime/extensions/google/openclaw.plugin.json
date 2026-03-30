@@ -1,21 +1,11 @@
 {
   "id": "google",
   "enabledByDefault": true,
-  "providers": [
-    "google",
-    "google-gemini-cli"
-  ],
-  "autoEnableWhenConfiguredProviders": [
-    "google-gemini-cli"
-  ],
-  "cliBackends": [
-    "google-gemini-cli"
-  ],
+  "providers": ["google", "google-gemini-cli"],
+  "autoEnableWhenConfiguredProviders": ["google-gemini-cli"],
+  "cliBackends": ["google-gemini-cli"],
   "providerAuthEnvVars": {
-    "google": [
-      "GEMINI_API_KEY",
-      "GOOGLE_API_KEY"
-    ]
+    "google": ["GEMINI_API_KEY", "GOOGLE_API_KEY"]
   },
   "providerAuthChoices": [
     {
@@ -55,15 +45,9 @@
     }
   },
   "contracts": {
-    "mediaUnderstandingProviders": [
-      "google"
-    ],
-    "imageGenerationProviders": [
-      "google"
-    ],
-    "webSearchProviders": [
-      "gemini"
-    ]
+    "mediaUnderstandingProviders": ["google"],
+    "imageGenerationProviders": ["google"],
+    "webSearchProviders": ["gemini"]
   },
   "configSchema": {
     "type": "object",
@@ -74,10 +58,7 @@
         "additionalProperties": false,
         "properties": {
           "apiKey": {
-            "type": [
-              "string",
-              "object"
-            ]
+            "type": ["string", "object"]
           },
           "model": {
             "type": "string"

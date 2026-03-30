@@ -1,12 +1,8 @@
 {
   "id": "hypura",
-  "providers": [
-    "hypura"
-  ],
+  "providers": ["hypura"],
   "providerAuthEnvVars": {
-    "hypura": [
-      "HYPURA_API_KEY"
-    ]
+    "hypura": ["HYPURA_API_KEY"]
   },
   "providerAuthChoices": [
     {

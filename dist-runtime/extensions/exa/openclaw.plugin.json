@@ -1,9 +1,7 @@
 {
   "id": "exa",
   "providerAuthEnvVars": {
-    "exa": [
-      "EXA_API_KEY"
-    ]
+    "exa": ["EXA_API_KEY"]
   },
   "uiHints": {
     "webSearch.apiKey": {
@@ -14,9 +12,7 @@
     }
   },
   "contracts": {
-    "webSearchProviders": [
-      "exa"
-    ]
+    "webSearchProviders": ["exa"]
   },
   "configSchema": {
     "type": "object",
@@ -27,10 +23,7 @@
         "additionalProperties": false,
         "properties": {
           "apiKey": {
-            "type": [
-              "string",
-              "object"
-            ]
+            "type": ["string", "object"]
           }
         }
       }

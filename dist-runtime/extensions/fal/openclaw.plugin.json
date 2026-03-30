@@ -1,13 +1,9 @@
 {
   "id": "fal",
   "enabledByDefault": true,
-  "providers": [
-    "fal"
-  ],
+  "providers": ["fal"],
   "providerAuthEnvVars": {
-    "fal": [
-      "FAL_KEY"
-    ]
+    "fal": ["FAL_KEY"]
   },
   "providerAuthChoices": [
     {
@@ -18,9 +14,7 @@
       "groupId": "fal",
       "groupLabel": "fal",
       "groupHint": "Image generation",
-      "onboardingScopes": [
-        "image-generation"
-      ],
+      "onboardingScopes": ["image-generation"],
       "optionKey": "falApiKey",
       "cliFlag": "--fal-api-key",
       "cliOption": "--fal-api-key <key>",
@@ -28,9 +22,7 @@
     }
   ],
   "contracts": {
-    "imageGenerationProviders": [
-      "fal"
-    ]
+    "imageGenerationProviders": ["fal"]
   },
   "configSchema": {
     "type": "object",

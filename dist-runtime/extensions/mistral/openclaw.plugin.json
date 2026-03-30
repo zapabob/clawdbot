@@ -1,13 +1,9 @@
 {
   "id": "mistral",
   "enabledByDefault": true,
-  "providers": [
-    "mistral"
-  ],
+  "providers": ["mistral"],
   "providerAuthEnvVars": {
-    "mistral": [
-      "MISTRAL_API_KEY"
-    ]
+    "mistral": ["MISTRAL_API_KEY"]
   },
   "providerAuthChoices": [
     {
@@ -25,9 +21,7 @@
     }
   ],
   "contracts": {
-    "mediaUnderstandingProviders": [
-      "mistral"
-    ]
+    "mediaUnderstandingProviders": ["mistral"]
   },
   "configSchema": {
     "type": "object",

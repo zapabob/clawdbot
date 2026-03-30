@@ -1,9 +1,7 @@
 {
   "id": "firecrawl",
   "providerAuthEnvVars": {
-    "firecrawl": [
-      "FIRECRAWL_API_KEY"
-    ]
+    "firecrawl": ["FIRECRAWL_API_KEY"]
   },
   "uiHints": {
     "webSearch.apiKey": {
@@ -18,13 +16,8 @@
     }
   },
   "contracts": {
-    "webSearchProviders": [
-      "firecrawl"
-    ],
-    "tools": [
-      "firecrawl_search",
-      "firecrawl_scrape"
-    ]
+    "webSearchProviders": ["firecrawl"],
+    "tools": ["firecrawl_search", "firecrawl_scrape"]
   },
   "configSchema": {
     "type": "object",
@@ -35,10 +28,7 @@
         "additionalProperties": false,
         "properties": {
           "apiKey": {
-            "type": [
-              "string",
-              "object"
-            ]
+            "type": ["string", "object"]
           },
           "baseUrl": {
             "type": "string"

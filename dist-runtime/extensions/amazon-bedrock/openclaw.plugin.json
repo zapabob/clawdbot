@@ -1,9 +1,7 @@
 {
   "id": "amazon-bedrock",
   "enabledByDefault": true,
-  "providers": [
-    "amazon-bedrock"
-  ],
+  "providers": ["amazon-bedrock"],
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

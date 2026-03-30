@@ -5,11 +5,13 @@ A CLI tool for interacting with Tlon/Urbit APIs.
 ## Installation
 
 **npm:**
+
 ```bash
 npm install @tloncorp/tlon-skill
 ```
 
 **Direct download (no Node required):**
+
 ```bash
 # macOS ARM64
 curl -L https://registry.npmjs.org/@tloncorp/tlon-skill-darwin-arm64/-/tlon-skill-darwin-arm64-0.1.0.tgz | tar -xz
@@ -25,6 +27,7 @@ curl -L https://registry.npmjs.org/@tloncorp/tlon-skill-linux-x64/-/tlon-skill-l
 ## Configuration
 
 **Option 1: CLI flags (highest priority)**
+
 ```bash
 # Cookie-based auth (fastest - ship parsed from cookie)
 tlon --url https://your-ship.tlon.network --cookie "urbauth-~your-ship=0v..." contacts self
@@ -37,6 +40,7 @@ tlon --config ~/ships/my-ship.json contacts self
 ```
 
 Config file format:
+
 ```json
 // Cookie-based (ship derived from cookie)
 {"url": "https://your-ship.tlon.network", "cookie": "urbauth-~your-ship=0v..."}
@@ -46,6 +50,7 @@ Config file format:
 ```
 
 **Option 2: Environment variables**
+
 ```bash
 # Cookie-based (ship derived from cookie)
 export URBIT_URL="https://your-ship.tlon.network"

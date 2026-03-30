@@ -1,12 +1,8 @@
 {
   "id": "tavily",
-  "skills": [
-    "./skills"
-  ],
+  "skills": ["./skills"],
   "providerAuthEnvVars": {
-    "tavily": [
-      "TAVILY_API_KEY"
-    ]
+    "tavily": ["TAVILY_API_KEY"]
   },
   "uiHints": {
     "webSearch.apiKey": {
@@ -21,13 +17,8 @@
     }
   },
   "contracts": {
-    "webSearchProviders": [
-      "tavily"
-    ],
-    "tools": [
-      "tavily_search",
-      "tavily_extract"
-    ]
+    "webSearchProviders": ["tavily"],
+    "tools": ["tavily_search", "tavily_extract"]
   },
   "configSchema": {
     "type": "object",
@@ -38,10 +29,7 @@
         "additionalProperties": false,
         "properties": {
           "apiKey": {
-            "type": [
-              "string",
-              "object"
-            ]
+            "type": ["string", "object"]
           },
           "baseUrl": {
             "type": "string"

@@ -1,9 +1,7 @@
 {
   "id": "groq",
   "contracts": {
-    "mediaUnderstandingProviders": [
-      "groq"
-    ]
+    "mediaUnderstandingProviders": ["groq"]
   },
   "configSchema": {
     "type": "object",

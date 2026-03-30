@@ -8,10 +8,7 @@
     "properties": {
       "mode": {
         "type": "string",
-        "enum": [
-          "mirror",
-          "remote"
-        ]
+        "enum": ["mirror", "remote"]
       },
       "command": {
         "type": "string",

@@ -1,14 +1,9 @@
 {
   "id": "volcengine",
   "enabledByDefault": true,
-  "providers": [
-    "volcengine",
-    "volcengine-plan"
-  ],
+  "providers": ["volcengine", "volcengine-plan"],
   "providerAuthEnvVars": {
-    "volcengine": [
-      "VOLCANO_ENGINE_API_KEY"
-    ]
+    "volcengine": ["VOLCANO_ENGINE_API_KEY"]
   },
   "providerAuthChoices": [
     {
