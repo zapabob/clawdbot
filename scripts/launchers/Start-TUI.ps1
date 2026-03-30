@@ -4,6 +4,8 @@ $ProjectDir = (Get-Item $PSScriptRoot).Parent.Parent.FullName
 
 Merge-OpenClawEnvToProcess -ProjectDir $ProjectDir
 Set-OpenClawDesktopConfigEnv -ProjectDir $ProjectDir
+Ensure-GatewayTokenInProcess -ProjectDir $ProjectDir | Out-Null
+[void](Sync-NgrokPublicUrlToEnv -ProjectDir $ProjectDir -MaxWaitSeconds 2 -PollMs 750)
 
 if ([string]$env:OPENCLAW_USE_REPO_LAUNCHER -eq "0") {
     $logDir = Join-Path $ProjectDir ".openclaw-desktop\logs"

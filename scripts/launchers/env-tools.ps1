@@ -149,6 +149,71 @@ function Get-OrCreateGatewayToken {
     return $token
 }
 
+function Ensure-GatewayTokenInProcess {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ProjectDir
+    )
+
+    if (-not [string]::IsNullOrWhiteSpace([string]$env:OPENCLAW_GATEWAY_TOKEN)) {
+        return [string]$env:OPENCLAW_GATEWAY_TOKEN
+    }
+
+    $envFile = Ensure-ProjectEnvFile -ProjectDir $ProjectDir
+    $token = Get-OrCreateGatewayToken -EnvFile $envFile
+    $env:OPENCLAW_GATEWAY_TOKEN = $token
+    return $token
+}
+
+function Sync-NgrokPublicUrlToEnv {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ProjectDir,
+        [int]$MaxWaitSeconds = 8,
+        [int]$PollMs = 1000
+    )
+
+    $envFile = Ensure-ProjectEnvFile -ProjectDir $ProjectDir
+    $effectivePollMs = [Math]::Max(100, [int]$PollMs)
+    $windowMs = [int]($MaxWaitSeconds * 1000)
+    $attempts = [Math]::Max(1, [int]([Math]::Ceiling($windowMs / $effectivePollMs)))
+    $publicUrl = $null
+
+    for ($i = 0; $i -lt $attempts; $i++) {
+        try {
+            $resp = Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels" -TimeoutSec 2
+            if ($resp -and $resp.tunnels) {
+                $httpTunnel = @($resp.tunnels | Where-Object { $_.proto -eq "https" } | Select-Object -First 1)
+                if (-not $httpTunnel) {
+                    $httpTunnel = @($resp.tunnels | Where-Object { $_.proto -eq "http" } | Select-Object -First 1)
+                }
+                if ($httpTunnel -and $httpTunnel[0].public_url) {
+                    $publicUrl = [string]$httpTunnel[0].public_url
+                    break
+                }
+            }
+        } catch {
+            # ngrok may not be ready yet; retry quietly.
+        }
+        Start-Sleep -Milliseconds $PollMs
+    }
+
+    if ([string]::IsNullOrWhiteSpace($publicUrl)) {
+        return $null
+    }
+
+    $values = @{
+        OPENCLAW_PUBLIC_URL   = $publicUrl
+        TELEGRAM_WEBHOOK_URL  = "$publicUrl/hooks/telegram"
+        LINE_WEBHOOK_URL      = "$publicUrl/hooks/line"
+    }
+    Set-EnvValues -EnvFile $envFile -Values $values
+    foreach ($key in $values.Keys) {
+        Set-Item -Path "Env:$key" -Value $values[$key]
+    }
+    return $publicUrl
+}
+
 <#
   Start-Process で起動した非対話 PowerShell には、対話シェルで PATH に載っている
   node / pnpm が無いことが多い。標準インストール先を PATH 先頭に足す。

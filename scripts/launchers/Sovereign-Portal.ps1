@@ -20,6 +20,7 @@ $PythonExe = Join-Path $ProjectDir ".venv\Scripts\python.exe"
 
 . "$PSScriptRoot\env-tools.ps1"
 Merge-OpenClawEnvToProcess -ProjectDir $ProjectDir
+Ensure-GatewayTokenInProcess -ProjectDir $ProjectDir | Out-Null
 # Child Start-Process sessions inherit this PATH (node / ngrok on PATH)
 Add-SovereignDevToolsToPath
 # nvm4w アクティブノードを C:\Program Files\nodejs (v25) より優先させる
@@ -302,8 +303,18 @@ if ($startHostNgrok) {
     Start-Process -FilePath "powershell.exe" -ArgumentList @(
         "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $ngrokPs1, "-Port", "$GatewayPort"
     ) -WorkingDirectory $ProjectDir -WindowStyle Minimized
+    $syncedNgrokUrl = Sync-NgrokPublicUrlToEnv -ProjectDir $ProjectDir -MaxWaitSeconds 12 -PollMs 1000
+    if ($syncedNgrokUrl) {
+        Write-Host ("  [ngrok] Dynamic env sync: {0}" -f $syncedNgrokUrl) -ForegroundColor DarkCyan
+    } else {
+        Write-Host "  [ngrok] Dynamic env sync pending (will continue in ngrok side process)." -ForegroundColor DarkGray
+    }
 } else {
     Write-Host "  [ngrok] Host tunnel not started (Docker or busy :4040)." -ForegroundColor DarkGray
+    $syncedNgrokUrl = Sync-NgrokPublicUrlToEnv -ProjectDir $ProjectDir -MaxWaitSeconds 4 -PollMs 800
+    if ($syncedNgrokUrl) {
+        Write-Host ("  [ngrok] Reused existing public URL: {0}" -f $syncedNgrokUrl) -ForegroundColor DarkCyan
+    }
 }
 
 # 2. Hypura Harness
@@ -468,6 +479,9 @@ if ($Mode -match "Full|Full-Docker") {
     if (-not $gwToken) { $gwToken = $env:OPENCLAW_GATEWAY_TOKEN }
 
     $baseUrl = "http://127.0.0.1:$GatewayPort"
+    if (-not [string]::IsNullOrWhiteSpace([string]$env:OPENCLAW_PUBLIC_URL)) {
+        $baseUrl = [string]$env:OPENCLAW_PUBLIC_URL
+    }
     if ($gwToken) {
         $edgeUrl = "{0}?token={1}" -f $baseUrl, $gwToken
     } else {
@@ -527,7 +541,7 @@ if ($ForceShortcutUpdate -or -not (Test-Path "$HOME\Desktop\Sovereign-Portal.lnk
         $WshShell = New-Object -ComObject WScript.Shell
         $Shortcut = $WshShell.CreateShortcut("$HOME\Desktop\Sovereign-Portal.lnk")
         $Shortcut.TargetPath = "powershell.exe"
-        $Shortcut.Arguments = '-NoProfile -ExecutionPolicy Bypass -File "{0}" -Mode Full-Docker' -f $curScript
+        $Shortcut.Arguments = '-NoProfile -ExecutionPolicy Bypass -File "{0}" -Mode Full -UseDesktopLauncher' -f $curScript
         $Shortcut.WorkingDirectory = $ProjectDir
         if (Test-Path $curIcon) { $Shortcut.IconLocation = $curIcon }
         $Shortcut.Save()

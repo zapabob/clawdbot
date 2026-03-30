@@ -28,7 +28,7 @@ $ProjectRoot = (Get-Item $PSScriptRoot).Parent.Parent.FullName
  
  $Shortcut = $WshShell.CreateShortcut($ShortcutPath)
  $Shortcut.TargetPath = "powershell.exe"
- $Shortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Maximized -NoExit -File `"$LauncherPath`""
+$Shortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Maximized -File `"$LauncherPath`" -Mode Full -UseDesktopLauncher"
  $Shortcut.WorkingDirectory = $ProjectRoot
 $Shortcut.Description = "ASI Hakua - Sovereign Substrate (Full Stack + Evolution Pulse)"
 
