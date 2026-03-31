@@ -72,6 +72,7 @@ extensions/live2d-companion/models/
 
 # Runtime state (credentials, logs, sessions - never commit)
 .openclaw-desktop/logs/
+.openclaw-desktop/tasks/
 .openclaw-desktop/identity/
 .openclaw-desktop/agents/main/sessions/
 .openclaw-desktop/agents/main/agent/auth-profiles.json
@@ -91,6 +92,9 @@ vrchat-mcp-osc/
 
 # Repo-root log directory (local dev / gateway test runs)
 logs/
+
+# Build/runtime generated artifacts
+dist-runtime/
 
 # Debug / temp outputs
 build_debug.log
