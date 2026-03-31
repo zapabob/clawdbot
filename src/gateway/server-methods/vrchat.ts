@@ -56,7 +56,7 @@ export const vrchatHandlers: GatewayRequestHandlers = {
     respond(true, {
       ok: true,
       substrate: "python-osc",
-      bridge: "scripts/osc_chatbox.py",
+      bridge: "scripts/tools/osc_chatbox.py",
     });
   },
 

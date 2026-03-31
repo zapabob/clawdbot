@@ -14,23 +14,24 @@ Write-ASI "Initiating Manifestation Pulse..." "Cyan"
 $WshShell = New-Object -ComObject WScript.Shell
 $DesktopPath = [Environment]::GetFolderPath("Desktop")
 $ProjectRoot = (Get-Item $PSScriptRoot).Parent.Parent.FullName
- 
- # Target Shortcut Configuration
- $ShortcutPath = Join-Path $DesktopPath "ASI-Hakua-Sovereign.lnk"
- $LauncherPath = Join-Path $ProjectRoot "scripts\launchers\ASI-Hakua-Portal.ps1"
- $IconPath = Join-Path $ProjectRoot "assets\clawdbot.ico"
- 
- if (-not (Test-Path $LauncherPath)) {
-     throw "Target launcher not found at $LauncherPath"
- }
- 
- Write-ASI "Creating Sovereign Portal: $ShortcutPath"
- 
- $Shortcut = $WshShell.CreateShortcut($ShortcutPath)
- $Shortcut.TargetPath = "powershell.exe"
+
+# Single desktop entry: ngrok + Gateway + TUI + Harness + VOICEVOX + browser are orchestrated by Sovereign-Portal.ps1 (via ASI-Hakua-Portal.ps1).
+$UnifiedShortcutName = "OpenClaw-Sovereign.lnk"
+$ShortcutPath = Join-Path $DesktopPath $UnifiedShortcutName
+$LauncherPath = Join-Path $ProjectRoot "scripts\launchers\ASI-Hakua-Portal.ps1"
+$IconPath = Join-Path $ProjectRoot "assets\clawdbot.ico"
+
+if (-not (Test-Path $LauncherPath)) {
+    throw "Target launcher not found at $LauncherPath"
+}
+
+Write-ASI "Creating unified Sovereign shortcut: $ShortcutPath"
+
+$Shortcut = $WshShell.CreateShortcut($ShortcutPath)
+$Shortcut.TargetPath = "powershell.exe"
 $Shortcut.Arguments = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Maximized -File `"$LauncherPath`" -Mode Full -UseDesktopLauncher"
- $Shortcut.WorkingDirectory = $ProjectRoot
-$Shortcut.Description = "ASI Hakua - Sovereign Substrate (Full Stack + Evolution Pulse)"
+$Shortcut.WorkingDirectory = $ProjectRoot
+$Shortcut.Description = "OpenClaw Sovereign — full stack (ngrok, Gateway, TUI, Harness, VOICEVOX, browser)"
 
 if (Test-Path $IconPath) {
     $Shortcut.IconLocation = $IconPath
@@ -41,40 +42,27 @@ if (Test-Path $IconPath) {
 
 $Shortcut.Save()
 
-function New-ASIDesktopShortcut {
-    param(
-        [string]$LinkName,
-        [string]$PsArguments,
-        [string]$Description
-    )
-    $path = Join-Path $DesktopPath "$LinkName.lnk"
-    $sc = $WshShell.CreateShortcut($path)
-    $sc.TargetPath = "powershell.exe"
-    $sc.Arguments = $PsArguments
-    $sc.WorkingDirectory = $ProjectRoot
-    $sc.Description = $Description
-    if (Test-Path $IconPath) {
-        $sc.IconLocation = $IconPath
+# Remove per-component shortcuts (replaced by the single launcher above).
+$LegacyComponentShortcuts = @(
+    "ASI-ngrok.lnk",
+    "ASI-Gateway.lnk",
+    "ASI-TUI.lnk",
+    "ASI-Hypura-Harness.lnk",
+    "ASI-VOICEVOX.lnk",
+    "ASI-Hakua-Sovereign.lnk",
+    "Sovereign-Portal.lnk"
+)
+foreach ($name in $LegacyComponentShortcuts) {
+    $p = Join-Path $DesktopPath $name
+    if (Test-Path $p) {
+        Remove-Item $p -Force
+        Write-ASI "Removed legacy shortcut: $name" "Gray"
     }
-    $sc.Save()
-    Write-ASI "Shortcut: $path" "Gray"
 }
 
-$ngrokLauncher = Join-Path $ProjectRoot "scripts\launchers\start_ngrok.ps1"
-$gwLauncher = Join-Path $ProjectRoot "scripts\launchers\Start-Gateway.ps1"
-$tuiLauncher = Join-Path $ProjectRoot "scripts\launchers\Start-TUI.ps1"
-$harnessLauncher = Join-Path $ProjectRoot "scripts\launchers\Start-Hypura-Harness.ps1"
-$voicevoxLauncher = Join-Path $ProjectRoot "scripts\launchers\start-voicevox-engine.ps1"
+Write-ASI "Manifestation SUCCESS. Single shortcut: $UnifiedShortcutName" "Green"
 
-New-ASIDesktopShortcut "ASI-ngrok" "-NoProfile -ExecutionPolicy Bypass -File `"$ngrokLauncher`"" "ngrok tunnel + .env URL (404 API)"
-New-ASIDesktopShortcut "ASI-Gateway" "-NoProfile -ExecutionPolicy Bypass -File `"$gwLauncher`"" "OpenClaw Gateway (OPENCLAW_CONFIG_PATH)"
-New-ASIDesktopShortcut "ASI-TUI" "-NoProfile -ExecutionPolicy Bypass -File `"$tuiLauncher`"" "OpenClaw TUI"
-New-ASIDesktopShortcut "ASI-Hypura-Harness" "-NoProfile -ExecutionPolicy Bypass -File `"$harnessLauncher`"" "Hypura harness daemon (18794)"
-New-ASIDesktopShortcut "ASI-VOICEVOX" "-NoProfile -ExecutionPolicy Bypass -File `"$voicevoxLauncher`"" "VOICEVOX ENGINE :50021 + verify_voicevox.py"
-
-Write-ASI "Manifestation SUCCESS. Portal active on Desktop." "Green"
-
-# Optional: Remove legacy shortcuts for clarity
+# Optional: Remove older unrelated shortcuts
 $LegacyPaths = @(
     (Join-Path $DesktopPath "ASI-Internet.lnk"),
     (Join-Path $DesktopPath "Clawdbot.lnk")

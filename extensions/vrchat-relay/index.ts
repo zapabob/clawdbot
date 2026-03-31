@@ -129,6 +129,10 @@ const plugin: any = {
           ? oscCfg.incomingPort
           : DEFAULT_OSC_CONFIG.incomingPort,
     });
+    const activeOscCfg = getOSCClient().getConfig();
+    console.log(
+      `[vrchat-relay] OSC ports configured: sendPort=${activeOscCfg.outgoingPort} -> VRChat(usually 9000), listenPort=${activeOscCfg.incomingPort} <- VRChat(usually 9001)`,
+    );
 
     // /chatbox command - Direct access for the Parent (via Python OSC bridge)
     api.registerCommand({
@@ -179,7 +183,15 @@ const plugin: any = {
     if ((topologyCfg.autoStartOscListener ?? isRelayPrimary) === true) {
       const listenerResult = startOSCListener();
       if (listenerResult.success) {
-        console.log(`[vrchat-relay] OSC Telemetry Listener started on port ${listenerResult.port}`);
+        if (listenerResult.error?.includes("already in use")) {
+          console.warn(
+            `[vrchat-relay] OSC Telemetry Listener port ${listenerResult.port} already in use. Running without local bind.`,
+          );
+        } else {
+          console.log(
+            `[vrchat-relay] OSC Telemetry Listener started on port ${listenerResult.port}`,
+          );
+        }
       } else {
         console.error(
           `[vrchat-relay] Failed to auto-start OSC Telemetry Listener: ${listenerResult.error}`,

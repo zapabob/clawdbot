@@ -445,12 +445,16 @@ if ($Mode -match "Full|Full-Docker") {
 
     Write-Host '  [UI]  Deploying Cognitive Interfaces...' -ForegroundColor DarkCyan
 
-    # TUI を先に起動（Gateway 待機中も利用可能にする）
     $tuiPs1 = Join-Path $ProjectDir "scripts\launchers\Start-TUI.ps1"
-    Start-Process -FilePath "powershell.exe" -ArgumentList @(
-        "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $tuiPs1
-    ) -WorkingDirectory $ProjectDir
-    Write-Host "  [TUI] TUI launched async." -ForegroundColor Gray
+    $launchTuiAfterGatewayWait = ($Mode -eq "Full")
+    if ($launchTuiAfterGatewayWait) {
+        Write-Host "  [TUI] Delaying TUI launch until Gateway wait completes..." -ForegroundColor DarkGray
+    } else {
+        Start-Process -FilePath "powershell.exe" -ArgumentList @(
+            "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $tuiPs1
+        ) -WorkingDirectory $ProjectDir
+        Write-Host "  [TUI] TUI launched async." -ForegroundColor Gray
+    }
 
     $edgeExe = "msedge.exe"
     $candPaths = @(
@@ -516,6 +520,13 @@ if ($Mode -match "Full|Full-Docker") {
         }
     }
 
+    if ($launchTuiAfterGatewayWait) {
+        Start-Process -FilePath "powershell.exe" -ArgumentList @(
+            "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $tuiPs1
+        ) -WorkingDirectory $ProjectDir
+        Write-Host "  [TUI] TUI launched after Gateway wait." -ForegroundColor Gray
+    }
+
     if ($launchEdge) {
         $edgeApp = "--app=$edgeUrl"
         try {
@@ -534,18 +545,21 @@ if ($Mode -match "Full|Full-Docker") {
 }
 
 # --- [Shortcut Management] ---
-if ($ForceShortcutUpdate -or -not (Test-Path "$HOME\Desktop\Sovereign-Portal.lnk")) {
+# One canonical desktop shortcut (same target as ASI-Manifest-Sovereign.ps1).
+$unifiedLnk = Join-Path $env:USERPROFILE "Desktop\OpenClaw-Sovereign.lnk"
+$portalLauncher = Join-Path $ProjectDir "scripts\launchers\ASI-Hakua-Portal.ps1"
+if ($ForceShortcutUpdate -or -not (Test-Path -LiteralPath $unifiedLnk)) {
     try {
-        $curScript = $MyInvocation.MyCommand.Path
         $curIcon = Join-Path $ProjectDir "assets\clawdbot.ico"
         $WshShell = New-Object -ComObject WScript.Shell
-        $Shortcut = $WshShell.CreateShortcut("$HOME\Desktop\Sovereign-Portal.lnk")
+        $Shortcut = $WshShell.CreateShortcut($unifiedLnk)
         $Shortcut.TargetPath = "powershell.exe"
-        $Shortcut.Arguments = '-NoProfile -ExecutionPolicy Bypass -File "{0}" -Mode Full -UseDesktopLauncher' -f $curScript
+        $Shortcut.Arguments = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Maximized -File "{0}" -Mode Full -UseDesktopLauncher' -f $portalLauncher
         $Shortcut.WorkingDirectory = $ProjectDir
+        $Shortcut.Description = "OpenClaw Sovereign — full stack (ngrok, Gateway, TUI, Harness, VOICEVOX, browser)"
         if (Test-Path $curIcon) { $Shortcut.IconLocation = $curIcon }
         $Shortcut.Save()
-        Write-Host "  [LNK] Desktop shortcut updated." -ForegroundColor Gray
+        Write-Host "  [LNK] Desktop shortcut updated: OpenClaw-Sovereign.lnk" -ForegroundColor Gray
     } catch { }
 }
 

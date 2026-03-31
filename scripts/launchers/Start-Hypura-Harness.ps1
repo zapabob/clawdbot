@@ -51,7 +51,7 @@ if (-not (Test-Path $Script)) {
 [System.IO.Directory]::SetCurrentDirectory($HarnessDir)
 Set-Location $HarnessDir
 if (Get-Command uv -ErrorAction SilentlyContinue) {
-    uv run harness_daemon.py
+    uv run --project $ProjectDir harness_daemon.py
 } elseif (Test-Path $VenvPython) {
     & $VenvPython $Script
 } else {

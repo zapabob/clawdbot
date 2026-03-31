@@ -8,14 +8,45 @@ import { getOSCClient } from "../osc/client.js";
 // Source layout:  src/tools/ → ../../../../ = project root
 // Dist layout:    dist/src/tools/ → ../../../../../../ = project root
 const __dirnameC = dirname(fileURLToPath(import.meta.url));
-const _oscScriptFromSrc = join(__dirnameC, "../../../..", "scripts", "osc_chatbox.py");
-const _oscScriptFromDist = join(__dirnameC, "../../../../../../", "scripts", "osc_chatbox.py");
-const _oscScriptFromCwd = join(process.cwd(), "scripts", "osc_chatbox.py");
-const OSC_SCRIPT_PATH = existsSync(_oscScriptFromSrc)
-  ? _oscScriptFromSrc
-  : existsSync(_oscScriptFromDist)
-    ? _oscScriptFromDist
-    : _oscScriptFromCwd;
+const _oscScriptFromSrcTools = join(
+  __dirnameC,
+  "../../../..",
+  "scripts",
+  "tools",
+  "osc_chatbox.py",
+);
+const _oscScriptFromSrcLegacy = join(__dirnameC, "../../../..", "scripts", "osc_chatbox.py");
+const _oscScriptFromDistTools = join(
+  __dirnameC,
+  "../../../../../../",
+  "scripts",
+  "tools",
+  "osc_chatbox.py",
+);
+const _oscScriptFromDistLegacy = join(
+  __dirnameC,
+  "../../../../../../",
+  "scripts",
+  "osc_chatbox.py",
+);
+const _oscScriptFromCwdTools = join(process.cwd(), "scripts", "tools", "osc_chatbox.py");
+const _oscScriptFromCwdLegacy = join(process.cwd(), "scripts", "osc_chatbox.py");
+const OSC_SCRIPT_PATH = existsSync(_oscScriptFromSrcTools)
+  ? _oscScriptFromSrcTools
+  : existsSync(_oscScriptFromSrcLegacy)
+    ? _oscScriptFromSrcLegacy
+    : existsSync(_oscScriptFromDistTools)
+      ? _oscScriptFromDistTools
+      : existsSync(_oscScriptFromDistLegacy)
+        ? _oscScriptFromDistLegacy
+        : existsSync(_oscScriptFromCwdTools)
+          ? _oscScriptFromCwdTools
+          : _oscScriptFromCwdLegacy;
+const PROJECT_ROOT_FROM_SRC = join(__dirnameC, "../../../..");
+const PROJECT_ROOT_FROM_DIST = join(__dirnameC, "../../../../../../");
+const PROJECT_ROOT = existsSync(PROJECT_ROOT_FROM_SRC)
+  ? PROJECT_ROOT_FROM_SRC
+  : PROJECT_ROOT_FROM_DIST;
 import { logInfo, logSkip, logError } from "./audit.js";
 import { checkPermission } from "./permissions.js";
 import { rateLimiters } from "./rate-limiter.js";
@@ -62,15 +93,28 @@ function sendViaPython(
   if (!sfx) args.push("--no-sfx");
 
   return new Promise((resolve) => {
-    execFile("py", ["-3", ...args], { timeout: 10000 }, (error, stdout, stderr) => {
-      if (error) {
-        console.error("[vrchat-relay] Python OSC error:", error.message);
-        resolve({ success: false, error: error.message });
-      } else {
-        if (stdout) console.log("[vrchat-relay]", stdout.trim());
-        resolve({ success: true });
-      }
-    });
+    execFile(
+      "uv",
+      ["run", "--project", PROJECT_ROOT, "python", ...args],
+      { timeout: 10000 },
+      (uvError, stdout) => {
+        if (!uvError) {
+          if (stdout) console.log("[vrchat-relay]", stdout.trim());
+          resolve({ success: true });
+          return;
+        }
+
+        execFile("py", ["-3", ...args], { timeout: 10000 }, (pyError, pyStdout) => {
+          if (pyError) {
+            console.error("[vrchat-relay] Python OSC error:", pyError.message);
+            resolve({ success: false, error: pyError.message });
+            return;
+          }
+          if (pyStdout) console.log("[vrchat-relay]", pyStdout.trim());
+          resolve({ success: true });
+        });
+      },
+    );
   });
 }
 
@@ -97,14 +141,25 @@ export function sendRawOscViaPython(
   ];
 
   return new Promise((resolve) => {
-    execFile("py", ["-3", ...args], { timeout: 10000 }, (error) => {
-      if (error) {
-        console.error("[vrchat-relay] Python raw OSC error:", error.message);
-        resolve({ success: false, error: error.message });
-      } else {
-        resolve({ success: true });
-      }
-    });
+    execFile(
+      "uv",
+      ["run", "--project", PROJECT_ROOT, "python", ...args],
+      { timeout: 10000 },
+      (uvError) => {
+        if (!uvError) {
+          resolve({ success: true });
+          return;
+        }
+        execFile("py", ["-3", ...args], { timeout: 10000 }, (pyError) => {
+          if (pyError) {
+            console.error("[vrchat-relay] Python raw OSC error:", pyError.message);
+            resolve({ success: false, error: pyError.message });
+            return;
+          }
+          resolve({ success: true });
+        });
+      },
+    );
   });
 }
 

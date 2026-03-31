@@ -97,21 +97,50 @@ async function captureStdout(action: () => void | Promise<void>): Promise<string
 export async function renderBundledRootHelpText(
   distDirOverride: string = distDir,
 ): Promise<string> {
+  const distExtensionsDir = path.join(rootDir, "dist", "extensions");
+  const prevBundledPluginsDir = process.env.OPENCLAW_BUNDLED_PLUGINS_DIR;
+  const prevSkipChannels = process.env.OPENCLAW_SKIP_CHANNELS;
+  // Build-time help generation should not boot live source extensions/channels.
+  if (pathExists(distExtensionsDir)) {
+    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = distExtensionsDir;
+  }
+  process.env.OPENCLAW_SKIP_CHANNELS = "1";
   const bundleName = readdirSync(distDirOverride).find(
     (entry) => entry.startsWith("root-help-") && entry.endsWith(".js"),
   );
   if (!bundleName) {
     throw new Error("No root-help bundle found in dist; cannot write CLI startup metadata.");
   }
-  const moduleUrl = pathToFileURL(path.join(distDirOverride, bundleName)).href;
-  const mod = (await import(moduleUrl)) as { outputRootHelp?: () => void | Promise<void> };
-  if (typeof mod.outputRootHelp !== "function") {
-    throw new Error(`Bundle ${bundleName} does not export outputRootHelp.`);
-  }
+  try {
+    const moduleUrl = pathToFileURL(path.join(distDirOverride, bundleName)).href;
+    const mod = (await import(moduleUrl)) as { outputRootHelp?: () => void | Promise<void> };
+    if (typeof mod.outputRootHelp !== "function") {
+      throw new Error(`Bundle ${bundleName} does not export outputRootHelp.`);
+    }
 
-  return captureStdout(async () => {
-    await mod.outputRootHelp?.();
-  });
+    return captureStdout(async () => {
+      await mod.outputRootHelp?.();
+    });
+  } finally {
+    if (prevBundledPluginsDir === undefined) {
+      delete process.env.OPENCLAW_BUNDLED_PLUGINS_DIR;
+    } else {
+      process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = prevBundledPluginsDir;
+    }
+    if (prevSkipChannels === undefined) {
+      delete process.env.OPENCLAW_SKIP_CHANNELS;
+    } else {
+      process.env.OPENCLAW_SKIP_CHANNELS = prevSkipChannels;
+    }
+  }
+}
+
+function pathExists(targetPath: string): boolean {
+  try {
+    return readdirSync(targetPath).length >= 0;
+  } catch {
+    return false;
+  }
 }
 
 export async function writeCliStartupMetadata(options?: {

@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 
@@ -11,15 +12,21 @@ export interface VRChatOscOptions {
 
 /**
  * Centralized VRChat OSC implementation for core gateway usage.
- * Uses scripts/osc_chatbox.py as the underlying substrate to ensure packet compatibility.
+ * Uses scripts/tools/osc_chatbox.py as the underlying substrate to ensure packet compatibility.
  */
+function resolveOscScriptPath(): string {
+  const legacyPath = path.resolve(process.cwd(), "scripts/osc_chatbox.py");
+  const toolsPath = path.resolve(process.cwd(), "scripts/tools/osc_chatbox.py");
+  return existsSync(legacyPath) ? legacyPath : toolsPath;
+}
+
 export async function sendVRChatOscRaw(
   address: string,
   args: (string | number | boolean | null)[],
   options: VRChatOscOptions = {},
 ): Promise<{ success: boolean; error?: string }> {
   const { host = "127.0.0.1", port = 9000 } = options;
-  const scriptPath = path.resolve(process.cwd(), "scripts/osc_chatbox.py");
+  const scriptPath = resolveOscScriptPath();
 
   const mappedArgs = args.map((arg) => {
     if (typeof arg === "boolean") {

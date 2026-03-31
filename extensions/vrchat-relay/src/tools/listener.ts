@@ -41,6 +41,21 @@ export function startOSCListener(): { success: boolean; port: number; error?: st
       }
     });
 
+    // If port is already occupied, OSCClient will keep listenerSocket=null
+    // and stash the latest listener error. Treat it as non-fatal and avoid retry storms.
+    const lastError = client.getLastListenerError();
+    if (
+      !client.isListening() &&
+      (lastError as NodeJS.ErrnoException | null)?.code === "EADDRINUSE"
+    ) {
+      listenerState.isRunning = false;
+      return {
+        success: true,
+        port: client.getConfig().incomingPort ?? DEFAULT_OSC_CONFIG.incomingPort,
+        error: "OSC listener port already in use; reusing existing listener process",
+      };
+    }
+
     listenerState.isRunning = true;
     listenerState.startTime = new Date();
 

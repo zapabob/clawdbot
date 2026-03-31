@@ -19,10 +19,12 @@ export default definePluginEntry({
   description: "Advanced memory system with Ebbinghaus forgetting curve and emotional resonance.",
   register(api) {
     const apiAny = api as any;
-    const dbPath = path.join(
-      (api.runtime.config.loadConfig() as any).workspaceRoot || process.cwd(),
-      "memory_evolution.db.json",
-    );
+    const loadConfig = api.runtime?.config?.loadConfig;
+    const workspaceRoot =
+      typeof loadConfig === "function"
+        ? ((loadConfig() as { workspaceRoot?: string }).workspaceRoot ?? process.cwd())
+        : process.cwd();
+    const dbPath = path.join(workspaceRoot, "memory_evolution.db.json");
 
     const loadDb = (): MemoryNode[] => {
       if (!fs.existsSync(dbPath)) return [];

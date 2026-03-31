@@ -7,6 +7,7 @@ export class OSCClient {
   private socket: Socket | null = null;
   private config: OSCConfig;
   private listenerSocket: Socket | null = null;
+  private lastListenerError: Error | null = null;
   private messageHandlers: ((message: OSCMessage) => void)[] = [];
 
   constructor(config: Partial<OSCConfig> = {}) {
@@ -126,6 +127,15 @@ export class OSCClient {
     });
 
     this.listenerSocket.on("error", (err) => {
+      this.lastListenerError = err;
+      if ((err as NodeJS.ErrnoException).code === "EADDRINUSE") {
+        console.warn(
+          `[vrchat-relay] OSC listener port ${this.config.incomingPort} is already in use. Reusing existing listener process.`,
+        );
+        this.listenerSocket?.close();
+        this.listenerSocket = null;
+        return;
+      }
       console.error("OSC listener error:", err);
     });
 
@@ -171,6 +181,10 @@ export class OSCClient {
 
   getConfig(): OSCConfig {
     return this.config;
+  }
+
+  getLastListenerError(): Error | null {
+    return this.lastListenerError;
   }
 
   /**

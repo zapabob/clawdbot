@@ -3,6 +3,7 @@ import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { setTimeout as delay } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
 import { resolveGitHead, writeBuildStamp as writeDistBuildStamp } from "./build-stamp.mjs";
 import {
@@ -331,7 +332,32 @@ const runOpenClaw = async (deps) => {
   return normalizeCliExitCode(res.exitCode ?? 1);
 };
 
-const syncRuntimeArtifacts = (deps) => {
+const isTransientRuntimeArtifactError = (error) => {
+  const code = error?.code;
+  const msg = String(error?.message ?? "").toLowerCase();
+  if (code === "EBUSY" || code === "EPIPE" || code === "EPERM") {
+    return true;
+  }
+  if (
+    msg.includes("being used by another process") ||
+    msg.includes("resource temporarily unavailable")
+  ) {
+    return true;
+  }
+  return false;
+};
+
+const formatRuntimeArtifactErrorDetails = (error) => {
+  const code = typeof error?.code === "string" ? error.code : "UNKNOWN";
+  const message = String(error?.message ?? "unknown error");
+  const firstStackLine =
+    typeof error?.stack === "string"
+      ? error.stack.split("\n").find((line) => line.trim().length > 0)
+      : "";
+  return { code, message, firstStackLine: firstStackLine ?? "" };
+};
+
+const syncRuntimeArtifacts = async (deps) => {
   // #region agent log
   try {
     fs.appendFileSync(
@@ -350,14 +376,30 @@ const syncRuntimeArtifacts = (deps) => {
     /* ignore */
   }
   // #endregion
-  try {
-    runRuntimePostBuild({ cwd: deps.cwd });
-  } catch (error) {
-    logRunner(
-      `Failed to write runtime build artifacts: ${error?.message ?? "unknown error"}`,
-      deps,
-    );
-    return false;
+  const maxAttempts = 6;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      runRuntimePostBuild({ cwd: deps.cwd });
+      break;
+    } catch (error) {
+      if (!isTransientRuntimeArtifactError(error) || attempt === maxAttempts) {
+        const details = formatRuntimeArtifactErrorDetails(error);
+        logRunner(
+          `Failed to write runtime build artifacts: ${details.message} (code=${details.code})`,
+          deps,
+        );
+        if (details.firstStackLine) {
+          logRunner(`Runtime artifact failure stack(head): ${details.firstStackLine}`, deps);
+        }
+        return false;
+      }
+      const details = formatRuntimeArtifactErrorDetails(error);
+      logRunner(
+        `Runtime artifact sync retry ${attempt}/${maxAttempts} after ${details.code}: ${details.message}`,
+        deps,
+      );
+      await delay(150 * attempt);
+    }
   }
   // #region agent log
   try {
@@ -415,7 +457,7 @@ export async function runNodeMain(params = {}) {
   deps.configFiles = runNodeConfigFiles.map((filePath) => path.join(deps.cwd, filePath));
 
   if (!shouldBuild(deps)) {
-    if (!syncRuntimeArtifacts(deps)) {
+    if (!(await syncRuntimeArtifacts(deps))) {
       return 1;
     }
     // #region agent log
@@ -500,7 +542,7 @@ export async function runNodeMain(params = {}) {
   if (buildRes.exitCode !== 0 && buildRes.exitCode !== null) {
     return normalizeCliExitCode(buildRes.exitCode);
   }
-  if (!syncRuntimeArtifacts(deps)) {
+  if (!(await syncRuntimeArtifacts(deps))) {
     return 1;
   }
   writeBuildStamp(deps);
