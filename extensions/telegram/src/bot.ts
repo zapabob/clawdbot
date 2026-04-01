@@ -107,13 +107,6 @@ function asTelegramCompatFetch(fetchImpl: TelegramClientFetch): TelegramCompatFe
   return fetchImpl as unknown as TelegramCompatFetch;
 }
 
-function getAbortSignalReason(signal: unknown): unknown {
-  if (!signal || typeof signal !== "object") {
-    return undefined;
-  }
-  return (signal as { reason?: unknown }).reason;
-}
-
 function readRequestUrl(input: TelegramFetchInput): string | null {
   if (typeof input === "string") {
     return input;
@@ -446,7 +439,7 @@ export function createTelegramBot(opts: TelegramBotOptions) {
       `agent:${agentId}:telegram:group:${buildTelegramGroupPeerId(params.chatId, params.messageThreadId)}`;
     const storePath = resolveStorePath(cfg.session?.store, { agentId });
     try {
-      const store = loadSessionStore(storePath);
+      const store = (telegramDeps.loadSessionStore ?? loadSessionStore)(storePath);
       const entry = store[sessionKey];
       if (entry?.groupActivation === "always") {
         return false;

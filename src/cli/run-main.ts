@@ -93,7 +93,7 @@ export function resolveMissingBrowserCommandMessage(config?: OpenClawConfig): st
     Array.isArray(config?.plugins?.allow) && config.plugins.allow.length > 0
       ? config.plugins.allow
           .filter((entry): entry is string => typeof entry === "string")
-          .map((entry) => normalizePluginId(entry))
+          .map((entry) => entry.trim().toLowerCase())
       : [];
   if (allow.length > 0 && !allow.includes("browser")) {
     return (
