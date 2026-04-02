@@ -41,6 +41,13 @@ import { createTelegramSendChatActionHandler } from "./sendchataction-401-backof
 import { getTelegramSequentialKey } from "./sequential-key.js";
 import { createTelegramThreadBindingManager } from "./thread-bindings.js";
 
+function getAbortSignalReason(signal: unknown): unknown {
+  if (typeof signal === "object" && signal !== null && "reason" in signal) {
+    return (signal as { reason?: unknown }).reason;
+  }
+  return undefined;
+}
+
 export type TelegramBotOptions = {
   token: string;
   accountId?: string;

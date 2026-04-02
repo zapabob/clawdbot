@@ -1,4 +1,3 @@
-import { normalizeSlackMessagingTarget } from "openclaw/plugin-sdk/slack";
 import { describe, expect, it } from "vitest";
 import {
   normalizeSlackMessagingTarget,

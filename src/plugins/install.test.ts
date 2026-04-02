@@ -13,7 +13,8 @@ import {
   expectIntegrityDriftRejected,
   mockNpmPackMetadataResult,
 } from "../test-utils/npm-spec-install-test-helpers.js";
-import { resetGlobalHookRunner } from "./hook-runner-global.js";
+import { initializeGlobalHookRunner, resetGlobalHookRunner } from "./hook-runner-global.js";
+import { createMockPluginRegistry } from "./hooks.test-helpers.js";
 import * as installSecurityScan from "./install-security-scan.js";
 import {
   installPluginFromArchive,
