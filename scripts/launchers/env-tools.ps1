@@ -87,6 +87,31 @@ function Get-EnvMap {
     return $map
 }
 
+<#
+  Merge .env then .env.local into one map (later file wins per key).
+  Used by desktop stack launchers to inject the full effective env into child processes.
+#>
+function Get-MergedEnvMap {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ProjectDir
+    )
+
+    $merged = @{}
+    foreach ($rel in @(".env", ".env.local")) {
+        $path = Join-Path $ProjectDir $rel
+        if (-not (Test-Path -LiteralPath $path)) {
+            continue
+        }
+        $map = Get-EnvMap -EnvFile $path
+        foreach ($key in $map.Keys) {
+            $merged[$key] = $map[$key]
+        }
+    }
+
+    return $merged
+}
+
 function Set-EnvValues {
     param(
         [Parameter(Mandatory = $true)]

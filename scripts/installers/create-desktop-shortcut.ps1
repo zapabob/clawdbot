@@ -1,3 +1,4 @@
+#Requires -Version 5.1
 # ============================================================
 #  create-desktop-shortcut.ps1
 #  デスクトップショートカットを作成する
@@ -11,13 +12,31 @@
 #  旧ショートカットは全て削除する
 # ============================================================
 
+[CmdletBinding()]
+param(
+    [string]$DesktopPath = [System.Environment]::GetFolderPath("Desktop"),
+    [switch]$PreferPwsh
+)
+
 $ProjectDir      = (Get-Item $PSScriptRoot).Parent.Parent.FullName
 $LauncherPs1     = Join-Path $ProjectDir "scripts\launchers\launch-desktop-stack.ps1"
 $CompanionDir    = Join-Path $ProjectDir "extensions\live2d-companion"
 $LaunchStackPs1  = Join-Path $ProjectDir "scripts\launchers\launch-desktop-stack.ps1"
 $ThisScript      = $PSCommandPath
 $IconPath        = Join-Path $ProjectDir "assets\clawdbot.ico"
-$DesktopPath     = [System.Environment]::GetFolderPath("Desktop")
+
+function Resolve-PowerShellExe {
+    param([switch]$UsePwsh)
+    if ($UsePwsh) {
+        $pwsh = Get-Command pwsh -ErrorAction SilentlyContinue
+        if ($pwsh) {
+            return $pwsh.Source
+        }
+        Write-Host "  [warn] pwsh が見つからんかったので powershell.exe を使うで" -ForegroundColor Yellow
+    }
+    return "powershell.exe"
+}
+$PowerShellExe = Resolve-PowerShellExe -UsePwsh:$PreferPwsh
 
 # ── ショートカット名 ─────────────────────────────────────────────────────────
 $PrimaryName      = "Clawdbot.lnk"
@@ -75,30 +94,37 @@ function Resolve-Icon {
 }
 $iconLoc = Resolve-Icon -Primary $IconPath
 
+if (-not (Test-Path $LaunchStackPs1)) {
+    throw "Launcher script not found: $LaunchStackPs1"
+}
+if (-not (Test-Path $CompanionDir)) {
+    throw "Companion directory not found: $CompanionDir"
+}
+
 # ── 1. フルスタックショートカット (Clawdbot.lnk) ──────────────────────────────
 $sc = $WshShell.CreateShortcut($PrimaryPath)
-$sc.TargetPath       = "powershell.exe"
-$sc.Arguments        = "-NoExit -ExecutionPolicy Bypass -File `"$LauncherPs1`" -SpeakOnReady -HypuraWaitSeconds 180 -HypuraHarnessWaitSeconds 45"
+$sc.TargetPath       = $PowerShellExe
+$sc.Arguments        = "-NoProfile -NoExit -ExecutionPolicy Bypass -File `"$LauncherPs1`" -ForceVisibleGatewayAndTui -SpeakOnReady -HypuraWaitSeconds 180 -HypuraHarnessWaitSeconds 45"
 $sc.WorkingDirectory = $ProjectDir
 $sc.Description      = "Clawdbot — フルスタック起動 (Gateway / TUI / Live2D + VOICEVOX / VRChat / Web UI)"
 $sc.WindowStyle      = 1  # Normal
 $sc.IconLocation     = $iconLoc
 $sc.Save()
 Write-Host "  [created] $PrimaryName" -ForegroundColor Green
-Write-Host "            $LauncherPs1 -SpeakOnReady -HypuraWaitSeconds 180 -HypuraHarnessWaitSeconds 45" -ForegroundColor DarkGray
+Write-Host "            $LauncherPs1 -ForceVisibleGatewayAndTui -SpeakOnReady -HypuraWaitSeconds 180 -HypuraHarnessWaitSeconds 45" -ForegroundColor DarkGray
 
 # ── 2. コンパニオン + StackショートカットHakua Companion.lnk) ─────────────────
 #    Gateway + コンパニオン + VOICEVOX のみ (TUI/Browser/Ngrok/Hypura をスキップ)
 $sc2 = $WshShell.CreateShortcut($CompanionPath)
-$sc2.TargetPath       = "powershell.exe"
-$sc2.Arguments        = "-NoExit -ExecutionPolicy Bypass -File `"$LaunchStackPs1`" -SkipTui -SkipBrowser -SkipNgrok -SkipHypura -SpeakOnReady -HypuraHarnessWaitSeconds 45"
+$sc2.TargetPath       = $PowerShellExe
+$sc2.Arguments        = "-NoProfile -NoExit -ExecutionPolicy Bypass -File `"$LaunchStackPs1`" -ForceVisibleGatewayAndTui -SkipTui -SkipBrowser -SkipNgrok -SkipHypura -SpeakOnReady -HypuraHarnessWaitSeconds 45"
 $sc2.WorkingDirectory = $ProjectDir
 $sc2.Description      = "Hakua Companion — iDOLM@STER AI Avatar + VOICEVOX + Gateway (TUI/Browser省略)"
 $sc2.WindowStyle      = 1
 $sc2.IconLocation     = $iconLoc
 $sc2.Save()
 Write-Host "  [created] $CompanionName" -ForegroundColor Green
-Write-Host "            launch-desktop-stack.ps1 -SkipTui -SkipBrowser -SkipNgrok -HypuraHarnessWaitSeconds 45" -ForegroundColor DarkGray
+Write-Host "            launch-desktop-stack.ps1 -ForceVisibleGatewayAndTui -SkipTui -SkipBrowser -SkipNgrok ..." -ForegroundColor DarkGray
 
 # ── 3. コンパニオン単体 (Hakua Companion Only.lnk) ────────────────────────────
 #    Electron 直接起動 — Gateway/TUI 不要な場合
@@ -113,7 +139,7 @@ if ($resolvedElectron) {
     $soloTarget = $resolvedElectron
     $soloArgs   = "`"$MainJs`""
 } else {
-    $soloTarget = "powershell.exe"
+    $soloTarget = $PowerShellExe
     $soloArgs   = "-NoProfile -ExecutionPolicy Bypass -Command `"Set-Location '$CompanionDir'; npx electron electron/main.js`""
 }
 
@@ -130,12 +156,12 @@ Write-Host "            Electron direct (companion only, no gateway)" -Foregroun
 
 # ── 4. ショートカット再インストール用 (Install Shortcuts.lnk) ─────────────────
 $sc4 = $WshShell.CreateShortcut($InstallerPath)
-$sc4.TargetPath       = "powershell.exe"
-$sc4.Arguments        = "-ExecutionPolicy Bypass -File `"$ThisScript`""
+$sc4.TargetPath       = $PowerShellExe
+$sc4.Arguments        = "-NoProfile -ExecutionPolicy Bypass -File `"$ThisScript`""
 $sc4.WorkingDirectory = $ProjectDir
 $sc4.Description      = "Clawdbot ショートカット再インストール (create-desktop-shortcut.ps1)"
 $sc4.WindowStyle      = 1
-$sc4.IconLocation     = "powershell.exe,0"
+$sc4.IconLocation     = "$PowerShellExe,0"
 $sc4.Save()
 Write-Host "  [created] $InstallerName" -ForegroundColor Green
 Write-Host "            create-desktop-shortcut.ps1 (再実行用)" -ForegroundColor DarkGray

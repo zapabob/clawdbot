@@ -29,7 +29,7 @@ Write-Host "[2/3] Materializing Core Stack..." -ForegroundColor White
 $StackLauncher = Join-Path $ProjectDir "scripts\launchers\launch-desktop-stack.ps1"
 
 if (Test-Path $StackLauncher) {
-    $ArgList = @("-ExecutionPolicy", "Bypass", "-File", $StackLauncher)
+    $ArgList = @("-ExecutionPolicy", "Bypass", "-File", $StackLauncher, "-ForceVisibleGatewayAndTui")
     if ($args -contains "-SpeakOnReady") { $ArgList += "-SpeakOnReady" }
     & powershell.exe @ArgList
 } else {

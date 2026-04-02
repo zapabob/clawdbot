@@ -149,6 +149,7 @@ Other Gateway slash commands (for example, `/context`) are forwarded to the Gate
 - `--deliver`: Deliver assistant replies to the provider (default off)
 - `--thinking <level>`: Override thinking level for sends
 - `--timeout-ms <ms>`: Agent timeout in ms (defaults to `agents.defaults.timeoutSeconds`)
+- `--history-limit <n>`: History entries to load on connect (default: `200`)
 
 Note: when you set `--url`, the TUI does not fall back to config or environment credentials.
 Pass `--token` or `--password` explicitly. Missing explicit credentials is an error.
@@ -161,7 +162,15 @@ No output after sending a message:
 - Check the Gateway logs: `openclaw logs --follow`.
 - Confirm the agent can run: `openclaw status` and `openclaw models status`.
 - If you expect messages in a chat channel, enable delivery (`/deliver on` or `--deliver`).
-- `--history-limit <n>`: History entries to load (default 200)
+
+### History load / `chat.history` timeouts
+
+You may see a system line like `history failed: Error: gateway request timeout for chat.history` on slow disks, very large sessions, or right after Gateway startup.
+
+- If you change TUI or Gateway **client TypeScript** under `src/`, run **`pnpm build`** before using a **packaged or `dist`-based** `openclaw` binary, or use **`pnpm openclaw tui`** from the repo during development so you always run fresh output.
+- Reduce initial load with a smaller cap: `openclaw tui --history-limit 80` (see `--history-limit` above).
+- Trim or archive huge sessions if history stays slow.
+- Gateway bounds large `chat.history` payloads for safety; see [Webchat](/web/webchat) (`chat.history` truncation and `gateway.webchat.chatHistoryMaxChars`).
 
 ## Connection troubleshooting
 

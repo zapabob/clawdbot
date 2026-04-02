@@ -11,6 +11,21 @@ $ErrorActionPreference = "Stop"
 Merge-OpenClawEnvToProcess -ProjectDir $ProjectDir
 Add-SovereignDevToolsToPath
 
+if ($Port -lt 1 -or $Port -gt 65535) {
+    throw "[ngrok] Invalid -Port: $Port (expected 1-65535)"
+}
+
+# Explicit loopback URL avoids the agent failing to resolve the upstream (never use a bare / missing target).
+# Optional: set NGROK_UPSTREAM_URL in .env / .env.local to e.g. https://localhost:8443 if your app is TLS-local.
+$candidate = [string]$env:NGROK_UPSTREAM_URL
+$upstream = $null
+if ($candidate -match '^\s*https?://' -and $candidate -notmatch '(?i)undefined' -and $candidate -notmatch '(?i)^\s*https?://\s*$') {
+    $upstream = $candidate.Trim()
+}
+if (-not $upstream) {
+    $upstream = "http://127.0.0.1:$Port"
+}
+
 $EnvFile = Get-ProjectEnvFile -ProjectDir $ProjectDir
 
 <#
@@ -45,7 +60,7 @@ function Resolve-RepoNgrokExecutable {
     return $null
 }
 
-Write-Host "[ngrok] Starting tunnel on port $Port..." -ForegroundColor Cyan
+Write-Host "[ngrok] Starting tunnel -> upstream $upstream (CLI port hint: $Port)..." -ForegroundColor Cyan
 
 # 既存 ngrok プロセスを強制終了してからリスタート
 Get-Process -Name "ngrok" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
@@ -62,7 +77,7 @@ if (-not $NgrokPath) {
 }
 Write-Host "[ngrok] Using repo binary: $NgrokPath" -ForegroundColor Gray
 
-$ngrokProc = Start-Process -FilePath $NgrokPath -ArgumentList @("http", "$Port") -WorkingDirectory $ProjectDir `
+$ngrokProc = Start-Process -FilePath $NgrokPath -ArgumentList @("http", $upstream) -WorkingDirectory $ProjectDir `
     -WindowStyle Minimized -PassThru
 if (-not $ngrokProc) {
     throw "[ngrok] Start-Process returned no process. Check NGROK_EXE / repo binary path."

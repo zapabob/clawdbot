@@ -286,11 +286,27 @@ export function createSessionActions(context: SessionActionContext) {
   };
 
   const loadHistory = async () => {
-    try {
-      const history = await client.loadHistory({
+    const fetchHistory = async () =>
+      client.loadHistory({
         sessionKey: state.currentSessionKey,
         limit: opts.historyLimit ?? 200,
       });
+
+    try {
+      let history: Awaited<ReturnType<typeof fetchHistory>>;
+      try {
+        history = await fetchHistory();
+      } catch (firstErr) {
+        const msg = String(firstErr);
+        if (msg.includes("gateway request timeout for chat.history")) {
+          chatLog.addSystem("history slow; retrying once…");
+          tui.requestRender();
+          await new Promise((r) => setTimeout(r, 2000));
+          history = await fetchHistory();
+        } else {
+          throw firstErr;
+        }
+      }
       const record = history as {
         messages?: unknown[];
         sessionId?: string;

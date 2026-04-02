@@ -22,6 +22,10 @@ import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-cha
 import { VERSION } from "../version.js";
 import type { ResponseUsageMode, SessionInfo, SessionScope } from "./tui-types.js";
 
+/** TUI: first chat.history can be slow (large session store, cold gateway). */
+const TUI_GATEWAY_REQUEST_TIMEOUT_MS = 60_000;
+const TUI_CHAT_HISTORY_TIMEOUT_MS = 120_000;
+
 export type GatewayConnectionOptions = {
   url?: string;
   token?: string;
@@ -154,6 +158,7 @@ export class GatewayChatClient {
       url: connection.url,
       token: connection.token,
       password: connection.password,
+      requestTimeoutMs: TUI_GATEWAY_REQUEST_TIMEOUT_MS,
       clientName: GATEWAY_CLIENT_NAMES.TUI,
       clientDisplayName: "openclaw-tui",
       clientVersion: VERSION,
@@ -227,10 +232,14 @@ export class GatewayChatClient {
   }
 
   async loadHistory(opts: { sessionKey: string; limit?: number }) {
-    return await this.client.request("chat.history", {
-      sessionKey: opts.sessionKey,
-      limit: opts.limit,
-    });
+    return await this.client.request(
+      "chat.history",
+      {
+        sessionKey: opts.sessionKey,
+        limit: opts.limit,
+      },
+      { timeoutMs: TUI_CHAT_HISTORY_TIMEOUT_MS },
+    );
   }
 
   async listSessions(opts?: SessionsListParams) {

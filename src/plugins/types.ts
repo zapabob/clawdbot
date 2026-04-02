@@ -2364,12 +2364,7 @@ export type PluginInstallRequestKind =
 
 export type PluginInstallTargetType = "skill" | "plugin";
 
-export type PluginInstallSourcePathKind =
-  | "directory"
-  | "file"
-  | "archive"
-  | "npm-spec"
-  | "unknown";
+export type PluginInstallSourcePathKind = "directory" | "file" | "archive" | "npm-spec" | "unknown";
 
 export type PluginInstallFinding = {
   ruleId: string;
