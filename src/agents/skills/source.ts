@@ -1,7 +1,6 @@
 import type { Skill } from "@mariozechner/pi-coding-agent";
 
 type SkillSourceCompat = Skill & {
-  source?: string;
   sourceInfo?: {
     source?: string;
   };

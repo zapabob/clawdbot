@@ -1,0 +1,14 @@
+{
+  "started_at": "2026-04-01T11:10:26.402171+00:00",
+  "repo_root": "C:\\Users\\downl\\Desktop\\clawdbot-main3\\clawdbot-main-upstream-2026-04-01",
+  "branch_before": "integrate/upstream-main-2026-04-01",
+  "target_branch": "integrate/upstream-main-2026-04-01",
+  "remote": "upstream",
+  "upstream_ref": "upstream/main",
+  "dry_run": true,
+  "steps": [
+    "would fetch upstream --prune",
+    "would run: git merge -X theirs --no-edit upstream/main"
+  ],
+  "result": "dry-run"
+}

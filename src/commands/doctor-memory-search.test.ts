@@ -6,6 +6,7 @@ import type { checkQmdBinaryAvailability as checkQmdBinaryAvailabilityFn } from 
 const note = vi.hoisted(() => vi.fn());
 const resolveDefaultAgentId = vi.hoisted(() => vi.fn(() => "agent-default"));
 const resolveAgentDir = vi.hoisted(() => vi.fn(() => "/tmp/agent-default"));
+const resolveAgentWorkspaceDir = vi.hoisted(() => vi.fn(() => "/tmp/agent-default/workspace"));
 const resolveMemorySearchConfig = vi.hoisted(() => vi.fn());
 const resolveApiKeyForProvider = vi.hoisted(() => vi.fn());
 const resolveActiveMemoryBackendConfig = vi.hoisted(() => vi.fn());
@@ -21,6 +22,7 @@ vi.mock("../terminal/note.js", () => ({
 vi.mock("../agents/agent-scope.js", () => ({
   resolveDefaultAgentId,
   resolveAgentDir,
+  resolveAgentWorkspaceDir,
 }));
 
 vi.mock("../agents/memory-search.js", () => ({
@@ -62,6 +64,7 @@ describe("noteMemorySearchHealth", () => {
     note.mockClear();
     resolveDefaultAgentId.mockClear();
     resolveAgentDir.mockClear();
+    resolveAgentWorkspaceDir.mockClear();
     resolveMemorySearchConfig.mockReset();
     resolveApiKeyForProvider.mockReset();
     resolveApiKeyForProvider.mockRejectedValue(new Error("missing key"));
@@ -141,6 +144,36 @@ describe("noteMemorySearchHealth", () => {
     await noteMemorySearchHealth(cfg, {});
 
     expect(note).not.toHaveBeenCalled();
+    expect(checkQmdBinaryAvailability).toHaveBeenCalledWith({
+      command: "qmd",
+      env: process.env,
+      cwd: "/tmp/agent-default/workspace",
+    });
+  });
+
+  it("warns when QMD backend is active but the qmd binary is unavailable", async () => {
+    resolveActiveMemoryBackendConfig.mockReturnValue({
+      backend: "qmd",
+      citations: "auto",
+      qmd: { command: "qmd" },
+    });
+    checkQmdBinaryAvailability.mockResolvedValueOnce({
+      available: false,
+      error: "spawn qmd ENOENT",
+    });
+    resolveMemorySearchConfig.mockReturnValue({
+      provider: "auto",
+      local: {},
+      remote: {},
+    });
+
+    await noteMemorySearchHealth(cfg, {});
+
+    expect(note).toHaveBeenCalledTimes(1);
+    const message = String(note.mock.calls[0]?.[0] ?? "");
+    expect(message).toContain("QMD memory backend is configured");
+    expect(message).toContain("spawn qmd ENOENT");
+    expect(message).toContain("npm install -g @tobilu/qmd");
   });
 
   it("warns when QMD backend is active but the qmd binary is unavailable", async () => {
