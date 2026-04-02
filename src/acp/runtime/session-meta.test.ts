@@ -24,7 +24,7 @@ describe("listAcpSessionEntries", () => {
     ({ listAcpSessionEntries } = await import("./session-meta.js"));
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     ({ listAcpSessionEntries } = await import("./session-meta.js"));
   });

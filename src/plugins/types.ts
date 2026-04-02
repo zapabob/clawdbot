@@ -2362,6 +2362,70 @@ export type PluginInstallRequestKind =
   | "plugin-file"
   | "plugin-npm";
 
+export type PluginInstallTargetType = "skill" | "plugin";
+
+export type PluginInstallSourcePathKind =
+  | "directory"
+  | "file"
+  | "archive"
+  | "npm-spec"
+  | "unknown";
+
+export type PluginInstallFinding = {
+  ruleId: string;
+  severity: "info" | "warn" | "critical";
+  file: string;
+  line: number;
+  message: string;
+};
+
+export type PluginHookBeforeInstallRequest = {
+  kind: PluginInstallRequestKind;
+  mode?: string;
+};
+
+export type PluginHookBeforeInstallBuiltinScan = {
+  status: string;
+  scannedFiles: number;
+  critical: number;
+  warn: number;
+  info: number;
+  findings: PluginInstallFinding[];
+};
+
+export type PluginHookBeforeInstallSkill = {
+  installId?: string;
+};
+
+export type PluginHookBeforeInstallPlugin = {
+  packageName?: string;
+  npmSpec?: string;
+};
+
+export type PluginHookBeforeInstallEvent = {
+  targetName: string;
+  targetType: PluginInstallTargetType;
+  sourcePath: string;
+  sourcePathKind: PluginInstallSourcePathKind;
+  origin?: string;
+  request: PluginHookBeforeInstallRequest;
+  builtinScan: PluginHookBeforeInstallBuiltinScan;
+  skill?: PluginHookBeforeInstallSkill;
+  plugin?: PluginHookBeforeInstallPlugin;
+};
+
+export type PluginHookBeforeInstallContext = {
+  targetType: PluginInstallTargetType;
+  requestKind: PluginInstallRequestKind;
+  origin?: string;
+};
+
+export type PluginHookBeforeInstallResult = {
+  findings?: PluginInstallFinding[];
+  block?: boolean;
+  blockReason?: string;
+};
+
 // Hook handler types mapped by hook name
 export type PluginHookHandlerMap = {
   before_model_resolve: (

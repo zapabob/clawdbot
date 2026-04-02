@@ -1,4 +1,4 @@
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../channels/config-presence.js", () => ({
   hasPotentialConfiguredChannels: vi.fn(() => true),
@@ -117,15 +117,14 @@ vi.mock("./status.link-channel.js", () => ({
 const { hasPotentialConfiguredChannels } = await import("../channels/config-presence.js");
 const { buildChannelSummary } = await import("../infra/channel-summary.js");
 const { resolveLinkChannelContext } = await import("./status.link-channel.js");
-let getStatusSummary: typeof import("./status.summary.js").getStatusSummary;
-let statusSummaryRuntime: typeof import("./status.summary.runtime.js").statusSummaryRuntime;
+
+async function loadStatusSummaryForTest() {
+  const { getStatusSummary } = await import("./status.summary.js");
+  const { statusSummaryRuntime } = await import("./status.summary.runtime.js");
+  return { getStatusSummary, statusSummaryRuntime };
+}
 
 describe("getStatusSummary", () => {
-  beforeAll(async () => {
-    ({ getStatusSummary } = await import("./status.summary.js"));
-    ({ statusSummaryRuntime } = await import("./status.summary.runtime.js"));
-  });
-
   beforeEach(() => {
     vi.clearAllMocks();
   });

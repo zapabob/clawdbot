@@ -15272,10 +15272,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       sensitive: true,
       tags: ["security"],
     },
-    "mcp.servers.*.headers.*": {
-      sensitive: true,
-      tags: ["security"],
-    },
     "skills.entries.*.apiKey": {
       sensitive: true,
       tags: ["security", "auth"],

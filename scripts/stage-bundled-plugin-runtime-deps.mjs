@@ -19,13 +19,6 @@ function removePathIfExists(targetPath) {
   fs.rmSync(targetPath, { recursive: true, force: true });
 }
 
-function sleepMsSync(ms) {
-  if (!Number.isFinite(ms) || ms <= 0) {
-    return;
-  }
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
-}
-
 function makeTempDir(parentDir, prefix) {
   return fs.mkdtempSync(path.join(parentDir, prefix));
 }

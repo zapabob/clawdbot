@@ -31,7 +31,6 @@ import {
   resolveConfigIncludes,
 } from "./includes.js";
 import { migrateLegacyConfig } from "./legacy-migrate.js";
-import { normalizeLegacyWebSearchConfig } from "./legacy-web-search.js";
 import { findLegacyConfigIssues } from "./legacy.js";
 import {
   asResolvedSourceConfig,

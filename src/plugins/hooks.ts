@@ -996,7 +996,7 @@ export function createHookRunner(registry: PluginRegistry, options: HookRunnerOp
   async function runBeforeInstall(
     event: PluginHookBeforeInstallEvent,
     ctx: PluginHookBeforeInstallContext,
-  ): Promise<PluginHookBeforeInstallResult | undefined> {
+  ): Promise<PluginHookBeforeInstallResult | void> {
     return runModifyingHook<"before_install", PluginHookBeforeInstallResult>(
       "before_install",
       event,
