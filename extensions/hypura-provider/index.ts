@@ -13,7 +13,7 @@ const DEFAULT_BASE_URL = "http://127.0.0.1:8080";
 const DEFAULT_API_KEY = "hypura-local";
 
 /** Hypura serves an Ollama-compatible API at http://127.0.0.1:8080 by default.
- *  Start with: hypura serve --model ./model.gguf [--port 8080]
+ *  Start with: hypura serve ./model.gguf [--port 8080] (GGUF path is a positional arg; not --model)
  */
 export default definePluginEntry({
   id: "hypura",
@@ -39,7 +39,7 @@ export default definePluginEntry({
             const prompterAny = ctx.prompter as any;
             await prompterAny.print?.(
               `Connecting to Hypura server at ${baseUrl}\n` +
-                `Make sure it is running: hypura serve --model ./model.gguf\n`,
+                `Make sure it is running: hypura serve ./model.gguf\n`,
             );
 
             return {

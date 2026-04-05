@@ -36,11 +36,11 @@ available memory to run efficiently.
 ## Starting the inference server
 
 ```bash
-# Start server with tiered scheduling (default port 8080)
-hypura serve --model ./model.gguf
+# Start server with tiered scheduling (default port 8080). GGUF is a positional argument.
+hypura serve ./model.gguf
 
 # Custom host/port and context length
-hypura serve --model ./model.gguf --host 0.0.0.0 --port 18900 --context 8192
+hypura serve ./model.gguf --host 0.0.0.0 --port 18900 --context 8192
 ```
 
 The server exposes **Ollama-compatible** endpoints:
@@ -123,7 +123,7 @@ When hypura serve is running, OpenClaw connects via the **Hypura Provider** exte
 
 ```bash
 # Start server (keep running in background)
-hypura serve --model ~/models/mixtral-8x7b-q5_k_m.gguf --port 8080 &
+hypura serve ~/models/mixtral-8x7b-q5_k_m.gguf --port 8080 &
 
 # OpenClaw will auto-discover at http://127.0.0.1:8080
 openclaw config set models.providers.hypura.baseUrl=http://127.0.0.1:8080
@@ -135,6 +135,8 @@ openclaw config set models.providers.hypura.baseUrl=http://127.0.0.1:8080
 
 | Variable                       | Description                                                         |
 | ------------------------------ | ------------------------------------------------------------------- |
+| `HAKUA_HYPURA_EXE` / `HYPURA_EXE` | Full path to `hypura.exe` when not on PATH (OpenClaw launchers use this first). |
+| `HAKUA_HYPURA_GGUF` / `HYPURA_GGUF` | Full path to `.gguf` for `launch-desktop-stack` auto-start.         |
 | `HYPURA_CUDA_ARCHITECTURES`    | CUDA sm targets (default: `75;86;89;90`)                            |
 | `HYPURA_NO_CUDA`               | Disable CUDA auto-detection                                         |
 | `HYPURA_CUDA`                  | Force CUDA even without auto-detection                              |

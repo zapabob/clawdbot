@@ -1,8 +1,12 @@
 param(
     [int]$Port = 18789,
     [string]$ProjectDir = (Split-Path $PSScriptRoot -Parent | Split-Path -Parent),
-    [int]$PollRetries = 45,
-    [int]$PollIntervalSec = 1
+    [int]$PollRetries = 60,
+    [int]$PollIntervalSec = 1,
+    # Kill existing ngrok.exe and start a new tunnel (default: try to reuse a healthy tunnel first).
+    [switch]$ForceRestart,
+    # Max seconds to wait for upstream TCP (Gateway) before starting ngrok (reduces ERR_NGROK_8012).
+    [int]$UpstreamWaitSeconds = 90
 )
 
 $ErrorActionPreference = "Stop"
@@ -15,8 +19,6 @@ if ($Port -lt 1 -or $Port -gt 65535) {
     throw "[ngrok] Invalid -Port: $Port (expected 1-65535)"
 }
 
-# Explicit loopback URL avoids the agent failing to resolve the upstream (never use a bare / missing target).
-# Optional: set NGROK_UPSTREAM_URL in .env / .env.local to e.g. https://localhost:8443 if your app is TLS-local.
 $candidate = [string]$env:NGROK_UPSTREAM_URL
 $upstream = $null
 if ($candidate -match '^\s*https?://' -and $candidate -notmatch '(?i)undefined' -and $candidate -notmatch '(?i)^\s*https?://\s*$') {
@@ -26,12 +28,6 @@ if (-not $upstream) {
     $upstream = "http://127.0.0.1:$Port"
 }
 
-$EnvFile = Get-ProjectEnvFile -ProjectDir $ProjectDir
-
-<#
-  Bundled ngrok only: search under repo root (bin/ is gitignored but standard on disk).
-  Override: NGROK_EXE in .env / .env.local (full path to ngrok.exe).
-#>
 function Resolve-RepoNgrokExecutable {
     param([Parameter(Mandatory = $true)][string]$Root)
     $trim = { param($s) if ($null -eq $s) { "" } else { $s.Trim() } }
@@ -60,9 +56,91 @@ function Resolve-RepoNgrokExecutable {
     return $null
 }
 
+function Test-NgrokTunnelMatchesLocalPort {
+    param(
+        [Parameter(Mandatory = $true)] $Tunnel,
+        [Parameter(Mandatory = $true)] [int]$LocalPort
+    )
+    $addr = $null
+    if ($Tunnel.config -and $Tunnel.config.addr) {
+        $addr = [string]$Tunnel.config.addr
+    }
+    if (-not $addr -and $Tunnel.public_url) {
+        return $false
+    }
+    # e.g. http://127.0.0.1:18789 or https://127.0.0.1:18789
+    if ($addr -match "127\.0\.0\.1:$LocalPort\b" -or $addr -match "localhost:$LocalPort\b") {
+        return $true
+    }
+    return $false
+}
+
+function Get-ExistingNgrokPublicUrl {
+    param([int]$LocalPort)
+    try {
+        $resp = Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels" -TimeoutSec 2 -ErrorAction Stop
+        if (-not $resp.tunnels) { return $null }
+        foreach ($t in $resp.tunnels) {
+            if (Test-NgrokTunnelMatchesLocalPort -Tunnel $t -LocalPort $LocalPort) {
+                $u = [string]$t.public_url
+                if ($u) { return $u }
+            }
+        }
+    } catch { }
+    return $null
+}
+
+function Wait-UpstreamReady {
+    param(
+        [string]$UpstreamUrl,
+        [int]$MaxSeconds
+    )
+    $deadline = [DateTime]::UtcNow.AddSeconds($MaxSeconds)
+    $uri = $null
+    try { $uri = [Uri]$UpstreamUrl } catch { return $false }
+    while ([DateTime]::UtcNow -lt $deadline) {
+        try {
+            $c = Invoke-WebRequest -Uri $UpstreamUrl -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
+            if ($c.StatusCode -ge 200 -and $c.StatusCode -lt 500) {
+                return $true
+            }
+        } catch {
+            # Connection refused / reset until Gateway listens
+        }
+        Start-Sleep -Milliseconds 400
+    }
+    return $false
+}
+
+# --- Optional: reuse existing ngrok that already tunnels to this upstream (avoids killing unrelated sessions) ---
+if (-not $ForceRestart) {
+    $reuseUrl = Get-ExistingNgrokPublicUrl -LocalPort $Port
+    if ($reuseUrl) {
+        Write-Host "[ngrok] Reusing existing tunnel -> $reuseUrl (matches 127.0.0.1:$Port). Use -ForceRestart to replace." -ForegroundColor DarkCyan
+        $values = @{
+            OPENCLAW_PUBLIC_URL  = $reuseUrl
+            TELEGRAM_WEBHOOK_URL = "$reuseUrl/telegram-webhook"
+            LINE_WEBHOOK_URL     = "$reuseUrl/line/webhook"
+        }
+        Apply-NgrokWebhookEnvToFiles -ProjectDir $ProjectDir -Values $values
+        foreach ($key in $values.Keys) {
+            Set-Item -Path "Env:$key" -Value $values[$key]
+        }
+        Write-Host "[ngrok] .env synced (Telegram path /telegram-webhook, LINE /line/webhook — see scripts/launchers/README.md)." -ForegroundColor Green
+        exit 0
+    }
+}
+
 Write-Host "[ngrok] Starting tunnel -> upstream $upstream (CLI port hint: $Port)..." -ForegroundColor Cyan
 
-# 既存 ngrok プロセスを強制終了してからリスタート
+# Wait until Gateway answers HTTP (reduces ERR_NGROK_8012 when ngrok starts too early).
+Write-Host "[ngrok] Waiting for upstream HTTP ($upstream) up to ${UpstreamWaitSeconds}s..." -ForegroundColor Gray
+$ready = Wait-UpstreamReady -UpstreamUrl $upstream -MaxSeconds $UpstreamWaitSeconds
+if (-not $ready) {
+    Write-Host "[ngrok] WARNING: upstream did not respond in time; ngrok may show 8012 until Gateway is up." -ForegroundColor Yellow
+}
+
+# Fresh tunnel: free :4040 (reuse path exited above).
 Get-Process -Name "ngrok" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 Start-Sleep -Milliseconds 500
 
@@ -83,7 +161,7 @@ if (-not $ngrokProc) {
     throw "[ngrok] Start-Process returned no process. Check NGROK_EXE / repo binary path."
 }
 
-# Local API poll (404)
+# Local API poll (404) — must match env-tools Sync-NgrokPublicUrlToEnv (/hooks/* not /webhook/*).
 $publicUrl = $null
 for ($i = 0; $i -lt $PollRetries; $i++) {
     Start-Sleep -Seconds $PollIntervalSec
@@ -93,7 +171,7 @@ for ($i = 0; $i -lt $PollRetries; $i++) {
         break
     }
     try {
-        $resp = Invoke-RestMethod -Uri "http://localhost:4040/api/tunnels" -ErrorAction Stop
+        $resp = Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels" -ErrorAction Stop
         $tunnel = $resp.tunnels | Where-Object { $_.proto -eq "https" } | Select-Object -First 1
         if (-not $tunnel) {
             $tunnel = $resp.tunnels | Select-Object -First 1
@@ -108,19 +186,17 @@ for ($i = 0; $i -lt $PollRetries; $i++) {
 if ($publicUrl) {
     Write-Host "[ngrok] Public URL: $publicUrl" -ForegroundColor Green
 
-    $telegramUrl = "$publicUrl/webhook/telegram"
-    $lineUrl = "$publicUrl/webhook/line"
-
-    Set-EnvValues -EnvFile $EnvFile -Values @{
+    $values = @{
         OPENCLAW_PUBLIC_URL   = $publicUrl
-        TELEGRAM_WEBHOOK_URL  = $telegramUrl
-        LINE_WEBHOOK_URL      = $lineUrl
+        TELEGRAM_WEBHOOK_URL  = "$publicUrl/telegram-webhook"
+        LINE_WEBHOOK_URL      = "$publicUrl/line/webhook"
     }
-    Write-Host "[ngrok] .env updated: OPENCLAW_PUBLIC_URL, TELEGRAM_WEBHOOK_URL, LINE_WEBHOOK_URL" -ForegroundColor Green
+    Apply-NgrokWebhookEnvToFiles -ProjectDir $ProjectDir -Values $values
+    Write-Host "[ngrok] .env updated: OPENCLAW_PUBLIC_URL, TELEGRAM_WEBHOOK_URL, LINE_WEBHOOK_URL (/telegram-webhook, /line/webhook)" -ForegroundColor Green
 
-    $env:OPENCLAW_PUBLIC_URL = $publicUrl
-    $env:TELEGRAM_WEBHOOK_URL = $telegramUrl
-    $env:LINE_WEBHOOK_URL = $lineUrl
+    foreach ($key in $values.Keys) {
+        Set-Item -Path "Env:$key" -Value $values[$key]
+    }
 } else {
     Write-Host "[ngrok] WARNING: Could not retrieve public URL after $PollRetries attempts." -ForegroundColor Yellow
     Write-Host "[ngrok] Is ngrok authenticated? Run: ngrok config add-authtoken <TOKEN>" -ForegroundColor Yellow

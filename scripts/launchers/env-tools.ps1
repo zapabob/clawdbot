@@ -88,8 +88,8 @@ function Get-EnvMap {
 }
 
 <#
-  Merge .env then .env.local into one map (later file wins per key).
-  Used by desktop stack launchers to inject the full effective env into child processes.
+  Merge .env then .env.local, then OPENCLAW_STATE_DIR\.env (default: repo\.openclaw-desktop\.env).
+  Later files win. Launchers previously skipped the state .env — Telegram/LINE there never reached the Gateway child.
 #>
 function Get-MergedEnvMap {
     param(
@@ -106,6 +106,40 @@ function Get-MergedEnvMap {
         $map = Get-EnvMap -EnvFile $path
         foreach ($key in $map.Keys) {
             $merged[$key] = $map[$key]
+        }
+    }
+
+    $stateRootRaw = ""
+    if ($merged.ContainsKey("OPENCLAW_STATE_DIR")) {
+        $stateRootRaw = [string]$merged["OPENCLAW_STATE_DIR"]
+        if ($stateRootRaw) { $stateRootRaw = $stateRootRaw.Trim() }
+    }
+    if ([string]::IsNullOrWhiteSpace($stateRootRaw)) {
+        $stateRoot = Join-Path $ProjectDir ".openclaw-desktop"
+    } elseif ($stateRootRaw.StartsWith("~")) {
+        $stateRoot = $stateRootRaw -replace "^~(?=[\\/]|$)", $env:USERPROFILE
+    } else {
+        $stateRoot = $stateRootRaw
+    }
+
+    $stateEnvPath = Join-Path $stateRoot ".env"
+    if (Test-Path -LiteralPath $stateEnvPath) {
+        $map = Get-EnvMap -EnvFile $stateEnvPath
+        foreach ($key in $map.Keys) {
+            $merged[$key] = $map[$key]
+        }
+    }
+
+    # Parent process may set OPENCLAW_STATE_DIR (e.g. launch-desktop-stack) before this runs — merge that .env last.
+    $procState = [string]$env:OPENCLAW_STATE_DIR
+    if (-not [string]::IsNullOrWhiteSpace($procState)) {
+        $procState = $procState.Trim()
+        $procEnvPath = Join-Path $procState ".env"
+        if (Test-Path -LiteralPath $procEnvPath) {
+            $map = Get-EnvMap -EnvFile $procEnvPath
+            foreach ($key in $map.Keys) {
+                $merged[$key] = $map[$key]
+            }
         }
     }
 
@@ -190,6 +224,30 @@ function Ensure-GatewayTokenInProcess {
     return $token
 }
 
+function Apply-NgrokWebhookEnvToFiles {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ProjectDir,
+        [Parameter(Mandatory = $true)]
+        [hashtable]$Values
+    )
+    $repoEnv = Get-ProjectEnvFile -ProjectDir $ProjectDir
+    Set-EnvValues -EnvFile $repoEnv -Values $Values
+    $stateRoot = [string]$env:OPENCLAW_STATE_DIR
+    if ([string]::IsNullOrWhiteSpace($stateRoot)) {
+        $stateRoot = Join-Path $ProjectDir ".openclaw-desktop"
+    }
+    $stateRoot = $stateRoot.Trim()
+    $stateEnv = Join-Path $stateRoot ".env"
+    $parent = Split-Path -Parent $stateEnv
+    if (Test-Path -LiteralPath $parent) {
+        if (-not (Test-Path -LiteralPath $stateEnv)) {
+            New-Item -ItemType File -Path $stateEnv -Force | Out-Null
+        }
+        Set-EnvValues -EnvFile $stateEnv -Values $Values
+    }
+}
+
 function Sync-NgrokPublicUrlToEnv {
     param(
         [Parameter(Mandatory = $true)]
@@ -198,7 +256,6 @@ function Sync-NgrokPublicUrlToEnv {
         [int]$PollMs = 1000
     )
 
-    $envFile = Ensure-ProjectEnvFile -ProjectDir $ProjectDir
     $effectivePollMs = [Math]::Max(100, [int]$PollMs)
     $windowMs = [int]($MaxWaitSeconds * 1000)
     $attempts = [Math]::Max(1, [int]([Math]::Ceiling($windowMs / $effectivePollMs)))
@@ -227,12 +284,15 @@ function Sync-NgrokPublicUrlToEnv {
         return $null
     }
 
+    # Paths must match bundled extensions: LINE -> registerPluginHttpRoute default "/line/webhook";
+    # Telegram standalone webhook listener default path "/telegram-webhook" (see extensions/telegram/src/webhook.ts).
+    # NOTE: Telegram webhook binds its own port (default 8787), not the gateway port — set NGROK_UPSTREAM_URL=http://127.0.0.1:8787 when using Telegram webhook + ngrok, or use Telegram polling with ngrok -> gateway for LINE only.
     $values = @{
         OPENCLAW_PUBLIC_URL   = $publicUrl
-        TELEGRAM_WEBHOOK_URL  = "$publicUrl/hooks/telegram"
-        LINE_WEBHOOK_URL      = "$publicUrl/hooks/line"
+        TELEGRAM_WEBHOOK_URL  = "$publicUrl/telegram-webhook"
+        LINE_WEBHOOK_URL      = "$publicUrl/line/webhook"
     }
-    Set-EnvValues -EnvFile $envFile -Values $values
+    Apply-NgrokWebhookEnvToFiles -ProjectDir $ProjectDir -Values $values
     foreach ($key in $values.Keys) {
         Set-Item -Path "Env:$key" -Value $values[$key]
     }
@@ -284,8 +344,9 @@ function Resolve-NodeExecutable {
 }
 
 <#
- Merge .env then .env.local (later wins). Applies each KEY to the current process only.
- Secrets stay in files; do not commit .env.local.
+ Merge .env, .env.local, then .openclaw-desktop\.env, then OPENCLAW_STATE_DIR\.env when different.
+ Matches what operators expect: Telegram/LINE tokens in desktop bundle are applied to child processes.
+ Node's loadDotEnv also reads OPENCLAW_STATE_DIR\.env but only after cwd\.env — empty keys in root .env can block; later files here override process env before node spawns.
 #>
 function Merge-OpenClawEnvToProcess {
     param(
@@ -293,17 +354,7 @@ function Merge-OpenClawEnvToProcess {
         [string]$ProjectDir
     )
 
-    $merged = @{}
-    foreach ($rel in @(".env", ".env.local")) {
-        $path = Join-Path $ProjectDir $rel
-        if (-not (Test-Path $path)) {
-            continue
-        }
-        $map = Get-EnvMap -EnvFile $path
-        foreach ($key in $map.Keys) {
-            $merged[$key] = $map[$key]
-        }
-    }
+    $merged = Get-MergedEnvMap -ProjectDir $ProjectDir
 
     foreach ($key in $merged.Keys) {
         Set-Item -Path "Env:$key" -Value $merged[$key]
@@ -335,4 +386,25 @@ function Set-OpenClawDesktopConfigEnv {
     if ([string]::IsNullOrWhiteSpace($existing)) {
         $env:OPENCLAW_STATE_DIR = $stateRoot
     }
+}
+
+<#
+  Full path to the Hypura CLI binary (hypura.exe / hypura).
+  Precedence: HAKUA_HYPURA_EXE, HYPURA_EXE (literal path must exist), then Get-Command hypura.exe / hypura.
+#>
+function Resolve-HypuraExecutablePath {
+    foreach ($cand in @([string]$env:HAKUA_HYPURA_EXE, [string]$env:HYPURA_EXE)) {
+        $t = $cand.Trim()
+        if ($t -and (Test-Path -LiteralPath $t)) {
+            return (Resolve-Path -LiteralPath $t).Path
+        }
+    }
+    $cmd = Get-Command "hypura.exe" -ErrorAction SilentlyContinue
+    if (-not $cmd) {
+        $cmd = Get-Command "hypura" -ErrorAction SilentlyContinue
+    }
+    if ($cmd) {
+        return [string]$cmd.Source
+    }
+    return $null
 }

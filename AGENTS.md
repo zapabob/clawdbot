@@ -153,15 +153,17 @@ The Hypura harness is the central nervous system for VRChat OSC, VOICEVOX, and s
 High-density structural map for efficient autonomous traversal:
 
 - **Launch Hub** (`scripts/launchers/`):
-  - `Sovereign-Portal.ps1`: Full stack ignition (TUI + Gateway + Browser + Harness); `ASI-Hakua-Portal.ps1` is a thin wrapper.
-  - `ASI-Manifest-Sovereign.ps1`: Desktop shortcuts (portal, ngrok, Gateway, TUI, Hypura harness).
+  - Desktop stack / portal implementations live in **`scripts/launchers/openclaw-desktop/`**; root `*.ps1` names are thin shims for stable paths (`OPENCLAW_DESKTOP_LAUNCHER`, docs).
+  - `openclaw-desktop/Sovereign-Portal.ps1`: Full stack ignition (TUI + Gateway + Browser + Harness); `ASI-Hakua-Portal.ps1` is a thin wrapper.
+  - `openclaw-desktop/ASI-Manifest-Sovereign.ps1` / `Install-OpenClawDesktopShortcuts.ps1`: Single desktop shortcut `OpenClaw.lnk` + remove legacy `.lnk` files.
   - `start_ngrok.ps1`: Tunnel + `localhost:4040` polling → `.env` and process env (`OPENCLAW_PUBLIC_URL`, webhooks).
   - `Start-Gateway.ps1` / `Start-TUI.ps1` / `Start-Hypura-Harness.ps1`: Single-purpose starters with `Merge-OpenClawEnvToProcess` and `OPENCLAW_CONFIG_PATH` when `.openclaw-desktop/openclaw.json` exists.
 - **Maintenance Core** (`scripts/tools/`):
   - `update-hakua.ps1`: Upstream repo synchronization.
   - `sovereign_diagnostics.py`: Substrate integrity and port validation.
 - **Model Substrate** (`scripts/modelfiles/`):
-  - `Modelfile_HakuaCore2`: Core reasoning model definition.
+  - `Modelfile_HakuaCore2`: Core reasoning model definition (Qwen lineage).
+  - `Modelfile_Gemma-Hakua-core`: Ollama tag `Gemma-Hakua-core` from HF Gemma-4 E4B HauhauCS Q4_K_M + Hakua SYSTEM.
 - **Diagnostic Sink** (`logs/diagnostics/`):
   - Telemetry logs and error traces. (Purge periodically to maintain stealth).
 

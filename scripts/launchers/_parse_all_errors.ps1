@@ -1,4 +1,4 @@
-$path = Join-Path $PSScriptRoot 'Sovereign-Portal.ps1'
+$path = Join-Path $PSScriptRoot 'openclaw-desktop\Sovereign-Portal.ps1'
 $err = $null
 $tok = $null
 [void][System.Management.Automation.Language.Parser]::ParseFile($path, [ref]$tok, [ref]$err)

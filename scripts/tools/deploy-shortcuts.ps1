@@ -5,7 +5,7 @@ $ProjectDir = $PSScriptRoot
 # Navigate up to the root from scripts/tools
 for ($i=0; $i -lt 2; $i++) { $ProjectDir = Split-Path -Parent $ProjectDir }
 
-$LauncherPath = Join-Path $ProjectDir "scripts\launchers\Sovereign-Portal.ps1"
+$LauncherPath = Join-Path $ProjectDir "scripts\launchers\openclaw-desktop\Sovereign-Portal.ps1"
 $IconPath = Join-Path $ProjectDir "assets\clawdbot.ico"
 $Desktop = [Environment]::GetFolderPath("Desktop")
 

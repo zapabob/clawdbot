@@ -3,8 +3,8 @@ param(
 )
 
 # Setup-NotificationTasks.ps1
-# Reads .env and registers Windows Task Scheduler tasks for heartbeat + startup SITREP.
-# Called automatically by Sovereign-Portal.ps1 or run manually.
+# Reads .env and registers Windows Task Scheduler tasks for heartbeat only (Telegram/LINE).
+# Startup/boot SITREP was removed (no AtStartup task). Run manually: .\Setup-NotificationTasks.ps1
 #
 # ENV KEYS:
 #   HEARTBEAT_INTERVAL_MIN  integer minutes, default 30
@@ -33,11 +33,16 @@ if ($Remove) {
         }
     }
     # Gateway 自動起動タスクも掃除（存在する場合のみ）
-    $gwTaskName = "OpenClaw Gateway (desktop-stack)"
-    $existingGw = Get-ScheduledTask -TaskName $gwTaskName -ErrorAction SilentlyContinue
-    if ($existingGw) {
-        Unregister-ScheduledTask -TaskName $gwTaskName -Confirm:$false
-        Write-Host "  [TASK] Removed gateway auto-start task: $gwTaskName" -ForegroundColor Yellow
+    # Use single quotes — parentheses in double-quoted strings are subexpressions in PowerShell.
+    $gwTaskName = 'OpenClaw Gateway (desktop-stack)'
+    try {
+        $existingGw = Get-ScheduledTask -TaskName $gwTaskName -ErrorAction SilentlyContinue
+        if ($existingGw) {
+            Unregister-ScheduledTask -TaskName $gwTaskName -Confirm:$false -ErrorAction Stop
+            Write-Host "  [TASK] Removed gateway auto-start task: $gwTaskName" -ForegroundColor Yellow
+        }
+    } catch {
+        Write-Host ("  [TASK] Could not remove gateway task (run elevated if needed): {0}" -f $_) -ForegroundColor DarkYellow
     }
     return
 }
@@ -100,24 +105,4 @@ Register-ScheduledTask `
     -Force | Out-Null
 
 Write-Host ("  [TASK] Heartbeat registered: every {0}min (from HEARTBEAT_INTERVAL_MIN)" -f $intervalMin) -ForegroundColor Green
-
-# 2. Startup SITREP task
-$srAction   = New-NotifyAction -NotifyType "STARTUP"
-$srTrigger  = New-ScheduledTaskTrigger -AtStartup
-$srSettings = New-ScheduledTaskSettingsSet `
-    -ExecutionTimeLimit (New-TimeSpan -Minutes 2) `
-    -StartWhenAvailable `
-    -RunOnlyIfNetworkAvailable
-
-Register-ScheduledTask `
-    -TaskPath "\$taskFolder\" `
-    -TaskName "StartupSITREP" `
-    -Action $srAction `
-    -Trigger $srTrigger `
-    -Settings $srSettings `
-    -Principal $hbPrincipal `
-    -Description "Clawdbot startup SITREP to Telegram/LINE (env-driven)" `
-    -Force | Out-Null
-
-Write-Host "  [TASK] StartupSITREP registered: @Windows Startup" -ForegroundColor Green
-Write-Host "  [TASK] Done. To remove: Setup-NotificationTasks.ps1 -Remove" -ForegroundColor DarkCyan
+Write-Host "  [TASK] Done. To remove tasks: Setup-NotificationTasks.ps1 -Remove" -ForegroundColor DarkCyan
