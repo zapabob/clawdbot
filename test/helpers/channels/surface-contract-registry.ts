@@ -1,5 +1,6 @@
 import { vi } from "vitest";
 import {
+  ensureBundledChannelPluginsLoaded,
   listBundledChannelPlugins,
   setBundledChannelRuntime,
 } from "../../../src/channels/plugins/bundled.js";
@@ -55,6 +56,8 @@ const sendMessageMatrixMock = vi.hoisted(() =>
     roomId: to.replace(/^room:/, ""),
   })),
 );
+
+await ensureBundledChannelPluginsLoaded();
 
 setBundledChannelRuntime("line", {
   channel: {

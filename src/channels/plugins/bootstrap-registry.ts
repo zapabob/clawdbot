@@ -1,4 +1,8 @@
-import { listBundledChannelPlugins, listBundledChannelSetupPlugins } from "./bundled.js";
+import {
+  clearBundledChannelPluginsCache,
+  listBundledChannelPlugins,
+  listBundledChannelSetupPlugins,
+} from "./bundled.js";
 import type { ChannelId, ChannelPlugin } from "./types.js";
 
 type CachedBootstrapPlugins = {
@@ -77,5 +81,6 @@ export function getBootstrapChannelPlugin(id: ChannelId): ChannelPlugin | undefi
 }
 
 export function clearBootstrapChannelPluginCache(): void {
+  clearBundledChannelPluginsCache();
   cachedBootstrapPlugins = null;
 }

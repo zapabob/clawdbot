@@ -491,7 +491,7 @@ if (-not $SkipGateway) {
             Write-Host "  [Ngrok   ] Gateway port is listening; starting tunnel (env injected)..." -ForegroundColor DarkCyan
         }
         Merge-OpenClawEnvToProcess -ProjectDir $ProjectDir
-        $ngrokTunnelPort = Get-NgrokUpstreamTunnelMatchPort -GatewayPort $GatewayPort
+        $ngrokTunnelPort = Get-NgrokUpstreamTunnelMatchPort -GatewayPort $GatewayPort -ProjectDir $ProjectDir
         if ($ngrokTunnelPort -ne $GatewayPort) {
             Write-Host "  [Ngrok   ] Upstream targets port $ngrokTunnelPort (not Gateway $GatewayPort); waiting for TCP listen (up to 120s; Telegram webhook / custom listener)..." -ForegroundColor DarkCyan
             $upDeadline = [DateTime]::Now.AddSeconds(120)

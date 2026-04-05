@@ -19,17 +19,24 @@ if ($Port -lt 1 -or $Port -gt 65535) {
     throw "[ngrok] Invalid -Port: $Port (expected 1-65535)"
 }
 
-$upstream = Resolve-OpenClawNgrokUpstreamUrl -Candidate ([string]$env:NGROK_UPSTREAM_URL) -GatewayPort $Port
 $mergedEnv = Get-MergedEnvMap -ProjectDir $ProjectDir
 if ($mergedEnv.ContainsKey("NGROK_UPSTREAM_URL")) {
     $fromFile = [string]$mergedEnv["NGROK_UPSTREAM_URL"]
     if ($fromFile -and -not (Test-OpenClawNgrokUpstreamCandidate -Candidate $fromFile)) {
-        Write-Host "[ngrok] NGROK_UPSTREAM_URL in merged .env is invalid ($fromFile); using fallback: $upstream" -ForegroundColor Yellow
+        Write-Host "[ngrok] NGROK_UPSTREAM_URL in merged .env is invalid ($fromFile); using Gateway fallback after resolution." -ForegroundColor Yellow
         Write-Host "[ngrok] Run: scripts\launchers\repair-ngrok-upstream-env.ps1 -GatewayPort $Port" -ForegroundColor DarkYellow
     }
 }
 
-$tunnelMatchPort = Get-NgrokUpstreamTunnelMatchPort -GatewayPort $Port
+$res = Get-OpenClawNgrokUpstreamResolution -NgrokUpstreamCandidate ([string]$env:NGROK_UPSTREAM_URL) -GatewayPort $Port -ProjectDir $ProjectDir
+if ($res.AdjustedForTelegramPolling) {
+    Write-Host @"
+[ngrok] Telegram is in polling mode (no channels.telegram.webhookUrl). NGROK_UPSTREAM_URL targeted the Telegram listener port; tunneling Gateway http://127.0.0.1:$Port instead.
+  For Telegram webhook through ngrok, set channels.telegram.webhookUrl and webhookSecret in openclaw.json (see Telegram channel docs).
+"@ -ForegroundColor Yellow
+}
+$upstream = $res.Url
+$tunnelMatchPort = $res.TunnelPort
 
 try {
     $upUri = [Uri]$upstream

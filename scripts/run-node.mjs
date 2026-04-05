@@ -199,6 +199,9 @@ export const resolveBuildRequirement = (deps) => {
   if (deps.env.OPENCLAW_FORCE_BUILD === "1") {
     return { shouldBuild: true, reason: "force_build" };
   }
+  if (deps.env.OPENCLAW_RUNNODE_SKIP_BUILD === "1" && statMtime(deps.distEntry, deps.fs) != null) {
+    return { shouldBuild: false, reason: "skip_build_env" };
+  }
   const stamp = readBuildStamp(deps);
   if (stamp.mtime == null) {
     return { shouldBuild: true, reason: "missing_build_stamp" };
@@ -239,6 +242,7 @@ export const resolveBuildRequirement = (deps) => {
 
 const BUILD_REASON_LABELS = {
   force_build: "forced by OPENCLAW_FORCE_BUILD",
+  skip_build_env: "skipped via OPENCLAW_RUNNODE_SKIP_BUILD=1 (dist/entry.js present)",
   missing_build_stamp: "build stamp missing",
   missing_dist_entry: "dist entry missing",
   config_newer: "config newer than build stamp",

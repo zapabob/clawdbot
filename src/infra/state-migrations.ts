@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { listBootstrapChannelPlugins } from "../channels/plugins/bootstrap-registry.js";
-import { listBundledChannelPlugins } from "../channels/plugins/bundled.js";
+import { ensureBundledChannelPluginsLoaded, listBundledChannelPlugins } from "../channels/plugins/bundled.js";
 import type { ChannelLegacyStateMigrationPlan } from "../channels/plugins/types.core.js";
 import type { OpenClawConfig } from "../config/config.js";
 import {
@@ -661,6 +661,7 @@ async function collectChannelLegacyStateMigrationPlans(params: {
   stateDir: string;
   oauthDir: string;
 }): Promise<ChannelLegacyStateMigrationPlan[]> {
+  await ensureBundledChannelPluginsLoaded();
   const plans: ChannelLegacyStateMigrationPlan[] = [];
   for (const plugin of listBundledChannelPlugins()) {
     const detected = await plugin.lifecycle?.detectLegacyStateMigrations?.({

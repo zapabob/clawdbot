@@ -1,4 +1,5 @@
 import { vi } from "vitest";
+import { ensureBundledChannelPluginsLoaded } from "../src/channels/plugins/bundled.js";
 
 vi.mock("@mariozechner/pi-ai", async () => {
   const original =
@@ -61,3 +62,5 @@ export function installSharedTestSetup(options?: SharedTestSetupOptions): {
   installProcessWarningFilter();
   return testEnv;
 }
+
+await ensureBundledChannelPluginsLoaded();

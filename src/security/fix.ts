@@ -1,7 +1,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
-import { listBundledChannelPlugins } from "../channels/plugins/bundled.js";
+import {
+  ensureBundledChannelPluginsLoaded,
+  listBundledChannelPlugins,
+} from "../channels/plugins/bundled.js";
 import type { ChannelPlugin } from "../channels/plugins/types.js";
 import type { OpenClawConfig } from "../config/config.js";
 import { createConfigIO } from "../config/config.js";
@@ -249,6 +252,7 @@ async function collectChannelSecurityConfigFixMutation(params: {
   cfg: OpenClawConfig;
   env: NodeJS.ProcessEnv;
 }) {
+  await ensureBundledChannelPluginsLoaded();
   let nextCfg = params.cfg;
   const changes: string[] = [];
   const collectPlugins = (): ChannelPlugin[] => {

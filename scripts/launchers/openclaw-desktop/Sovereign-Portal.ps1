@@ -37,6 +37,43 @@ if ($UseDesktopLauncher) {
 }
 Set-OpenClawDesktopConfigEnv -ProjectDir $ProjectDir
 
+function Invoke-OpenClawRepoDistPreflight {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$RepoRoot
+    )
+    if ([string]$env:OPENCLAW_SKIP_REPO_DIST_PREFLIGHT -eq "1") {
+        return $true
+    }
+    $nodePf = Resolve-NodeExecutable
+    if (-not $nodePf) {
+        Write-Host "  [PREFLIGHT] node.exe not found; cannot refresh dist." -ForegroundColor Yellow
+        return $false
+    }
+    Write-Host "  [PREFLIGHT] dist sync: tsdown --no-clean + runtime-postbuild + build-stamp (stabilizes Gateway on Windows)..." -ForegroundColor DarkCyan
+    Write-Host "  [PREFLIGHT] Tip: full pnpm build needs Git Bash/WSL for canvas:a2ui. Skip this block: `$env:OPENCLAW_SKIP_REPO_DIST_PREFLIGHT='1'" -ForegroundColor DarkGray
+    Push-Location $RepoRoot
+    try {
+        $steps = @(
+            @{ Args = @("scripts/tsdown-build.mjs", "--no-clean"); Label = "tsdown" },
+            @{ Args = @("scripts/runtime-postbuild.mjs"); Label = "runtime-postbuild" },
+            @{ Args = @("scripts/build-stamp.mjs"); Label = "build-stamp" }
+        )
+        foreach ($step in $steps) {
+            $cmdArgs = $step.Args
+            & $nodePf @cmdArgs
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host ("  [PREFLIGHT][ERROR] {0} failed (exit {1})." -f $step.Label, $LASTEXITCODE) -ForegroundColor Red
+                return $false
+            }
+        }
+    } finally {
+        Pop-Location
+    }
+    Write-Host "  [PREFLIGHT] dist sync OK." -ForegroundColor Green
+    return $true
+}
+
 # --- [Header] ---
 function Show-Header {
     Clear-Host
@@ -93,10 +130,15 @@ Show-Header
 Write-Host ("  [ASI_ACCEL] Mode: {0} Manifesting (Asynchronous Pulse)..." -f $Mode) -ForegroundColor Yellow
 Write-Host "  [GHOST] Ghost Bridge Active: Antigravity Substrate Integration." -ForegroundColor Cyan
 
-# Verify Substrate (venv or uv for harness)
-if (-not (Test-Path $PythonExe) -and -not (Get-Command uv -ErrorAction SilentlyContinue)) {
-    Write-Host "  [FATAL] Python venv missing and uv not on PATH." -ForegroundColor Red
-    exit 1
+# Hypura harness needs Python venv or uv; Gateway/TUI/Browser do not — do not exit the whole portal.
+$pythonHarnessMissing = (-not (Test-Path $PythonExe)) -and -not (Get-Command uv -ErrorAction SilentlyContinue)
+if ($pythonHarnessMissing) {
+    if ($Mode -eq "Harness") {
+        Write-Host "  [FATAL] Harness-only mode requires repo .venv or uv on PATH." -ForegroundColor Red
+        exit 1
+    }
+    Write-Host "  [WARN] No repo .venv and no uv — skipping Hypura harness (Gateway/TUI/UI still run)." -ForegroundColor Yellow
+    $SkipHypuraHarness = $true
 }
 
 # --- [Port Sanitization + Node Process Cleanup] ---
@@ -134,6 +176,15 @@ foreach ($port in $criticalPorts) {
     } catch { }
 }
 Start-Sleep -Milliseconds 500
+
+# Refresh dist before Gateway so run-node does not race a second incremental build; avoids broken channel loads on some Windows/Node combos.
+if ($Mode -eq "Full" -or $Mode -eq "Ghost") {
+    $pfOk = Invoke-OpenClawRepoDistPreflight -RepoRoot $ProjectDir
+    if ($pfOk) {
+        $env:OPENCLAW_RUNNODE_SKIP_BUILD = "1"
+        Write-Host "  [PREFLIGHT] OPENCLAW_RUNNODE_SKIP_BUILD=1 for child launchers (dist already synced)." -ForegroundColor DarkGray
+    }
+}
 
 # dist/extensions の .runtime-deps-* 一時ディレクトリのみ削除（残留ゴミ）
 # node_modules は削除しない → 削除すると毎回 npm install が走り起動が遅くなる
@@ -318,8 +369,10 @@ if ($Mode -match "Full|Ghost|Full-Docker") {
     if ($Mode -eq "Full-Docker") {
         Write-Host ("  [GW]  Gateway in Docker on port {0}; local Start-Gateway.ps1 skipped." -f $GatewayPort) -ForegroundColor DarkCyan
     } else {
-        $gwStyle = "Minimized"
+        # Full: show Gateway window so startup errors are visible (set OPENCLAW_MINIMIZE_LAUNCHERS=1 to hide).
+        $gwStyle = "Normal"
         if ($Mode -eq "Ghost") { $gwStyle = "Hidden" }
+        elseif ($Mode -eq "Full" -and [string]$env:OPENCLAW_MINIMIZE_LAUNCHERS -eq "1") { $gwStyle = "Minimized" }
 
         $gwPs1 = Join-Path $ProjectDir "scripts\launchers\Start-Gateway.ps1"
         Start-Process -FilePath "powershell.exe" -ArgumentList @(
@@ -343,7 +396,7 @@ if ($startHostNgrok) {
         Start-Sleep -Milliseconds 500
     }
     Merge-OpenClawEnvToProcess -ProjectDir $ProjectDir
-    $ngrokTunnelPort = Get-NgrokUpstreamTunnelMatchPort -GatewayPort $GatewayPort
+    $ngrokTunnelPort = Get-NgrokUpstreamTunnelMatchPort -GatewayPort $GatewayPort -ProjectDir $ProjectDir
     if ($ngrokTunnelPort -ne $GatewayPort) {
         Write-Host ("  [ngrok] Upstream port {0}; waiting for listener (up to 120s)..." -f $ngrokTunnelPort) -ForegroundColor DarkCyan
         $upDeadline = [DateTime]::Now.AddSeconds(120)
@@ -455,19 +508,35 @@ if ($Mode -match "Full|Full-Docker") {
     if ($launchTuiAfterGatewayWait) {
         Write-Host "  [TUI] Delaying TUI launch until Gateway wait completes..." -ForegroundColor DarkGray
     } else {
+        $tuiWin = "Normal"
+        if ([string]$env:OPENCLAW_MINIMIZE_LAUNCHERS -eq "1") { $tuiWin = "Minimized" }
         Start-Process -FilePath "powershell.exe" -ArgumentList @(
             "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $tuiPs1
-        ) -WorkingDirectory $ProjectDir
+        ) -WorkingDirectory $ProjectDir -WindowStyle $tuiWin
         Write-Host "  [TUI] TUI launched async." -ForegroundColor Gray
     }
 
-    $edgeExe = "msedge.exe"
+    $edgeExe = $null
     $candPaths = @(
         "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe",
-        "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe"
+        "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe",
+        "$env:ProgramFiles\Google\Chrome\Application\chrome.exe",
+        "$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe"
     )
     foreach ($cand in $candPaths) {
-        if (Test-Path -LiteralPath $cand) { $edgeExe = $cand; break }
+        if ($cand -and (Test-Path -LiteralPath $cand)) { $edgeExe = $cand; break }
+    }
+    if (-not $edgeExe) {
+        $edgeCmd = Get-Command "msedge.exe" -ErrorAction SilentlyContinue
+        if ($edgeCmd -and $edgeCmd.Source) { $edgeExe = $edgeCmd.Source }
+    }
+    if (-not $edgeExe) {
+        $chromeCmd = Get-Command "chrome.exe" -ErrorAction SilentlyContinue
+        if ($chromeCmd -and $chromeCmd.Source) { $edgeExe = $chromeCmd.Source }
+    }
+    if (-not $edgeExe) {
+        $edgeExe = "msedge.exe"
+        Write-Host "  [WARN] Edge/Chrome not found on disk; trying msedge.exe on PATH." -ForegroundColor Yellow
     }
 
     # openclaw.json からトークンを動的に読み込む（リポジトリ優先、次に desktop 同期、最後にユーザ既定）
@@ -526,9 +595,11 @@ if ($Mode -match "Full|Full-Docker") {
     }
 
     if ($launchTuiAfterGatewayWait) {
+        $tuiWinFull = "Normal"
+        if ([string]$env:OPENCLAW_MINIMIZE_LAUNCHERS -eq "1") { $tuiWinFull = "Minimized" }
         Start-Process -FilePath "powershell.exe" -ArgumentList @(
             "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $tuiPs1
-        ) -WorkingDirectory $ProjectDir
+        ) -WorkingDirectory $ProjectDir -WindowStyle $tuiWinFull
         Write-Host "  [TUI] TUI launched after Gateway wait." -ForegroundColor Gray
     }
 

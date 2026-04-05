@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { createJiti } from "jiti";
 import { openBoundaryFileSync } from "../../infra/boundary-file-read.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
@@ -11,6 +12,7 @@ import {
   buildPluginLoaderJitiOptions,
   shouldPreferNativeJiti,
 } from "../../plugins/sdk-alias.js";
+import { rewriteBundledDistRuntimePathToDist } from "./bundled-dist-runtime-path.js";
 import type { ChannelId, ChannelPlugin } from "./types.js";
 
 type GeneratedBundledChannelEntry = {
@@ -147,7 +149,7 @@ function createModuleLoader() {
 
 const loadModule = createModuleLoader();
 
-function loadBundledModule(modulePath: string, rootDir: string): unknown {
+function resolveBundledModuleSafePath(modulePath: string, rootDir: string): string {
   const boundaryRoot = resolveCompiledBundledModulePath(rootDir);
   const opened = openBoundaryFileSync({
     absolutePath: modulePath,
@@ -161,14 +163,34 @@ function loadBundledModule(modulePath: string, rootDir: string): unknown {
   }
   const safePath = opened.path;
   fs.closeSync(opened.fd);
-  return loadModule(safePath)(safePath);
+  return safePath;
+}
+
+/**
+ * Precompiled bundled extension modules under dist/extensions must load through Node's native
+ * dynamic import so jiti does not Babel-transform huge generated validators (AJV output, etc.),
+ * which can exceed the JS stack on Windows.
+ */
+export function shouldUseNativeImportForBundledChannelEntry(absPath: string): boolean {
+  const normalized = absPath.replace(/\\/g, "/").toLowerCase();
+  const ext = path.extname(normalized).toLowerCase();
+  if (ext !== ".js" && ext !== ".mjs") {
+    return false;
+  }
+  return normalized.includes("/dist/extensions/");
+}
+
+async function loadBundledModuleAsync(modulePath: string, rootDir: string): Promise<unknown> {
+  const safePath = resolveBundledModuleSafePath(modulePath, rootDir);
+  if (shouldUseNativeImportForBundledChannelEntry(safePath)) {
+    return import(pathToFileURL(safePath).href);
+  }
+  const loader = loadModule(safePath);
+  return loader.import(safePath);
 }
 
 function resolveCompiledBundledModulePath(modulePath: string): string {
-  const compiledDistModulePath = modulePath.replace(
-    `${path.sep}dist-runtime${path.sep}`,
-    `${path.sep}dist${path.sep}`,
-  );
+  const compiledDistModulePath = rewriteBundledDistRuntimePathToDist(modulePath);
   return compiledDistModulePath !== modulePath && fs.existsSync(compiledDistModulePath)
     ? compiledDistModulePath
     : modulePath;
@@ -193,7 +215,7 @@ function resolvePreferredBundledChannelSource(
   return resolveCompiledBundledModulePath(manifest.source);
 }
 
-function loadGeneratedBundledChannelEntries(): readonly GeneratedBundledChannelEntry[] {
+async function loadGeneratedBundledChannelEntriesAsync(): Promise<readonly GeneratedBundledChannelEntry[]> {
   const discovery = discoverOpenClawPlugins({ cache: false });
   const manifestRegistry = loadPluginManifestRegistry({
     cache: false,
@@ -220,7 +242,7 @@ function loadGeneratedBundledChannelEntries(): readonly GeneratedBundledChannelE
     try {
       const sourcePath = resolvePreferredBundledChannelSource(candidate, manifest);
       const entry = resolveChannelPluginModuleEntry(
-        loadBundledModule(sourcePath, candidate.rootDir),
+        await loadBundledModuleAsync(sourcePath, candidate.rootDir),
       );
       if (!entry) {
         log.warn(
@@ -230,7 +252,7 @@ function loadGeneratedBundledChannelEntries(): readonly GeneratedBundledChannelE
       }
       const setupEntry = manifest.setupSource
         ? resolveChannelSetupModuleEntry(
-            loadBundledModule(
+            await loadBundledModuleAsync(
               resolveCompiledBundledModulePath(manifest.setupSource),
               candidate.rootDir,
             ),
@@ -274,12 +296,11 @@ type BundledChannelState = {
 };
 
 let cachedBundledChannelState: BundledChannelState | null = null;
+let bundledChannelEnsurePromise: Promise<void> | null = null;
 
-function getBundledChannelState(): BundledChannelState {
-  if (cachedBundledChannelState) {
-    return cachedBundledChannelState;
-  }
-  const entries = loadGeneratedBundledChannelEntries();
+function buildBundledChannelStateFromEntries(
+  entries: readonly GeneratedBundledChannelEntry[],
+): BundledChannelState {
   const plugins = entries.map(({ entry }) => entry.channelPlugin);
   const setupPlugins = entries.flatMap(({ setupEntry }) => {
     const plugin = setupEntry?.plugin;
@@ -295,14 +316,60 @@ function getBundledChannelState(): BundledChannelState {
     }
   }
 
-  cachedBundledChannelState = {
+  return {
     entries,
     plugins,
     setupPlugins,
     pluginsById: buildBundledChannelPluginsById(plugins),
     runtimeSettersById,
   };
-  return cachedBundledChannelState;
+}
+
+function emptyBundledChannelState(): BundledChannelState {
+  return buildBundledChannelStateFromEntries([]);
+}
+
+function getBundledChannelState(): BundledChannelState {
+  if (cachedBundledChannelState) {
+    return cachedBundledChannelState;
+  }
+  throw new Error(
+    "Bundled channel plugins are not initialized. Call `await ensureBundledChannelPluginsLoaded()` before listing bundled channel plugins.",
+  );
+}
+
+export function clearBundledChannelPluginsCache(): void {
+  cachedBundledChannelState = null;
+  bundledChannelEnsurePromise = null;
+}
+
+export type EnsureBundledChannelPluginsLoadedOpts = {
+  /**
+   * Skip loading bundled extension modules and pin an empty bundled channel registry.
+   * Used by minimal gateway tests that must not touch dist/extensions.
+   */
+  minimalEmpty?: boolean;
+};
+
+export async function ensureBundledChannelPluginsLoaded(
+  opts?: EnsureBundledChannelPluginsLoadedOpts,
+): Promise<void> {
+  if (cachedBundledChannelState) {
+    return;
+  }
+  if (opts?.minimalEmpty) {
+    cachedBundledChannelState = emptyBundledChannelState();
+    return;
+  }
+  if (process.env.VITEST === "1" && process.env.OPENCLAW_TEST_MINIMAL_GATEWAY === "1") {
+    cachedBundledChannelState = emptyBundledChannelState();
+    return;
+  }
+  bundledChannelEnsurePromise ??= (async () => {
+    const entries = await loadGeneratedBundledChannelEntriesAsync();
+    cachedBundledChannelState = buildBundledChannelStateFromEntries(entries);
+  })();
+  await bundledChannelEnsurePromise;
 }
 
 export function listBundledChannelPlugins(): readonly ChannelPlugin[] {

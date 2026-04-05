@@ -1,6 +1,10 @@
 import { vi } from "vitest";
 import type { OpenClawConfig } from "../../../config/config.js";
-import { listBundledChannelPlugins, setBundledChannelRuntime } from "../bundled.js";
+import {
+  ensureBundledChannelPluginsLoaded,
+  listBundledChannelPlugins,
+  setBundledChannelRuntime,
+} from "../bundled.js";
 import type { ChannelPlugin } from "../types.js";
 import { channelPluginSurfaceKeys, type ChannelPluginSurface } from "./manifest.js";
 
@@ -44,6 +48,8 @@ const sendMessageMatrixMock = vi.hoisted(() =>
     roomId: to.replace(/^room:/, ""),
   })),
 );
+
+await ensureBundledChannelPluginsLoaded();
 
 const lineContractApi = await import(buildBundledPluginModuleId("line", "contract-api.js"));
 

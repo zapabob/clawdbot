@@ -43,6 +43,15 @@ $node = Resolve-NodeExecutable
 if (-not $node) {
     throw "node.exe not found. Install Node.js 22+ (e.g. under Program Files\nodejs) or fix PATH."
 }
+try {
+    $nv = (& $node --version | Out-String).Trim()
+    if ($nv -match '^v(\d+)') {
+        $maj = [int]$Matches[1]
+        if ($maj -ge 25) {
+            Write-Host "[GW][WARN] Node $nv — OpenClaw is validated on Node 22 LTS. If Gateway crashes loading channels, install Node 22.x and retry." -ForegroundColor Yellow
+        }
+    }
+} catch { }
 $runNode = Join-Path $ProjectDir "scripts\run-node.mjs"
 if (-not (Test-Path $runNode)) {
     throw "Missing $runNode"

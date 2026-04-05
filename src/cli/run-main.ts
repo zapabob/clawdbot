@@ -23,6 +23,10 @@ import { applyCliProfileEnv, parseCliProfileArgs } from "./profile.js";
 import { tryRouteCli } from "./route.js";
 import { normalizeWindowsArgv } from "./windows-argv.js";
 
+export function shouldPreloadBundledChannelPlugins(argv: string[]): boolean {
+  return !hasHelpOrVersion(argv);
+}
+
 async function closeCliMemoryManagers(): Promise<void> {
   if (!hasMemoryRuntime()) {
     return;
@@ -169,6 +173,11 @@ export async function runCli(argv: string[] = process.argv) {
 
     if (await tryRouteCli(normalizedArgv)) {
       return;
+    }
+
+    if (shouldPreloadBundledChannelPlugins(normalizedArgv)) {
+      const { ensureBundledChannelPluginsLoaded } = await import("../channels/plugins/bundled.js");
+      await ensureBundledChannelPluginsLoaded();
     }
 
     // Capture all console output into structured logs while keeping stdout/stderr behavior.

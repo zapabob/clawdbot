@@ -515,6 +515,30 @@ describe("run-node script", () => {
     });
   });
 
+  it("skips build when OPENCLAW_RUNNODE_SKIP_BUILD=1 and dist entry exists", async () => {
+    await withTempDir(async (tmp) => {
+      await setupTrackedProject(tmp, {
+        files: {
+          [ROOT_SRC]: "export const value = 1;\n",
+        },
+        buildPaths: [DIST_ENTRY, BUILD_STAMP],
+      });
+
+      const requirement = resolveBuildRequirement(
+        createBuildRequirementDeps(tmp, {
+          gitHead: "abc123\n",
+          gitStatus: ` M ${ROOT_SRC}\n`,
+          env: { OPENCLAW_RUNNODE_SKIP_BUILD: "1" },
+        }),
+      );
+
+      expect(requirement).toEqual({
+        shouldBuild: false,
+        reason: "skip_build_env",
+      });
+    });
+  });
+
   it("repairs missing bundled plugin metadata without rerunning tsdown", async () => {
     await withTempDir(async (tmp) => {
       await setupTrackedProject(tmp, {

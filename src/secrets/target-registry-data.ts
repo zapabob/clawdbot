@@ -432,9 +432,13 @@ const CORE_SECRET_TARGET_REGISTRY: SecretTargetRegistryEntry[] = [
   },
 ];
 
-const SECRET_TARGET_REGISTRY: SecretTargetRegistryEntry[] = [
-  ...CORE_SECRET_TARGET_REGISTRY,
-  ...listChannelSecretTargetRegistryEntries(),
-];
+let cachedSecretTargetRegistry: SecretTargetRegistryEntry[] | null = null;
 
-export { SECRET_TARGET_REGISTRY };
+/** Lazily built so bundled channel plugins can initialize via `ensureBundledChannelPluginsLoaded` first. */
+export function getSecretTargetRegistry(): SecretTargetRegistryEntry[] {
+  cachedSecretTargetRegistry ??= [
+    ...CORE_SECRET_TARGET_REGISTRY,
+    ...listChannelSecretTargetRegistryEntries(),
+  ];
+  return cachedSecretTargetRegistry;
+}

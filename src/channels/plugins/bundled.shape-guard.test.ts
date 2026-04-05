@@ -26,6 +26,8 @@ describe("bundled channel entry shape guards", () => {
       "./bundled.js?scope=missing-bundled-discovery",
     );
 
+    await bundled.ensureBundledChannelPluginsLoaded();
+
     expect(bundled.listBundledChannelPlugins()).toEqual([]);
     expect(bundled.listBundledChannelSetupPlugins()).toEqual([]);
   });

@@ -75,6 +75,12 @@ function readBundledChannelPlugins(): readonly BundledChannelPluginShape[] | und
     if (error instanceof ReferenceError) {
       return undefined;
     }
+    if (
+      error instanceof Error &&
+      error.message.includes("Bundled channel plugins are not initialized")
+    ) {
+      return undefined;
+    }
     throw error;
   }
 }

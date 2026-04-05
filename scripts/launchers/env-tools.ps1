@@ -238,8 +238,13 @@ function Resolve-OpenClawNgrokUpstreamUrl {
     param(
         [AllowNull()]
         [string]$Candidate,
-        [int]$GatewayPort = 18789
+        [int]$GatewayPort = 18789,
+        [string]$ProjectDir = ""
     )
+    if (-not [string]::IsNullOrWhiteSpace($ProjectDir)) {
+        $r = Get-OpenClawNgrokUpstreamResolution -NgrokUpstreamCandidate $Candidate -GatewayPort $GatewayPort -ProjectDir $ProjectDir
+        return $r.Url
+    }
     if (Test-OpenClawNgrokUpstreamCandidate -Candidate $Candidate) {
         return $Candidate.Trim()
     }
@@ -264,8 +269,13 @@ function Repair-OpenClawProcessEnvNgrokUpstreamUrl {
 
 function Get-NgrokUpstreamTunnelMatchPort {
     param(
-        [int]$GatewayPort = 18789
+        [int]$GatewayPort = 18789,
+        [string]$ProjectDir = ""
     )
+    if (-not [string]::IsNullOrWhiteSpace($ProjectDir)) {
+        $r = Get-OpenClawNgrokUpstreamResolution -NgrokUpstreamCandidate ([string]$env:NGROK_UPSTREAM_URL) -GatewayPort $GatewayPort -ProjectDir $ProjectDir
+        return $r.TunnelPort
+    }
     $candidate = [string]$env:NGROK_UPSTREAM_URL
     if (Test-OpenClawNgrokUpstreamCandidate -Candidate $candidate) {
         try {
@@ -324,13 +334,108 @@ function Get-OpenClawTelegramWebhookListenPort {
     return 8787
 }
 
+<#
+  True when config enables Telegram webhook mode (non-empty webhookUrl on the channel or an account).
+  Polling mode omits webhookUrl -> no local listener on webhookPort; ngrok must target the Gateway instead.
+#>
+function Test-OpenClawTelegramWebhookListenerExpected {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ProjectDir
+    )
+    $candidates = @(
+        (Join-Path $ProjectDir ".openclaw-desktop\openclaw.json"),
+        (Join-Path $ProjectDir "openclaw.json")
+    )
+    foreach ($cfgPath in $candidates) {
+        if (-not (Test-Path -LiteralPath $cfgPath)) { continue }
+        try {
+            $raw = Get-Content -LiteralPath $cfgPath -Raw -Encoding UTF8
+            $j = $raw | ConvertFrom-Json
+            $tg = $j.channels.telegram
+            if ($null -eq $tg) {
+                return $false
+            }
+            if ($tg.enabled -eq $false) {
+                return $false
+            }
+            $wu = [string]$tg.webhookUrl
+            if (-not [string]::IsNullOrWhiteSpace($wu)) {
+                return $true
+            }
+            if ($null -ne $tg.accounts) {
+                foreach ($prop in $tg.accounts.PSObject.Properties) {
+                    $acc = $prop.Value
+                    if ($null -eq $acc) { continue }
+                    if ($acc.enabled -eq $false) { continue }
+                    $awu = [string]$acc.webhookUrl
+                    if (-not [string]::IsNullOrWhiteSpace($awu)) {
+                        return $true
+                    }
+                }
+            }
+            return $false
+        } catch {
+            continue
+        }
+    }
+    return $false
+}
+
+<#
+  Resolves the ngrok upstream URL and local tunnel match port from NGROK_UPSTREAM_URL + openclaw.json.
+  When .env points at the Telegram webhook bind port but Telegram is in polling mode (no webhookUrl),
+  falls back to the Gateway loopback URL so launchers wait on / tunnel to a real listener.
+#>
+function Get-OpenClawNgrokUpstreamResolution {
+    param(
+        [AllowNull()]
+        [string]$NgrokUpstreamCandidate,
+        [int]$GatewayPort = 18789,
+        [Parameter(Mandatory = $true)]
+        [string]$ProjectDir
+    )
+    $result = @{
+        Url                          = "http://127.0.0.1:$GatewayPort"
+        TunnelPort                   = $GatewayPort
+        AdjustedFromInvalidCandidate = $false
+        AdjustedForTelegramPolling   = $false
+    }
+    if (-not (Test-OpenClawNgrokUpstreamCandidate -Candidate $NgrokUpstreamCandidate)) {
+        $result.AdjustedFromInvalidCandidate = $true
+        return $result
+    }
+    $trim = $NgrokUpstreamCandidate.Trim()
+    try {
+        $u = [Uri]$trim
+        $telegramPort = Get-OpenClawTelegramWebhookListenPort -ProjectDir $ProjectDir
+        if ($telegramPort -gt 0 -and $u.Port -eq $telegramPort) {
+            if (-not (Test-OpenClawTelegramWebhookListenerExpected -ProjectDir $ProjectDir)) {
+                $result.AdjustedForTelegramPolling = $true
+                return $result
+            }
+        }
+        $scheme = $u.Scheme.ToLowerInvariant()
+        $port = $u.Port
+        if (($scheme -eq "http" -and $port -eq 80) -or ($scheme -eq "https" -and $port -eq 443)) {
+            $port = $GatewayPort
+        }
+        $result.Url = $trim
+        $result.TunnelPort = $port
+        return $result
+    } catch {
+        $result.AdjustedFromInvalidCandidate = $true
+        return $result
+    }
+}
+
 function Test-NgrokSyncTelegramWebhookOnly {
     param(
         [Parameter(Mandatory = $true)]
         [string]$ProjectDir,
         [int]$GatewayPort = 18789
     )
-    $tunnelPort = Get-NgrokUpstreamTunnelMatchPort -GatewayPort $GatewayPort
+    $tunnelPort = Get-NgrokUpstreamTunnelMatchPort -GatewayPort $GatewayPort -ProjectDir $ProjectDir
     $telegramPort = Get-OpenClawTelegramWebhookListenPort -ProjectDir $ProjectDir
     if ($telegramPort -le 0) {
         return ($tunnelPort -eq 8787)

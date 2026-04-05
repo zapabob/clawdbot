@@ -1,4 +1,5 @@
 import {
+  ensureBundledChannelPluginsLoaded,
   listBundledChannelPlugins,
   setBundledChannelRuntime,
 } from "../channels/plugins/bundled.js";
@@ -19,7 +20,10 @@ function createChannelTestRuntime(): PluginRuntime {
   } as PluginRuntime;
 }
 
-export function setChannelPluginRegistryForTests(onlyPluginIds?: readonly string[]): void {
+export async function setChannelPluginRegistryForTests(
+  onlyPluginIds?: readonly string[],
+): Promise<void> {
+  await ensureBundledChannelPluginsLoaded();
   const plugins = resolveChannelPluginsForTests(onlyPluginIds);
   const runtime = createChannelTestRuntime();
   for (const plugin of plugins) {
@@ -38,6 +42,6 @@ export function setChannelPluginRegistryForTests(onlyPluginIds?: readonly string
   setActivePluginRegistry(createTestRegistry(channels));
 }
 
-export function setDefaultChannelPluginRegistryForTests(): void {
-  setChannelPluginRegistryForTests();
+export async function setDefaultChannelPluginRegistryForTests(): Promise<void> {
+  await setChannelPluginRegistryForTests();
 }

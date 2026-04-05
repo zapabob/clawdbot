@@ -31,6 +31,8 @@ async function prepareRoutedCommand(params: {
   const shouldLoadPlugins =
     typeof params.loadPlugins === "function" ? params.loadPlugins(params.argv) : params.loadPlugins;
   if (shouldLoadPlugins) {
+    const { ensureBundledChannelPluginsLoaded } = await import("../channels/plugins/bundled.js");
+    await ensureBundledChannelPluginsLoaded();
     const { ensurePluginRegistryLoaded } = await import("./plugin-registry.js");
     const prev = loggingState.forceConsoleToStderr;
     if (suppressDoctorStdout) {

@@ -36,7 +36,12 @@ Docs: https://docs.openclaw.ai
 
 ### Fixes
 
+- Gateway/Windows: preload bundled channel plugins during gateway and CLI startup, and load built `dist/extensions` `*.js` / `*.mjs` channel entries with Node's native dynamic `import(fileURL)` so jiti does not Babel-transform huge generated validators (for example AJV output), avoiding `Maximum call stack size exceeded` / `TRANSFORM_ERROR` on startup.
+- Gateway/Windows: resolve bundled channel plugin paths from `dist-runtime` to canonical `dist` even when paths mix `/` and `\\`, avoiding jiti loading `dist-runtime` re-export shims that could hit `Maximum call stack size exceeded` and exit the gateway.
 - Windows launchers: validate and sanitize `NGROK_UPSTREAM_URL` before spawning ngrok, strip invalid values during env merge, and add `repair-ngrok-upstream-env.ps1` to fix broken `.env` entries that could yield `undefined://undefined` upstreams and `ERR_NGROK_8012`.
+- Windows launchers: when `NGROK_UPSTREAM_URL` targets the Telegram webhook bind port but Telegram is in polling mode (no `webhookUrl`), resolve the ngrok upstream to the Gateway using `openclaw.json` so tunnels attach to a real listener and `ERR_NGROK_8012` from a dead `:8787` stops.
+- Windows launchers: `Sovereign-Portal` no longer hard-fails when the repo `.venv` and `uv` are missing (Harness-only mode still requires them); `Full`/`Ghost` run a dist preflight (`tsdown` + `runtime-postbuild` + stamp) before Gateway and default Gateway/TUI windows to visible; Chrome path fallback when Edge is absent; `Start-Gateway` warns on Node 25+.
+- CLI: `OPENCLAW_RUNNODE_SKIP_BUILD=1` skips the incremental `run-node` TypeScript build when `dist/entry.js` exists (used by the Sovereign portal after dist preflight).
 - ACP/agents: inherit the target agent workspace for cross-agent ACP spawns and fall back safely when the inherited workspace no longer exists. (#58438) Thanks @zssggle-rgb.
 - ACPX/Windows: preserve backslashes and absolute `.exe` paths in Claude CLI parsing, and fail fast on wrapper-script targets with guidance to use `cmd.exe /c`, `powershell.exe -File`, or `node <script>`. (#60689) Thanks @steipete.
 - Agents/Anthropic: preserve native `toolu_*` replay ids on direct Anthropic and Anthropic Vertex paths so cache-sensitive history stops rewriting known-valid Anthropic tool-use ids. (#52612)
