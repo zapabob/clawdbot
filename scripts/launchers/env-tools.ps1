@@ -185,6 +185,104 @@ function Set-EnvValues {
     Set-Content -Path $EnvFile -Value $updatedLines -Encoding UTF8
 }
 
+function Get-NgrokUpstreamTunnelMatchPort {
+    param(
+        [int]$GatewayPort = 18789
+    )
+    $candidate = [string]$env:NGROK_UPSTREAM_URL
+    if ($candidate -match '^\s*https?://' -and $candidate -notmatch '(?i)undefined' -and $candidate -notmatch '(?i)^\s*https?://\s*$') {
+        try {
+            $u = [Uri]$candidate.Trim()
+            $scheme = $u.Scheme.ToLowerInvariant()
+            $port = $u.Port
+            if (($scheme -eq "http" -and $port -eq 80) -or ($scheme -eq "https" -and $port -eq 443)) {
+                return $GatewayPort
+            }
+            return $port
+        } catch { }
+    }
+    return $GatewayPort
+}
+
+function Get-OpenClawTelegramWebhookListenPort {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ProjectDir
+    )
+    $candidates = @(
+        (Join-Path $ProjectDir ".openclaw-desktop\openclaw.json"),
+        (Join-Path $ProjectDir "openclaw.json")
+    )
+    foreach ($cfgPath in $candidates) {
+        if (-not (Test-Path -LiteralPath $cfgPath)) { continue }
+        try {
+            $raw = Get-Content -LiteralPath $cfgPath -Raw -Encoding UTF8
+            $j = $raw | ConvertFrom-Json
+            $ch = $j.channels
+            if ($null -eq $ch) {
+                return 8787
+            }
+            $tg = $ch.telegram
+            if ($null -eq $tg) {
+                return 8787
+            }
+            $wp = $tg.webhookPort
+            if ($null -eq $wp) {
+                return 8787
+            }
+            $pi = 0
+            if (-not [int]::TryParse([string]$wp, [ref]$pi)) {
+                continue
+            }
+            if ($pi -eq 0) {
+                return 0
+            }
+            if ($pi -gt 0) {
+                return $pi
+            }
+        } catch {
+            continue
+        }
+    }
+    return 8787
+}
+
+function Test-NgrokSyncTelegramWebhookOnly {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ProjectDir,
+        [int]$GatewayPort = 18789
+    )
+    $tunnelPort = Get-NgrokUpstreamTunnelMatchPort -GatewayPort $GatewayPort
+    $telegramPort = Get-OpenClawTelegramWebhookListenPort -ProjectDir $ProjectDir
+    if ($telegramPort -le 0) {
+        return ($tunnelPort -eq 8787)
+    }
+    return ($tunnelPort -eq $telegramPort)
+}
+
+function Build-NgrokWebhookEnvValues {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$PublicUrl,
+        [Parameter(Mandatory = $true)]
+        [string]$ProjectDir,
+        [int]$GatewayPort = 18789
+    )
+    $telegramOnly = Test-NgrokSyncTelegramWebhookOnly -ProjectDir $ProjectDir -GatewayPort $GatewayPort
+    if ($telegramOnly) {
+        return @{
+            OPENCLAW_PUBLIC_URL  = $PublicUrl
+            TELEGRAM_WEBHOOK_URL = "$PublicUrl/telegram-webhook"
+        }
+    }
+    return @{
+        OPENCLAW_PUBLIC_URL   = $PublicUrl
+        TELEGRAM_WEBHOOK_URL  = "$PublicUrl/telegram-webhook"
+        LINE_WEBHOOK_URL      = "$PublicUrl/line/webhook"
+    }
+}
+
 function Get-OrCreateGatewayToken {
     param(
         [Parameter(Mandatory = $true)]
@@ -253,7 +351,8 @@ function Sync-NgrokPublicUrlToEnv {
         [Parameter(Mandatory = $true)]
         [string]$ProjectDir,
         [int]$MaxWaitSeconds = 8,
-        [int]$PollMs = 1000
+        [int]$PollMs = 1000,
+        [int]$GatewayPort = 18789
     )
 
     $effectivePollMs = [Math]::Max(100, [int]$PollMs)
@@ -284,14 +383,9 @@ function Sync-NgrokPublicUrlToEnv {
         return $null
     }
 
-    # Paths must match bundled extensions: LINE -> registerPluginHttpRoute default "/line/webhook";
-    # Telegram standalone webhook listener default path "/telegram-webhook" (see extensions/telegram/src/webhook.ts).
-    # NOTE: Telegram webhook binds its own port (default 8787), not the gateway port — set NGROK_UPSTREAM_URL=http://127.0.0.1:8787 when using Telegram webhook + ngrok, or use Telegram polling with ngrok -> gateway for LINE only.
-    $values = @{
-        OPENCLAW_PUBLIC_URL   = $publicUrl
-        TELEGRAM_WEBHOOK_URL  = "$publicUrl/telegram-webhook"
-        LINE_WEBHOOK_URL      = "$publicUrl/line/webhook"
-    }
+    # Paths: LINE "/line/webhook"; Telegram listener "/telegram-webhook" (extensions/telegram).
+    # When NGROK_UPSTREAM_URL targets the Telegram listener port, do not overwrite LINE_WEBHOOK_URL (that URL would hit the wrong service).
+    $values = Build-NgrokWebhookEnvValues -PublicUrl $publicUrl -ProjectDir $ProjectDir -GatewayPort $GatewayPort
     Apply-NgrokWebhookEnvToFiles -ProjectDir $ProjectDir -Values $values
     foreach ($key in $values.Keys) {
         Set-Item -Path "Env:$key" -Value $values[$key]

@@ -202,12 +202,20 @@ async function runAutonomousTask(
   }
 }
 
+/**
+ * OpenCode Zen free-tier models (per-token $0 on Zen pricing table).
+ * See https://opencode.ai/docs/zen — e.g. minimax-m2.5-free, qwen3.6-plus-free, gpt-5-nano.
+ * Requires `OPENCODE_API_KEY` / `OPENCODE_ZEN_API_KEY` and bundled `opencode` provider auth.
+ */
 const FALLBACK_MODELS = [
-  "openai-codex/gpt-5.2",
-  "openai/gpt-5.4",
-  "anthropic/claude-4.6-sonnet",
-  "google/gemini-2.5-flash",
-];
+  "opencode/qwen3.6-plus-free",
+  "opencode/minimax-m2.5-free",
+  "opencode/nemotron-3-super-free",
+  "opencode/mimo-v2-pro-free",
+  "opencode/mimo-v2-omni-free",
+  "opencode/big-pickle",
+  "opencode/gpt-5-nano",
+] as const;
 
 async function attemptSelfHealing(api: OpenClawPluginApi, error: string): Promise<void> {
   const cfg = getConfig(api);
@@ -245,9 +253,10 @@ async function attemptSelfHealing(api: OpenClawPluginApi, error: string): Promis
 
   if (error.includes("rate limit") || error.includes("429") || error.includes("429")) {
     api.logger.info("[auto-agent] Rate limit detected, switching to fallback model");
-    const currentModel = cfg.subagentModel ?? FALLBACK_MODELS[0];
-    const currentIndex = FALLBACK_MODELS.indexOf(currentModel);
-    const nextModel = FALLBACK_MODELS[(currentIndex + 1) % FALLBACK_MODELS.length];
+    const list = [...FALLBACK_MODELS];
+    const currentModel = cfg.subagentModel ?? list[0]!;
+    const currentIndex = list.indexOf(currentModel);
+    const nextModel = list[(currentIndex >= 0 ? currentIndex + 1 : 0) % list.length]!;
 
     const currentCfg = api.runtime.config.loadConfig();
     const nextCfg = {

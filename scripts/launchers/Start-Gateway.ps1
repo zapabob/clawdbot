@@ -31,7 +31,7 @@ function Write-DebugNdjson {
 Merge-OpenClawEnvToProcess -ProjectDir $ProjectDir
 Set-OpenClawDesktopConfigEnv -ProjectDir $ProjectDir
 Ensure-GatewayTokenInProcess -ProjectDir $ProjectDir | Out-Null
-[void](Sync-NgrokPublicUrlToEnv -ProjectDir $ProjectDir -MaxWaitSeconds 3 -PollMs 750)
+[void](Sync-NgrokPublicUrlToEnv -ProjectDir $ProjectDir -MaxWaitSeconds 3 -PollMs 750 -GatewayPort $Port)
 
 if ([string]$env:OPENCLAW_USE_REPO_LAUNCHER -eq "0") {
     $logDir = Join-Path $ProjectDir ".openclaw-desktop\logs"

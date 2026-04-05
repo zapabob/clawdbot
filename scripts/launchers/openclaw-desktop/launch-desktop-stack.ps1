@@ -490,6 +490,26 @@ if (-not $SkipGateway) {
         } else {
             Write-Host "  [Ngrok   ] Gateway port is listening; starting tunnel (env injected)..." -ForegroundColor DarkCyan
         }
+        Merge-OpenClawEnvToProcess -ProjectDir $ProjectDir
+        $ngrokTunnelPort = Get-NgrokUpstreamTunnelMatchPort -GatewayPort $GatewayPort
+        if ($ngrokTunnelPort -ne $GatewayPort) {
+            Write-Host "  [Ngrok   ] Upstream targets port $ngrokTunnelPort (not Gateway $GatewayPort); waiting for TCP listen (up to 120s; Telegram webhook / custom listener)..." -ForegroundColor DarkCyan
+            $upDeadline = [DateTime]::Now.AddSeconds(120)
+            $upListen = $false
+            while ([DateTime]::Now -lt $upDeadline) {
+                $listenUp = @(Get-NetTCPConnection -LocalPort $ngrokTunnelPort -State Listen -ErrorAction SilentlyContinue)
+                if ($listenUp.Count -gt 0) {
+                    $upListen = $true
+                    break
+                }
+                Start-Sleep -Milliseconds 500
+            }
+            if (-not $upListen) {
+                Write-Host "  [Ngrok   ] WARNING: Port $ngrokTunnelPort not listening within 120s; ngrok may show ERR_NGROK_8012 until the listener binds." -ForegroundColor Yellow
+            } else {
+                Write-Host "  [Ngrok   ] Upstream port $ngrokTunnelPort is listening." -ForegroundColor DarkCyan
+            }
+        }
         $ngrokScript = Join-Path $PSScriptRoot "..\start_ngrok.ps1"
         $ngrokParts = @(
             "powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $ngrokScript,
@@ -507,7 +527,7 @@ if (-not $SkipGateway) {
             -CommandParts $ngrokParts
 
         Write-Host "  [Ngrok   ] Waiting for public URL (localhost:4040) and syncing OPENCLAW_PUBLIC_URL / webhooks to .env (up to 90s)..." -ForegroundColor DarkCyan
-        $syncedNgrokUrl = Sync-NgrokPublicUrlToEnv -ProjectDir $ProjectDir -MaxWaitSeconds 90 -PollMs 750
+        $syncedNgrokUrl = Sync-NgrokPublicUrlToEnv -ProjectDir $ProjectDir -MaxWaitSeconds 90 -PollMs 750 -GatewayPort $GatewayPort
         Merge-OpenClawEnvToProcess -ProjectDir $ProjectDir
         Add-SovereignDevToolsToPath
         $processEnv = Build-DesktopStackProcessEnvTable `

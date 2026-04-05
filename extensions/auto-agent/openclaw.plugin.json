@@ -37,7 +37,7 @@
       },
       "subagentModel": {
         "type": "string",
-        "description": "Model to use for subagent tasks."
+        "description": "Model to use for subagent tasks (e.g. opencode/qwen3.6-plus-free for OpenCode Zen free tier). On rate-limit self-healing, OpenClaw rotates through Zen free models only."
       },
       "autonomousTasks": {
         "type": "array",

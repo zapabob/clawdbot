@@ -29,6 +29,7 @@ import {
 import { LiveSessionModelSwitchError } from "./live-model-switch.js";
 import { logModelFallbackDecision } from "./model-fallback-observation.js";
 import type { FallbackAttempt, ModelCandidate } from "./model-fallback.types.js";
+import { applyOpencodeZenFreeRotation } from "./opencode-zen-free-rotation.js";
 import {
   buildConfiguredAllowlistKeys,
   buildModelAliasIndex,
@@ -597,12 +598,13 @@ export async function runWithModelFallback<T>(params: {
   run: ModelFallbackRunFn<T>;
   onError?: ModelFallbackErrorHandler;
 }): Promise<ModelFallbackRunResult<T>> {
-  const candidates = resolveFallbackCandidates({
+  let candidates = resolveFallbackCandidates({
     cfg: params.cfg,
     provider: params.provider,
     model: params.model,
     fallbacksOverride: params.fallbacksOverride,
   });
+  candidates = await applyOpencodeZenFreeRotation(candidates, params.agentDir);
   const authStore = params.cfg
     ? ensureAuthProfileStore(params.agentDir, { allowKeychainPrompt: false })
     : null;

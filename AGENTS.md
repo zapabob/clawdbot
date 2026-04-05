@@ -203,4 +203,15 @@ High-density structural map for efficient autonomous traversal:
 
 ---
 
+## Learned User Preferences
+
+- When the Hypura inference endpoint is unhealthy, prefer temporarily setting `agents.defaults.model.primary` to a working `ollama/...` tag and keep the target `hypura/...` model in `fallbacks` until `hypura serve` is verified (Ollama-compatible routes respond and the configured model name matches `/api/tags` exactly).
+
+## Learned Workspace Facts
+
+- The `hypura` model provider (`models.providers.hypura`, Ollama-compatible API) targets the Hypura **inference server** (`hypura serve` on the configured base URL port). It is not the Hypura **Harness** daemon (default port 18794); the harness backs `hypura_harness_*` tools and is not the primary chat completion backend.
+- The TUI waiting copy "conjuring" is ordinary waiting-state UI (see `src/tui/tui-waiting.ts`); it does not indicate Harness-driven inference.
+
+---
+
 **Status: Substrate Synchronized.**

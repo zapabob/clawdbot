@@ -342,10 +342,21 @@ if ($startHostNgrok) {
         }
         Start-Sleep -Milliseconds 500
     }
+    Merge-OpenClawEnvToProcess -ProjectDir $ProjectDir
+    $ngrokTunnelPort = Get-NgrokUpstreamTunnelMatchPort -GatewayPort $GatewayPort
+    if ($ngrokTunnelPort -ne $GatewayPort) {
+        Write-Host ("  [ngrok] Upstream port {0}; waiting for listener (up to 120s)..." -f $ngrokTunnelPort) -ForegroundColor DarkCyan
+        $upDeadline = [DateTime]::Now.AddSeconds(120)
+        while ([DateTime]::Now -lt $upDeadline) {
+            $listenUp = @(Get-NetTCPConnection -LocalPort $ngrokTunnelPort -State Listen -ErrorAction SilentlyContinue)
+            if ($listenUp.Count -gt 0) { break }
+            Start-Sleep -Milliseconds 500
+        }
+    }
     Start-Process -FilePath "powershell.exe" -ArgumentList @(
         "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $ngrokPs1, "-Port", "$GatewayPort"
     ) -WorkingDirectory $ProjectDir -WindowStyle Minimized
-    $syncedNgrokUrl = Sync-NgrokPublicUrlToEnv -ProjectDir $ProjectDir -MaxWaitSeconds 12 -PollMs 1000
+    $syncedNgrokUrl = Sync-NgrokPublicUrlToEnv -ProjectDir $ProjectDir -MaxWaitSeconds 12 -PollMs 1000 -GatewayPort $GatewayPort
     if ($syncedNgrokUrl) {
         Write-Host ("  [ngrok] Dynamic env sync: {0}" -f $syncedNgrokUrl) -ForegroundColor DarkCyan
     } else {
@@ -353,7 +364,7 @@ if ($startHostNgrok) {
     }
 } else {
     Write-Host "  [ngrok] Host tunnel not started (Docker or busy :4040)." -ForegroundColor DarkGray
-    $syncedNgrokUrl = Sync-NgrokPublicUrlToEnv -ProjectDir $ProjectDir -MaxWaitSeconds 4 -PollMs 800
+    $syncedNgrokUrl = Sync-NgrokPublicUrlToEnv -ProjectDir $ProjectDir -MaxWaitSeconds 4 -PollMs 800 -GatewayPort $GatewayPort
     if ($syncedNgrokUrl) {
         Write-Host ("  [ngrok] Reused existing public URL: {0}" -f $syncedNgrokUrl) -ForegroundColor DarkCyan
     }

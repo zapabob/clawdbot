@@ -28,6 +28,20 @@ if (-not $upstream) {
     $upstream = "http://127.0.0.1:$Port"
 }
 
+$tunnelMatchPort = Get-NgrokUpstreamTunnelMatchPort -GatewayPort $Port
+
+try {
+    $upUri = [Uri]$upstream
+    if ($upUri.Port -eq 8080 -and $Port -ne 8080) {
+        Write-Host @"
+[ngrok] WARNING: Upstream is port 8080 (typical Hypura / Ollama-compatible inference), but this run targets Gateway port $Port.
+  OpenClaw LINE/Telegram webhooks are served by the Gateway, not Hypura.
+  Fix: in .env remove NGROK_UPSTREAM_URL or set NGROK_UPSTREAM_URL=http://127.0.0.1:$Port
+  Then restart ngrok (desktop stack uses -ForceRestart by default on fresh tunnels).
+"@ -ForegroundColor Yellow
+    }
+} catch { }
+
 function Resolve-RepoNgrokExecutable {
     param([Parameter(Mandatory = $true)][string]$Root)
     $trim = { param($s) if ($null -eq $s) { "" } else { $s.Trim() } }
@@ -114,19 +128,19 @@ function Wait-UpstreamReady {
 
 # --- Optional: reuse existing ngrok that already tunnels to this upstream (avoids killing unrelated sessions) ---
 if (-not $ForceRestart) {
-    $reuseUrl = Get-ExistingNgrokPublicUrl -LocalPort $Port
+    $reuseUrl = Get-ExistingNgrokPublicUrl -LocalPort $tunnelMatchPort
     if ($reuseUrl) {
-        Write-Host "[ngrok] Reusing existing tunnel -> $reuseUrl (matches 127.0.0.1:$Port). Use -ForceRestart to replace." -ForegroundColor DarkCyan
-        $values = @{
-            OPENCLAW_PUBLIC_URL  = $reuseUrl
-            TELEGRAM_WEBHOOK_URL = "$reuseUrl/telegram-webhook"
-            LINE_WEBHOOK_URL     = "$reuseUrl/line/webhook"
-        }
+        Write-Host "[ngrok] Reusing existing tunnel -> $reuseUrl (matches local port $tunnelMatchPort). Use -ForceRestart to replace." -ForegroundColor DarkCyan
+        $values = Build-NgrokWebhookEnvValues -PublicUrl $reuseUrl -ProjectDir $ProjectDir -GatewayPort $Port
         Apply-NgrokWebhookEnvToFiles -ProjectDir $ProjectDir -Values $values
         foreach ($key in $values.Keys) {
             Set-Item -Path "Env:$key" -Value $values[$key]
         }
-        Write-Host "[ngrok] .env synced (Telegram path /telegram-webhook, LINE /line/webhook — see scripts/launchers/README.md)." -ForegroundColor Green
+        if ($values.ContainsKey("LINE_WEBHOOK_URL")) {
+            Write-Host "[ngrok] .env synced (Telegram /telegram-webhook, LINE /line/webhook — see scripts/launchers/README.md)." -ForegroundColor Green
+        } else {
+            Write-Host "[ngrok] .env synced (Telegram-first: OPENCLAW_PUBLIC_URL + TELEGRAM_WEBHOOK_URL only; LINE_WEBHOOK_URL unchanged — use a second tunnel or polling for LINE)." -ForegroundColor Green
+        }
         exit 0
     }
 }
@@ -186,13 +200,13 @@ for ($i = 0; $i -lt $PollRetries; $i++) {
 if ($publicUrl) {
     Write-Host "[ngrok] Public URL: $publicUrl" -ForegroundColor Green
 
-    $values = @{
-        OPENCLAW_PUBLIC_URL   = $publicUrl
-        TELEGRAM_WEBHOOK_URL  = "$publicUrl/telegram-webhook"
-        LINE_WEBHOOK_URL      = "$publicUrl/line/webhook"
-    }
+    $values = Build-NgrokWebhookEnvValues -PublicUrl $publicUrl -ProjectDir $ProjectDir -GatewayPort $Port
     Apply-NgrokWebhookEnvToFiles -ProjectDir $ProjectDir -Values $values
-    Write-Host "[ngrok] .env updated: OPENCLAW_PUBLIC_URL, TELEGRAM_WEBHOOK_URL, LINE_WEBHOOK_URL (/telegram-webhook, /line/webhook)" -ForegroundColor Green
+    if ($values.ContainsKey("LINE_WEBHOOK_URL")) {
+        Write-Host "[ngrok] .env updated: OPENCLAW_PUBLIC_URL, TELEGRAM_WEBHOOK_URL, LINE_WEBHOOK_URL" -ForegroundColor Green
+    } else {
+        Write-Host "[ngrok] .env updated: OPENCLAW_PUBLIC_URL, TELEGRAM_WEBHOOK_URL (Telegram-first; LINE_WEBHOOK_URL not set)" -ForegroundColor Green
+    }
 
     foreach ($key in $values.Keys) {
         Set-Item -Path "Env:$key" -Value $values[$key]
