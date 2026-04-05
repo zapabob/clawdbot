@@ -28,7 +28,7 @@
 
 <table>
   <tr>
-    <td align="center" width="20%">
+    <td align="center" width="16.66%">
       <a href="https://openai.com/">
         <picture>
           <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/openclaw/openclaw/main/docs/assets/sponsors/openai-light.svg">
@@ -36,7 +36,15 @@
         </picture>
       </a>
     </td>
-    <td align="center" width="20%">
+    <td align="center" width="16.66%">
+      <a href="https://github.com/">
+        <picture>
+          <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/openclaw/openclaw/main/docs/assets/sponsors/github-light.svg">
+          <img src="https://raw.githubusercontent.com/openclaw/openclaw/main/docs/assets/sponsors/github.svg" alt="GitHub" height="28">
+        </picture>
+      </a>
+    </td>
+    <td align="center" width="16.66%">
       <a href="https://www.nvidia.com/">
         <picture>
           <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/openclaw/openclaw/main/docs/assets/sponsors/nvidia.svg">
@@ -44,7 +52,7 @@
         </picture>
       </a>
     </td>
-    <td align="center" width="20%">
+    <td align="center" width="16.66%">
       <a href="https://vercel.com/">
         <picture>
           <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/openclaw/openclaw/main/docs/assets/sponsors/vercel-light.svg">
@@ -52,7 +60,7 @@
         </picture>
       </a>
     </td>
-    <td align="center" width="20%">
+    <td align="center" width="16.66%">
       <a href="https://blacksmith.sh/">
         <picture>
           <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/openclaw/openclaw/main/docs/assets/sponsors/blacksmith-light.svg">
@@ -60,7 +68,7 @@
         </picture>
       </a>
     </td>
-    <td align="center" width="20%">
+    <td align="center" width="16.66%">
       <a href="https://www.convex.dev/">
         <picture>
           <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/openclaw/openclaw/main/docs/assets/sponsors/convex-light.svg">

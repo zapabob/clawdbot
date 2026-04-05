@@ -10,6 +10,8 @@
  */
 
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk/core";
+import { probeLineBot, pushMessageLine } from "openclaw/plugin-sdk/line-runtime";
+import { resolveLineAccount } from "./accounts.js";
 import { getLineRuntime } from "./runtime.js";
 
 export function registerLinePushCommand(api: OpenClawPluginApi): void {
@@ -45,7 +47,6 @@ export function registerLinePushCommand(api: OpenClawPluginApi): void {
         return { text: "Error: メッセージが空です。" };
       }
 
-      const { pushMessageLine } = getLineRuntime().channel.line;
       try {
         const result = await pushMessageLine(to, message, { verbose: true });
         const preview = message.length > 50 ? `${message.substring(0, 50)}…` : message;
@@ -69,12 +70,12 @@ export function registerLinePushCommand(api: OpenClawPluginApi): void {
       const runtime = getLineRuntime();
       const cfg = runtime.config.loadConfig();
       try {
-        const account = runtime.channel.line.resolveLineAccount({ cfg });
+        const account = resolveLineAccount({ cfg });
         const configured = Boolean(
           account.channelAccessToken?.trim() && account.channelSecret?.trim(),
         );
         const probe = configured
-          ? await runtime.channel.line.probeLineBot(account.channelAccessToken, 3000)
+          ? await probeLineBot(account.channelAccessToken, 3000)
           : null;
         const botName = probe?.ok ? (probe.bot?.displayName ?? "Unknown") : "N/A";
         return {

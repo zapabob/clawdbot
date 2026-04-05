@@ -253,8 +253,11 @@ async function attemptSelfHealing(api: OpenClawPluginApi, error: string): Promis
 
   if (error.includes("rate limit") || error.includes("429") || error.includes("429")) {
     api.logger.info("[auto-agent] Rate limit detected, switching to fallback model");
-    const list = [...FALLBACK_MODELS];
-    const currentModel = cfg.subagentModel ?? list[0]!;
+    type ZenFreeModelId = (typeof FALLBACK_MODELS)[number];
+    const list: ZenFreeModelId[] = [...FALLBACK_MODELS];
+    const raw = cfg.subagentModel?.trim();
+    const currentModel: ZenFreeModelId =
+      raw && list.includes(raw as ZenFreeModelId) ? (raw as ZenFreeModelId) : list[0]!;
     const currentIndex = list.indexOf(currentModel);
     const nextModel = list[(currentIndex >= 0 ? currentIndex + 1 : 0) % list.length]!;
 

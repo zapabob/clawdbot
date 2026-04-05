@@ -93,7 +93,7 @@ export async function applyOpencodeZenFreeRotation(
 
   const indices: number[] = [];
   for (let i = 0; i < candidates.length; i += 1) {
-    if (isOpencodeZenFreeCandidate(candidates[i]!)) {
+    if (isOpencodeZenFreeCandidate(candidates[i])) {
       indices.push(i);
     }
   }
@@ -116,10 +116,10 @@ export async function applyOpencodeZenFreeRotation(
   }
 
   const normalized = offset % n;
-  const zenSlice = indices.map((i) => out[i]!);
+  const zenSlice = indices.map((i) => out[i]);
   const rotated = [...zenSlice.slice(normalized), ...zenSlice.slice(0, normalized)];
   for (let j = 0; j < n; j += 1) {
-    out[indices[j]!] = rotated[j]!;
+    out[indices[j]] = rotated[j];
   }
 
   const nextIndex = (offset + 1) % n;

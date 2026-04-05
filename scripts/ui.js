@@ -127,38 +127,6 @@ function runSync(cmd, args, envOverride) {
   }
 }
 
-function resolvePackageBin(packageName, fallbackBinRelative) {
-  const candidates = [uiDir, repoRoot];
-  for (const candidate of candidates) {
-    try {
-      const require = createRequire(path.join(candidate, "package.json"));
-      const pkgJsonPath = require.resolve(`${packageName}/package.json`);
-      const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, "utf8"));
-      const pkgDir = path.dirname(pkgJsonPath);
-      let binRelative = fallbackBinRelative;
-      if (typeof pkgJson.bin === "string") {
-        binRelative = pkgJson.bin;
-      } else if (pkgJson.bin && typeof pkgJson.bin === "object") {
-        const first = Object.values(pkgJson.bin)[0];
-        if (typeof first === "string") {
-          binRelative = first;
-        }
-      }
-      const binPath = path.resolve(pkgDir, binRelative);
-      if (fs.existsSync(binPath)) {
-        return binPath;
-      }
-    } catch {
-      // try next candidate
-    }
-  }
-  return null;
-}
-
-function runNodeBin(binPath, args) {
-  run(process.execPath, [binPath, ...args]);
-}
-
 function depsInstalled(kind) {
   try {
     const require = createRequire(path.join(uiDir, "package.json"));
@@ -216,29 +184,9 @@ export function main(argv = process.argv.slice(2)) {
   }
 
   if (!depsInstalled(action === "test" ? "test" : "build")) {
-    // Build relies on Vite from ui/devDependencies, so keep a full install.
-    runSync(runner.cmd, ["install"], process.env);
-  }
-
-  if (script === "build" || script === "dev") {
-    const viteBin = resolvePackageBin("vite", "bin/vite.js");
-    if (!viteBin) {
-      process.stderr.write("Missing Vite binary. Run `pnpm install` and retry.\n");
-      process.exit(1);
-    }
-    const viteArgs = script === "build" ? ["build", ...rest] : rest;
-    runNodeBin(viteBin, viteArgs);
-    return;
-  }
-
-  if (script === "test") {
-    const vitestBin = resolvePackageBin("vitest", "vitest.mjs");
-    if (!vitestBin) {
-      process.stderr.write("Missing Vitest binary. Run `pnpm install` and retry.\n");
-      process.exit(1);
-    }
-    runNodeBin(vitestBin, ["run", "--config", "vitest.config.ts", ...rest]);
-    return;
+    const installEnv = process.env;
+    const installArgs = ["install"];
+    runSync(runner.cmd, installArgs, installEnv);
   }
 
   run(runner.cmd, ["run", script, ...rest]);

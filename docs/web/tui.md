@@ -148,6 +148,7 @@ Other Gateway slash commands (for example, `/context`) are forwarded to the Gate
 - `--session <key>`: Session key (default: `main`, or `global` when scope is global)
 - `--deliver`: Deliver assistant replies to the provider (default off)
 - `--thinking <level>`: Override thinking level for sends
+- `--message <text>`: Send an initial message after connecting
 - `--timeout-ms <ms>`: Agent timeout in ms (defaults to `agents.defaults.timeoutSeconds`)
 - `--history-limit <n>`: History entries to load on connect (default: `200`)
 

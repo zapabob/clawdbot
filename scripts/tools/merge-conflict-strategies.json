@@ -2,6 +2,121 @@
   "default_resolution": "manual",
   "rules": [
     {
+      "pattern": ".agents/skills/security-triage/SKILL.md",
+      "resolution": "upstream_file",
+      "note": "Restore upstream skill; was deleted locally during fork drift."
+    },
+    {
+      "pattern": "docs/cli/agent.md",
+      "resolution": "upstream_file",
+      "note": "Restore upstream CLI doc."
+    },
+    {
+      "pattern": "docs/cli/memory.md",
+      "resolution": "upstream_file",
+      "note": "Restore upstream CLI doc."
+    },
+    {
+      "pattern": "docs/concepts/agent.md",
+      "resolution": "upstream_file",
+      "note": "Restore upstream concept doc."
+    },
+    {
+      "pattern": "docs/reference/templates/SOUL.md",
+      "resolution": "upstream_file",
+      "note": "Restore upstream template; live persona remains under identity/."
+    },
+    {
+      "pattern": "extensions/acpx/src/config.ts",
+      "resolution": "theirs",
+      "note": "Upstream ACPX config fixes."
+    },
+    {
+      "pattern": "extensions/line/index.ts",
+      "resolution": "theirs",
+      "note": "Track upstream line plugin entry."
+    },
+    {
+      "pattern": "scripts/bundle-a2ui.sh",
+      "resolution": "theirs",
+      "note": "Upstream bundle script."
+    },
+    {
+      "pattern": "scripts/ui.js",
+      "resolution": "theirs",
+      "note": "Upstream UI build script."
+    },
+    {
+      "pattern": "src/agents/skills-install.test.ts",
+      "resolution": "theirs",
+      "note": "Upstream skills install tests."
+    },
+    {
+      "pattern": "src/cli/gateway-cli/run.ts",
+      "resolution": "theirs",
+      "note": "Upstream gateway startupStartedAt wiring."
+    },
+    {
+      "pattern": "src/cli/program/register.status-health-sessions.test.ts",
+      "resolution": "theirs",
+      "note": "Upstream CLI registration tests."
+    },
+    {
+      "pattern": "src/commands/status.summary.test.ts",
+      "resolution": "theirs",
+      "note": "Upstream status summary tests."
+    },
+    {
+      "pattern": "src/commands/tasks.test.ts",
+      "resolution": "theirs",
+      "note": "Upstream tasks tests."
+    },
+    {
+      "pattern": "src/infra/heartbeat-runner.ts",
+      "resolution": "theirs",
+      "note": "Upstream heartbeat prompt resolution signature."
+    },
+    {
+      "pattern": "src/plugin-sdk/line-runtime.ts",
+      "resolution": "theirs",
+      "note": "Upstream line runtime SDK."
+    },
+    {
+      "pattern": "src/plugin-sdk/synthetic.ts",
+      "resolution": "upstream_delete",
+      "note": "Upstream removed synthetic facade."
+    },
+    {
+      "pattern": "src/plugins/bundled-capability-metadata.ts",
+      "resolution": "theirs",
+      "note": "Upstream bundled capability metadata."
+    },
+    {
+      "pattern": "src/plugins/bundled-provider-auth-env-vars.generated.ts",
+      "resolution": "upstream_delete",
+      "note": "Accept upstream deletion of generated auth env snapshot."
+    },
+    {
+      "pattern": "src/plugins/bundled-web-search.test.ts",
+      "resolution": "upstream_delete",
+      "note": "Accept upstream test removal/move."
+    },
+    {
+      "pattern": "src/plugins/hooks.ts",
+      "resolution": "theirs",
+      "note": "Upstream hooks registry."
+    },
+    {
+      "pattern": "src/plugins/install.test.ts",
+      "resolution": "theirs",
+      "note": "Upstream plugin install tests."
+    },
+    {
+      "pattern": "ui/src/ui/app-render.ts",
+      "resolution": "theirs",
+      "note": "Upstream control UI render."
+    },
+    {
       "pattern": "scripts/run-node.mjs",
       "resolution": "theirs",
       "note": "Track upstream runtime launcher improvements."

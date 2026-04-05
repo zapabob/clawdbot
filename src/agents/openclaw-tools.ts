@@ -85,6 +85,8 @@ export function createOpenClawTools(
     requireExplicitMessageTarget?: boolean;
     /** If true, omit the message tool from the tool list. */
     disableMessageTool?: boolean;
+    /** If true, skip plugin tool resolution and return only shipped core tools. */
+    disablePluginTools?: boolean;
     /** Trusted sender id from inbound context (not tool args). */
     requesterSenderId?: string | null;
     /** Whether the requesting sender is an owner. */
@@ -165,7 +167,7 @@ export function createOpenClawTools(
   const webFetchTool = createWebFetchTool({
     config: options?.config,
     sandboxed: options?.sandboxed,
-    runtimeFirecrawl: runtimeWebTools?.fetch.firecrawl,
+    runtimeWebFetch: runtimeWebTools?.fetch,
   });
   const messageTool = options?.disableMessageTool
     ? null
@@ -271,6 +273,10 @@ export function createOpenClawTools(
     ...(imageTool ? [imageTool] : []),
     ...(pdfTool ? [pdfTool] : []),
   ];
+
+  if (options?.disablePluginTools) {
+    return tools;
+  }
 
   const pluginTools = resolvePluginTools({
     context: {

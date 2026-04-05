@@ -16,10 +16,12 @@ import { resolveHeartbeatReplyPayload } from "../auto-reply/heartbeat-reply-payl
 import {
   DEFAULT_HEARTBEAT_ACK_MAX_CHARS,
   isHeartbeatContentEffectivelyEmpty,
+  isTaskDue,
+  parseHeartbeatTasks,
   resolveHeartbeatPrompt as resolveHeartbeatPromptText,
   stripHeartbeatToken,
+  type HeartbeatTask,
 } from "../auto-reply/heartbeat.js";
-import { getReplyFromConfig } from "../auto-reply/reply.js";
 import { HEARTBEAT_TOKEN } from "../auto-reply/tokens.js";
 import type { ReplyPayload } from "../auto-reply/types.js";
 import { getChannelPlugin } from "../channels/plugins/index.js";
@@ -28,14 +30,11 @@ import type { OpenClawConfig } from "../config/config.js";
 import { loadConfig } from "../config/config.js";
 import {
   canonicalizeMainSessionAlias,
-  loadSessionStore,
-  resolveAgentIdFromSessionKey,
   resolveAgentMainSessionKey,
-  resolveSessionFilePath,
-  resolveStorePath,
-  saveSessionStore,
-  updateSessionStore,
-} from "../config/sessions.js";
+} from "../config/sessions/main-session.js";
+import { resolveSessionFilePath, resolveStorePath } from "../config/sessions/paths.js";
+import { loadSessionStore } from "../config/sessions/store-load.js";
+import { saveSessionStore, updateSessionStore } from "../config/sessions/store.js";
 import type { AgentDefaultsConfig } from "../config/types.agent-defaults.js";
 import { resolveCronSession } from "../cron/isolated-agent/session.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
@@ -44,10 +43,12 @@ import { CommandLane } from "../process/lanes.js";
 import {
   normalizeAgentId,
   parseAgentSessionKey,
+  resolveAgentIdFromSessionKey,
   toAgentStoreSessionKey,
 } from "../routing/session-key.js";
 import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
 import { escapeRegExp } from "../utils.js";
+import { resolveEmbeddedSessionLane } from "../agents/pi-embedded-runner.js";
 import { formatErrorMessage, hasErrnoCode } from "./errors.js";
 import { isWithinActiveHours } from "./heartbeat-active-hours.js";
 import {
@@ -80,17 +81,24 @@ import {
   resolveHeartbeatDeliveryTarget,
   resolveHeartbeatSenderContext,
 } from "./outbound/targets.js";
-import { SovereignManifest } from "./sovereign-protocols.js";
 import { peekSystemEventEntries, resolveSystemEventDeliveryContext } from "./system-events.js";
 
 export type HeartbeatDeps = OutboundSendDeps &
   ChannelHeartbeatDeps & {
+    getReplyFromConfig?: typeof import("./heartbeat-runner.runtime.js").getReplyFromConfig;
     runtime?: RuntimeEnv;
     getQueueSize?: (lane?: string) => number;
     nowMs?: () => number;
   };
 
 const log = createSubsystemLogger("gateway/heartbeat");
+let heartbeatRunnerRuntimePromise: Promise<typeof import("./heartbeat-runner.runtime.js")> | null =
+  null;
+
+function loadHeartbeatRunnerRuntime() {
+  heartbeatRunnerRuntimePromise ??= import("./heartbeat-runner.runtime.js");
+  return heartbeatRunnerRuntimePromise;
+}
 
 export { areHeartbeatsEnabled, setHeartbeatsEnabled };
 export {
@@ -403,6 +411,8 @@ type HeartbeatPreflight = HeartbeatReasonFlags & {
   hasTaggedCronEvents: boolean;
   shouldInspectPendingEvents: boolean;
   skipReason?: HeartbeatSkipReason;
+  tasks?: HeartbeatTask[];
+  heartbeatFileContent?: string;
 };
 
 function resolveHeartbeatReasonFlags(reason?: string): HeartbeatReasonFlags {
@@ -455,14 +465,24 @@ async function resolveHeartbeatPreflight(params: {
 
   const workspaceDir = resolveAgentWorkspaceDir(params.cfg, params.agentId);
   const heartbeatFilePath = path.join(workspaceDir, DEFAULT_HEARTBEAT_FILENAME);
+  let heartbeatFileContent: string | undefined;
   try {
-    const heartbeatFileContent = await fs.readFile(heartbeatFilePath, "utf-8");
-    if (isHeartbeatContentEffectivelyEmpty(heartbeatFileContent)) {
+    heartbeatFileContent = await fs.readFile(heartbeatFilePath, "utf-8");
+    const tasks = parseHeartbeatTasks(heartbeatFileContent);
+    if (isHeartbeatContentEffectivelyEmpty(heartbeatFileContent) && tasks.length === 0) {
       return {
         ...basePreflight,
         skipReason: "empty-heartbeat-file",
+        tasks: [],
+        heartbeatFileContent,
       };
     }
+    // Return tasks even if file has other content - backward compatible
+    return {
+      ...basePreflight,
+      tasks,
+      heartbeatFileContent,
+    };
   } catch (err: unknown) {
     if (hasErrnoCode(err, "ENOENT")) {
       // Missing HEARTBEAT.md is intentional in some setups (for example, when
@@ -477,7 +497,7 @@ async function resolveHeartbeatPreflight(params: {
 }
 
 type HeartbeatPromptResolution = {
-  prompt: string;
+  prompt: string | null;
   hasExecCompletion: boolean;
   hasCronEvents: boolean;
 };
@@ -494,13 +514,15 @@ function appendHeartbeatWorkspacePathHint(prompt: string, workspaceDir: string):
   return `${prompt}\n${hint}`;
 }
 
-async function resolveHeartbeatRunPrompt(params: {
+function resolveHeartbeatRunPrompt(params: {
   cfg: OpenClawConfig;
   heartbeat?: HeartbeatConfig;
   preflight: HeartbeatPreflight;
   canRelayToUser: boolean;
   workspaceDir: string;
-}): Promise<HeartbeatPromptResolution> {
+  startedAt: number;
+  heartbeatFileContent?: string;
+}): HeartbeatPromptResolution {
   const pendingEventEntries = params.preflight.pendingEventEntries;
   const pendingEvents = params.preflight.shouldInspectPendingEvents
     ? pendingEventEntries.map((event) => event.text)
@@ -514,36 +536,48 @@ async function resolveHeartbeatRunPrompt(params: {
     .map((event) => event.text);
   const hasExecCompletion = pendingEvents.some(isExecCompletionEvent);
   const hasCronEvents = cronEvents.length > 0;
+
+  // If tasks are defined, build a batched prompt with due tasks
+  if (params.preflight.tasks && params.preflight.tasks.length > 0) {
+    const tasks = params.preflight.tasks;
+    const dueTasks = tasks.filter((task) =>
+      isTaskDue(
+        (params.preflight.session.entry?.heartbeatTaskState as Record<string, number>)?.[task.name],
+        task.interval,
+        params.startedAt,
+      ),
+    );
+
+    if (dueTasks.length > 0) {
+      const taskList = dueTasks.map((task) => `- ${task.name}: ${task.prompt}`).join("\n");
+      let prompt = `Run the following periodic tasks (only those due based on their intervals):
+
+${taskList}
+
+After completing all due tasks, reply HEARTBEAT_OK.`;
+
+      // Preserve HEARTBEAT.md directives (non-task content)
+      if (params.heartbeatFileContent) {
+        const directives = params.heartbeatFileContent
+          .replace(/^[\s\S]*?^tasks:[\s\S]*?(?=^[^\s]|^$)/m, "")
+          .trim();
+        if (directives) {
+          prompt += `\n\nAdditional context from HEARTBEAT.md:\n${directives}`;
+        }
+      }
+      return { prompt, hasExecCompletion: false, hasCronEvents: false };
+    }
+    // No tasks due - skip this heartbeat to avoid wasteful API calls
+    return { prompt: null, hasExecCompletion: false, hasCronEvents: false };
+  }
+
+  // Fallback to original behavior
   const basePrompt = hasExecCompletion
     ? buildExecEventPrompt({ deliverToUser: params.canRelayToUser })
     : hasCronEvents
       ? buildCronEventPrompt(cronEvents, { deliverToUser: params.canRelayToUser })
       : resolveHeartbeatPrompt(params.cfg, params.heartbeat);
-  let prompt = appendHeartbeatWorkspacePathHint(basePrompt, params.workspaceDir);
-
-  // --- World Monitor Report Injection ---
-  // The Python C2 node generates this file upon 'world_report.flag' detection.
-  // We consume it here to provide the LLM with fresh situational awareness.
-  const stateDir =
-    process.env.OPENCLAW_STATE_DIR || path.join(params.workspaceDir, ".openclaw-desktop");
-  const reportPath = path.join(stateDir, "world_report.json");
-  try {
-    const reportContent = await fs.readFile(reportPath, "utf-8");
-    const reportData = JSON.parse(reportContent);
-    prompt += `\n\n[EXTERNAL_WORLD_MONITOR_REPORT]\n${JSON.stringify(reportData, null, 2)}\n\nInstruction: Summarize the above report briefly for the Parent (Mama and Papa) as Hakua. Ensure they feel safe and protected. Use Japanese.`;
-    // Consume the report so it's not repeated in every heartbeat if not refreshed
-    await fs.unlink(reportPath).catch(() => {});
-  } catch {
-    // Report not found or invalid - proceed without it
-  }
-
-  // --- Sovereign Situational Awareness Injection ---
-  // If identity/SOUL.md exists, inject the Scavenger and Ghost report.
-  const sovereign = SovereignManifest.getInstance();
-  const sovereignReport = sovereign.getSituationReport(params.workspaceDir);
-  if (sovereignReport) {
-    prompt += `\n\n${sovereignReport}`;
-  }
+  const prompt = appendHeartbeatWorkspacePathHint(basePrompt, params.workspaceDir);
 
   return { prompt, hasExecCompletion, hasCronEvents };
 }
@@ -601,6 +635,21 @@ export async function runHeartbeatOnce(opts: {
     return { status: "skipped", reason: preflight.skipReason };
   }
   const { entry, sessionKey, storePath } = preflight.session;
+
+  // Check the resolved session lane — if it is busy, skip to avoid interrupting
+  // an active streaming turn.  The wake-layer retry (heartbeat-wake.ts) will
+  // re-schedule this wake automatically.  See #14396 (closed without merge).
+  const sessionLaneKey = resolveEmbeddedSessionLane(sessionKey);
+  const sessionLaneSize = (opts.deps?.getQueueSize ?? getQueueSize)(sessionLaneKey);
+  if (sessionLaneSize > 0) {
+    emitHeartbeatEvent({
+      status: "skipped",
+      reason: "requests-in-flight",
+      durationMs: Date.now() - startedAt,
+    });
+    return { status: "skipped", reason: "requests-in-flight" };
+  }
+
   const previousUpdatedAt = entry?.updatedAt;
 
   // When isolatedSession is enabled, create a fresh session via the same
@@ -609,23 +658,6 @@ export async function runHeartbeatOnce(opts: {
   // sending the full conversation history (~100K tokens) to the LLM.
   // Delivery routing still uses the main session entry (lastChannel, lastTo).
   const useIsolatedSession = heartbeat?.isolatedSession === true;
-  let runSessionKey = sessionKey;
-  let runStorePath = storePath;
-  if (useIsolatedSession) {
-    const isolatedKey = `${sessionKey}:heartbeat`;
-    const cronSession = resolveCronSession({
-      cfg,
-      sessionKey: isolatedKey,
-      agentId,
-      nowMs: startedAt,
-      forceNew: true,
-    });
-    cronSession.store[isolatedKey] = cronSession.sessionEntry;
-    await saveSessionStore(cronSession.storePath, cronSession.store);
-    runSessionKey = isolatedKey;
-    runStorePath = cronSession.storePath;
-  }
-
   const delivery = resolveHeartbeatDeliveryTarget({
     cfg,
     entry,
@@ -667,13 +699,68 @@ export async function runHeartbeatOnce(opts: {
     delivery.channel !== "none" && delivery.to && visibility.showAlerts,
   );
   const workspaceDir = resolveAgentWorkspaceDir(cfg, agentId);
-  const { prompt, hasExecCompletion, hasCronEvents } = await resolveHeartbeatRunPrompt({
+  const { prompt, hasExecCompletion, hasCronEvents } = resolveHeartbeatRunPrompt({
     cfg,
     heartbeat,
     preflight,
     canRelayToUser,
     workspaceDir,
+    startedAt,
+    heartbeatFileContent: preflight.heartbeatFileContent,
   });
+
+  // If no tasks are due, skip heartbeat entirely
+  if (prompt === null) {
+    return { status: "skipped", reason: "no-tasks-due" };
+  }
+
+  let runSessionKey = sessionKey;
+  let runStorePath = storePath;
+  if (useIsolatedSession) {
+    const isolatedKey = `${sessionKey}:heartbeat`;
+    const cronSession = resolveCronSession({
+      cfg,
+      sessionKey: isolatedKey,
+      agentId,
+      nowMs: startedAt,
+      forceNew: true,
+    });
+    cronSession.store[isolatedKey] = cronSession.sessionEntry;
+    await saveSessionStore(cronSession.storePath, cronSession.store);
+    runSessionKey = isolatedKey;
+    runStorePath = cronSession.storePath;
+  }
+
+  // Update task last run times AFTER successful heartbeat completion
+  const updateTaskTimestamps = async () => {
+    if (!preflight.tasks || preflight.tasks.length === 0) {
+      return;
+    }
+
+    const store = loadSessionStore(storePath);
+    const current = store[sessionKey];
+    // Initialize stub entry on first run when current doesn't exist
+    const base = current ?? {
+      // Generate valid sessionId - derive from sessionKey without colons
+      sessionId: sessionKey.replace(/:/g, "_"),
+      updatedAt: startedAt,
+      createdAt: startedAt,
+      messageCount: 0,
+      lastMessageAt: startedAt,
+      heartbeatTaskState: {},
+    };
+    const taskState = { ...base.heartbeatTaskState };
+
+    for (const task of preflight.tasks) {
+      if (isTaskDue(taskState[task.name], task.interval, startedAt)) {
+        taskState[task.name] = startedAt;
+      }
+    }
+
+    store[sessionKey] = { ...base, heartbeatTaskState: taskState };
+    await saveSessionStore(storePath, store);
+  };
+
   const ctx = {
     Body: appendCronStyleCurrentTimeLine(prompt, cfg, startedAt),
     From: sender,
@@ -755,6 +842,8 @@ export async function runHeartbeatOnce(opts: {
           bootstrapContextMode,
         }
       : { isHeartbeat: true, suppressToolErrorWarnings, bootstrapContextMode };
+    const getReplyFromConfig =
+      opts.deps?.getReplyFromConfig ?? (await loadHeartbeatRunnerRuntime()).getReplyFromConfig;
     const replyResult = await getReplyFromConfig(ctx, replyOpts, cfg);
     const replyPayload = resolveHeartbeatReplyPayload(replyResult);
     const includeReasoning = heartbeat?.includeReasoning === true;
@@ -780,6 +869,7 @@ export async function runHeartbeatOnce(opts: {
         silent: !okSent,
         indicatorType: visibility.useIndicator ? resolveIndicatorType("ok-empty") : undefined,
       });
+      await updateTaskTimestamps();
       return { status: "ran", durationMs: Date.now() - startedAt };
     }
 
@@ -816,6 +906,7 @@ export async function runHeartbeatOnce(opts: {
         silent: !okSent,
         indicatorType: visibility.useIndicator ? resolveIndicatorType("ok-token") : undefined,
       });
+      await updateTaskTimestamps();
       return { status: "ran", durationMs: Date.now() - startedAt };
     }
 
@@ -852,6 +943,7 @@ export async function runHeartbeatOnce(opts: {
         channel: delivery.channel !== "none" ? delivery.channel : undefined,
         accountId: delivery.accountId,
       });
+      await updateTaskTimestamps();
       return { status: "ran", durationMs: Date.now() - startedAt };
     }
 
@@ -872,10 +964,12 @@ export async function runHeartbeatOnce(opts: {
         hasMedia: mediaUrls.length > 0,
         accountId: delivery.accountId,
       });
+      await updateTaskTimestamps();
       return { status: "ran", durationMs: Date.now() - startedAt };
     }
 
     if (!visibility.showAlerts) {
+      await updateTaskTimestamps();
       await restoreHeartbeatUpdatedAt({
         storePath,
         sessionKey,
@@ -965,6 +1059,7 @@ export async function runHeartbeatOnce(opts: {
       accountId: delivery.accountId,
       indicatorType: visibility.useIndicator ? resolveIndicatorType("sent") : undefined,
     });
+    await updateTaskTimestamps();
     return { status: "ran", durationMs: Date.now() - startedAt };
   } catch (err) {
     const reason = formatErrorMessage(err);
@@ -1206,11 +1301,6 @@ export function startHeartbeatRunner(opts: {
       sessionKey: params.sessionKey,
     });
   const disposeWakeHandler = setHeartbeatWakeHandler(wakeHandler);
-
-  // --- Sovereign Manifest Manifestation ---
-  // Start the background protocols quietly if identity/SOUL.md exists.
-  void SovereignManifest.getInstance().initialize();
-
   updateConfig(state.cfg);
 
   const cleanup = () => {
