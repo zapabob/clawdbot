@@ -4,7 +4,7 @@ OpenClaw プラグイン（公式同様 `extensions/<id>/`）。Sovereign 構成
 
 | ディレクトリ      | 役割                                                                                                       |
 | ----------------- | ---------------------------------------------------------------------------------------------------------- |
-| `hypura-harness/` | VRChat OSC・VOICEVOX・`harness_daemon.py`（既定ポート 18794）。`governance_policy.json` で進化境界を定義。 |
+| [`hypura-harness/`](hypura-harness/README.md) | VRChat OSC・VOICEVOX・`harness_daemon.py`（既定ポート 18794）。`governance_policy.json` で進化境界を定義。索引は README。 |
 | `python-exec/`    | Gateway 上の `python_exec`（`uv run`）。                                                                   |
 | `browser/`        | ブラウザ CDP ツール。`openclaw.json` の `browser` ブロックと整合。                                         |
 | `local-voice/`    | カメラ・STT・TTS・VRChat。マルチモーダル時は設定の `cameraMinIntervalMs` 等でスロットル。                  |

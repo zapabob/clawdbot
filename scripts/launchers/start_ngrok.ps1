@@ -19,13 +19,14 @@ if ($Port -lt 1 -or $Port -gt 65535) {
     throw "[ngrok] Invalid -Port: $Port (expected 1-65535)"
 }
 
-$candidate = [string]$env:NGROK_UPSTREAM_URL
-$upstream = $null
-if ($candidate -match '^\s*https?://' -and $candidate -notmatch '(?i)undefined' -and $candidate -notmatch '(?i)^\s*https?://\s*$') {
-    $upstream = $candidate.Trim()
-}
-if (-not $upstream) {
-    $upstream = "http://127.0.0.1:$Port"
+$upstream = Resolve-OpenClawNgrokUpstreamUrl -Candidate ([string]$env:NGROK_UPSTREAM_URL) -GatewayPort $Port
+$mergedEnv = Get-MergedEnvMap -ProjectDir $ProjectDir
+if ($mergedEnv.ContainsKey("NGROK_UPSTREAM_URL")) {
+    $fromFile = [string]$mergedEnv["NGROK_UPSTREAM_URL"]
+    if ($fromFile -and -not (Test-OpenClawNgrokUpstreamCandidate -Candidate $fromFile)) {
+        Write-Host "[ngrok] NGROK_UPSTREAM_URL in merged .env is invalid ($fromFile); using fallback: $upstream" -ForegroundColor Yellow
+        Write-Host "[ngrok] Run: scripts\launchers\repair-ngrok-upstream-env.ps1 -GatewayPort $Port" -ForegroundColor DarkYellow
+    }
 }
 
 $tunnelMatchPort = Get-NgrokUpstreamTunnelMatchPort -GatewayPort $Port

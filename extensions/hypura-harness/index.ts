@@ -1,5 +1,5 @@
 /**
- * Hypura Python harness — HTTP proxy tools for the FastAPI daemon (scripts/hypura/harness_daemon.py).
+ * Hypura Python harness — HTTP proxy tools for the FastAPI daemon (extensions/hypura-harness/scripts/harness_daemon.py).
  * Default base URL matches harness.config.json (port 18794; avoids OpenClaw Bridge on 18790).
  */
 import { Type } from "@sinclair/typebox";
@@ -46,7 +46,7 @@ async function harnessJson(
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     throw new Error(
-      `Hypura harness unreachable at ${base}. Start: cd scripts/hypura && uv run harness_daemon.py (${msg})`,
+      `Hypura harness unreachable at ${base}. Start: cd extensions/hypura-harness/scripts && uv run harness_daemon.py (Windows: scripts/launchers/Start-Hypura-Harness.ps1). (${msg})`,
     );
   }
   const text = await res.text();
@@ -495,7 +495,7 @@ export default definePluginEntry({
         "- TinyLoRA training: **`hypura_tinylora_train`** (qwen-hakua-core2 を 13 params で学習; mode=auto/tinylora/sft).",
         "- AI Scientist: **`hypura_scientist_run`** (SakanaAI/AI-Scientist, Ollama モード; アイデア生成→Redis保存), **`hypura_scientist_ideas`** (アイデアのみ取得), **`hypura_scientist_status`** (findings/tasks キュー確認).",
         `- Default URL: ${DEFAULT_BASE_URL} (override via plugins.entries["hypura-harness"].config.baseUrl).`,
-        "- If tools fail to connect: `cd scripts/hypura && uv run harness_daemon.py`",
+        "- If tools fail to connect: `cd extensions/hypura-harness/scripts && uv run harness_daemon.py` (or `scripts/launchers/Start-Hypura-Harness.ps1` on Windows).",
       ].join("\n"),
     }));
   },

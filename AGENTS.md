@@ -263,6 +263,8 @@ High-density structural map for efficient autonomous traversal:
 
 - The `hypura` model provider (`models.providers.hypura`, Ollama-compatible API) targets the Hypura **inference server** (`hypura serve` on the configured base URL port). It is not the Hypura **Harness** daemon (default port 18794); the harness backs `hypura_harness_*` tools and is not the primary chat completion backend.
 - The TUI waiting copy "conjuring" is ordinary waiting-state UI (see `src/tui/tui-waiting.ts`); it does not indicate Harness-driven inference.
+- ngrok **ERR_NGROK_8012** with upstream shown as **`undefined://undefined`** usually means the launcher or env supplied a missing/invalid upstream URL; set an explicit local upstream (for example `http://127.0.0.1:<gateway-port>`) in process env or `.env` before starting the tunnel.
+- The bundled Telegram extension defaults the HTTP webhook listener to **`http://127.0.0.1:8787`** with path **`/telegram-webhook`** unless `channels.telegram.webhookPath` overrides it (see `extensions/telegram/src/webhook.ts`).
 
 ---
 

@@ -124,6 +124,11 @@ pnpm install
 pnpm build
 ```
 
+### Repository layout and Hypura harness
+
+- **OpenClaw core vs Sovereign overlay** (what is upstream-shaped vs fork-specific, no-delete policy): [_docs/2026-04-05_OpenClaw-layout-Sovereign-overlay_clawdbot-main.md](_docs/2026-04-05_OpenClaw-layout-Sovereign-overlay_clawdbot-main.md).
+- **Hypura harness** (daemon, config, Windows launchers, plugin tools): [extensions/hypura-harness/README.md](extensions/hypura-harness/README.md).
+
 ### Manifestation (顕現)
 
 1.  Navigate to `identity/`.

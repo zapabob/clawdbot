@@ -185,12 +185,89 @@ function Set-EnvValues {
     Set-Content -Path $EnvFile -Value $updatedLines -Encoding UTF8
 }
 
+<#
+  True when NGROK_UPSTREAM_URL is safe to pass to `ngrok http <addr>` (absolute http(s) with real host/port).
+  Rejects empty, JS-style "undefined"/"null" leaks, scheme typos (undefined://...), and port 0.
+#>
+function Test-OpenClawNgrokUpstreamCandidate {
+    param(
+        [AllowNull()]
+        [string]$Candidate
+    )
+    if ([string]::IsNullOrWhiteSpace($Candidate)) {
+        return $false
+    }
+    $t = $Candidate.Trim()
+    if ($t.Length -lt 8) {
+        return $false
+    }
+    if ($t -notmatch '^\s*https?://') {
+        return $false
+    }
+    if ($t -match '(?i)undefined\s*:\s*//' -or $t -match '(?i)^\s*https?://\s*$') {
+        return $false
+    }
+    if ($t -match '(?i)^\s*null\s*$') {
+        return $false
+    }
+    try {
+        $u = [Uri]$t
+        if (-not $u.IsAbsoluteUri) {
+            return $false
+        }
+        $scheme = $u.Scheme.ToLowerInvariant()
+        if ($scheme -ne "http" -and $scheme -ne "https") {
+            return $false
+        }
+        if ([string]::IsNullOrWhiteSpace($u.Host)) {
+            return $false
+        }
+        if ($u.Host.Equals("undefined", [System.StringComparison]::OrdinalIgnoreCase)) {
+            return $false
+        }
+        if ($u.Port -eq 0) {
+            return $false
+        }
+        return $true
+    } catch {
+        return $false
+    }
+}
+
+function Resolve-OpenClawNgrokUpstreamUrl {
+    param(
+        [AllowNull()]
+        [string]$Candidate,
+        [int]$GatewayPort = 18789
+    )
+    if (Test-OpenClawNgrokUpstreamCandidate -Candidate $Candidate) {
+        return $Candidate.Trim()
+    }
+    return "http://127.0.0.1:$GatewayPort"
+}
+
+function Repair-OpenClawProcessEnvNgrokUpstreamUrl {
+    $c = [string]$env:NGROK_UPSTREAM_URL
+    if ([string]::IsNullOrWhiteSpace($c)) {
+        return
+    }
+    if (-not (Test-OpenClawNgrokUpstreamCandidate -Candidate $c)) {
+        Write-Host @"
+[env] NGROK_UPSTREAM_URL is invalid for ngrok (value was: $c).
+      Removed from this process so launchers default to http://127.0.0.1:<gateway port>.
+      Fix .env: set e.g. NGROK_UPSTREAM_URL=http://127.0.0.1:18789 (Gateway) or :8787 (Telegram webhook listener),
+      or run: scripts\launchers\repair-ngrok-upstream-env.ps1
+"@ -ForegroundColor Yellow
+        Remove-Item -Path "Env:NGROK_UPSTREAM_URL" -ErrorAction SilentlyContinue
+    }
+}
+
 function Get-NgrokUpstreamTunnelMatchPort {
     param(
         [int]$GatewayPort = 18789
     )
     $candidate = [string]$env:NGROK_UPSTREAM_URL
-    if ($candidate -match '^\s*https?://' -and $candidate -notmatch '(?i)undefined' -and $candidate -notmatch '(?i)^\s*https?://\s*$') {
+    if (Test-OpenClawNgrokUpstreamCandidate -Candidate $candidate) {
         try {
             $u = [Uri]$candidate.Trim()
             $scheme = $u.Scheme.ToLowerInvariant()
@@ -453,6 +530,8 @@ function Merge-OpenClawEnvToProcess {
     foreach ($key in $merged.Keys) {
         Set-Item -Path "Env:$key" -Value $merged[$key]
     }
+
+    Repair-OpenClawProcessEnvNgrokUpstreamUrl
 }
 
 <#
