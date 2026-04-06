@@ -264,6 +264,21 @@ const isSignalKey = (signal) => Object.hasOwn(SIGNAL_EXIT_CODES, signal);
 
 const getSignalExitCode = (signal) => (isSignalKey(signal) ? SIGNAL_EXIT_CODES[signal] : 1);
 
+const normalizeCliExitCode = (code) => {
+  const numeric = Number(code);
+  if (!Number.isFinite(numeric)) {
+    return 1;
+  }
+  const normalized = Math.trunc(numeric);
+  if (normalized < 0) {
+    return 1;
+  }
+  if (normalized > 255) {
+    return 255;
+  }
+  return normalized;
+};
+
 const logRunner = (message, deps) => {
   if (deps.env.OPENCLAW_RUNNER_LOG === "0") {
     return;

@@ -1,5 +1,9 @@
 import { listBundledChannelPluginIds } from "./bundled-ids.js";
-import { getBundledChannelPlugin, getBundledChannelSetupPlugin } from "./bundled.js";
+import {
+  clearBundledChannelPluginsCache,
+  getBundledChannelPlugin,
+  getBundledChannelSetupPlugin,
+} from "./bundled.js";
 import type { ChannelId, ChannelPlugin } from "./types.js";
 
 type CachedBootstrapPlugins = {
@@ -32,6 +36,12 @@ function mergeBootstrapPlugin(
   runtimePlugin: ChannelPlugin,
   setupPlugin: ChannelPlugin,
 ): ChannelPlugin {
+  // Some bundled entries intentionally reuse the exact same plugin object for
+  // runtime + setup contracts. Spreading that object can trigger proxy
+  // ownKeys traps and recursive module loading during bootstrap.
+  if (runtimePlugin === setupPlugin) {
+    return runtimePlugin;
+  }
   return {
     ...runtimePlugin,
     ...setupPlugin,
