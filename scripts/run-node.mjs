@@ -370,25 +370,6 @@ const runOpenClaw = async (deps) => {
   return normalizeCliExitCode(res.exitCode ?? 1);
 };
 
-const syncRuntimeArtifacts = (deps) => {
-  try {
-    deps.runRuntimePostBuild({ cwd: deps.cwd });
-  } catch (error) {
-    logRunner(
-      `Failed to write runtime build artifacts: ${error?.message ?? "unknown error"}`,
-      deps,
-    );
-    return false;
-  }
-  if (
-    msg.includes("being used by another process") ||
-    msg.includes("resource temporarily unavailable")
-  ) {
-    return true;
-  }
-  return false;
-};
-
 const formatRuntimeArtifactErrorDetails = (error) => {
   const code = typeof error?.code === "string" ? error.code : "UNKNOWN";
   const message = String(error?.message ?? "unknown error");
@@ -504,7 +485,7 @@ export async function runNodeMain(params = {}) {
 
   const buildRequirement = resolveBuildRequirement(deps);
   if (!buildRequirement.shouldBuild) {
-    if (!shouldSkipCleanWatchRuntimeSync(deps) && !syncRuntimeArtifacts(deps)) {
+    if (!shouldSkipCleanWatchRuntimeSync(deps) && !(await syncRuntimeArtifacts(deps))) {
       return 1;
     }
     // #region agent log
