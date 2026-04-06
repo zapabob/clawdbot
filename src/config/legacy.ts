@@ -1,4 +1,3 @@
-import { collectChannelLegacyConfigRules } from "../channels/plugins/legacy-config.js";
 import { LEGACY_CONFIG_RULES } from "./legacy.rules.js";
 import type { LegacyConfigRule } from "./legacy.shared.js";
 import type { LegacyConfigIssue } from "./types.js";
@@ -28,7 +27,6 @@ export function findLegacyConfigIssues(
   const issues: LegacyConfigIssue[] = [];
   for (const rule of [
     ...LEGACY_CONFIG_RULES,
-    ...collectChannelLegacyConfigRules(),
     ...extraRules,
   ]) {
     const cursor = getPathValue(root, rule.path);
