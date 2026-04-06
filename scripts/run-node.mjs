@@ -255,6 +255,15 @@ const BUILD_REASON_LABELS = {
 
 const formatBuildReason = (reason) => BUILD_REASON_LABELS[reason] ?? reason;
 
+const SIGNAL_EXIT_CODES = {
+  SIGINT: 130,
+  SIGTERM: 143,
+};
+
+const isSignalKey = (signal) => Object.hasOwn(SIGNAL_EXIT_CODES, signal);
+
+const getSignalExitCode = (signal) => (isSignalKey(signal) ? SIGNAL_EXIT_CODES[signal] : 1);
+
 const logRunner = (message, deps) => {
   if (deps.env.OPENCLAW_RUNNER_LOG === "0") {
     return;
@@ -262,21 +271,51 @@ const logRunner = (message, deps) => {
   deps.stderr.write(`[openclaw] ${message}\n`);
 };
 
-/** Avoid propagating negative/large exit codes (Windows pnpm ELIFECYCLE 4294967295). */
-const normalizeCliExitCode = (code) => {
-  if (code === 0) {
-    return 0;
+const waitForSpawnedProcess = async (childProcess, deps) => {
+  let forwardedSignal = null;
+  let onSigInt;
+  let onSigTerm;
+
+  const cleanupSignals = () => {
+    if (onSigInt) {
+      deps.process.off("SIGINT", onSigInt);
+    }
+    if (onSigTerm) {
+      deps.process.off("SIGTERM", onSigTerm);
+    }
+  };
+
+  const forwardSignal = (signal) => {
+    if (forwardedSignal) {
+      return;
+    }
+    forwardedSignal = signal;
+    try {
+      childProcess.kill?.(signal);
+    } catch {
+      // Best-effort only. Exit handling still happens via the child "exit" event.
+    }
+  };
+
+  onSigInt = () => {
+    forwardSignal("SIGINT");
+  };
+  onSigTerm = () => {
+    forwardSignal("SIGTERM");
+  };
+
+  deps.process.on("SIGINT", onSigInt);
+  deps.process.on("SIGTERM", onSigTerm);
+
+  try {
+    return await new Promise((resolve) => {
+      childProcess.on("exit", (exitCode, exitSignal) => {
+        resolve({ exitCode, exitSignal, forwardedSignal });
+      });
+    });
+  } finally {
+    cleanupSignals();
   }
-  if (code === null || code === undefined) {
-    return 1;
-  }
-  if (typeof code !== "number" || Number.isNaN(code)) {
-    return 1;
-  }
-  if (code < 0 || code > 255) {
-    return 1;
-  }
-  return code;
 };
 
 const runOpenClaw = async (deps) => {
@@ -303,31 +342,12 @@ const runOpenClaw = async (deps) => {
     env: deps.env,
     stdio: "inherit",
   });
-  const res = await new Promise((resolve) => {
-    nodeProcess.on("exit", (exitCode, exitSignal) => {
-      resolve({ exitCode, exitSignal });
-    });
-  });
+  const res = await waitForSpawnedProcess(nodeProcess, deps);
   if (res.exitSignal) {
-    // #region agent log
-    try {
-      fs.appendFileSync(
-        path.join(deps.cwd, "debug-2f4832.log"),
-        `${JSON.stringify({
-          sessionId: "2f4832",
-          runId: "gateway-hang",
-          hypothesisId: "H11",
-          location: "scripts/run-node.mjs:openclaw-exit-signal",
-          message: "openclaw process exited by signal",
-          data: { exitSignal: res.exitSignal },
-          timestamp: Date.now(),
-        })}\n`,
-      );
-    } catch {
-      /* ignore */
-    }
-    // #endregion
-    return 1;
+    return getSignalExitCode(res.exitSignal);
+  }
+  if (res.forwardedSignal) {
+    return getSignalExitCode(res.forwardedSignal);
   }
   // #region agent log
   try {
@@ -350,11 +370,15 @@ const runOpenClaw = async (deps) => {
   return normalizeCliExitCode(res.exitCode ?? 1);
 };
 
-const isTransientRuntimeArtifactError = (error) => {
-  const code = error?.code;
-  const msg = String(error?.message ?? "").toLowerCase();
-  if (code === "EBUSY" || code === "EPIPE" || code === "EPERM") {
-    return true;
+const syncRuntimeArtifacts = (deps) => {
+  try {
+    deps.runRuntimePostBuild({ cwd: deps.cwd });
+  } catch (error) {
+    logRunner(
+      `Failed to write runtime build artifacts: ${error?.message ?? "unknown error"}`,
+      deps,
+    );
+    return false;
   }
   if (
     msg.includes("being used by another process") ||
@@ -453,16 +477,20 @@ const writeBuildStamp = (deps) => {
   }
 };
 
+const shouldSkipCleanWatchRuntimeSync = (deps) => deps.env.OPENCLAW_WATCH_MODE === "1";
+
 export async function runNodeMain(params = {}) {
   const deps = {
     spawn: params.spawn ?? spawn,
     spawnSync: params.spawnSync ?? spawnSync,
     fs: params.fs ?? fs,
     stderr: params.stderr ?? process.stderr,
+    process: params.process ?? process,
     execPath: params.execPath ?? process.execPath,
     cwd: params.cwd ?? process.cwd(),
     args: params.args ?? process.argv.slice(2),
     env: params.env ? { ...params.env } : { ...process.env },
+    runRuntimePostBuild: params.runRuntimePostBuild ?? runRuntimePostBuild,
   };
 
   deps.distRoot = path.join(deps.cwd, "dist");
@@ -476,7 +504,7 @@ export async function runNodeMain(params = {}) {
 
   const buildRequirement = resolveBuildRequirement(deps);
   if (!buildRequirement.shouldBuild) {
-    if (!syncRuntimeArtifacts(deps)) {
+    if (!shouldSkipCleanWatchRuntimeSync(deps) && !syncRuntimeArtifacts(deps)) {
       return 1;
     }
     // #region agent log
@@ -530,36 +558,12 @@ export async function runNodeMain(params = {}) {
     stdio: "inherit",
   });
 
-  const buildRes = await new Promise((resolve) => {
-    build.on("exit", (exitCode, exitSignal) => resolve({ exitCode, exitSignal }));
-  });
-  // #region agent log
-  try {
-    fs.appendFileSync(
-      path.join(deps.cwd, "debug-2f4832.log"),
-      `${JSON.stringify({
-        sessionId: "2f4832",
-        hypothesisId: "H4",
-        location: "scripts/run-node.mjs:post-tsdown-build",
-        message: "child scripts/tsdown-build.mjs exit",
-        data: {
-          exitCode: buildRes.exitCode,
-          exitSignal: buildRes.exitSignal,
-          normalizedReturn:
-            buildRes.exitCode !== 0 && buildRes.exitCode !== null
-              ? normalizeCliExitCode(buildRes.exitCode)
-              : null,
-          runId: "post-fix",
-        },
-        timestamp: Date.now(),
-      })}\n`,
-    );
-  } catch {
-    /* ignore */
-  }
-  // #endregion
+  const buildRes = await waitForSpawnedProcess(build, deps);
   if (buildRes.exitSignal) {
-    return 1;
+    return getSignalExitCode(buildRes.exitSignal);
+  }
+  if (buildRes.forwardedSignal) {
+    return getSignalExitCode(buildRes.forwardedSignal);
   }
   if (buildRes.exitCode !== 0 && buildRes.exitCode !== null) {
     return normalizeCliExitCode(buildRes.exitCode);

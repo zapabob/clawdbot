@@ -1,6 +1,34 @@
-import { beforeAll, describe, expect, it } from "vitest";
-import { ensureBundledChannelPluginsLoaded } from "../channels/plugins/bundled.js";
-import { getDefaultTableModes, resolveMarkdownTableMode } from "./markdown-tables.js";
+import { describe, expect, it, vi } from "vitest";
+
+const listChannelPluginsMock = vi.hoisted(() =>
+  vi.fn(() => [
+    { id: "mattermost", messaging: { defaultMarkdownTableMode: "off" as const } },
+    { id: "signal", messaging: { defaultMarkdownTableMode: "bullets" as const } },
+    { id: "whatsapp", messaging: { defaultMarkdownTableMode: "bullets" as const } },
+  ]),
+);
+const getActivePluginChannelRegistryVersionMock = vi.hoisted(() => vi.fn(() => 1));
+
+vi.mock("../channels/plugins/registry.js", async () => {
+  const actual = await vi.importActual<typeof import("../channels/plugins/registry.js")>(
+    "../channels/plugins/registry.js",
+  );
+  return {
+    ...actual,
+    listChannelPlugins: () => listChannelPluginsMock(),
+  };
+});
+
+vi.mock("../plugins/runtime.js", async () => {
+  const actual =
+    await vi.importActual<typeof import("../plugins/runtime.js")>("../plugins/runtime.js");
+  return {
+    ...actual,
+    getActivePluginChannelRegistryVersion: () => getActivePluginChannelRegistryVersionMock(),
+  };
+});
+
+import { DEFAULT_TABLE_MODES, resolveMarkdownTableMode } from "./markdown-tables.js";
 
 beforeAll(async () => {
   await ensureBundledChannelPluginsLoaded();

@@ -262,6 +262,8 @@ nul
 changelog/fragments/
 # Local scratch workspace
 .tmp/
-
-# Cursor hook runtime state (local)
-.cursor/hooks/
+.artifacts/
+test/fixtures/openclaw-vitest-unit-report.json
+analysis/
+.artifacts/qa-e2e/
+extensions/qa-lab/web/dist/

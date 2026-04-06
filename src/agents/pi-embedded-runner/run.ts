@@ -82,6 +82,7 @@ import {
   scrubAnthropicRefusalMagic,
 } from "./run/helpers.js";
 import {
+  resolveAckExecutionFastPathInstruction,
   resolveIncompleteTurnPayloadText,
   extractPlanningOnlyPlanDetails,
   resolvePlanningOnlyRetryInstruction,
@@ -119,8 +120,28 @@ export async function runEmbeddedPiAgent(
       : "markdown");
   const isProbeSession = params.sessionId?.startsWith("probe-") ?? false;
 
-  return enqueueSession(() =>
-    enqueueGlobal(async () => {
+  const throwIfAborted = () => {
+    if (!params.abortSignal?.aborted) {
+      return;
+    }
+    const reason = params.abortSignal.reason;
+    if (reason instanceof Error) {
+      throw reason;
+    }
+    const abortErr =
+      reason !== undefined
+        ? new Error("Operation aborted", { cause: reason })
+        : new Error("Operation aborted");
+    abortErr.name = "AbortError";
+    throw abortErr;
+  };
+
+  throwIfAborted();
+
+  return enqueueSession(() => {
+    throwIfAborted();
+    return enqueueGlobal(async () => {
+      throwIfAborted();
       const started = Date.now();
       const workspaceResolution = resolveRunWorkspaceDir({
         workspaceDir: params.workspaceDir,
@@ -311,6 +332,11 @@ export async function runEmbeddedPiAgent(
       let planningOnlyRetryAttempts = 0;
       let lastRetryFailoverReason: FailoverReason | null = null;
       let planningOnlyRetryInstruction: string | null = null;
+      const ackExecutionFastPathInstruction = resolveAckExecutionFastPathInstruction({
+        provider,
+        modelId,
+        prompt: params.prompt,
+      });
       let rateLimitProfileRotations = 0;
       let timeoutCompactionAttempts = 0;
       const overloadFailoverBackoffMs = resolveOverloadFailoverBackoffMs(params.config);
@@ -483,9 +509,16 @@ export async function runEmbeddedPiAgent(
 
           const basePrompt =
             provider === "anthropic" ? scrubAnthropicRefusalMagic(params.prompt) : params.prompt;
-          const prompt = planningOnlyRetryInstruction
-            ? `${basePrompt}\n\n${planningOnlyRetryInstruction}`
-            : basePrompt;
+          const promptAdditions = [
+            ackExecutionFastPathInstruction,
+            planningOnlyRetryInstruction,
+          ].filter(
+            (value): value is string => typeof value === "string" && value.trim().length > 0,
+          );
+          const prompt =
+            promptAdditions.length > 0
+              ? `${basePrompt}\n\n${promptAdditions.join("\n\n")}`
+              : basePrompt;
           let resolvedStreamApiKey: string | undefined;
           if (!runtimeAuthState && apiKeyInfo) {
             resolvedStreamApiKey = (apiKeyInfo as ApiKeyInfo).apiKey;
@@ -556,6 +589,7 @@ export async function runEmbeddedPiAgent(
             timeoutMs: params.timeoutMs,
             runId: params.runId,
             abortSignal: params.abortSignal,
+            replyOperation: params.replyOperation,
             shouldEmitToolResult: params.shouldEmitToolResult,
             shouldEmitToolOutput: params.shouldEmitToolOutput,
             onPartialReply: params.onPartialReply,
@@ -1490,6 +1524,6 @@ export async function runEmbeddedPiAgent(
           });
         }
       }
-    }),
-  );
+    });
+  });
 }

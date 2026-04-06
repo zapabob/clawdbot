@@ -1,5 +1,6 @@
-import { listBootstrapChannelPlugins } from "../channels/plugins/bootstrap-registry.js";
 import { normalizeChannelId } from "../channels/plugins/index.js";
+import { listChannelPlugins } from "../channels/plugins/registry.js";
+import { getActivePluginChannelRegistryVersion } from "../plugins/runtime.js";
 import { resolveAccountEntry } from "../routing/account-lookup.js";
 import { normalizeAccountId } from "../routing/session-key.js";
 import type { OpenClawConfig } from "./config.js";
@@ -17,7 +18,7 @@ type MarkdownConfigSection = MarkdownConfigEntry & {
 
 function buildDefaultTableModes(): Map<string, MarkdownTableMode> {
   return new Map(
-    listBootstrapChannelPlugins()
+    listChannelPlugins()
       .flatMap((plugin) => {
         const defaultMarkdownTableMode = plugin.messaging?.defaultMarkdownTableMode;
         return defaultMarkdownTableMode ? [[plugin.id, defaultMarkdownTableMode] as const] : [];
@@ -27,12 +28,34 @@ function buildDefaultTableModes(): Map<string, MarkdownTableMode> {
 }
 
 let cachedDefaultTableModes: Map<string, MarkdownTableMode> | null = null;
+let cachedDefaultTableModesRegistryVersion: number | null = null;
 
-/** Lazily built so bundled channel plugins can initialize via `ensureBundledChannelPluginsLoaded` first. */
-export function getDefaultTableModes(): Map<string, MarkdownTableMode> {
-  cachedDefaultTableModes ??= buildDefaultTableModes();
+function getDefaultTableModes(): Map<string, MarkdownTableMode> {
+  const registryVersion = getActivePluginChannelRegistryVersion();
+  if (!cachedDefaultTableModes || cachedDefaultTableModesRegistryVersion !== registryVersion) {
+    cachedDefaultTableModes = buildDefaultTableModes();
+    cachedDefaultTableModesRegistryVersion = registryVersion;
+  }
   return cachedDefaultTableModes;
 }
+
+const EMPTY_DEFAULT_TABLE_MODES = new Map<string, MarkdownTableMode>();
+
+function bindDefaultTableModesMethod<TValue>(value: TValue): TValue {
+  if (typeof value !== "function") {
+    return value;
+  }
+  return value.bind(getDefaultTableModes()) as TValue;
+}
+
+export const DEFAULT_TABLE_MODES: ReadonlyMap<string, MarkdownTableMode> = new Proxy(
+  EMPTY_DEFAULT_TABLE_MODES,
+  {
+    get(_target, prop, _receiver) {
+      return bindDefaultTableModesMethod(Reflect.get(getDefaultTableModes(), prop));
+    },
+  },
+);
 
 const isMarkdownTableMode = (value: unknown): value is MarkdownTableMode =>
   value === "off" || value === "bullets" || value === "code" || value === "block";

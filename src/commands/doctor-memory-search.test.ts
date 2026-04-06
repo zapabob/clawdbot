@@ -232,6 +232,7 @@ describe("noteMemorySearchHealth", () => {
     expect(message).toContain("QMD memory backend is configured");
     expect(message).toContain("spawn qmd ENOENT");
     expect(message).toContain("npm install -g @tobilu/qmd");
+    expect(message).toContain("bun install -g @tobilu/qmd");
   });
 
   it("warns when QMD backend is active but the qmd binary is unavailable", async () => {
