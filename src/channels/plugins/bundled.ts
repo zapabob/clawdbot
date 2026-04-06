@@ -149,6 +149,14 @@ let bundledChannelStateLoadInProgress = false;
 const pluginLoadInProgressIds = new Set<ChannelId>();
 const setupPluginLoadInProgressIds = new Set<ChannelId>();
 
+export function shouldUseNativeImportForBundledChannelEntry(absolutePath: string): boolean {
+  if (!isJavaScriptModulePath(absolutePath)) {
+    return false;
+  }
+  const normalized = absolutePath.replace(/\\/g, "/").toLowerCase();
+  return normalized.includes("/dist/extensions/");
+}
+
 function getBundledChannelState(): BundledChannelState {
   if (cachedBundledChannelState) {
     return cachedBundledChannelState;
@@ -271,4 +279,19 @@ export function setBundledChannelRuntime(id: ChannelId, runtime: PluginRuntime):
     throw new Error(`missing bundled channel runtime setter: ${id}`);
   }
   setter(runtime);
+}
+
+export async function ensureBundledChannelPluginsLoaded(params?: {
+  minimalEmpty?: boolean;
+}): Promise<void> {
+  if (params?.minimalEmpty) {
+    return;
+  }
+  getBundledChannelState();
+}
+
+export function clearBundledChannelPluginsCache(): void {
+  cachedBundledChannelState = null;
+  pluginLoadInProgressIds.clear();
+  setupPluginLoadInProgressIds.clear();
 }

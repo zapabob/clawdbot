@@ -58,7 +58,7 @@ async function seedSession(params?: { text?: string }) {
 
 function makeTranscriptAssistantMessage(params: {
   text: string;
-  content?: Array<Record<string, unknown>>;
+  content?: Array<{ type: "text"; text: string; textSignature?: string }>;
 }) {
   return {
     role: "assistant" as const,

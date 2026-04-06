@@ -45,7 +45,7 @@ async function resolveStatusAllLocalDiagnosis(params: {
   configPath: string;
   health: StatusGatewayHealthSafe | undefined;
   diagnosis: {
-    snap: Awaited<ReturnType<typeof readConfigFileSnapshot>>;
+    snap: Awaited<ReturnType<typeof readConfigFileSnapshot>> | null;
     remoteUrlMissing: boolean;
     secretDiagnostics: StatusScanOverviewResult["secretDiagnostics"];
     sentinel: Awaited<ReturnType<typeof readRestartSentinel>> | null;
@@ -80,7 +80,7 @@ async function resolveStatusAllLocalDiagnosis(params: {
         timeoutMs: Math.min(8000, params.timeoutMs ?? 10_000),
         gatewayReachable: params.gatewayReachable,
         gatewayProbeError: params.gatewayProbe?.error ?? null,
-        callOverrides: params.gatewayCallOverrides ?? {},
+        ...(params.gatewayCallOverrides ? { callOverrides: params.gatewayCallOverrides } : {}),
       });
 
   params.progress.setLabel("Checking local state…");

@@ -25,26 +25,23 @@ import {
   buildStatusTasksValue,
   statusHealthColumns,
 } from "./status.command-sections.js";
+import type { RenderTableOptions, TableColumn } from "../terminal/table.js";
+import type { OpenClawConfig } from "../config/types.js";
+import type { HealthSummary } from "./health.js";
+import type { Tone } from "../memory-host-sdk/status.js";
+import type { MemoryStatusSnapshot, MemoryPluginStatus } from "./status.scan.shared.js";
+import type { SessionStatus, StatusSummary } from "./status.types.js";
+import type { PluginCompatibilityNotice } from "../plugins/status.js";
+import type { UpdateCheckResult } from "../infra/update-check.js";
+import type { AgentLocalStatus } from "./status.agent-local.js";
 
 export async function buildStatusCommandReportData(params: {
   opts: {
     deep?: boolean;
     verbose?: boolean;
   };
-  cfg: {
-    update?: {
-      channel?: string | null;
-    };
-    gateway?: {
-      bind?: string;
-      customBindHost?: string;
-      controlUi?: {
-        enabled?: boolean;
-        basePath?: string;
-      };
-    };
-  };
-  update: Record<string, unknown>;
+  cfg: Pick<OpenClawConfig, "update" | "gateway">;
+  update: UpdateCheckResult;
   osSummary: { label: string };
   tailscaleMode: string;
   tailscaleDns?: string | null;
@@ -100,42 +97,7 @@ export async function buildStatusCommandReportData(params: {
     } | null;
   };
   nodeOnlyGateway: unknown;
-  summary: {
-    tasks: {
-      total: number;
-      active: number;
-      failures: number;
-      byStatus: { queued: number; running: number };
-    };
-    taskAudit: {
-      errors: number;
-      warnings: number;
-    };
-    heartbeat: {
-      agents: Array<{
-        agentId: string;
-        enabled?: boolean | null;
-        everyMs?: number | null;
-        every: string;
-      }>;
-    };
-    queuedSystemEvents: string[];
-    sessions: {
-      count: number;
-      paths: string[];
-      defaults: {
-        model?: string | null;
-        contextTokens?: number | null;
-      };
-      recent: Array<{
-        key: string;
-        kind: string;
-        updatedAt?: number | null;
-        age: number;
-        model?: string | null;
-      }>;
-    };
-  };
+  summary: StatusSummary;
   securityAudit: {
     summary: { critical: number; warn: number; info: number };
     findings: Array<{
@@ -144,18 +106,15 @@ export async function buildStatusCommandReportData(params: {
       detail: string;
       remediation?: string | null;
     }>;
-  };
-  health?: unknown;
+  } | undefined;
+  health?: HealthSummary;
   usageLines?: string[];
   lastHeartbeat: unknown;
   agentStatus: {
     defaultId?: string | null;
     bootstrapPendingCount: number;
     totalSessions: number;
-    agents: Array<{
-      id: string;
-      lastActiveAgeMs?: number | null;
-    }>;
+    agents: AgentLocalStatus[];
   };
   channels: {
     rows: Array<{
@@ -170,21 +129,9 @@ export async function buildStatusCommandReportData(params: {
     channel: string;
     message: string;
   }>;
-  memory: {
-    files: number;
-    chunks: number;
-    dirty?: boolean;
-    sources?: string[];
-    vector?: unknown;
-    fts?: unknown;
-    cache?: unknown;
-  } | null;
-  memoryPlugin: {
-    enabled: boolean;
-    reason?: string | null;
-    slot?: string | null;
-  };
-  pluginCompatibility: Array<{ severity?: "warn" | "info" | null } & Record<string, unknown>>;
+  memory: MemoryStatusSnapshot | null;
+  memoryPlugin: MemoryPluginStatus;
+  pluginCompatibility: PluginCompatibilityNotice[];
   pairingRecovery: { requestId: string | null } | null;
   tableWidth: number;
   ok: (value: string) => string;
@@ -194,38 +141,32 @@ export async function buildStatusCommandReportData(params: {
   formatCliCommand: (value: string) => string;
   formatTimeAgo: (ageMs: number) => string;
   formatKTokens: (value: number) => string;
-  formatTokensCompact: (value: {
-    key: string;
-    kind: string;
-    updatedAt?: number | null;
-    age: number;
-    model?: string | null;
-  }) => string;
-  formatPromptCacheCompact: (value: {
-    key: string;
-    kind: string;
-    updatedAt?: number | null;
-    age: number;
-    model?: string | null;
-  }) => string | null;
-  formatHealthChannelLines: (summary: unknown, opts: { accountMode: "all" }) => string[];
-  formatPluginCompatibilityNotice: (notice: Record<string, unknown>) => string;
-  formatUpdateAvailableHint: (update: Record<string, unknown>) => string | null;
-  resolveMemoryVectorState: (value: unknown) => { state: string; tone: "ok" | "warn" | "muted" };
-  resolveMemoryFtsState: (value: unknown) => { state: string; tone: "ok" | "warn" | "muted" };
-  resolveMemoryCacheSummary: (value: unknown) => { text: string; tone: "ok" | "warn" | "muted" };
+  formatTokensCompact: (value: SessionStatus) => string;
+  formatPromptCacheCompact: (value: SessionStatus) => string | null;
+  formatHealthChannelLines: (summary: HealthSummary, opts: { accountMode: "all" }) => string[];
+  formatPluginCompatibilityNotice: (notice: PluginCompatibilityNotice) => string;
+  formatUpdateAvailableHint: (update: UpdateCheckResult) => string | null;
+  resolveMemoryVectorState: (value: NonNullable<MemoryStatusSnapshot["vector"]>) => {
+    state: string;
+    tone: Tone;
+  };
+  resolveMemoryFtsState: (value: NonNullable<MemoryStatusSnapshot["fts"]>) => {
+    state: string;
+    tone: Tone;
+  };
+  resolveMemoryCacheSummary: (value: NonNullable<MemoryStatusSnapshot["cache"]>) => {
+    text: string;
+    tone: Tone;
+  };
   accentDim: (value: string) => string;
+  updateValue: string;
   theme: {
     heading: (value: string) => string;
     muted: (value: string) => string;
     warn: (value: string) => string;
     error: (value: string) => string;
   };
-  renderTable: (input: {
-    width: number;
-    columns: Array<Record<string, unknown>>;
-    rows: Array<Record<string, string>>;
-  }) => string;
+  renderTable: (input: RenderTableOptions) => string;
 }) {
   const agentsValue = buildStatusAgentsValue({
     agentStatus: params.agentStatus,
@@ -316,7 +257,7 @@ export async function buildStatusCommandReportData(params: {
       : null,
   });
 
-  const sessionsColumns = [
+  const sessionsColumns: TableColumn[] = [
     { key: "Key", header: "Key", minWidth: 20, flex: true },
     { key: "Kind", header: "Kind", minWidth: 6 },
     { key: "Age", header: "Age", minWidth: 9 },
@@ -345,7 +286,10 @@ export async function buildStatusCommandReportData(params: {
       formatCliCommand: params.formatCliCommand,
     }),
     securityAuditLines: buildStatusSecurityAuditLines({
-      securityAudit: params.securityAudit,
+      securityAudit: params.securityAudit ?? {
+        summary: { critical: 0, warn: 0, info: 0 },
+        findings: [],
+      },
       theme: params.theme,
       shortenText: params.shortenText,
       formatCliCommand: params.formatCliCommand,

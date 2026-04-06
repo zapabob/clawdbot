@@ -101,6 +101,8 @@ if ($Mode -eq "Menu") {
     Write-Host "      (Docker Compose UP -d)" -ForegroundColor Gray
     Write-Host "  [6] Full Manifestation (Local + Docker)" -ForegroundColor Cyan
     Write-Host "      (Gateway + Harness + UI + Docker Compose)" -ForegroundColor Gray
+    Write-Host "  [7] ngrok + Telegram Webhook Quick Repair" -ForegroundColor DarkCyan
+    Write-Host "      (Gateway確認 + ngrok再作成 + setWebhook検証)" -ForegroundColor Gray
     Write-Host "  [Q] Exit Portal`n" -ForegroundColor Red
     
     $choice = Read-Host "  Select Manifestation Mode"
@@ -117,6 +119,7 @@ if ($Mode -eq "Menu") {
         "4" { $Mode = "Diag" }
         "5" { $Mode = "Docker" }
         "6" { $Mode = "Full-Docker" }
+        "7" { $Mode = "RepairWebhook" }
         "q" { exit 0 }
         "Q" { exit 0 }
         Default {
@@ -129,6 +132,22 @@ if ($Mode -eq "Menu") {
 Show-Header
 Write-Host ("  [ASI_ACCEL] Mode: {0} Manifesting (Asynchronous Pulse)..." -f $Mode) -ForegroundColor Yellow
 Write-Host "  [GHOST] Ghost Bridge Active: Antigravity Substrate Integration." -ForegroundColor Cyan
+
+if ($Mode -eq "RepairWebhook") {
+    $repairPs1 = Join-Path $ProjectDir "scripts\launchers\repair-ngrok-and-telegram-webhook.ps1"
+    if (-not (Test-Path -LiteralPath $repairPs1)) {
+        Write-Host ("  [REPAIR][ERROR] Script not found: {0}" -f $repairPs1) -ForegroundColor Red
+        exit 1
+    }
+    Write-Host "  [REPAIR] Running ngrok + Telegram webhook one-shot recovery..." -ForegroundColor DarkCyan
+    & $repairPs1 -Port $GatewayPort
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host ("  [REPAIR][ERROR] Recovery exited with code {0}" -f $LASTEXITCODE) -ForegroundColor Red
+        exit $LASTEXITCODE
+    }
+    Write-Host "  [REPAIR] Completed." -ForegroundColor Green
+    exit 0
+}
 
 # Hypura harness needs Python venv or uv; Gateway/TUI/Browser do not — do not exit the whole portal.
 $pythonHarnessMissing = (-not (Test-Path $PythonExe)) -and -not (Get-Command uv -ErrorAction SilentlyContinue)

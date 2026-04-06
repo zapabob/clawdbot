@@ -169,19 +169,23 @@ describe("security audit install metadata findings", () => {
 
     for (const testCase of cases) {
       const res = await testCase.run();
-      for (const checkId of testCase.expectedPresent ?? []) {
-        expect(
-          res.findings.some(
-            (finding) => finding.checkId === checkId && finding.severity === "warn",
-          ),
-          testCase.name,
-        ).toBe(true);
+      if ("expectedPresent" in testCase) {
+        for (const checkId of testCase.expectedPresent) {
+          expect(
+            res.findings.some(
+              (finding) => finding.checkId === checkId && finding.severity === "warn",
+            ),
+            testCase.name,
+          ).toBe(true);
+        }
       }
-      for (const checkId of testCase.expectedAbsent ?? []) {
-        expect(
-          res.findings.some((finding) => finding.checkId === checkId),
-          testCase.name,
-        ).toBe(false);
+      if ("expectedAbsent" in testCase) {
+        for (const checkId of testCase.expectedAbsent) {
+          expect(
+            res.findings.some((finding) => finding.checkId === checkId),
+            testCase.name,
+          ).toBe(false);
+        }
       }
     }
   });

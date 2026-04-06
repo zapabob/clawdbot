@@ -19,8 +19,8 @@ function createRecentSessionRows(now = Date.now()) {
 }
 
 vi.mock("../gateway/call.js", () => ({
-  callGateway: (...args: unknown[]) => callGatewayMock(...args),
-  buildGatewayConnectionDetails: (...args: unknown[]) => buildGatewayConnectionDetailsMock(...args),
+  callGateway: callGatewayMock,
+  buildGatewayConnectionDetails: buildGatewayConnectionDetailsMock,
 }));
 
 describe("healthCommand (coverage)", () => {

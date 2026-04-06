@@ -75,14 +75,18 @@ class ShinkaAdapter:
                 )
                 logger.info("ShinkaAdapter: using llama-server at %s", LLAMA_API_BASE)
             else:
-                # ローカル開発: Ollama フォールバック
+                # ローカル開発: Ollama フォールバック (local/<model>@<url>/v1 形式必須 - OllamaのOpenAI互換APIは /v1)
                 os.environ.setdefault("OLLAMA_BASE_URL", _OLLAMA_URL)
+                _base_url = f"{_OLLAMA_URL}/v1"
+                _primary = f"local/{_PRIMARY_MODEL}@{_base_url}"
+                _lite = f"local/{_LITE_MODEL}@{_base_url}" if _LITE_MODEL else None
+                model_names = [_primary] + ([_lite] if _lite else [])
                 self._client = AsyncLLMClient(
-                    model_names=[_PRIMARY_MODEL, _LITE_MODEL],
+                    model_names=model_names,
                     temperatures=[0.8, 0.6],
                     model_sample_probs=[0.7, 0.3],
                 )
-                logger.info("ShinkaAdapter: using Ollama at %s", _OLLAMA_URL)
+                logger.info("ShinkaAdapter: using Ollama at %s (models: %s)", _base_url, model_names)
         else:
             self._client = None
 

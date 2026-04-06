@@ -10,7 +10,7 @@ import { createReplyDispatcher } from "../../auto-reply/reply/reply-dispatcher.j
 import type { MsgContext } from "../../auto-reply/templating.js";
 import { isSilentReplyText, SILENT_REPLY_TOKEN } from "../../auto-reply/tokens.js";
 import type { ReplyPayload } from "../../auto-reply/types.js";
-import { resolveSessionFilePath } from "../../config/sessions.js";
+import { resolveAgentMainSessionKey, resolveSessionFilePath } from "../../config/sessions.js";
 import { jsonUtf8Bytes } from "../../infra/json-utf8-bytes.js";
 import type { PromptImageOrderEntry } from "../../media/prompt-image-order.js";
 import { type SavedMedia, saveMediaBuffer } from "../../media/store.js";
@@ -27,6 +27,7 @@ import {
 import {
   INTERNAL_MESSAGE_CHANNEL,
   isGatewayCliClient,
+  isOperatorUiClient,
   isWebchatClient,
   normalizeMessageChannel,
 } from "../../utils/message-channel.js";
@@ -172,6 +173,8 @@ function resolveChatSendOriginatingRoute(params: {
   hasConnectedClient?: boolean;
   mainKey?: string;
   sessionKey: string;
+  /** When set, TUI/Control UI + deliver can mirror to this route (e.g. Telegram from agent main session). */
+  operatorUiDeliverFallback?: ChatSendDeliveryEntry;
 }): ChatSendOriginatingRoute {
   if (params.explicitOrigin?.originatingChannel && params.explicitOrigin.originatingTo) {
     return {
@@ -265,6 +268,34 @@ function resolveChatSendOriginatingRoute(params: {
     routeToCandidate.trim().length > 0;
 
   if (!hasDeliverableRoute) {
+    if (
+      shouldDeliverExternally &&
+      isOperatorUiClient(params.client) &&
+      params.operatorUiDeliverFallback
+    ) {
+      const fb = params.operatorUiDeliverFallback;
+      const fbChannel = normalizeMessageChannel(
+        fb.deliveryContext?.channel ?? fb.lastChannel ?? fb.origin?.provider,
+      );
+      const fbTo = fb.deliveryContext?.to ?? fb.lastTo;
+      const fbAccountId =
+        fb.deliveryContext?.accountId ?? fb.lastAccountId ?? fb.origin?.accountId;
+      const fbThreadId = fb.deliveryContext?.threadId ?? fb.lastThreadId ?? fb.origin?.threadId;
+      if (
+        fbChannel &&
+        fbChannel !== INTERNAL_MESSAGE_CHANNEL &&
+        typeof fbTo === "string" &&
+        fbTo.trim().length > 0
+      ) {
+        return {
+          originatingChannel: fbChannel,
+          originatingTo: fbTo.trim(),
+          accountId: fbAccountId,
+          messageThreadId: fbThreadId,
+          explicitDeliverRoute: true,
+        };
+      }
+    }
     return {
       originatingChannel: INTERNAL_MESSAGE_CHANNEL,
       explicitDeliverRoute: false,
@@ -668,9 +699,10 @@ function sanitizeChatHistoryMessage(
           typeof (block as { textSignature?: unknown }).textSignature === "string",
       );
     if (hasPhaseMetadata) {
-      const stripped = stripInlineDirectiveTagsForDisplay(
-        extractAssistantVisibleText(entry as Parameters<typeof extractAssistantVisibleText>[0]),
+      const visibleText = extractAssistantVisibleText(
+        entry as Parameters<typeof extractAssistantVisibleText>[0],
       );
+      const stripped = stripInlineDirectiveTagsForDisplay(visibleText ?? "");
       const res = truncateChatHistoryText(stripped.text, maxChars);
       const nonTextBlocks = sanitizedBlocks.filter(
         (block) =>
@@ -1587,6 +1619,32 @@ export const chatHandlers: GatewayRequestHandlers = {
         ? [systemProvenanceReceipt, parsedMessage].filter(Boolean).join("\n\n")
         : parsedMessage;
       const clientInfo = client?.connect?.client;
+      let operatorUiDeliverFallback: ChatSendDeliveryEntry | undefined;
+      if (p.deliver === true && isOperatorUiClient(clientInfo)) {
+        const agentIdForDeliver = resolveSessionAgentId({
+          sessionKey,
+          config: cfg,
+        });
+        const mainSessionKey = resolveAgentMainSessionKey({
+          cfg,
+          agentId: agentIdForDeliver,
+        });
+        const mainSession = loadSessionEntry(mainSessionKey);
+        if (
+          mainSession.canonicalKey.trim().toLowerCase() !== sessionKey.trim().toLowerCase() &&
+          mainSession.entry
+        ) {
+          const m = mainSession.entry;
+          operatorUiDeliverFallback = {
+            deliveryContext: m.deliveryContext,
+            origin: m.origin,
+            lastChannel: m.lastChannel,
+            lastTo: m.lastTo,
+            lastAccountId: m.lastAccountId,
+            lastThreadId: m.lastThreadId,
+          };
+        }
+      }
       const {
         originatingChannel,
         originatingTo,
@@ -1601,6 +1659,7 @@ export const chatHandlers: GatewayRequestHandlers = {
         hasConnectedClient: client?.connect !== undefined,
         mainKey: cfg.session?.mainKey,
         sessionKey,
+        operatorUiDeliverFallback,
       });
       // Inject timestamp so agents know the current date/time.
       // Only BodyForAgent gets the timestamp — Body stays raw for UI display.

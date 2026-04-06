@@ -197,6 +197,7 @@ export async function statusCommand(
     formatPromptCacheCompact,
     formatPluginCompatibilityNotice,
     formatTimeAgo,
+    formatHealthChannelLines,
     formatTokensCompact,
     formatUpdateAvailableHint,
     getTerminalTableWidth,

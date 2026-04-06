@@ -31,7 +31,13 @@ Start-Transcript -Path $logFile -Append | Out-Null
 Write-Host "[TUI] node: $node"
 Write-Host "[TUI] log: $logFile"
 
-& $node $runNode tui
+# Mirror assistant replies to last external route (e.g. Telegram) when main session has lastChannel/lastTo.
+# Opt out: OPENCLAW_TUI_DELIVER=0
+$tuiExtra = @("tui")
+if ([string]$env:OPENCLAW_TUI_DELIVER -ne "0") {
+    $tuiExtra += "--deliver"
+}
+& $node $runNode @tuiExtra
 $exitCode = $LASTEXITCODE
 Stop-Transcript | Out-Null
 

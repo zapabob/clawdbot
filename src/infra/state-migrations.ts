@@ -3,7 +3,10 @@ import os from "node:os";
 import path from "node:path";
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { iterateBootstrapChannelPlugins } from "../channels/plugins/bootstrap-registry.js";
-import { listBundledChannelPlugins } from "../channels/plugins/bundled.js";
+import {
+  ensureBundledChannelPluginsLoaded,
+  listBundledChannelPlugins,
+} from "../channels/plugins/bundled.js";
 import type { ChannelLegacyStateMigrationPlan } from "../channels/plugins/types.core.js";
 import type { OpenClawConfig } from "../config/config.js";
 import {

@@ -25,19 +25,10 @@ describe("status-json-payload", () => {
       resolveStatusUpdateChannelInfo({
         updateConfigChannel: "beta",
         update: {
-          root: "/tmp/openclaw",
           installKind: "package",
-          packageManager: "npm",
           git: {
-            root: "/tmp/openclaw",
-            sha: null,
             tag: "v1.2.3",
             branch: "main",
-            upstream: null,
-            dirty: false,
-            ahead: 0,
-            behind: 0,
-            fetchOk: true,
           },
         },
       }),

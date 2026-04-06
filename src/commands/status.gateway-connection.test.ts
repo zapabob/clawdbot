@@ -30,6 +30,7 @@ describe("status.gateway-connection", () => {
         remoteUrlMissing: true,
         gatewayConnection: {
           url: "ws://127.0.0.1:18789",
+          urlSource: "config",
           message: "ignored",
         },
         bindMode: "loopback",
@@ -49,6 +50,7 @@ describe("status.gateway-connection", () => {
         remoteUrlMissing: false,
         gatewayConnection: {
           url: "ws://127.0.0.1:18789",
+          urlSource: "config",
           message: "Gateway mode: local",
         },
         bindMode: "loopback",

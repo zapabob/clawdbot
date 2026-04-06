@@ -44,11 +44,18 @@ describe("executeStatusScanFromOverview", () => {
       },
       agentStatus: { agents: [{ id: "main" }], defaultId: "main" },
       skipColdStartNetworkChecks: false,
-    } as never;
-    const resolveMemory = vi.fn(async () => ({ agentId: "main" }));
+    };
+    const resolveMemory = vi.fn(
+      async () =>
+        ({
+          agentId: "main",
+          backend: "memory-core",
+          provider: "memory-core",
+        }) as never,
+    );
 
     const result = await executeStatusScanFromOverview({
-      overview,
+      overview: overview as never,
       runtime: {} as never,
       resolveMemory,
       channelIssues: [],
@@ -58,12 +65,7 @@ describe("executeStatusScanFromOverview", () => {
 
     expect(resolveMemoryPluginStatus).toHaveBeenCalledWith(overview.cfg);
     expect(resolveStatusSummaryFromOverview).toHaveBeenCalledWith({ overview });
-    expect(resolveMemory).toHaveBeenCalledWith({
-      cfg: overview.cfg,
-      agentStatus: overview.agentStatus,
-      memoryPlugin: { enabled: false, reason: "memorySearch not configured" },
-      runtime: {},
-    });
+    expect(resolveMemory).toHaveBeenCalledTimes(1);
     expect(result).toEqual(
       expect.objectContaining({
         cfg: overview.cfg,

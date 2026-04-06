@@ -1,0 +1,3 @@
+FROM qwen-Hakua-core2:latest
+PARAMETER num_ctx 128000
+PARAMETER num_gpu 99

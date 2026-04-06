@@ -41,6 +41,35 @@ export function resolveCompactionReserveTokensFloor(cfg?: OpenClawConfig): numbe
   return DEFAULT_PI_COMPACTION_RESERVE_TOKENS_FLOOR;
 }
 
+/**
+ * Default 20k reserve floor breaks Pi auto-compaction on small context windows (e.g. 16k local models).
+ * When the effective context size is known, clamp the floor so compaction can still trigger.
+ */
+export function clampCompactionReserveTokensFloorForContext(params: {
+  floor: number;
+  contextWindowTokens?: number;
+}): number {
+  const ctx = params.contextWindowTokens;
+  if (typeof ctx !== "number" || !Number.isFinite(ctx) || ctx <= 512) {
+    return params.floor;
+  }
+  const maxFloor = Math.max(256, Math.floor(ctx * 0.28));
+  return Math.min(params.floor, maxFloor);
+}
+
+export function clampCompactionReserveTokensToContextWindow(params: {
+  reserveTokens: number;
+  contextWindowTokens?: number;
+}): number {
+  const ctx = params.contextWindowTokens;
+  let out = params.reserveTokens;
+  if (typeof ctx !== "number" || !Number.isFinite(ctx) || ctx <= 512) {
+    return out;
+  }
+  const maxReserve = Math.max(256, Math.floor(ctx * 0.46));
+  return Math.min(out, maxReserve);
+}
+
 function toNonNegativeInt(value: unknown): number | undefined {
   if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
     return undefined;
@@ -58,6 +87,8 @@ function toPositiveInt(value: unknown): number | undefined {
 export function applyPiCompactionSettingsFromConfig(params: {
   settingsManager: PiSettingsManagerLike;
   cfg?: OpenClawConfig;
+  /** Effective model context window (tokens). When set, reserve targets are clamped for small windows. */
+  contextWindowTokens?: number;
 }): {
   didOverride: boolean;
   compaction: { reserveTokens: number; keepRecentTokens: number };
@@ -68,12 +99,19 @@ export function applyPiCompactionSettingsFromConfig(params: {
 
   const configuredReserveTokens = toNonNegativeInt(compactionCfg?.reserveTokens);
   const configuredKeepRecentTokens = toPositiveInt(compactionCfg?.keepRecentTokens);
-  const reserveTokensFloor = resolveCompactionReserveTokensFloor(params.cfg);
+  const reserveTokensFloor = clampCompactionReserveTokensFloorForContext({
+    floor: resolveCompactionReserveTokensFloor(params.cfg),
+    contextWindowTokens: params.contextWindowTokens,
+  });
 
-  const targetReserveTokens = Math.max(
+  let targetReserveTokens = Math.max(
     configuredReserveTokens ?? currentReserveTokens,
     reserveTokensFloor,
   );
+  targetReserveTokens = clampCompactionReserveTokensToContextWindow({
+    reserveTokens: targetReserveTokens,
+    contextWindowTokens: params.contextWindowTokens,
+  });
   const targetKeepRecentTokens = configuredKeepRecentTokens ?? currentKeepRecentTokens;
 
   const overrides: { reserveTokens?: number; keepRecentTokens?: number } = {};

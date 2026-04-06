@@ -609,7 +609,7 @@ describe("run-node script", () => {
   });
 
   it("skips build when OPENCLAW_RUNNODE_SKIP_BUILD=1 and dist entry exists", async () => {
-    await withTempDir(async (tmp) => {
+    await withTempDir({ prefix: "run-node-test-" }, async (tmp) => {
       await setupTrackedProject(tmp, {
         files: {
           [ROOT_SRC]: "export const value = 1;\n",

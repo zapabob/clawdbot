@@ -1,0 +1,42 @@
+{
+  "daemon_port": 18794,
+  "osc_host": "127.0.0.1",
+  "osc_port": 9000,
+  "osc_receive_port": 9001,
+  "voicevox_url": "http://127.0.0.1:50021",
+  "virtual_cable_name": "CABLE Input",
+  "companion_url": "http://127.0.0.1:18791",
+  "models": {
+    "ollama_base_url": "http://127.0.0.1:11434",
+    "primary": "qwen-hakua-core2-ctx128k",
+    "lite": "qwen-hakua-core-lite"
+  },
+  "lora": {
+    "base_model_dir": "",
+    "from_d_data_dir": "",
+    "so8t_data_dir": "",
+    "ghost_dataset_path": "",
+    "lora_artifacts_dir": "",
+    "soul_path": "",
+    "sft": {
+      "learning_rate": 1e-4,
+      "batch_size": 4,
+      "gradient_accumulation_steps": 4,
+      "max_steps": 100,
+      "lora_r": 8,
+      "lora_alpha": 16,
+      "lora_dropout": 0.05,
+      "target_modules": ["q_proj", "v_proj"],
+      "use_rslora": false
+    },
+    "grpo": {
+      "learning_rate": 5e-6,
+      "batch_size": 4,
+      "gradient_accumulation_steps": 4,
+      "max_steps": 50,
+      "kl_coef": 0.1,
+      "clip_range": 0.2,
+      "reward_model": ""
+    }
+  }
+}

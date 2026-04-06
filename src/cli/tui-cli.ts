@@ -13,7 +13,11 @@ export function registerTuiCli(program: Command) {
     .option("--token <token>", "Gateway token (if required)")
     .option("--password <password>", "Gateway password (if required)")
     .option("--session <key>", 'Session key (default: "main", or "global" when scope is global)')
-    .option("--deliver", "Deliver assistant replies", false)
+    .option(
+      "--deliver",
+      "Also send assistant replies to the last external channel (e.g. Telegram) when the agent main session has lastChannel/lastTo",
+      false,
+    )
     .option("--thinking <level>", "Thinking level override")
     .option("--message <text>", "Send an initial message after connecting")
     .option("--timeout-ms <ms>", "Agent timeout in ms (defaults to agents.defaults.timeoutSeconds)")

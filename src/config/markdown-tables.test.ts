@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
+import { ensureBundledChannelPluginsLoaded } from "../channels/plugins/bundled.js";
 
 const listChannelPluginsMock = vi.hoisted(() =>
   vi.fn(() => [
@@ -36,19 +37,19 @@ beforeAll(async () => {
 
 describe("default markdown table modes", () => {
   it("mattermost mode is off", () => {
-    expect(getDefaultTableModes().get("mattermost")).toBe("off");
+    expect(DEFAULT_TABLE_MODES.get("mattermost")).toBe("off");
   });
 
   it("signal mode is bullets", () => {
-    expect(getDefaultTableModes().get("signal")).toBe("bullets");
+    expect(DEFAULT_TABLE_MODES.get("signal")).toBe("bullets");
   });
 
   it("whatsapp mode is bullets", () => {
-    expect(getDefaultTableModes().get("whatsapp")).toBe("bullets");
+    expect(DEFAULT_TABLE_MODES.get("whatsapp")).toBe("bullets");
   });
 
   it("slack has no special default in this seam-only slice", () => {
-    expect(getDefaultTableModes().get("slack")).toBeUndefined();
+    expect(DEFAULT_TABLE_MODES.get("slack")).toBeUndefined();
   });
 });
 
