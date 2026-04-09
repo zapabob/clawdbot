@@ -1,67 +1,78 @@
 #!/usr/bin/env node
-import { spawnSync } from "node:child_process";
-/**
- * Cross-platform A2UI bundle step (same behavior as scripts/bundle-a2ui.sh).
- * Use this on Windows when `bash` / WSL is unavailable or the LxssManager service is disabled.
- */
+
 import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT_DIR = path.resolve(__dirname, "..");
+const ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const HASH_FILE = path.join(ROOT_DIR, "src", "canvas-host", "a2ui", ".bundle.hash");
+const OUTPUT_FILE = path.join(ROOT_DIR, "src", "canvas-host", "a2ui", "a2ui.bundle.js");
+const A2UI_RENDERER_DIR = path.join(ROOT_DIR, "vendor", "a2ui", "renderers", "lit");
+const A2UI_RENDERER_TSCONFIG = path.join(A2UI_RENDERER_DIR, "tsconfig.json");
+const A2UI_APP_DIR = path.join(ROOT_DIR, "apps", "shared", "OpenClawKit", "Tools", "CanvasA2UI");
+const A2UI_ROLLDOWN_CONFIG = path.join(A2UI_APP_DIR, "rolldown.config.mjs");
 
-const HASH_FILE = path.join(ROOT_DIR, "src/canvas-host/a2ui/.bundle.hash");
-const OUTPUT_FILE = path.join(ROOT_DIR, "src/canvas-host/a2ui/a2ui.bundle.js");
-const A2UI_RENDERER_DIR = path.join(ROOT_DIR, "vendor/a2ui/renderers/lit");
-const A2UI_APP_DIR = path.join(ROOT_DIR, "apps/shared/OpenClawKit/Tools/CanvasA2UI");
+const INPUT_PATHS = [
+  path.join(ROOT_DIR, "package.json"),
+  path.join(ROOT_DIR, "pnpm-lock.yaml"),
+  A2UI_RENDERER_TSCONFIG,
+  A2UI_APP_DIR,
+];
 
 function fail(message) {
-  console.error(message);
+  process.stderr.write(`${message}\n`);
   process.exit(1);
 }
 
-function onError() {
-  console.error("A2UI bundling failed. Re-run with: pnpm canvas:a2ui:bundle");
-  console.error("If this persists, verify pnpm deps and try again.");
+function resolveCommand(command) {
+  if (process.platform !== "win32") {
+    return command;
+  }
+  if (command === "pnpm") {
+    return "pnpm.cmd";
+  }
+  return command;
 }
 
-function walkFilesSync(dir, out) {
-  if (!fs.existsSync(dir)) {
-    return;
+function shouldSkipForMissingSources() {
+  if (fs.existsSync(OUTPUT_FILE)) {
+    console.log("A2UI sources missing; keeping prebuilt bundle.");
+    return true;
   }
-  const st = fs.statSync(dir);
-  if (!st.isDirectory()) {
-    if (st.isFile()) {
-      out.push(dir);
+  if (process.env.OPENCLAW_SPARSE_PROFILE || process.env.OPENCLAW_A2UI_SKIP_MISSING === "1") {
+    console.error(
+      "A2UI sources missing; skipping bundle because OPENCLAW_A2UI_SKIP_MISSING=1 or OPENCLAW_SPARSE_PROFILE is set.",
+    );
+    return true;
+  }
+  return false;
+}
+
+function walk(entryPath, files) {
+  const stat = fs.statSync(entryPath);
+  if (stat.isDirectory()) {
+    for (const entry of fs.readdirSync(entryPath)) {
+      walk(path.join(entryPath, entry), files);
     }
     return;
   }
-  for (const name of fs.readdirSync(dir)) {
-    walkFilesSync(path.join(dir, name), out);
-  }
+  files.push(entryPath);
 }
 
-function computeHash(inputPaths) {
+function computeHash() {
   const files = [];
-  const normalize = (p) => p.split(path.sep).join("/");
-  for (const input of inputPaths) {
-    if (!fs.existsSync(input)) {
-      continue;
-    }
-    const st = fs.statSync(input);
-    if (st.isDirectory()) {
-      walkFilesSync(input, files);
-    } else if (st.isFile()) {
-      files.push(input);
-    }
+  for (const input of INPUT_PATHS) {
+    walk(input, files);
   }
-  files.sort((a, b) => normalize(a).localeCompare(normalize(b)));
+  files.sort((a, b) =>
+    a.split(path.sep).join("/").localeCompare(b.split(path.sep).join("/")),
+  );
+
   const hash = createHash("sha256");
   for (const filePath of files) {
-    const rel = normalize(path.relative(ROOT_DIR, filePath));
-    hash.update(rel);
+    hash.update(path.relative(ROOT_DIR, filePath).split(path.sep).join("/"));
     hash.update("\0");
     hash.update(fs.readFileSync(filePath));
     hash.update("\0");
@@ -69,109 +80,70 @@ function computeHash(inputPaths) {
   return hash.digest("hex");
 }
 
-function findRolldownCli() {
-  const pnpmHoist = path.join(ROOT_DIR, "node_modules/.pnpm/node_modules/rolldown/bin/cli.mjs");
-  if (fs.existsSync(pnpmHoist)) {
-    return pnpmHoist;
-  }
-  const pnpmDir = path.join(ROOT_DIR, "node_modules/.pnpm");
-  try {
-    for (const name of fs.readdirSync(pnpmDir)) {
-      if (name.startsWith("rolldown@")) {
-        const cli = path.join(pnpmDir, name, "node_modules/rolldown/bin/cli.mjs");
-        if (fs.existsSync(cli)) {
-          return cli;
-        }
-      }
-    }
-  } catch {
-    /* ignore */
-  }
-  return null;
-}
-
-function rolldownInPathWorks() {
-  const r = spawnSync("rolldown", ["--version"], {
-    cwd: ROOT_DIR,
-    encoding: "utf8",
-    shell: true,
-  });
-  return r.status === 0;
-}
-
-function runRolldown() {
-  const config = path.join(A2UI_APP_DIR, "rolldown.config.mjs");
-  const args = ["-c", config];
-
-  if (rolldownInPathWorks()) {
-    const r = spawnSync("rolldown", args, { cwd: ROOT_DIR, stdio: "inherit", shell: true });
-    if (r.status === 0) {
-      return;
-    }
-  }
-
-  const cli = findRolldownCli();
-  if (cli) {
-    const r = spawnSync(process.execPath, [cli, ...args], { cwd: ROOT_DIR, stdio: "inherit" });
-    if (r.status === 0) {
-      return;
-    }
-  }
-
-  const r = spawnSync("pnpm", ["-s", "dlx", "rolldown", ...args], {
+function run(command, args) {
+  const resolvedCommand = resolveCommand(command);
+  const result = spawnSync(resolvedCommand, args, {
     cwd: ROOT_DIR,
     stdio: "inherit",
-    shell: true,
+    shell: process.platform === "win32" && path.extname(resolvedCommand).toLowerCase() === ".cmd",
   });
-  if (r.status !== 0) {
-    onError();
-    process.exit(1);
+  if (result.error) {
+    fail(
+      `A2UI bundling failed while launching ${resolvedCommand}: ${result.error.message}`,
+    );
+  }
+  if ((result.status ?? 1) !== 0) {
+    fail(
+      `A2UI bundling failed while running ${resolvedCommand} ${args.join(" ")}. Re-run with: pnpm canvas:a2ui:bundle`,
+    );
   }
 }
 
-// --- main ---
+function resolveRolldownBin() {
+  const candidates = [
+    path.join(ROOT_DIR, "node_modules", ".pnpm", "node_modules", "rolldown", "bin", "cli.mjs"),
+    path.join(
+      ROOT_DIR,
+      "node_modules",
+      ".pnpm",
+      "rolldown@1.0.0-rc.9",
+      "node_modules",
+      "rolldown",
+      "bin",
+      "cli.mjs",
+    ),
+  ];
+  return candidates.find((candidate) => fs.existsSync(candidate)) ?? null;
+}
+
 if (
   !fs.existsSync(A2UI_RENDERER_DIR) ||
   !fs.existsSync(A2UI_APP_DIR) ||
-  !fs.existsSync(path.join(A2UI_RENDERER_DIR, "tsconfig.json"))
+  !fs.existsSync(A2UI_RENDERER_TSCONFIG) ||
+  !fs.existsSync(A2UI_ROLLDOWN_CONFIG)
 ) {
-  if (fs.existsSync(OUTPUT_FILE)) {
-    console.log("A2UI sources missing; keeping prebuilt bundle.");
+  if (shouldSkipForMissingSources()) {
     process.exit(0);
   }
   fail(`A2UI sources missing and no prebuilt bundle found at: ${OUTPUT_FILE}`);
 }
 
-const INPUT_PATHS = [
-  path.join(ROOT_DIR, "package.json"),
-  path.join(ROOT_DIR, "pnpm-lock.yaml"),
-  A2UI_RENDERER_DIR,
-  A2UI_APP_DIR,
-];
-
-const currentHash = computeHash(INPUT_PATHS);
-if (fs.existsSync(HASH_FILE)) {
+const currentHash = computeHash();
+if (fs.existsSync(HASH_FILE) && fs.existsSync(OUTPUT_FILE)) {
   const previousHash = fs.readFileSync(HASH_FILE, "utf8").trim();
-  if (previousHash === currentHash && fs.existsSync(OUTPUT_FILE)) {
+  if (previousHash === currentHash) {
     console.log("A2UI bundle up to date; skipping.");
     process.exit(0);
   }
 }
 
-const tsc = spawnSync(
-  "pnpm",
-  ["-s", "exec", "tsc", "-p", path.join(A2UI_RENDERER_DIR, "tsconfig.json")],
-  {
-    cwd: ROOT_DIR,
-    stdio: "inherit",
-    shell: true,
-  },
-);
-if (tsc.status !== 0) {
-  onError();
-  process.exit(1);
-}
+run("pnpm", ["-s", "exec", "tsc", "-p", A2UI_RENDERER_TSCONFIG]);
 
-runRolldown();
+const rolldownBin = resolveRolldownBin();
+if (rolldownBin) {
+  run(process.execPath, [rolldownBin, "-c", A2UI_ROLLDOWN_CONFIG]);
+} else {
+  run("pnpm", ["-s", "dlx", "rolldown", "-c", A2UI_ROLLDOWN_CONFIG]);
+}
 
 fs.writeFileSync(HASH_FILE, `${currentHash}\n`, "utf8");

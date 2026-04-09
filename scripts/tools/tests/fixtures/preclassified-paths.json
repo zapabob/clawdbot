@@ -1,0 +1,18 @@
+[
+  {
+    "path": "docs/providers/openai.md",
+    "action": "upstream",
+    "note": "defaulted from upstream-only touched path",
+    "pattern": "@upstream-only",
+    "touched_upstream": true,
+    "touched_custom": false
+  },
+  {
+    "path": "_docs/2026-04-09_custom-note.md",
+    "action": "preserve_custom",
+    "note": "defaulted from custom-only touched path",
+    "pattern": "@custom-only",
+    "touched_upstream": false,
+    "touched_custom": true
+  }
+]

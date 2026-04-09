@@ -35,12 +35,28 @@ export class LRUCache<K, V> {
     return this.cache.has(key);
   }
 
+  delete(key: K): boolean {
+    return this.cache.delete(key);
+  }
+
+  entries(): IterableIterator<[K, V]> {
+    return this.cache.entries();
+  }
+
+  values(): IterableIterator<V> {
+    return this.cache.values();
+  }
+
   clear(): void {
     this.cache.clear();
   }
 
   get size(): number {
     return this.cache.size;
+  }
+
+  get capacity(): number {
+    return this.maxSize;
   }
 }
 
@@ -111,18 +127,35 @@ export class Debouncer {
 }
 
 // === Memoize ===
-export function memoize<T>(fn: T, cache: LRUCache<string, unknown>): T {
-  return ((...args: unknown[]) => {
-    const key = JSON.stringify(args);
+export function memoize<TArgs extends unknown[], TResult>(
+  fn: (...args: TArgs) => TResult,
+  cache: LRUCache<string, TResult>,
+): (...args: TArgs) => TResult;
+export function memoize<TArgs extends unknown[], TResult>(
+  fn: (...args: TArgs) => TResult,
+  keyFn: (...args: TArgs) => string,
+): (...args: TArgs) => TResult;
+export function memoize<TArgs extends unknown[], TResult>(
+  fn: (...args: TArgs) => TResult,
+  cacheOrKeyFn: LRUCache<string, TResult> | ((...args: TArgs) => string),
+): (...args: TArgs) => TResult {
+  const cache =
+    typeof cacheOrKeyFn === "function" ? new LRUCache<string, TResult>(100) : cacheOrKeyFn;
+  const keyFn =
+    typeof cacheOrKeyFn === "function"
+      ? cacheOrKeyFn
+      : ((...args: TArgs) => JSON.stringify(args));
+
+  return (...args: TArgs): TResult => {
+    const key = keyFn(...args);
     const cached = cache.get(key);
     if (cached !== undefined) {
       return cached;
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = (fn as any)(...args);
+    const result = fn(...args);
     cache.set(key, result);
     return result;
-  }) as T;
+  };
 }
 
 // === Event Emitter with Throttle ===

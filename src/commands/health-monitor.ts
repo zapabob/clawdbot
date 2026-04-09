@@ -1,5 +1,5 @@
 // Health Monitor - Auto-restart on performance degradation detection
-import { LRUCache } from "../../utils/perf.js";
+import { LRUCache } from "../utils/perf.js";
 
 export interface HealthMetrics {
   timestamp: number;
@@ -31,7 +31,6 @@ const healthHistoryCache = new LRUCache<string, HealthMetrics[]>(HEALTH_HISTORY_
 
 // Current health state
 let consecutiveFailures = 0;
-let lastHealthCheck = 0;
 let isRestartInProgress = false;
 
 // Get health threshold
@@ -53,7 +52,6 @@ export function recordHealthMetric(key: string, metrics: HealthMetrics): void {
     history.shift();
   }
   healthHistoryCache.set(key, history);
-  lastHealthCheck = Date.now();
 }
 
 // Check health status

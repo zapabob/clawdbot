@@ -29,13 +29,17 @@ def test_status_has_required_keys() -> None:
 def test_osc_endpoint_chatbox() -> None:
     from harness_daemon import app
 
-    with patch("harness_daemon.osc_ctrl") as mock_osc:
+    with patch("harness_daemon.is_vrchat_active", return_value=True), patch(
+        "harness_daemon.osc_ctrl"
+    ) as mock_osc:
         client = TestClient(app)
         resp = client.post(
             "/osc", json={"action": "chatbox", "payload": {"text": "hi"}}
         )
         assert resp.status_code == 200
-        mock_osc.send_chatbox.assert_called_once_with("hi")
+        mock_osc.send_chatbox.assert_called_once_with(
+            "hi", immediate=True, sfx=True
+        )
 
 
 def test_run_endpoint_returns_result() -> None:
@@ -52,7 +56,9 @@ def test_run_endpoint_returns_result() -> None:
 def test_speak_forwards_to_companion_bridge() -> None:
     from harness_daemon import app
 
-    with patch("harness_daemon.voicevox_seq") as mock_vx, patch(
+    with patch("harness_daemon.is_vrchat_active", return_value=True), patch(
+        "harness_daemon.voicevox_seq"
+    ) as mock_vx, patch(
         "harness_daemon.companion_bridge"
     ) as mock_bridge:
         mock_vx.speak = AsyncMock()
@@ -68,7 +74,9 @@ def test_speak_forwards_to_companion_bridge() -> None:
 def test_osc_emotion_forwards_companion_bridge() -> None:
     from harness_daemon import app
 
-    with patch("harness_daemon.osc_ctrl") as mock_osc, patch(
+    with patch("harness_daemon.is_vrchat_active", return_value=True), patch(
+        "harness_daemon.osc_ctrl"
+    ) as mock_osc, patch(
         "harness_daemon.companion_bridge"
     ) as mock_bridge:
         mock_bridge.forward_emotion = AsyncMock()
