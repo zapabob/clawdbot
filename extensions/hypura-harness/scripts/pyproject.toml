@@ -1,4 +1,4 @@
-# scripts/hypura/pyproject.toml
+# extensions/hypura-harness/scripts/pyproject.toml
 [project]
 name = "hypura-harness"
 version = "0.1.0"

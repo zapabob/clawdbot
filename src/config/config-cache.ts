@@ -27,7 +27,7 @@ export const getConfigSnapshotCached = memoize(
     if (cached) {
       return cached;
     }
-    const snapshot = await readConfigFileSnapshot(configPath);
+    const snapshot = await readConfigFileSnapshot();
     configSnapshotCache.set(key, snapshot);
     return snapshot;
   },
@@ -36,13 +36,13 @@ export const getConfigSnapshotCached = memoize(
 
 // Memoized full config loader
 export const getConfigCached = memoize(
-  async function getConfigCachedFn(): Promise<OpenClawConfig> {
+  function getConfigCachedFn(): OpenClawConfig {
     const key = "runtime-config";
     const cached = runtimeConfigCache.get(key);
     if (cached) {
       return cached;
     }
-    const config = await loadConfig();
+    const config = loadConfig();
     runtimeConfigCache.set(key, config);
     return config;
   },

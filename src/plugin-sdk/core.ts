@@ -159,10 +159,6 @@ export {
   migrateBaseNameToDefaultAccount,
 } from "../channels/plugins/setup-helpers.js";
 export {
-  createAccountListHelpers,
-  resolveMergedAccountConfig,
-} from "../channels/plugins/account-helpers.js";
-export {
   clearAccountEntryFields,
   deleteAccountFromConfigSection,
   setAccountEnabledInConfigSection,
@@ -187,7 +183,7 @@ export type { SecretFileReadOptions, SecretFileReadResult } from "../infra/secre
 
 export { resolveGatewayBindUrl } from "../shared/gateway-bind-url.js";
 export type { GatewayBindUrlResult } from "../shared/gateway-bind-url.js";
-export { resolveGatewayPort, resolveStateDir } from "../config/paths.js";
+export { resolveGatewayPort } from "../config/paths.js";
 export { createSubsystemLogger } from "../logging/subsystem.js";
 export { normalizeAtHashSlug, normalizeHyphenSlug } from "../shared/string-normalization.js";
 export { createActionGate } from "../agents/tools/common.js";

@@ -11,9 +11,11 @@ interface CommandResult {
 
 const commandCache = new LRUCache<string, CommandResult>(COMMAND_CACHE_SIZE);
 
-export function getCachedCommandResult(key: string): unknown | undefined {
+export function getCachedCommandResult(key: string): unknown {
   const entry = commandCache.get(key);
-  if (!entry) return undefined;
+  if (!entry) {
+    return undefined;
+  }
   
   if (entry.ttl && Date.now() - entry.timestamp > entry.ttl) {
     commandCache.delete(key);

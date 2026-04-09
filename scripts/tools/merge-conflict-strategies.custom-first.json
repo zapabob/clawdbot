@@ -1,0 +1,231 @@
+{
+  "pinned_upstream_sha": "9b8eb10196a3ce599ba3239b63ed343ef1618a47",
+  "default_action": "manual_api_followup",
+  "blocker_actions": ["official_with_overlay", "manual_api_followup"],
+  "dirty_tree_ignore": [
+    ".cursor/hooks/state/*",
+    ".openclaw-desktop/flows/*",
+    ".openclaw-desktop/subagents/*",
+    ".openclaw-desktop/telegram/*",
+    ".openclaw-desktop/agents/*/agent/*.json",
+    "logs/*",
+    "*.log"
+  ],
+  "rules": [
+    {
+      "pattern": "package.json",
+      "action": "upstream",
+      "note": "Use official package metadata as the security-first base."
+    },
+    {
+      "pattern": "pnpm-lock.yaml",
+      "action": "upstream",
+      "note": "Use the official lockfile for dependency and vulnerability fixes."
+    },
+    {
+      "pattern": ".github/workflows/*",
+      "action": "upstream",
+      "note": "Keep official CI and security workflow changes."
+    },
+    {
+      "pattern": "docs/plugins/sdk-*.md",
+      "action": "upstream",
+      "note": "Keep official SDK docs as the published source of truth."
+    },
+    {
+      "pattern": "extensions/hypura-harness/scripts/generated/*",
+      "action": "drop_generated",
+      "note": "Generated Hypura artifacts are excluded from replay."
+    },
+    {
+      "pattern": "scripts/hypura/generated/*",
+      "action": "drop_generated",
+      "note": "Generated Hypura artifacts are excluded from replay."
+    },
+    {
+      "pattern": "src/generated/bundled-plugin-entries.generated.ts",
+      "action": "drop_generated",
+      "note": "Generated bundled plugin entries should follow upstream generation."
+    },
+    {
+      "pattern": "src/plugins/bundled-plugin-metadata.generated.ts",
+      "action": "drop_generated",
+      "note": "Generated bundled metadata should follow upstream generation."
+    },
+    {
+      "pattern": "AGENTS.md",
+      "action": "preserve_custom",
+      "note": "Preserve the local repository contract and manifest."
+    },
+    {
+      "pattern": ".gitignore",
+      "action": "preserve_custom",
+      "note": "Preserve local runtime ignore coverage."
+    },
+    {
+      "pattern": "extensions/auto-agent/*",
+      "action": "preserve_custom",
+      "note": "Custom-only extension root."
+    },
+    {
+      "pattern": "extensions/hypura-harness/*",
+      "action": "preserve_custom",
+      "note": "Custom-only extension root."
+    },
+    {
+      "pattern": "extensions/hypura-provider/*",
+      "action": "preserve_custom",
+      "note": "Custom-only extension root."
+    },
+    {
+      "pattern": "extensions/live2d-companion/*",
+      "action": "preserve_custom",
+      "note": "Custom-only extension root."
+    },
+    {
+      "pattern": "extensions/local-voice/*",
+      "action": "preserve_custom",
+      "note": "Custom-only extension root."
+    },
+    {
+      "pattern": "extensions/memory-evolution/*",
+      "action": "preserve_custom",
+      "note": "Custom-only extension root."
+    },
+    {
+      "pattern": "extensions/python-exec/*",
+      "action": "preserve_custom",
+      "note": "Custom-only extension root."
+    },
+    {
+      "pattern": "extensions/python-sandbox/*",
+      "action": "preserve_custom",
+      "note": "Custom-only extension root."
+    },
+    {
+      "pattern": "extensions/universal-skills/*",
+      "action": "preserve_custom",
+      "note": "Custom-only extension root."
+    },
+    {
+      "pattern": "extensions/vrchat-relay/*",
+      "action": "preserve_custom",
+      "note": "Custom-only extension root."
+    },
+    {
+      "pattern": "extensions/x-poster/*",
+      "action": "preserve_custom",
+      "note": "Custom-only extension root."
+    },
+    {
+      "pattern": "scripts/launchers/*",
+      "action": "preserve_custom",
+      "note": "Preserve desktop and launcher orchestration surfaces."
+    },
+    {
+      "pattern": "scripts/Sync-OpenClawDesktop.ps1",
+      "action": "preserve_custom",
+      "note": "Preserve desktop sync surface."
+    },
+    {
+      "pattern": "scripts/hypura/*",
+      "action": "preserve_custom",
+      "note": "Preserve local Hypura runtime files."
+    },
+    {
+      "pattern": "scripts/modelfiles/*",
+      "action": "preserve_custom",
+      "note": "Preserve local model definitions."
+    },
+    {
+      "pattern": "scripts/tools/upstream_*.py",
+      "action": "preserve_custom",
+      "note": "Preserve local upstream sync tooling."
+    },
+    {
+      "pattern": "scripts/tools/resolve-merge-conflicts.py",
+      "action": "preserve_custom",
+      "note": "Preserve local upstream sync tooling."
+    },
+    {
+      "pattern": "scripts/tools/merge-conflict-strategies*.json",
+      "action": "preserve_custom",
+      "note": "Preserve local upstream sync policy files."
+    },
+    {
+      "pattern": "extensions/line/*",
+      "action": "official_with_overlay",
+      "note": "Use official LINE behavior as the base, then replay local advantages."
+    },
+    {
+      "pattern": "extensions/duckduckgo/*",
+      "action": "official_with_overlay",
+      "note": "Use official DuckDuckGo behavior as the base, then replay local advantages."
+    },
+    {
+      "pattern": "extensions/memory-core/*",
+      "action": "official_with_overlay",
+      "note": "Layer local memory helpers onto official memory-core behavior."
+    },
+    {
+      "pattern": "src/agents/opencode-zen-free-rotation*",
+      "action": "official_with_overlay",
+      "note": "Replay local OpenCode rotation behavior onto official agent selection."
+    },
+    {
+      "pattern": "src/commands/status*",
+      "action": "official_with_overlay",
+      "note": "Replay local status/report advantages onto official command behavior."
+    },
+    {
+      "pattern": "src/commands/health-monitor.ts",
+      "action": "official_with_overlay",
+      "note": "Replay local health monitoring only if the official seam still needs it."
+    },
+    {
+      "pattern": "src/commands/zombie-prevention.ts",
+      "action": "official_with_overlay",
+      "note": "Replay local runtime protection only if the official seam still needs it."
+    },
+    {
+      "pattern": "src/models/provider-cache.ts",
+      "action": "official_with_overlay",
+      "note": "Replay local cache behavior onto official model/provider flows."
+    },
+    {
+      "pattern": "src/utils/perf*",
+      "action": "official_with_overlay",
+      "note": "Replay local perf helpers only where official behavior still lacks them."
+    },
+    {
+      "pattern": "src/plugin-sdk/*",
+      "action": "manual_api_followup",
+      "note": "Public SDK changes require explicit API review."
+    },
+    {
+      "pattern": "src/plugins/*",
+      "action": "manual_api_followup",
+      "note": "Plugin registry and manifest seams require explicit review."
+    },
+    {
+      "pattern": "src/channels/plugins/*",
+      "action": "manual_api_followup",
+      "note": "Bundled channel/plugin seams require explicit review."
+    },
+    {
+      "pattern": "src/gateway/*",
+      "action": "manual_api_followup",
+      "note": "Gateway/core seams require explicit review."
+    },
+    {
+      "pattern": "src/config/*",
+      "action": "manual_api_followup",
+      "note": "Config contract changes require explicit review."
+    },
+    {
+      "pattern": "scripts/lib/plugin-sdk-entrypoints.json",
+      "action": "manual_api_followup",
+      "note": "Public SDK export inventory changes require explicit review."
+    }
+  ]
+}

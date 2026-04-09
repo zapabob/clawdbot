@@ -15,6 +15,7 @@ import {
   getStoredSession,
 } from "./src/auth/index.js";
 import { applyReactiveManifest } from "./src/autonomy/reactive-manifest.js";
+import { registerVrchatRelayGatewayMethods } from "./src/gateway.js";
 import { startGhostBridge, stopGhostBridge, getGhostBridgeStatus } from "./src/ghost-bridge.js";
 import {
   startGuardianPulse,
@@ -113,6 +114,7 @@ const plugin: any = {
   register(_api: OpenClawPluginApi) {
     const api = _api as any;
     console.log("[vrchat-relay] Registering VRChat Relay plugin (Pro Edition)...");
+    registerVrchatRelayGatewayMethods(api);
 
     const oscCfg = (api.pluginConfig as { osc?: Record<string, unknown> } | undefined)?.osc ?? {};
     getOSCClient({

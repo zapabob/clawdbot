@@ -53,11 +53,11 @@ export function registerProcess(pid: number, command: string): void {
 
 // Update heartbeat for a process
 export function heartbeatProcess(pid: number): void {
-  const process = processCache.get(pid);
-  if (process) {
-    process.lastHeartbeat = Date.now();
-    process.stuckCount = 0;
-    processCache.set(pid, process);
+  const processInfo = processCache.get(pid);
+  if (processInfo) {
+    processInfo.lastHeartbeat = Date.now();
+    processInfo.stuckCount = 0;
+    processCache.set(pid, processInfo);
   }
 }
 
@@ -95,13 +95,16 @@ export function checkAndCleanProcesses(): {
   const killed: number[] = [];
   
   if (config.killOnStuck && stuck.length > 0) {
-    for (const process of stuck) {
+    for (const processInfo of stuck) {
       try {
-        process.kill(process.pid, "SIGKILL");
-        killed.push(process.pid);
-        processCache.delete(process.pid);
+        process.kill(processInfo.pid, "SIGKILL");
+        killed.push(processInfo.pid);
+        processCache.delete(processInfo.pid);
       } catch (err) {
-        console.warn(`[zombie-prevention] Failed to kill stuck process ${process.pid}:`, err);
+        console.warn(
+          `[zombie-prevention] Failed to kill stuck process ${processInfo.pid}:`,
+          err,
+        );
       }
     }
   }

@@ -46,7 +46,7 @@ export function getStreamBatchConfig(): StreamBatchConfig {
 // Add chunk to batch
 export function addToStreamBatch(streamId: string, data: string): StreamBatch | null {
   const size = Buffer.byteLength(data, "utf-8");
-  const chunk: StreamChunk = { data, timestamp: Date.now(), size };
+  const _chunk: StreamChunk = { data, timestamp: Date.now(), size };
   
   let batch = batchCache.get(streamId);
   
@@ -70,7 +70,10 @@ export function addToStreamBatch(streamId: string, data: string): StreamBatch | 
 // Flush a specific batch
 export function flushStreamBatch(streamId: string): StreamBatch | null {
   const batch = batchCache.get(streamId);
-  if (!batch || batch.chunks.length === 0) {
+  if (!batch) {
+    return null;
+  }
+  if (batch.chunks.length === 0) {
     return null;
   }
   
@@ -104,7 +107,9 @@ export function flushAllBatches(): Map<string, StreamBatch> {
 // Get pending batch info
 export function getPendingBatchInfo(streamId: string): { chunkCount: number; totalBytes: number } | null {
   const batch = batchCache.get(streamId);
-  if (!batch) return null;
+  if (!batch) {
+    return null;
+  }
   
   return {
     chunkCount: batch.chunks.length,
@@ -124,7 +129,9 @@ export function clearAllBatches(): void {
 
 // Start background flush timer
 export function startBatchFlushTimer(): void {
-  if (flushInterval) return;
+  if (flushInterval) {
+    return;
+  }
   
   flushInterval = setInterval(() => {
     flushAllBatches();

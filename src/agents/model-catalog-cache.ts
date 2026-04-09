@@ -1,6 +1,6 @@
 // Model Catalog Cache - Optimized wrapper for loadModelCatalog
-import type { OpenClawConfig } from "../../config/config.js";
-import { LRUCache, memoize } from "../../utils/perf.js";
+import type { OpenClawConfig } from "../config/config.js";
+import { LRUCache, memoize } from "../utils/perf.js";
 import type { ModelCatalogEntry } from "./model-catalog.js";
 import { loadModelCatalog } from "./model-catalog.js";
 

@@ -1,5 +1,5 @@
 // Provider Response Cache - Hash-based caching for AI model responses
-import { LRUCache } from "../../utils/perf.js";
+import { LRUCache } from "../utils/perf.js";
 import crypto from "node:crypto";
 
 export interface CacheEntry<T> {
@@ -25,7 +25,9 @@ export function generateCacheKey(
 // Get cached response
 export function getCachedResponse<T>(key: string): T | undefined {
   const entry = providerCache.get(key);
-  if (!entry) return undefined;
+  if (!entry) {
+    return undefined;
+  }
   
   // Check TTL
   if (entry.ttl && Date.now() - entry.timestamp > entry.ttl) {

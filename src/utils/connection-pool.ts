@@ -61,7 +61,9 @@ export function createConnection(poolId: string, provider: string, metadata?: Re
 // Acquire a connection (mark as in use)
 export function acquireConnection(poolId: string): PooledConnection | null {
   const pool = connectionPools.get(poolId);
-  if (!pool) return null;
+  if (!pool) {
+    return null;
+  }
   
   // Find available connection
   for (const conn of pool) {
@@ -83,7 +85,9 @@ export function acquireConnection(poolId: string): PooledConnection | null {
 // Release a connection (mark as available)
 export function releaseConnection(poolId: string, connectionId: string): boolean {
   const pool = connectionPools.get(poolId);
-  if (!pool) return false;
+  if (!pool) {
+    return false;
+  }
   
   for (const conn of pool) {
     if (conn.id === connectionId) {
@@ -99,7 +103,9 @@ export function releaseConnection(poolId: string, connectionId: string): boolean
 // Remove a connection
 export function removeConnection(poolId: string, connectionId: string): boolean {
   const pool = connectionPools.get(poolId);
-  if (!pool) return false;
+  if (!pool) {
+    return false;
+  }
   
   const index = pool.findIndex(c => c.id === connectionId);
   if (index >= 0) {
@@ -121,7 +127,9 @@ function isConnectionHealthy(conn: PooledConnection): boolean {
 // Clean up idle connections
 export function cleanupIdleConnections(poolId: string): number {
   const pool = connectionPools.get(poolId);
-  if (!pool) return 0;
+  if (!pool) {
+    return 0;
+  }
   
   let cleaned = 0;
   const remaining: PooledConnection[] = [];
@@ -155,7 +163,9 @@ export function cleanupAllPools(): Map<string, number> {
 // Get pool stats
 export function getPoolStats(poolId: string): { total: number; inUse: number; available: number } | null {
   const pool = connectionPools.get(poolId);
-  if (!pool) return null;
+  if (!pool) {
+    return null;
+  }
   
   const inUse = pool.filter(c => c.inUse).length;
   

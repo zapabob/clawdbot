@@ -1,5 +1,5 @@
 // Model Catalog Preloader - Background warming for faster first queries
-import type { OpenClawConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../config/config.js";
 import type { ModelCatalogEntry } from "./model-catalog.js";
 import { loadModelCatalog } from "./model-catalog.js";
 
@@ -14,7 +14,7 @@ export function preloadModelCatalog(config?: OpenClawConfig): Promise<ModelCatal
   }
 
   if (!preloadingPromise) {
-    preloadingPromise = loadModelCatalog(config).then((catalog) => {
+    preloadingPromise = loadModelCatalog(config ? { config } : undefined).then((catalog) => {
       preloadedCatalog = catalog;
       return catalog;
     });

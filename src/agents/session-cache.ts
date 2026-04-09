@@ -1,6 +1,6 @@
-import type { SessionEntry } from "../../config/sessions.js";
+import type { SessionEntry } from "../config/sessions.js";
 // Session Store Cache - LRU cache for session stores
-import { LRUCache } from "../../utils/perf.js";
+import { LRUCache } from "../utils/perf.js";
 
 const SESSION_STORE_CACHE_SIZE = Number(process.env.OPENCLAW_SESSION_CACHE_SIZE) || 50;
 

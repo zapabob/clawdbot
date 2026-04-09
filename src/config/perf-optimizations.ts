@@ -23,7 +23,7 @@ export const memoizedReadConfig = memoize(async function readConfigCached(
   // Original logic would be called here
   // For now, just return a placeholder - actual implementation would call the original
   throw new Error("Not implemented - integrate with actual config reading");
-});
+}, (path: string) => getConfigCacheKey(path));
 
 // Clear config cache
 export function clearConfigCache(): void {
