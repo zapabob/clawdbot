@@ -36,8 +36,13 @@ if (-not (Test-Path -LiteralPath $stackPs1)) {
     throw "Stack launcher not found: $stackPs1"
 }
 
+$syncPs1 = Join-Path $ProjectRoot "scripts\Sync-OpenClawDesktop.ps1"
+if (Test-Path -LiteralPath $syncPs1) {
+    & $syncPs1 -ProjectDir $ProjectRoot -Force:$Force -Quiet
+}
+
 $stackArgsFull =
-    '-NoProfile -ExecutionPolicy Bypass -WindowStyle Normal -File "{0}" -ForceVisibleGatewayAndTui -SpeakOnReady -HypuraWaitSeconds 180 -HypuraHarnessWaitSeconds 45' -f $stackPs1
+    '-NoProfile -ExecutionPolicy Bypass -WindowStyle Normal -File "{0}" -UseDesktopLauncher -ForceVisibleGatewayAndTui -SpeakOnReady -HypuraWaitSeconds 180 -HypuraHarnessWaitSeconds 45' -f $stackPs1
 
 function Test-ShortcutMatches {
     param(

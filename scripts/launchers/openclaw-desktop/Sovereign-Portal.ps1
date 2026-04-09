@@ -32,7 +32,7 @@ if ($env:NVM_SYMLINK -and (Test-Path (Join-Path $env:NVM_SYMLINK "node.exe"))) {
 }
 if ($UseDesktopLauncher) {
     $env:OPENCLAW_USE_REPO_LAUNCHER = "0"
-} elseif (($env:OPENCLAW_USE_REPO_LAUNCHER -eq "0") -or [string]::IsNullOrWhiteSpace([string]$env:OPENCLAW_USE_REPO_LAUNCHER)) {
+} elseif ([string]::IsNullOrWhiteSpace([string]$env:OPENCLAW_USE_REPO_LAUNCHER)) {
     $env:OPENCLAW_USE_REPO_LAUNCHER = "1"
 }
 Set-OpenClawDesktopConfigEnv -ProjectDir $ProjectDir

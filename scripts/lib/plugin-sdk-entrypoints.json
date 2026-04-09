@@ -187,6 +187,7 @@
   "native-command-registry",
   "nextcloud-talk",
   "nostr",
+  "ollama",
   "qa-channel",
   "provider-auth",
   "provider-auth-runtime",

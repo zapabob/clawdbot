@@ -15,7 +15,7 @@ LOG_DIR.mkdir(exist_ok=True)
 
 # Generate log filename
 timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-log_file = LOG_DIR / f"{timestamp}_Diagnostic-Sweep_Antigravity.md"
+log_file = LOG_DIR / f"{timestamp}_Diagnostic-Sweep_Antigravity.log"
 
 # Configure Logging
 logging.basicConfig(
@@ -28,16 +28,21 @@ logging.basicConfig(
 )
 logger = logging.getLogger("SPCE")
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 # --- [Check Suite Definition] ---
 # Tasks are (Name, Command)
-# Using 'pnpm run' for consistency with package.json
+# Use current repo commands directly so the sweep stays aligned with package.json and local scripts.
 TASKS = [
     ("Conflict Markers", "pnpm check:no-conflict-markers"),
     ("Host Env Policy", "pnpm check:host-env-policy:swift"),
     ("Base Config Schema", "pnpm check:base-config-schema"),
-    ("Plugin Metadata", "pnpm check:bundled-plugin-metadata"),
-    ("Auth Env Vars", "pnpm check:bundled-provider-auth-env-vars"),
-    ("Runtime Deps", "pnpm check:runtime-required-deps"),
+    (
+        "Plugin Metadata",
+        "node --import tsx scripts/generate-bundled-channel-config-metadata.ts --check",
+    ),
+    ("Runtime Deps", "node scripts/check-runtime-required-deps.mjs"),
     ("Formatting", "pnpm format:check"),
     ("TSGO Lint", "pnpm tsgo"),
     ("Plugin SDK Exports", "pnpm plugin-sdk:check-exports"),
@@ -68,7 +73,6 @@ def run_check(name, command):
     logger.info(f"[START] {name}")
     
     try:
-        # Use shell=True for 'pnpm' commands on Windows
         result = subprocess.run(
             command,
             shell=True,

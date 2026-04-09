@@ -83,6 +83,68 @@ function Sync-DirectoryCopy {
     }
 }
 
+function Ensure-OpenClawDesktopEnvDefaults {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ProjectDir,
+        [Parameter(Mandatory = $true)]
+        [string]$DesktopDir,
+        [Parameter(Mandatory = $true)]
+        [string]$EnvTarget
+    )
+
+    $desktopConfigPath = Join-Path $DesktopDir "openclaw.json"
+    $desktopDefaults = [ordered]@{
+        OPENCLAW_AGENT_WORKSPACE  = $ProjectDir
+        OPENCLAW_CONFIG_PATH      = $desktopConfigPath
+        OPENCLAW_DESKTOP_LAUNCHER = "scripts/launchers/launch-desktop-stack.ps1"
+        OPENCLAW_STATE_DIR        = $DesktopDir
+        OPENCLAW_USE_REPO_LAUNCHER = "0"
+        OPENCLAW_WORKSPACE_DIR    = $ProjectDir
+    }
+
+    if ($DryRun) {
+        foreach ($key in $desktopDefaults.Keys) {
+            Write-SyncDry "would enforce desktop env: $key"
+        }
+        return
+    }
+
+    if (-not (Test-Path -LiteralPath $EnvTarget)) {
+        New-Item -ItemType File -Path $EnvTarget -Force | Out-Null
+    }
+    Set-EnvValues -EnvFile $EnvTarget -Values $desktopDefaults
+    Write-SyncMsg "desktop env defaults: repo workspace/config/state pinned"
+}
+
+function Set-DesktopOpenClawWorkspace {
+    param(
+        [AllowNull()]
+        [object]$ConfigObject,
+        [Parameter(Mandatory = $true)]
+        [string]$WorkspacePath
+    )
+
+    if ($null -eq $ConfigObject) {
+        $ConfigObject = [PSCustomObject]@{}
+    }
+    if ($null -eq $ConfigObject.agents) {
+        $ConfigObject | Add-Member -NotePropertyName agents -NotePropertyValue ([PSCustomObject]@{})
+    }
+    if ($null -eq $ConfigObject.agents.defaults) {
+        $ConfigObject.agents | Add-Member -NotePropertyName defaults -NotePropertyValue ([PSCustomObject]@{})
+    }
+
+    $defaults = $ConfigObject.agents.defaults
+    if ($defaults.PSObject.Properties.Name -contains "workspace") {
+        $defaults.workspace = $WorkspacePath
+    } else {
+        $defaults | Add-Member -NotePropertyName workspace -NotePropertyValue $WorkspacePath
+    }
+
+    return $ConfigObject
+}
+
 # Ensure .openclaw-desktop/ exists
 $desktopDir = Join-Path $ProjectDir ".openclaw-desktop"
 if (-not (Test-Path $desktopDir)) {
@@ -131,6 +193,8 @@ if ($repoEnvMap.Count -gt 0) {
     }
 }
 
+Ensure-OpenClawDesktopEnvDefaults -ProjectDir $ProjectDir -DesktopDir $desktopDir -EnvTarget $envTarget
+
 # ---- Step 2: openclaw.json deep merge ----
 $ocTemplate = $null
 foreach ($cand in @(
@@ -170,6 +234,29 @@ if ($null -ne $ocTemplate) {
         }
     } catch {
         Write-Host "  [SYNC][WARN] openclaw.json merge failed: $_" -ForegroundColor Yellow
+    }
+}
+
+$ocTargetPath = Join-Path $desktopDir "openclaw.json"
+if (Test-Path -LiteralPath $ocTargetPath) {
+    try {
+        $desktopConfig = Get-Content $ocTargetPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        $currentWorkspace = ""
+        if ($null -ne $desktopConfig.agents -and $null -ne $desktopConfig.agents.defaults) {
+            $currentWorkspace = [string]$desktopConfig.agents.defaults.workspace
+        }
+        if ($currentWorkspace -ne $ProjectDir) {
+            if ($DryRun) {
+                Write-SyncDry "would set openclaw.json agents.defaults.workspace -> $ProjectDir"
+            } else {
+                $desktopConfig = Set-DesktopOpenClawWorkspace -ConfigObject $desktopConfig -WorkspacePath $ProjectDir
+                Copy-Item $ocTargetPath "$ocTargetPath.sync-bak" -Force
+                $desktopConfig | ConvertTo-Json -Depth 20 | Set-Content $ocTargetPath -Encoding UTF8
+                Write-SyncMsg "openclaw.json: agents.defaults.workspace -> repo root"
+            }
+        }
+    } catch {
+        Write-Host "  [SYNC][WARN] workspace normalization failed: $_" -ForegroundColor Yellow
     }
 }
 
