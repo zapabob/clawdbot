@@ -7,16 +7,24 @@ import {
 import type { CoreConfig } from "../../types.js";
 import { handleInboundMatrixReaction } from "./reaction-events.js";
 
-const resolveMatrixExecApproval = vi.fn();
+const resolveMatrixApproval = vi.fn();
+const authorizeActorAction = vi.fn();
 
 vi.mock("../../exec-approval-resolver.js", () => ({
   isApprovalNotFoundError: (err: unknown) =>
     err instanceof Error && /unknown or expired approval id/i.test(err.message),
-  resolveMatrixExecApproval: (...args: unknown[]) => resolveMatrixExecApproval(...args),
+  resolveMatrixApproval: (...args: unknown[]) => resolveMatrixApproval(...args),
+}));
+
+vi.mock("../../approval-native.js", () => ({
+  matrixApprovalCapability: {
+    authorizeActorAction: (...args: unknown[]) => authorizeActorAction(...args),
+  },
 }));
 
 beforeEach(() => {
-  resolveMatrixExecApproval.mockReset();
+  resolveMatrixApproval.mockReset();
+  authorizeActorAction.mockReset().mockReturnValue({ authorized: true });
   clearMatrixApprovalReactionTargetsForTest();
 });
 
@@ -97,7 +105,7 @@ describe("matrix approval reactions", () => {
       logVerboseMessage: vi.fn(),
     });
 
-    expect(resolveMatrixExecApproval).toHaveBeenCalledWith({
+    expect(resolveMatrixApproval).toHaveBeenCalledWith({
       cfg: buildConfig(),
       approvalId: "req-123",
       decision: "allow-once",
@@ -142,7 +150,7 @@ describe("matrix approval reactions", () => {
       logVerboseMessage: vi.fn(),
     });
 
-    expect(resolveMatrixExecApproval).not.toHaveBeenCalled();
+    expect(resolveMatrixApproval).not.toHaveBeenCalled();
     expect(core.system.enqueueSystemEvent).toHaveBeenCalledWith(
       "Matrix reaction added: 👍 by Owner on msg $msg-1",
       expect.objectContaining({
@@ -197,7 +205,7 @@ describe("matrix approval reactions", () => {
       logVerboseMessage: vi.fn(),
     });
 
-    expect(resolveMatrixExecApproval).toHaveBeenCalledWith({
+    expect(resolveMatrixApproval).toHaveBeenCalledWith({
       cfg,
       approvalId: "req-123",
       decision: "deny",
@@ -243,7 +251,7 @@ describe("matrix approval reactions", () => {
     });
 
     expect(client.getEvent).not.toHaveBeenCalled();
-    expect(resolveMatrixExecApproval).toHaveBeenCalledWith({
+    expect(resolveMatrixApproval).toHaveBeenCalledWith({
       cfg: buildConfig(),
       approvalId: "req-123",
       decision: "allow-once",
@@ -254,7 +262,7 @@ describe("matrix approval reactions", () => {
 
   it("unregisters stale approval anchors after not-found resolution", async () => {
     const core = buildCore();
-    resolveMatrixExecApproval.mockRejectedValueOnce(
+    resolveMatrixApproval.mockRejectedValueOnce(
       new Error("unknown or expired approval id req-123"),
     );
     registerMatrixApprovalReactionTarget({
@@ -338,7 +346,7 @@ describe("matrix approval reactions", () => {
     });
 
     expect(client.getEvent).not.toHaveBeenCalled();
-    expect(resolveMatrixExecApproval).not.toHaveBeenCalled();
+    expect(resolveMatrixApproval).not.toHaveBeenCalled();
     expect(core.system.enqueueSystemEvent).not.toHaveBeenCalled();
   });
 });

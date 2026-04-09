@@ -5,7 +5,7 @@ import { createOperatorApprovalsGatewayClient } from "openclaw/plugin-sdk/gatewa
 
 export { isApprovalNotFoundError };
 
-export async function resolveMatrixExecApproval(params: {
+export async function resolveMatrixApproval(params: {
   cfg: OpenClawConfig;
   approvalId: string;
   decision: ExecApprovalReplyDecision;

@@ -1,5 +1,5 @@
 {
-  "pinned_upstream_sha": "9b8eb10196a3ce599ba3239b63ed343ef1618a47",
+  "pinned_upstream_sha": "1801702ed9592ceeb1d73d1775a210d8e427cbf4",
   "default_action": "manual_api_followup",
   "blocker_actions": ["official_with_overlay", "manual_api_followup"],
   "dirty_tree_ignore": [
@@ -168,6 +168,21 @@
       "note": "Layer local memory helpers onto official memory-core behavior."
     },
     {
+      "pattern": "extensions/matrix/*",
+      "action": "official_with_overlay",
+      "note": "Use official Matrix migration and approval behavior as the base, then replay local advantages."
+    },
+    {
+      "pattern": "extensions/whatsapp/src/auto-reply/monitor.ts",
+      "action": "official_with_overlay",
+      "note": "Use official WhatsApp reconnect-drain behavior as the base, then replay local monitoring advantages."
+    },
+    {
+      "pattern": "src/infra/outbound/*",
+      "action": "official_with_overlay",
+      "note": "Use official outbound delivery queue recovery as the base, then replay orthogonal local behavior."
+    },
+    {
       "pattern": "src/agents/opencode-zen-free-rotation*",
       "action": "official_with_overlay",
       "note": "Replay local OpenCode rotation behavior onto official agent selection."
@@ -201,6 +216,11 @@
       "pattern": "src/plugin-sdk/*",
       "action": "manual_api_followup",
       "note": "Public SDK changes require explicit API review."
+    },
+    {
+      "pattern": "src/plugin-sdk/infra-runtime.ts",
+      "action": "manual_api_followup",
+      "note": "Public infra runtime exports must stay aligned with upstream."
     },
     {
       "pattern": "src/plugins/*",

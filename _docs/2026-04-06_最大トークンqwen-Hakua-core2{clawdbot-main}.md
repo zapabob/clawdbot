@@ -18,10 +18,10 @@
 
 ## 変更ファイル
 
-| ファイル | 内容 |
-|---------|------|
-| `.openclaw-desktop/openclaw.json` | `qwen-Hakua-core2:latest` の `contextWindow` / `maxTokens` |
-| `.openclaw-desktop/agents/main/agent/models.json` | 同上（マージ済みカタログ） |
+| ファイル                                          | 内容                                                       |
+| ------------------------------------------------- | ---------------------------------------------------------- |
+| `.openclaw-desktop/openclaw.json`                 | `qwen-Hakua-core2:latest` の `contextWindow` / `maxTokens` |
+| `.openclaw-desktop/agents/main/agent/models.json` | 同上（マージ済みカタログ）                                 |
 
 ## 運用メモ（ガチ）
 

@@ -17,7 +17,7 @@ VALID_ACTIONS = frozenset(
         "drop_generated",
     },
 )
-DEFAULT_PINNED_UPSTREAM_SHA = "9b8eb10196a3ce599ba3239b63ed343ef1618a47"
+DEFAULT_PINNED_UPSTREAM_SHA = "1801702ed9592ceeb1d73d1775a210d8e427cbf4"
 DEFAULT_BLOCKER_ACTIONS = frozenset({"official_with_overlay", "manual_api_followup"})
 DEFAULT_DIRTY_TREE_IGNORE = (
     ".cursor/hooks/state/*",

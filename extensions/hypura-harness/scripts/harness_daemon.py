@@ -33,6 +33,7 @@ from web_scavenger import WebScavenger
 from knowledge_graph_shinka import KnowledgeGraphShinka
 import psutil
 import redis_loop
+from vrchat_auto_osc_harness import VRChatAutoOSC, create_auto_osc
 
 def is_vrchat_active() -> bool:
     """Check if VRChat.exe is currently running."""
@@ -86,6 +87,11 @@ companion_bridge: CompanionBridge = CompanionBridge(
 )
 web_scavenger: WebScavenger = WebScavenger()
 knowledge_graph: KnowledgeGraphShinka = KnowledgeGraphShinka()
+auto_osc: VRChatAutoOSC = create_auto_osc(
+    osc_controller=osc_ctrl,
+    voicevox_sequencer=voicevox_seq,
+    interval=config.get("auto_osc_interval", 300),
+)
 
 
 class OscRequest(BaseModel):
@@ -238,6 +244,24 @@ async def osc(req: OscRequest) -> dict:
 async def osc_telemetry() -> dict:
     """Read the latest received OSC data from VRChat."""
     return {"telemetry": osc_listen.telemetry}
+
+
+@app.post("/auto_osc/start")
+async def auto_osc_start() -> dict:
+    """Start VRChat Auto OSC (startup + periodic messages)."""
+    return auto_osc.start()
+
+
+@app.post("/auto_osc/stop")
+async def auto_osc_stop() -> dict:
+    """Stop VRChat Auto OSC."""
+    return auto_osc.stop()
+
+
+@app.get("/auto_osc/status")
+async def auto_osc_status() -> dict:
+    """Get VRChat Auto OSC status."""
+    return auto_osc.status()
 
 
 @app.post("/speak")

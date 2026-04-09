@@ -37,10 +37,15 @@ let isRestartInProgress = false;
 export function getHealthThreshold(): HealthThreshold {
   return {
     ...DEFAULT_THRESHOLDS,
-    maxResponseTimeMs: Number(process.env.OPENCLAW_HEALTH_MAX_RESPONSE_MS) || DEFAULT_THRESHOLDS.maxResponseTimeMs,
-    maxMemoryMb: Number(process.env.OPENCLAW_HEALTH_MAX_MEMORY_MB) || DEFAULT_THRESHOLDS.maxMemoryMb,
-    maxCpuPercent: Number(process.env.OPENCLAW_HEALTH_MAX_CPU_PERCENT) || DEFAULT_THRESHOLDS.maxCpuPercent,
-    restartOnConsecutiveFailures: Number(process.env.OPENCLAW_HEALTH_RESTART_THRESHOLD) || DEFAULT_THRESHOLDS.restartOnConsecutiveFailures,
+    maxResponseTimeMs:
+      Number(process.env.OPENCLAW_HEALTH_MAX_RESPONSE_MS) || DEFAULT_THRESHOLDS.maxResponseTimeMs,
+    maxMemoryMb:
+      Number(process.env.OPENCLAW_HEALTH_MAX_MEMORY_MB) || DEFAULT_THRESHOLDS.maxMemoryMb,
+    maxCpuPercent:
+      Number(process.env.OPENCLAW_HEALTH_MAX_CPU_PERCENT) || DEFAULT_THRESHOLDS.maxCpuPercent,
+    restartOnConsecutiveFailures:
+      Number(process.env.OPENCLAW_HEALTH_RESTART_THRESHOLD) ||
+      DEFAULT_THRESHOLDS.restartOnConsecutiveFailures,
   };
 }
 
@@ -85,10 +90,12 @@ export function checkHealthStatus(key: string): {
     }
   }
 
-  consecutiveFailures = failedChecks >= threshold.restartOnConsecutiveFailures ? consecutiveFailures + 1 : 0;
-  
-  const shouldRestart = consecutiveFailures >= threshold.restartOnConsecutiveFailures && !isRestartInProgress;
-  
+  consecutiveFailures =
+    failedChecks >= threshold.restartOnConsecutiveFailures ? consecutiveFailures + 1 : 0;
+
+  const shouldRestart =
+    consecutiveFailures >= threshold.restartOnConsecutiveFailures && !isRestartInProgress;
+
   return {
     healthy: issues.length === 0,
     issues,

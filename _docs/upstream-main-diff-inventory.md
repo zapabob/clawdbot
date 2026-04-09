@@ -1,33 +1,33 @@
 # Upstream Diff Inventory
 
 - Current ref: `HEAD`
-- Upstream ref: `9b8eb10196a3ce599ba3239b63ed343ef1618a47`
+- Upstream ref: `1801702ed9592ceeb1d73d1775a210d8e427cbf4`
 - Merge base: `089423bbaa5b1b9b751c27a4903a02054fe4494b`
-- Upstream touched paths: `5185`
-- Custom committed paths: `6220`
-- Dirty baseline paths kept: `37`
+- Upstream touched paths: `5199`
+- Custom committed paths: `6232`
+- Dirty baseline paths kept: `105`
 - Dirty runtime/state paths ignored: `6`
-- Paths touched on both sides: `81`
-- Total touched paths: `11335`
+- Paths touched on both sides: `121`
+- Total touched paths: `11354`
 
 ## Action Counts
 
 - `drop_generated`: `52`
-- `manual_api_followup`: `790`
-- `official_with_overlay`: `181`
-- `preserve_custom`: `6075`
-- `upstream`: `4237`
+- `manual_api_followup`: `799`
+- `official_with_overlay`: `368`
+- `preserve_custom`: `6081`
+- `upstream`: `4054`
 
 ## Ignored Dirty Paths
 
+- `.cursor/hooks/state/continual-learning-index.json`
 - `.cursor/hooks/state/continual-learning.json`
-- `.openclaw-desktop/agents/main/agent/opencode-zen-free-rotation.json`
 - `.openclaw-desktop/flows/registry.sqlite`
 - `.openclaw-desktop/flows/registry.sqlite-wal`
 - `.openclaw-desktop/subagents/runs.json`
 - `.openclaw-desktop/telegram/command-hash-default-384ed2fe442e0b83.txt`
 
-## channels_extensions (2293)
+## channels_extensions (2302)
 
 - `extensions/README.md`
 - `extensions/acpx/AGENTS.md`
@@ -981,6 +981,7 @@
 - `extensions/matrix/index.ts`
 - `extensions/matrix/openclaw.plugin.json`
 - `extensions/matrix/package.json`
+- `extensions/matrix/runtime-heavy-api.ts`
 - `extensions/matrix/secret-contract-api.ts`
 - `extensions/matrix/setup-entry.ts`
 - `extensions/matrix/src/account-selection.ts`
@@ -1011,7 +1012,10 @@
 - `extensions/matrix/src/exec-approvals-handler.ts`
 - `extensions/matrix/src/exec-approvals.test.ts`
 - `extensions/matrix/src/exec-approvals.ts`
+- `extensions/matrix/src/legacy-crypto-inspector-availability.ts`
+- `extensions/matrix/src/legacy-crypto.test.ts`
 - `extensions/matrix/src/legacy-crypto.ts`
+- `extensions/matrix/src/matrix-migration.runtime.ts`
 - `extensions/matrix/src/matrix/account-config.ts`
 - `extensions/matrix/src/matrix/accounts.test.ts`
 - `extensions/matrix/src/matrix/accounts.ts`
@@ -1025,6 +1029,7 @@
 - `extensions/matrix/src/matrix/client/create-client.ts`
 - `extensions/matrix/src/matrix/client/env-auth.ts`
 - `extensions/matrix/src/matrix/client/file-sync-store.ts`
+- `extensions/matrix/src/matrix/client/migration-snapshot.runtime.ts`
 - `extensions/matrix/src/matrix/client/private-network-host.ts`
 - `extensions/matrix/src/matrix/client/shared.test.ts`
 - `extensions/matrix/src/matrix/client/shared.ts`
@@ -1091,6 +1096,9 @@
 - `extensions/matrix/src/matrix/thread-bindings.test.ts`
 - `extensions/matrix/src/matrix/thread-bindings.ts`
 - `extensions/matrix/src/migration-config.ts`
+- `extensions/matrix/src/migration-snapshot-backup.ts`
+- `extensions/matrix/src/migration-snapshot.test.ts`
+- `extensions/matrix/src/migration-snapshot.ts`
 - `extensions/matrix/src/onboarding.test-harness.ts`
 - `extensions/matrix/src/onboarding.test.ts`
 - `extensions/matrix/src/onboarding.ts`
@@ -1100,6 +1108,7 @@
 - `extensions/matrix/src/resolve-targets.ts`
 - `extensions/matrix/src/resolver.ts`
 - `extensions/matrix/src/runtime-api.ts`
+- `extensions/matrix/src/runtime-heavy-api.ts`
 - `extensions/matrix/src/secret-contract.ts`
 - `extensions/matrix/src/session-route.test.ts`
 - `extensions/matrix/src/setup-bootstrap.ts`
@@ -2323,7 +2332,7 @@
 - `extensions/zalouser/src/zca-client.ts`
 - `extensions/zalouser/tsconfig.json`
 
-## core_src (2601)
+## core_src (2605)
 
 - `src/acp/approval-classifier.ts`
 - `src/acp/client.ts`
@@ -3522,6 +3531,7 @@
 - `src/commands/model-default.ts`
 - `src/commands/model-picker.test.ts`
 - `src/commands/models.list.auth-sync.test.ts`
+- `src/commands/models.list.e2e.test.ts`
 - `src/commands/models/auth-order.ts`
 - `src/commands/models/auth.test.ts`
 - `src/commands/models/auth.ts`
@@ -3936,7 +3946,6 @@
 - `src/gateway/server-methods/tts.ts`
 - `src/gateway/server-methods/types.ts`
 - `src/gateway/server-methods/usage.ts`
-- `src/gateway/server-methods/vrchat.ts`
 - `src/gateway/server-methods/wizard.ts`
 - `src/gateway/server-mobile-nodes.ts`
 - `src/gateway/server-node-events.test.ts`
@@ -4151,6 +4160,9 @@
 - `src/infra/outbound/deliver.test.ts`
 - `src/infra/outbound/deliver.ts`
 - `src/infra/outbound/delivery-queue-recovery.ts`
+- `src/infra/outbound/delivery-queue-storage.ts`
+- `src/infra/outbound/delivery-queue.reconnect-drain.test.ts`
+- `src/infra/outbound/delivery-queue.ts`
 - `src/infra/outbound/format.test.ts`
 - `src/infra/outbound/identity.ts`
 - `src/infra/outbound/message-action-normalization.ts`
@@ -4408,6 +4420,7 @@
 - `src/plugin-sdk/image-generation-core.ts`
 - `src/plugin-sdk/image-generation-runtime.ts`
 - `src/plugin-sdk/index.ts`
+- `src/plugin-sdk/infra-runtime.ts`
 - `src/plugin-sdk/irc-surface.ts`
 - `src/plugin-sdk/line-surface.ts`
 - `src/plugin-sdk/litellm.ts`
@@ -4927,7 +4940,7 @@
 - `src/wizard/setup.plugin-config.ts`
 - `src/wizard/setup.ts`
 
-## docs (241)
+## docs (247)
 
 - `_docs/2026-03-12_Launcher_Integration_Antigravity.md`
 - `_docs/2026-03-12_Persona_Sync_Antigravity.md`
@@ -5043,11 +5056,17 @@
 - `_docs/impl-log-2026-03-29-upstream-merge.md`
 - `_docs/merge-conflict-resolution-2026-03-30_230534.md`
 - `_docs/merge-conflict-resolution-dry-run-20260409T060216Z.md`
+- `_docs/merge-conflict-resolution-dry-run-20260409T062515Z.md`
+- `_docs/merge-conflict-resolution-dry-run-20260409T093611Z.md`
 - `_docs/merge-reports/upstream-dry-run-20260409T060216Z.json`
+- `_docs/merge-reports/upstream-dry-run-20260409T062515Z.json`
+- `_docs/merge-reports/upstream-dry-run-20260409T093611Z.json`
 - `_docs/merge-reports/upstream-merge-20260401T111026Z.json`
 - `_docs/merge-reports/upstream-merge-20260406T121243Z.json`
 - `_docs/merge-reports/upstream-merge-20260406T121309Z.json`
 - `_docs/merge-reports/upstream-merge-20260409T060217Z.json`
+- `_docs/merge-reports/upstream-merge-20260409T062516Z.json`
+- `_docs/merge-reports/upstream-merge-20260409T093613Z.json`
 - `_docs/nc_kart_proof.lean`
 - `_docs/runtime-config-audit.json`
 - `_docs/runtime-config-audit.md`

@@ -42,8 +42,6 @@ vi.mock("./client/storage.js", async () => {
 const {
   backfillMatrixAuthDeviceIdAfterStartup,
   getMatrixScopedEnvVarNames,
-  resolveImplicitMatrixAccountId,
-  resolveMatrixConfig,
   resolveMatrixConfigForAccount,
   resolveMatrixAuth,
   resolveMatrixAuthContext,
@@ -84,7 +82,14 @@ vi.mock("matrix-js-sdk", async (importOriginal) => {
   };
 });
 
-describe("resolveMatrixConfig", () => {
+function resolveDefaultMatrixAuthContext(
+  cfg: CoreConfig,
+  env: NodeJS.ProcessEnv = {} as NodeJS.ProcessEnv,
+) {
+  return resolveMatrixAuthContext({ cfg, env });
+}
+
+describe("Matrix auth/config live surfaces", () => {
   it("prefers config over env", () => {
     const cfg = {
       channels: {
@@ -105,7 +110,7 @@ describe("resolveMatrixConfig", () => {
       MATRIX_PASSWORD: "env-pass",
       MATRIX_DEVICE_NAME: "EnvDevice",
     } as NodeJS.ProcessEnv;
-    const resolved = resolveMatrixConfig(cfg, env);
+    const resolved = resolveDefaultMatrixAuthContext(cfg, env).resolved;
     expect(resolved).toEqual({
       homeserver: "https://cfg.example.org",
       userId: "@cfg:example.org",
@@ -128,7 +133,7 @@ describe("resolveMatrixConfig", () => {
       MATRIX_DEVICE_ID: "ENVDEVICE",
       MATRIX_DEVICE_NAME: "EnvDevice",
     } as NodeJS.ProcessEnv;
-    const resolved = resolveMatrixConfig(cfg, env);
+    const resolved = resolveDefaultMatrixAuthContext(cfg, env).resolved;
     expect(resolved.homeserver).toBe("https://env.example.org");
     expect(resolved.userId).toBe("@env:example.org");
     expect(resolved.accessToken).toBe("env-token");
@@ -157,7 +162,7 @@ describe("resolveMatrixConfig", () => {
       MATRIX_ACCESS_TOKEN: "env-token",
     } as NodeJS.ProcessEnv;
 
-    const resolved = resolveMatrixConfig(cfg, env);
+    const resolved = resolveDefaultMatrixAuthContext(cfg, env).resolved;
     expect(resolved.accessToken).toBe("env-token");
   });
 
@@ -180,7 +185,7 @@ describe("resolveMatrixConfig", () => {
       MATRIX_PASSWORD: "env-pass",
     } as NodeJS.ProcessEnv;
 
-    const resolved = resolveMatrixConfig(cfg, env);
+    const resolved = resolveDefaultMatrixAuthContext(cfg, env).resolved;
     expect(resolved.password).toBe("env-pass");
   });
 
@@ -252,7 +257,7 @@ describe("resolveMatrixConfig", () => {
       },
     } as CoreConfig;
 
-    expect(() => resolveMatrixConfig(cfg, {} as NodeJS.ProcessEnv)).toThrow(
+    expect(() => resolveDefaultMatrixAuthContext(cfg, {} as NodeJS.ProcessEnv)).toThrow(
       /channels\.matrix\.accessToken: unresolved SecretRef "env:default:MATRIX_ACCESS_TOKEN"/i,
     );
   });
@@ -276,7 +281,7 @@ describe("resolveMatrixConfig", () => {
     } as CoreConfig;
 
     expect(() =>
-      resolveMatrixConfig(cfg, {
+      resolveDefaultMatrixAuthContext(cfg, {
         MATRIX_ACCESS_TOKEN: "env-token",
       } as NodeJS.ProcessEnv),
     ).toThrow(/not allowlisted in secrets\.providers\.matrix-env\.allowlist/i);
@@ -300,7 +305,9 @@ describe("resolveMatrixConfig", () => {
       },
     } as CoreConfig;
 
-    expect(resolveMatrixConfig(cfg, {} as NodeJS.ProcessEnv).accessToken).toBeUndefined();
+    expect(
+      resolveDefaultMatrixAuthContext(cfg, {} as NodeJS.ProcessEnv).resolved.accessToken,
+    ).toBeUndefined();
   });
 
   it("uses account-scoped env vars for non-default accounts before global env", () => {
@@ -379,7 +386,6 @@ describe("resolveMatrixConfig", () => {
       },
     } as CoreConfig;
 
-    expect(resolveImplicitMatrixAccountId(cfg, {} as NodeJS.ProcessEnv)).toBe("default");
     expect(resolveMatrixAuthContext({ cfg, env: {} as NodeJS.ProcessEnv }).accountId).toBe(
       "default",
     );
@@ -403,7 +409,6 @@ describe("resolveMatrixConfig", () => {
       },
     } as CoreConfig;
 
-    expect(resolveImplicitMatrixAccountId(cfg, {} as NodeJS.ProcessEnv)).toBeNull();
     expect(() => resolveMatrixAuthContext({ cfg, env: {} as NodeJS.ProcessEnv })).toThrow(
       /channels\.matrix\.defaultAccount.*--account <id>/i,
     );
@@ -424,7 +429,6 @@ describe("resolveMatrixConfig", () => {
       },
     } as CoreConfig;
 
-    expect(resolveImplicitMatrixAccountId(cfg, {} as NodeJS.ProcessEnv)).toBe("ops");
     expect(resolveMatrixAuthContext({ cfg, env: {} as NodeJS.ProcessEnv }).accountId).toBe("ops");
   });
 
@@ -443,7 +447,6 @@ describe("resolveMatrixConfig", () => {
       },
     } as CoreConfig;
 
-    expect(resolveImplicitMatrixAccountId(cfg, {} as NodeJS.ProcessEnv)).toBe("ops");
     expect(resolveMatrixAuthContext({ cfg, env: {} as NodeJS.ProcessEnv }).accountId).toBe("ops");
   });
 
@@ -460,7 +463,6 @@ describe("resolveMatrixConfig", () => {
       MATRIX_OPS_ACCESS_TOKEN: "ops-token",
     } as NodeJS.ProcessEnv;
 
-    expect(resolveImplicitMatrixAccountId(cfg, env)).toBeNull();
     expect(() => resolveMatrixAuthContext({ cfg, env })).toThrow(
       /channels\.matrix\.defaultAccount.*--account <id>/i,
     );
@@ -478,7 +480,6 @@ describe("resolveMatrixConfig", () => {
       MATRIX_OPS_ACCESS_TOKEN: "ops-token",
     } as NodeJS.ProcessEnv;
 
-    expect(resolveImplicitMatrixAccountId(cfg, env)).toBe("ops");
     expect(resolveMatrixAuthContext({ cfg, env }).accountId).toBe("ops");
   });
 
@@ -498,7 +499,6 @@ describe("resolveMatrixConfig", () => {
       },
     } as CoreConfig;
 
-    expect(resolveImplicitMatrixAccountId(cfg, {} as NodeJS.ProcessEnv)).toBe("ops");
     expect(resolveMatrixAuthContext({ cfg, env: {} as NodeJS.ProcessEnv }).accountId).toBe("ops");
   });
 
@@ -515,7 +515,6 @@ describe("resolveMatrixConfig", () => {
       MATRIX_OPS_ACCESS_TOKEN: "ops-token",
     } as NodeJS.ProcessEnv;
 
-    expect(resolveImplicitMatrixAccountId(cfg, env)).toBe("ops");
     expect(resolveMatrixAuthContext({ cfg, env }).accountId).toBe("ops");
   });
 
@@ -531,7 +530,6 @@ describe("resolveMatrixConfig", () => {
       MATRIX_OPS_USER_ID: "@ops:example.org",
     } as NodeJS.ProcessEnv;
 
-    expect(resolveImplicitMatrixAccountId(cfg, env)).toBe("ops");
     expect(resolveMatrixAuthContext({ cfg, env }).accountId).toBe("ops");
   });
 
@@ -697,7 +695,7 @@ describe("resolveMatrixConfig", () => {
       },
     } as CoreConfig;
 
-    const resolved = resolveMatrixConfig(cfg, {} as NodeJS.ProcessEnv);
+    const resolved = resolveDefaultMatrixAuthContext(cfg, {} as NodeJS.ProcessEnv).resolved;
 
     expect(resolved.dispatcherPolicy).toEqual({
       mode: "explicit-proxy",
@@ -1335,9 +1333,7 @@ describe("resolveMatrixAuth", () => {
   });
 
   it("skips persistence when startup backfill is aborted before whoami resolves", async () => {
-    let resolveWhoami:
-      | ((value: { user_id: string; device_id: string }) => void)
-      | undefined;
+    let resolveWhoami: ((value: { user_id: string; device_id: string }) => void) | undefined;
     matrixDoRequestMock.mockImplementation(
       () =>
         new Promise((resolve) => {
@@ -1395,6 +1391,9 @@ describe("resolveMatrixAuth", () => {
               source: "file",
               path: secretPath,
               mode: "singleValue",
+              // Windows test temp files do not always expose ACL metadata that satisfies
+              // the file-provider permission audit, so opt into the trusted test path here.
+              allowInsecurePath: process.platform === "win32",
             },
           },
         },

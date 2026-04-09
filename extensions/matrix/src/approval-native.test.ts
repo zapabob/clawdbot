@@ -1,6 +1,6 @@
 import type { OpenClawConfig } from "openclaw/plugin-sdk/config-runtime";
 import { describe, expect, it } from "vitest";
-import { matrixApprovalCapability, matrixNativeApprovalAdapter } from "./approval-native.js";
+import { matrixApprovalCapability } from "./approval-native.js";
 
 function buildConfig(
   overrides?: Partial<NonNullable<NonNullable<OpenClawConfig["channels"]>["matrix"]>>,
@@ -46,7 +46,7 @@ describe("matrix native approval adapter", () => {
   });
 
   it("describes native matrix approval delivery capabilities", () => {
-    const capabilities = matrixNativeApprovalAdapter.native?.describeDeliveryCapabilities({
+    const capabilities = matrixApprovalCapability.native?.describeDeliveryCapabilities({
       cfg: buildConfig(),
       accountId: "default",
       approvalKind: "exec",
@@ -74,7 +74,7 @@ describe("matrix native approval adapter", () => {
   });
 
   it("resolves origin targets from matrix turn source", async () => {
-    const target = await matrixNativeApprovalAdapter.native?.resolveOriginTarget?.({
+    const target = await matrixApprovalCapability.native?.resolveOriginTarget?.({
       cfg: buildConfig(),
       accountId: "default",
       approvalKind: "exec",
@@ -100,7 +100,7 @@ describe("matrix native approval adapter", () => {
   });
 
   it("resolves approver dm targets", async () => {
-    const targets = await matrixNativeApprovalAdapter.native?.resolveApproverDmTargets?.({
+    const targets = await matrixApprovalCapability.native?.resolveApproverDmTargets?.({
       cfg: buildConfig(),
       accountId: "default",
       approvalKind: "exec",
@@ -118,7 +118,7 @@ describe("matrix native approval adapter", () => {
   });
 
   it("keeps plugin forwarding fallback active when native delivery is exec-only", () => {
-    const shouldSuppress = matrixNativeApprovalAdapter.delivery?.shouldSuppressForwardingFallback;
+    const shouldSuppress = matrixApprovalCapability.delivery?.shouldSuppressForwardingFallback;
     if (!shouldSuppress) {
       throw new Error("delivery suppression helper unavailable");
     }
@@ -148,7 +148,7 @@ describe("matrix native approval adapter", () => {
   });
 
   it("preserves room-id case when matching Matrix origin targets", async () => {
-    const target = await matrixNativeApprovalAdapter.native?.resolveOriginTarget?.({
+    const target = await matrixApprovalCapability.native?.resolveOriginTarget?.({
       cfg: buildConfig(),
       accountId: "default",
       approvalKind: "exec",
@@ -242,7 +242,7 @@ describe("matrix native approval adapter", () => {
   });
 
   it("disables matrix-native plugin approval delivery", () => {
-    const capabilities = matrixNativeApprovalAdapter.native?.describeDeliveryCapabilities({
+    const capabilities = matrixApprovalCapability.native?.describeDeliveryCapabilities({
       cfg: buildConfig(),
       accountId: "default",
       approvalKind: "plugin",

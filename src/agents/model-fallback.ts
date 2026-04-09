@@ -28,7 +28,6 @@ import {
 import { LiveSessionModelSwitchError } from "./live-model-switch-error.js";
 import { logModelFallbackDecision } from "./model-fallback-observation.js";
 import type { FallbackAttempt, ModelCandidate } from "./model-fallback.types.js";
-import { applyOpencodeZenFreeRotation } from "./opencode-zen-free-rotation.js";
 import {
   buildConfiguredAllowlistKeys,
   buildModelAliasIndex,
@@ -37,6 +36,7 @@ import {
   resolveConfiguredModelRef,
   resolveModelRefFromString,
 } from "./model-selection.js";
+import { applyOpencodeZenFreeRotation } from "./opencode-zen-free-rotation.js";
 import type { FailoverReason } from "./pi-embedded-helpers.js";
 import { isLikelyContextOverflowError } from "./pi-embedded-helpers.js";
 

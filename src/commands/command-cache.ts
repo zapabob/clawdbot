@@ -16,27 +16,20 @@ export function getCachedCommandResult(key: string): unknown {
   if (!entry) {
     return undefined;
   }
-  
+
   if (entry.ttl && Date.now() - entry.timestamp > entry.ttl) {
     commandCache.delete(key);
     return undefined;
   }
-  
+
   return entry.result;
 }
 
-export function setCachedCommandResult(
-  key: string,
-  result: unknown,
-  ttlMs?: number,
-): void {
+export function setCachedCommandResult(key: string, result: unknown, ttlMs?: number): void {
   commandCache.set(key, { result, timestamp: Date.now(), ttl: ttlMs });
 }
 
-export function generateCommandCacheKey(
-  command: string,
-  args: unknown[],
-): string {
+export function generateCommandCacheKey(command: string, args: unknown[]): string {
   return `cmd:${command}:${JSON.stringify(args).slice(0, 100)}`;
 }
 

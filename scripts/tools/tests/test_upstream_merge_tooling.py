@@ -32,7 +32,11 @@ class UpstreamMergePolicyTests(unittest.TestCase):
             "package.json": "upstream",
             "extensions/auto-agent/index.ts": "preserve_custom",
             "extensions/line/src/push-command.ts": "official_with_overlay",
+            "extensions/matrix/src/legacy-crypto.ts": "official_with_overlay",
+            "extensions/whatsapp/src/auto-reply/monitor.ts": "official_with_overlay",
+            "src/infra/outbound/delivery-queue-recovery.ts": "official_with_overlay",
             "src/plugin-sdk/core.ts": "manual_api_followup",
+            "src/plugin-sdk/infra-runtime.ts": "manual_api_followup",
             "extensions/hypura-harness/scripts/generated/run_20260409.py": "drop_generated",
         }
 
@@ -44,6 +48,10 @@ class UpstreamMergePolicyTests(unittest.TestCase):
     def test_noise_filter_keeps_custom_source_and_drops_runtime_state(self):
         strategy = policy.load_strategy(
             REPO_ROOT / "scripts" / "tools" / "merge-conflict-strategies.custom-first.json",
+        )
+        self.assertEqual(
+            strategy.pinned_upstream_sha,
+            "1801702ed9592ceeb1d73d1775a210d8e427cbf4",
         )
         kept, ignored = policy.filter_noise_paths(
             [

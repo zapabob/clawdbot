@@ -11,14 +11,10 @@
     "merge reported conflicts, applying official-first resolver",
     "merge commit created with no-verify fallback"
   ],
-  "conflicts": [
-    "src/auto-reply/reply/commands.test.ts"
-  ],
+  "conflicts": ["src/auto-reply/reply/commands.test.ts"],
   "conflict_resolution": {
     "kept_upstream": [],
-    "removed_local": [
-      "src/auto-reply/reply/commands.test.ts"
-    ],
+    "removed_local": ["src/auto-reply/reply/commands.test.ts"],
     "unresolved": []
   },
   "result": "ok"

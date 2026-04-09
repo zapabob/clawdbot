@@ -9,7 +9,7 @@
    `launch-desktop-stack.ps1`, `Sovereign-Portal.ps1`, `ASI-Hakua-Portal.ps1`, `Install-OpenClawDesktopShortcuts.ps1`, `ASI-Manifest-Sovereign.ps1`
 3. **`scripts/launchers/` 直下の同名ファイル**は **シム**（`openclaw-desktop\*.ps1` に `@args` 委譲）。  
    `OPENCLAW_DESKTOP_LAUNCHER=scripts/launchers/launch-desktop-stack.ps1` は変更不要。
-4. インストール時に旧 `.lnk` 一式を削除（Sovereign / Stack / Refresh / Companion / Clawdbot / Hakua* 等）。
+4. インストール時に旧 `.lnk` 一式を削除（Sovereign / Stack / Refresh / Companion / Clawdbot / Hakua\* 等）。
 
 ## 再インストール
 

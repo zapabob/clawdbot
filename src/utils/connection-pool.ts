@@ -41,7 +41,11 @@ export function getConnectionPoolConfig(): ConnectionPoolConfig {
 }
 
 // Create a new connection
-export function createConnection(poolId: string, provider: string, metadata?: Record<string, unknown>): PooledConnection {
+export function createConnection(
+  poolId: string,
+  provider: string,
+  metadata?: Record<string, unknown>,
+): PooledConnection {
   const conn: PooledConnection = {
     id: `${poolId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     provider,
@@ -50,11 +54,11 @@ export function createConnection(poolId: string, provider: string, metadata?: Re
     inUse: false,
     metadata,
   };
-  
+
   let pool = connectionPools.get(poolId) || [];
   pool.push(conn);
   connectionPools.set(poolId, pool);
-  
+
   return conn;
 }
 
@@ -64,7 +68,7 @@ export function acquireConnection(poolId: string): PooledConnection | null {
   if (!pool) {
     return null;
   }
-  
+
   // Find available connection
   for (const conn of pool) {
     if (!conn.inUse && isConnectionHealthy(conn)) {
@@ -73,12 +77,12 @@ export function acquireConnection(poolId: string): PooledConnection | null {
       return { ...conn }; // Return copy
     }
   }
-  
+
   // Create new if under limit
   if (pool.length < config.maxConnections) {
     return createConnection(poolId, poolId);
   }
-  
+
   return null; // Pool exhausted
 }
 
@@ -88,7 +92,7 @@ export function releaseConnection(poolId: string, connectionId: string): boolean
   if (!pool) {
     return false;
   }
-  
+
   for (const conn of pool) {
     if (conn.id === connectionId) {
       conn.inUse = false;
@@ -96,7 +100,7 @@ export function releaseConnection(poolId: string, connectionId: string): boolean
       return true;
     }
   }
-  
+
   return false;
 }
 
@@ -106,14 +110,14 @@ export function removeConnection(poolId: string, connectionId: string): boolean 
   if (!pool) {
     return false;
   }
-  
-  const index = pool.findIndex(c => c.id === connectionId);
+
+  const index = pool.findIndex((c) => c.id === connectionId);
   if (index >= 0) {
     pool.splice(index, 1);
     connectionPools.set(poolId, pool);
     return true;
   }
-  
+
   return false;
 }
 
@@ -130,10 +134,10 @@ export function cleanupIdleConnections(poolId: string): number {
   if (!pool) {
     return 0;
   }
-  
+
   let cleaned = 0;
   const remaining: PooledConnection[] = [];
-  
+
   for (const conn of pool) {
     if (!conn.inUse && !isConnectionHealthy(conn)) {
       cleaned++;
@@ -141,7 +145,7 @@ export function cleanupIdleConnections(poolId: string): number {
       remaining.push(conn);
     }
   }
-  
+
   connectionPools.set(poolId, remaining);
   return cleaned;
 }
@@ -149,26 +153,28 @@ export function cleanupIdleConnections(poolId: string): number {
 // Clean up all pools
 export function cleanupAllPools(): Map<string, number> {
   const results = new Map<string, number>();
-  
+
   for (const [poolId] of connectionPools.entries()) {
     const cleaned = cleanupIdleConnections(poolId);
     if (cleaned > 0) {
       results.set(poolId, cleaned);
     }
   }
-  
+
   return results;
 }
 
 // Get pool stats
-export function getPoolStats(poolId: string): { total: number; inUse: number; available: number } | null {
+export function getPoolStats(
+  poolId: string,
+): { total: number; inUse: number; available: number } | null {
   const pool = connectionPools.get(poolId);
   if (!pool) {
     return null;
   }
-  
-  const inUse = pool.filter(c => c.inUse).length;
-  
+
+  const inUse = pool.filter((c) => c.inUse).length;
+
   return {
     total: pool.length,
     inUse,
@@ -177,18 +183,21 @@ export function getPoolStats(poolId: string): { total: number; inUse: number; av
 }
 
 // Get all pool stats
-export function getAllPoolStats(): Map<string, { total: number; inUse: number; available: number }> {
+export function getAllPoolStats(): Map<
+  string,
+  { total: number; inUse: number; available: number }
+> {
   const stats = new Map<string, { total: number; inUse: number; available: number }>();
-  
+
   for (const [poolId, pool] of connectionPools.entries()) {
-    const inUse = pool.filter(c => c.inUse).length;
+    const inUse = pool.filter((c) => c.inUse).length;
     stats.set(poolId, {
       total: pool.length,
       inUse,
       available: pool.length - inUse,
     });
   }
-  
+
   return stats;
 }
 

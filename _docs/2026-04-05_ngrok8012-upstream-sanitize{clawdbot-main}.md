@@ -6,12 +6,12 @@
 
 ## 変更
 
-| ファイル | 内容 |
-|----------|------|
-| `scripts/launchers/env-tools.ps1` | `Test-OpenClawNgrokUpstreamCandidate` / `Resolve-OpenClawNgrokUpstreamUrl` / `Repair-OpenClawProcessEnvNgrokUpstreamUrl`。`Merge-OpenClawEnvToProcess` 末尾で無効値を **プロセス環境から削除**。`Get-NgrokUpstreamTunnelMatchPort` を同検証に統一。 |
-| `scripts/launchers/start_ngrok.ps1` | `Resolve-OpenClawNgrokUpstreamUrl` 使用。`Get-MergedEnvMap` で **ファイル由来の壊れた値**を検知して警告 + repair スクリプト案内。 |
-| `scripts/launchers/repair-ngrok-upstream-env.ps1` | `.env` / `.env.local` / `.openclaw-desktop\.env` の無効行をコメント + 置換（`-GatewayPort` / `-WhatIf`）。 |
-| `scripts/launchers/README.md` / `CHANGELOG.md` | 利用手順・Fix エントリ。 |
+| ファイル                                          | 内容                                                                                                                                                                                                                                                |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `scripts/launchers/env-tools.ps1`                 | `Test-OpenClawNgrokUpstreamCandidate` / `Resolve-OpenClawNgrokUpstreamUrl` / `Repair-OpenClawProcessEnvNgrokUpstreamUrl`。`Merge-OpenClawEnvToProcess` 末尾で無効値を **プロセス環境から削除**。`Get-NgrokUpstreamTunnelMatchPort` を同検証に統一。 |
+| `scripts/launchers/start_ngrok.ps1`               | `Resolve-OpenClawNgrokUpstreamUrl` 使用。`Get-MergedEnvMap` で **ファイル由来の壊れた値**を検知して警告 + repair スクリプト案内。                                                                                                                   |
+| `scripts/launchers/repair-ngrok-upstream-env.ps1` | `.env` / `.env.local` / `.openclaw-desktop\.env` の無効行をコメント + 置換（`-GatewayPort` / `-WhatIf`）。                                                                                                                                          |
+| `scripts/launchers/README.md` / `CHANGELOG.md`    | 利用手順・Fix エントリ。                                                                                                                                                                                                                            |
 
 ## なんｊ風まとめ
 

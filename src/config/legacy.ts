@@ -25,10 +25,7 @@ export function findLegacyConfigIssues(
   const sourceRoot =
     sourceRaw && typeof sourceRaw === "object" ? (sourceRaw as Record<string, unknown>) : root;
   const issues: LegacyConfigIssue[] = [];
-  for (const rule of [
-    ...LEGACY_CONFIG_RULES,
-    ...extraRules,
-  ]) {
+  for (const rule of [...LEGACY_CONFIG_RULES, ...extraRules]) {
     const cursor = getPathValue(root, rule.path);
     if (cursor !== undefined && (!rule.match || rule.match(cursor, root))) {
       if (rule.requireSourceLiteral) {

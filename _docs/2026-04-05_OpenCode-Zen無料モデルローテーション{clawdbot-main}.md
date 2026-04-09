@@ -16,12 +16,12 @@
 
 ## 変更ファイル
 
-| 種別 | パス |
-|------|------|
-| 新規 | `src/agents/opencode-zen-free-rotation.ts` |
-| 新規 | `src/agents/opencode-zen-free-rotation.test.ts` |
+| 種別 | パス                                                                      |
+| ---- | ------------------------------------------------------------------------- |
+| 新規 | `src/agents/opencode-zen-free-rotation.ts`                                |
+| 新規 | `src/agents/opencode-zen-free-rotation.test.ts`                           |
 | 修正 | `src/agents/model-fallback.ts`（`applyOpencodeZenFreeRotation` 呼び出し） |
-| 修正 | `.env.example`（`OPENCLAW_ROTATE_OPENCODE_ZEN_FREE` 説明） |
+| 修正 | `.env.example`（`OPENCLAW_ROTATE_OPENCODE_ZEN_FREE` 説明）                |
 
 ## 挙動
 
@@ -41,4 +41,4 @@ pnpm test -- src/agents/opencode-zen-free-rotation.test.ts
 ## 補足
 
 - 有料 `opencode/...` は並べ替え対象外。
-- Free  tier の公式 ID が増えたら `OPENCODE_ZEN_FREE_MODEL_IDS` と auto-agent の `FALLBACK_MODELS` を手で同期すること。
+- Free tier の公式 ID が増えたら `OPENCODE_ZEN_FREE_MODEL_IDS` と auto-agent の `FALLBACK_MODELS` を手で同期すること。

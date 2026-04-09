@@ -6,14 +6,14 @@
 
 ## 実施した確認（このマシン上）
 
-| 項目 | 結果 |
-|------|------|
-| TCP LISTEN `18789` | あり（Gateway） |
-| TCP LISTEN `4040` | あり（ngrok ローカル API） |
-| `http://127.0.0.1:4040/api/tunnels` | トンネル **1** 本、`https://remedial-joline-unrash.ngrok-free.dev` → `http://127.0.0.1:18789` |
-| `ngrok` | `PATH` 上（WindowsApps の `ngrok.exe`） |
-| 外向き `GET https://…ngrok-free.dev/` | **HTTP 503**（本文: Control UI 未ビルドメッセージ） |
-| 直 `GET http://127.0.0.1:18789/` | 同様 **503** |
+| 項目                                  | 結果                                                                                          |
+| ------------------------------------- | --------------------------------------------------------------------------------------------- |
+| TCP LISTEN `18789`                    | あり（Gateway）                                                                               |
+| TCP LISTEN `4040`                     | あり（ngrok ローカル API）                                                                    |
+| `http://127.0.0.1:4040/api/tunnels`   | トンネル **1** 本、`https://remedial-joline-unrash.ngrok-free.dev` → `http://127.0.0.1:18789` |
+| `ngrok`                               | `PATH` 上（WindowsApps の `ngrok.exe`）                                                       |
+| 外向き `GET https://…ngrok-free.dev/` | **HTTP 503**（本文: Control UI 未ビルドメッセージ）                                           |
+| 直 `GET http://127.0.0.1:18789/`      | 同様 **503**                                                                                  |
 
 ## 結論（仮説 → 検証）
 

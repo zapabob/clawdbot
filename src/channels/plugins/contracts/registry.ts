@@ -1,9 +1,6 @@
 import { vi } from "vitest";
 import type { OpenClawConfig } from "../../../config/config.js";
-import {
-  listBundledChannelPlugins,
-  setBundledChannelRuntime,
-} from "../bundled.js";
+import { listBundledChannelPlugins, setBundledChannelRuntime } from "../bundled.js";
 import type { ChannelPlugin } from "../types.js";
 import { channelPluginSurfaceKeys, type ChannelPluginSurface } from "./manifest.js";
 import {

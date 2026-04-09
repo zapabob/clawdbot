@@ -544,6 +544,7 @@ function buildProviderFromBuilder(opts: ConfigSetOptions): SecretProviderConfig 
       ...(mode ? { mode } : {}),
       ...(timeoutMs !== undefined ? { timeoutMs } : {}),
       ...(maxBytes !== undefined ? { maxBytes } : {}),
+      ...(opts.providerAllowInsecurePath ? { allowInsecurePath: true } : {}),
     };
   } else {
     const command = opts.providerCommand?.trim();

@@ -142,9 +142,7 @@ export function memoize<TArgs extends unknown[], TResult>(
   const cache =
     typeof cacheOrKeyFn === "function" ? new LRUCache<string, TResult>(100) : cacheOrKeyFn;
   const keyFn =
-    typeof cacheOrKeyFn === "function"
-      ? cacheOrKeyFn
-      : ((...args: TArgs) => JSON.stringify(args));
+    typeof cacheOrKeyFn === "function" ? cacheOrKeyFn : (...args: TArgs) => JSON.stringify(args);
 
   return (...args: TArgs): TResult => {
     const key = keyFn(...args);

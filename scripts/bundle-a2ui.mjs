@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -66,9 +66,7 @@ function computeHash() {
   for (const input of INPUT_PATHS) {
     walk(input, files);
   }
-  files.sort((a, b) =>
-    a.split(path.sep).join("/").localeCompare(b.split(path.sep).join("/")),
-  );
+  files.sort((a, b) => a.split(path.sep).join("/").localeCompare(b.split(path.sep).join("/")));
 
   const hash = createHash("sha256");
   for (const filePath of files) {
@@ -88,9 +86,7 @@ function run(command, args) {
     shell: process.platform === "win32" && path.extname(resolvedCommand).toLowerCase() === ".cmd",
   });
   if (result.error) {
-    fail(
-      `A2UI bundling failed while launching ${resolvedCommand}: ${result.error.message}`,
-    );
+    fail(`A2UI bundling failed while launching ${resolvedCommand}: ${result.error.message}`);
   }
   if ((result.status ?? 1) !== 0) {
     fail(

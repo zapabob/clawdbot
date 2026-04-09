@@ -1011,9 +1011,7 @@
       ]
     }
   ],
-  "steps": [
-    "fetched upstream --prune"
-  ],
+  "steps": ["fetched upstream --prune"],
   "resolved_upstream_sha": "9b8eb10196a3ce599ba3239b63ed343ef1618a47",
   "result": "blocked-preflight",
   "blocked_paths": [

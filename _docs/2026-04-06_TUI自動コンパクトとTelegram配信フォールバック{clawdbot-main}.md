@@ -15,16 +15,16 @@
 
 ## 変更ファイル
 
-| ファイル | 内容 |
-|---------|------|
-| `src/agents/pi-settings.ts` | 小窓向け floor / reserve クランプ、`contextWindowTokens` を `applyPiCompactionSettingsFromConfig` に追加 |
-| `src/agents/pi-project-settings.ts` | `createPreparedEmbeddedPiSettingsManager` が `contextWindowTokens` を伝搬 |
-| `src/agents/pi-embedded-runner/run/attempt.ts` | `contextTokenBudget` を設定マネージャに渡す |
-| `src/agents/pi-embedded-runner/compact.ts` | `ctxInfo.tokens` を設定マネージャに渡す |
-| `src/gateway/server-methods/chat.ts` | Operator UI + deliver 時のメインセッション配送フォールバック |
-| `src/cli/tui-cli.ts` | `--deliver` のヘルプ文言を具体化 |
-| `src/agents/pi-settings.test.ts` | 小窓クランプの回帰テスト |
-| `CHANGELOG.md` | Fixes 追記 |
+| ファイル                                       | 内容                                                                                                     |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `src/agents/pi-settings.ts`                    | 小窓向け floor / reserve クランプ、`contextWindowTokens` を `applyPiCompactionSettingsFromConfig` に追加 |
+| `src/agents/pi-project-settings.ts`            | `createPreparedEmbeddedPiSettingsManager` が `contextWindowTokens` を伝搬                                |
+| `src/agents/pi-embedded-runner/run/attempt.ts` | `contextTokenBudget` を設定マネージャに渡す                                                              |
+| `src/agents/pi-embedded-runner/compact.ts`     | `ctxInfo.tokens` を設定マネージャに渡す                                                                  |
+| `src/gateway/server-methods/chat.ts`           | Operator UI + deliver 時のメインセッション配送フォールバック                                             |
+| `src/cli/tui-cli.ts`                           | `--deliver` のヘルプ文言を具体化                                                                         |
+| `src/agents/pi-settings.test.ts`               | 小窓クランプの回帰テスト                                                                                 |
+| `CHANGELOG.md`                                 | Fixes 追記                                                                                               |
 
 ## 利用者向けメモ
 

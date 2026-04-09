@@ -5,14 +5,14 @@
 
 ## 変更ファイル
 
-| ファイル | 内容 |
-|----------|------|
-| `scripts/launchers/env-tools.ps1` | `Get-NgrokUpstreamTunnelMatchPort`, `Get-OpenClawTelegramWebhookListenPort`, `Test-NgrokSyncTelegramWebhookOnly`, `Build-NgrokWebhookEnvValues` を追加。`Sync-NgrokPublicUrlToEnv` に `-GatewayPort`、上記ビルダー利用。 |
-| `scripts/launchers/start_ngrok.ps1` | 再利用・新規トンネル時とも `Build-NgrokWebhookEnvValues` を使用。`Get-ExistingNgrokPublicUrl` は上流ポートに合わせる。 |
-| `scripts/launchers/openclaw-desktop/launch-desktop-stack.ps1` | 上流ポート ≠ Gateway のとき **120s** で TCP LISTEN 待ち。`Sync-NgrokPublicUrlToEnv -GatewayPort`。 |
-| `scripts/launchers/openclaw-desktop/Sovereign-Portal.ps1` | 同上の待機 + `Sync-NgrokPublicUrlToEnv -GatewayPort`。 |
-| `scripts/launchers/Start-Gateway.ps1` | `Sync-NgrokPublicUrlToEnv -GatewayPort $Port`。 |
-| `.env.example` / `scripts/launchers/README.md` | Telegram-first 時は LINE を同期しない旨を追記。 |
+| ファイル                                                      | 内容                                                                                                                                                                                                                     |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `scripts/launchers/env-tools.ps1`                             | `Get-NgrokUpstreamTunnelMatchPort`, `Get-OpenClawTelegramWebhookListenPort`, `Test-NgrokSyncTelegramWebhookOnly`, `Build-NgrokWebhookEnvValues` を追加。`Sync-NgrokPublicUrlToEnv` に `-GatewayPort`、上記ビルダー利用。 |
+| `scripts/launchers/start_ngrok.ps1`                           | 再利用・新規トンネル時とも `Build-NgrokWebhookEnvValues` を使用。`Get-ExistingNgrokPublicUrl` は上流ポートに合わせる。                                                                                                   |
+| `scripts/launchers/openclaw-desktop/launch-desktop-stack.ps1` | 上流ポート ≠ Gateway のとき **120s** で TCP LISTEN 待ち。`Sync-NgrokPublicUrlToEnv -GatewayPort`。                                                                                                                       |
+| `scripts/launchers/openclaw-desktop/Sovereign-Portal.ps1`     | 同上の待機 + `Sync-NgrokPublicUrlToEnv -GatewayPort`。                                                                                                                                                                   |
+| `scripts/launchers/Start-Gateway.ps1`                         | `Sync-NgrokPublicUrlToEnv -GatewayPort $Port`。                                                                                                                                                                          |
+| `.env.example` / `scripts/launchers/README.md`                | Telegram-first 時は LINE を同期しない旨を追記。                                                                                                                                                                          |
 
 ## ローカル設定（ユーザー作業）
 

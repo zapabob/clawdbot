@@ -12,7 +12,7 @@ import {
   type ExecApprovalRequest,
   type ExecApprovalResolved,
 } from "openclaw/plugin-sdk/infra-runtime";
-import { matrixNativeApprovalAdapter } from "./approval-native.js";
+import { matrixApprovalCapability } from "./approval-native.js";
 import {
   buildMatrixApprovalReactionHint,
   listMatrixApprovalReactionBindings,
@@ -182,7 +182,7 @@ export class MatrixExecApprovalHandler {
       gatewayUrl: this.opts.gatewayUrl,
       eventKinds: ["exec"],
       nowMs: this.nowMs,
-      nativeAdapter: matrixNativeApprovalAdapter.native,
+      nativeAdapter: matrixApprovalCapability.native,
       isConfigured: () =>
         isHandlerConfigured({ cfg: this.opts.cfg, accountId: this.opts.accountId }),
       shouldHandle: (request) =>

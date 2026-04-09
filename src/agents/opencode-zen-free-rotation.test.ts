@@ -2,7 +2,6 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
 import {
   applyOpencodeZenFreeRotation,
   isOpencodeZenFreeCandidate,
@@ -10,15 +9,13 @@ import {
 
 describe("isOpencodeZenFreeCandidate", () => {
   it("matches opencode and opencode-go Zen free ids", () => {
-    expect(
-      isOpencodeZenFreeCandidate({ provider: "opencode", model: "qwen3.6-plus-free" }),
-    ).toBe(true);
-    expect(
-      isOpencodeZenFreeCandidate({ provider: "opencode-go", model: "big-pickle" }),
-    ).toBe(true);
-    expect(
-      isOpencodeZenFreeCandidate({ provider: "opencode", model: "claude-opus-4-6" }),
-    ).toBe(false);
+    expect(isOpencodeZenFreeCandidate({ provider: "opencode", model: "qwen3.6-plus-free" })).toBe(
+      true,
+    );
+    expect(isOpencodeZenFreeCandidate({ provider: "opencode-go", model: "big-pickle" })).toBe(true);
+    expect(isOpencodeZenFreeCandidate({ provider: "opencode", model: "claude-opus-4-6" })).toBe(
+      false,
+    );
     expect(isOpencodeZenFreeCandidate({ provider: "ollama", model: "qwen3.6-plus-free" })).toBe(
       false,
     );

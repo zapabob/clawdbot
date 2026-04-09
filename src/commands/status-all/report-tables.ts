@@ -1,6 +1,6 @@
+import type { TableColumn } from "../../terminal/table.js";
 import { formatTimeAgo } from "./format.js";
 import type { StatusReportSection } from "./text-report.js";
-import type { TableColumn } from "../../terminal/table.js";
 
 type AgentStatusLike = {
   agents: Array<{
@@ -67,12 +67,14 @@ export function buildStatusChannelDetailSections(params: {
     title: detail.title,
     width: params.width,
     renderTable: params.renderTable,
-    columns: detail.columns.map((column): TableColumn => ({
-      key: column,
-      header: column,
-      flex: column === "Notes",
-      minWidth: column === "Notes" ? 28 : 10,
-    })),
+    columns: detail.columns.map(
+      (column): TableColumn => ({
+        key: column,
+        header: column,
+        flex: column === "Notes",
+        minWidth: column === "Notes" ? 28 : 10,
+      }),
+    ),
     rows: detail.rows.map((row) => ({
       ...row,
       ...(row.Status === "OK"

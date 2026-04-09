@@ -10,7 +10,7 @@ export interface StreamBatchConfig {
 
 const DEFAULT_CONFIG: StreamBatchConfig = {
   minBatchSize: 3,
-  maxBatchSize:10,
+  maxBatchSize: 10,
   flushIntervalMs: 50,
   maxPendingBytes: 4096,
 };
@@ -47,23 +47,22 @@ export function getStreamBatchConfig(): StreamBatchConfig {
 export function addToStreamBatch(streamId: string, data: string): StreamBatch | null {
   const size = Buffer.byteLength(data, "utf-8");
   const _chunk: StreamChunk = { data, timestamp: Date.now(), size };
-  
+
   let batch = batchCache.get(streamId);
-  
+
   if (!batch) {
     batch = { chunks: [], totalSize: 0, createdAt: Date.now() };
   }
-  
+
   batch.chunks.push(data);
   batch.totalSize += size;
   batchCache.set(streamId, batch);
-  
+
   // Check if we should flush
-  if (batch.chunks.length >= config.minBatchSize || 
-      batch.totalSize >= config.maxPendingBytes) {
+  if (batch.chunks.length >= config.minBatchSize || batch.totalSize >= config.maxPendingBytes) {
     return flushStreamBatch(streamId);
   }
-  
+
   return null; // Not ready yet
 }
 
@@ -76,41 +75,43 @@ export function flushStreamBatch(streamId: string): StreamBatch | null {
   if (batch.chunks.length === 0) {
     return null;
   }
-  
+
   const flushedBatch: StreamBatch = {
     chunks: [...batch.chunks],
     totalSize: batch.totalSize,
     createdAt: batch.createdAt,
   };
-  
+
   // Reset batch
   batch.chunks = [];
   batch.totalSize = 0;
   batchCache.set(streamId, batch);
-  
+
   return flushedBatch;
 }
 
 // Flush all pending batches
 export function flushAllBatches(): Map<string, StreamBatch> {
   const results = new Map<string, StreamBatch>();
-  
+
   for (const [streamId, batch] of batchCache.entries()) {
     if (batch.chunks.length > 0) {
       results.set(streamId, flushStreamBatch(streamId)!);
     }
   }
-  
+
   return results;
 }
 
 // Get pending batch info
-export function getPendingBatchInfo(streamId: string): { chunkCount: number; totalBytes: number } | null {
+export function getPendingBatchInfo(
+  streamId: string,
+): { chunkCount: number; totalBytes: number } | null {
   const batch = batchCache.get(streamId);
   if (!batch) {
     return null;
   }
-  
+
   return {
     chunkCount: batch.chunks.length,
     totalBytes: batch.totalSize,
@@ -132,7 +133,7 @@ export function startBatchFlushTimer(): void {
   if (flushInterval) {
     return;
   }
-  
+
   flushInterval = setInterval(() => {
     flushAllBatches();
   }, config.flushIntervalMs);

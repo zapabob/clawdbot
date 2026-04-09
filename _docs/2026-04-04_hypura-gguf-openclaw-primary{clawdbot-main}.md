@@ -10,10 +10,10 @@
 
 ## CoT（仮説→検証）
 
-| 仮説 | 検証 | 結果 |
-|------|------|------|
-| Primary を `hypura/...` にすれば Gateway が 8080 に向く | `models.providers.hypura` + `plugins.entries.hypura` を足す | 設定上は OK（実ランはユーザー環境で `serve` 必須） |
-| モデル名はファイル名由来 | Hypura は `/api/tags` で name を返す | **実測文字列**を `primary` / `models[].id` にコピペが安全 |
+| 仮説                                                    | 検証                                                        | 結果                                                      |
+| ------------------------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------- |
+| Primary を `hypura/...` にすれば Gateway が 8080 に向く | `models.providers.hypura` + `plugins.entries.hypura` を足す | 設定上は OK（実ランはユーザー環境で `serve` 必須）        |
+| モデル名はファイル名由来                                | Hypura は `/api/tags` で name を返す                        | **実測文字列**を `primary` / `models[].id` にコピペが安全 |
 
 ## 変更したもの
 

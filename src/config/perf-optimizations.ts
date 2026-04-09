@@ -12,18 +12,19 @@ function getConfigCacheKey(path: string, hash?: string): string {
 }
 
 // Memoized config read - reduces repeated file I/O
-export const memoizedReadConfig = memoize(async function readConfigCached(
-  path: string,
-): Promise<ConfigFileSnapshot> {
-  const key = getConfigCacheKey(path);
-  const cached = configSnapshotCache.get(key);
-  if (cached) {
-    return cached;
-  }
-  // Original logic would be called here
-  // For now, just return a placeholder - actual implementation would call the original
-  throw new Error("Not implemented - integrate with actual config reading");
-}, (path: string) => getConfigCacheKey(path));
+export const memoizedReadConfig = memoize(
+  async function readConfigCached(path: string): Promise<ConfigFileSnapshot> {
+    const key = getConfigCacheKey(path);
+    const cached = configSnapshotCache.get(key);
+    if (cached) {
+      return cached;
+    }
+    // Original logic would be called here
+    // For now, just return a placeholder - actual implementation would call the original
+    throw new Error("Not implemented - integrate with actual config reading");
+  },
+  (path: string) => getConfigCacheKey(path),
+);
 
 // Clear config cache
 export function clearConfigCache(): void {

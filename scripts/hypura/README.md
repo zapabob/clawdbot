@@ -29,4 +29,4 @@ Alternatively, run pytest from `extensions/hypura-harness/scripts` with the test
 ## See also
 
 - [extensions/hypura-harness/README.md](../../extensions/hypura-harness/README.md)
-- [_docs/2026-04-05_OpenClaw-layout-Sovereign-overlay_clawdbot-main.md](../../_docs/2026-04-05_OpenClaw-layout-Sovereign-overlay_clawdbot-main.md)
+- [\_docs/2026-04-05_OpenClaw-layout-Sovereign-overlay_clawdbot-main.md](../../_docs/2026-04-05_OpenClaw-layout-Sovereign-overlay_clawdbot-main.md)

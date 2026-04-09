@@ -1,18 +1,15 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk/core";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { registerVrchatRelayGatewayMethods } from "../gateway.js";
 
-const {
-  sendChatboxMessage,
-  sendRawOscViaPython,
-  sendInputCommand,
-  getListenerStatus,
-} = vi.hoisted(() => ({
-  sendChatboxMessage: vi.fn(),
-  sendRawOscViaPython: vi.fn(),
-  sendInputCommand: vi.fn(),
-  getListenerStatus: vi.fn(),
-}));
+const { sendChatboxMessage, sendRawOscViaPython, sendInputCommand, getListenerStatus } = vi.hoisted(
+  () => ({
+    sendChatboxMessage: vi.fn(),
+    sendRawOscViaPython: vi.fn(),
+    sendInputCommand: vi.fn(),
+    getListenerStatus: vi.fn(),
+  }),
+);
 
 vi.mock("../tools/chatbox-enhanced.js", () => ({
   sendChatboxMessage,
@@ -87,7 +84,10 @@ describe("registerVrchatRelayGatewayMethods", () => {
 
     const respond = vi.fn();
 
-    await findHandler(registerGatewayMethod, "vrchat.chatbox")({
+    await findHandler(
+      registerGatewayMethod,
+      "vrchat.chatbox",
+    )({
       params: { message: "hello", sendImmediately: false },
       respond,
     } as never);
@@ -96,19 +96,28 @@ describe("registerVrchatRelayGatewayMethods", () => {
       sendImmediately: false,
     });
 
-    await findHandler(registerGatewayMethod, "vrchat.input")({
+    await findHandler(
+      registerGatewayMethod,
+      "vrchat.input",
+    )({
       params: { action: "Jump", value: 1 },
       respond,
     } as never);
     expect(sendInputCommand).toHaveBeenCalledWith({ action: "Jump", value: 1 });
 
-    await findHandler(registerGatewayMethod, "vrchat.raw")({
+    await findHandler(
+      registerGatewayMethod,
+      "vrchat.raw",
+    )({
       params: { address: "/avatar/parameters/Test", args: [true] },
       respond,
     } as never);
     expect(sendRawOscViaPython).toHaveBeenCalledWith("/avatar/parameters/Test", [true]);
 
-    await findHandler(registerGatewayMethod, "vrchat.status")({
+    await findHandler(
+      registerGatewayMethod,
+      "vrchat.status",
+    )({
       params: {},
       respond,
     } as never);

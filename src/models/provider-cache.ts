@@ -1,6 +1,6 @@
+import crypto from "node:crypto";
 // Provider Response Cache - Hash-based caching for AI model responses
 import { LRUCache } from "../utils/perf.js";
-import crypto from "node:crypto";
 
 export interface CacheEntry<T> {
   data: T;
@@ -28,22 +28,18 @@ export function getCachedResponse<T>(key: string): T | undefined {
   if (!entry) {
     return undefined;
   }
-  
+
   // Check TTL
   if (entry.ttl && Date.now() - entry.timestamp > entry.ttl) {
     providerCache.delete(key);
     return undefined;
   }
-  
+
   return entry.data as T;
 }
 
 // Set cached response
-export function setCachedResponse<T>(
-  key: string,
-  data: T,
-  ttlMs?: number,
-): void {
+export function setCachedResponse<T>(key: string, data: T, ttlMs?: number): void {
   providerCache.set(key, { data, timestamp: Date.now(), ttl: ttlMs });
 }
 

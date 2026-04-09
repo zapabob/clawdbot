@@ -46,27 +46,24 @@ export function shouldCompact(messageCount: number): boolean {
 }
 
 // Generate a simple summary (placeholder - would integrate with actual LLM summarization)
-export function generateSummary(
-  sessionKey: string,
-  messages: unknown[],
-): MessageSummary {
+export function generateSummary(sessionKey: string, messages: unknown[]): MessageSummary {
   const keyPoints: string[] = [];
   let summaryText = "";
-  
+
   // Extract key information from messages
   // This is a simplified placeholder - real implementation would use an LLM
   if (messages.length > 0) {
     const firstMsg = messages[0] as { role?: string; content?: string };
     const lastMsg = messages[messages.length - 1] as { role?: string; content?: string };
-    
+
     summaryText = `Conversation with ${messages.length} messages. `;
     summaryText += `Started with: ${String(firstMsg?.content || "").slice(0, 50)}... `;
     summaryText += `Last: ${String(lastMsg?.content || "").slice(0, 50)}...`;
-    
+
     keyPoints.push(`${messages.length} messages total`);
     keyPoints.push(`Last activity: ${new Date().toISOString()}`);
   }
-  
+
   const summary: MessageSummary = {
     id: `summary-${Date.now()}`,
     originalCount: messages.length,
@@ -74,10 +71,10 @@ export function generateSummary(
     keyPoints,
     timestamp: Date.now(),
   };
-  
+
   // Cache the summary
   compactionHistoryCache.set(sessionKey, summary);
-  
+
   return summary;
 }
 
@@ -90,29 +87,27 @@ export function compactMessages(
   if (!shouldCompact(messages.length)) {
     return { compacted: messages, summary: null };
   }
-  
+
   // Keep recent messages
   const keepCount = Math.min(config.maxMessages / 2, messages.length);
   const recentMessages = messages.slice(-keepCount);
-  
+
   // Summarize old messages
   const oldMessages = messages.slice(0, -keepCount);
   let summary: MessageSummary;
-  
+
   if (summarizeFn) {
     summary = summarizeFn(oldMessages);
   } else {
     summary = generateSummary(sessionKey, oldMessages);
   }
-  
+
   // Build compacted message list
   const compacted: unknown[] = [];
-  
+
   // Add system message placeholder if needed
   if (config.preserveSystemMessages) {
-    const hasSystem = recentMessages.some(
-      (m) => (m as { role?: string }).role === "system",
-    );
+    const hasSystem = recentMessages.some((m) => (m as { role?: string }).role === "system");
     if (!hasSystem) {
       compacted.push({
         role: "system",
@@ -120,13 +115,13 @@ export function compactMessages(
       });
     }
   }
-  
+
   // Add summary as first user message
   compacted.push({
     role: "user",
     content: `[Earlier conversation summary: ${summary.summary}]`,
   });
-  
+
   // Add key points
   for (const point of summary.keyPoints.slice(0, 5)) {
     compacted.push({
@@ -134,10 +129,10 @@ export function compactMessages(
       content: `• ${point}`,
     });
   }
-  
+
   // Add recent messages
   compacted.push(...recentMessages);
-  
+
   return { compacted, summary };
 }
 

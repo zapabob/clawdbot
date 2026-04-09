@@ -70,19 +70,19 @@ export function unregisterProcess(pid: number): void {
 export function getStuckProcesses(): ProcessInfo[] {
   const now = Date.now();
   const stuck: ProcessInfo[] = [];
-  
+
   for (const [pid, info] of processCache.entries()) {
     const timeSinceHeartbeat = now - info.lastHeartbeat;
     if (timeSinceHeartbeat > config.heartbeatTimeoutMs) {
       info.stuckCount += 1;
       processCache.set(pid, info);
-      
+
       if (info.stuckCount >= config.maxStuckCount) {
         stuck.push(info);
       }
     }
   }
-  
+
   return stuck;
 }
 
@@ -93,7 +93,7 @@ export function checkAndCleanProcesses(): {
 } {
   const stuck = getStuckProcesses();
   const killed: number[] = [];
-  
+
   if (config.killOnStuck && stuck.length > 0) {
     for (const processInfo of stuck) {
       try {
@@ -101,14 +101,11 @@ export function checkAndCleanProcesses(): {
         killed.push(processInfo.pid);
         processCache.delete(processInfo.pid);
       } catch (err) {
-        console.warn(
-          `[zombie-prevention] Failed to kill stuck process ${processInfo.pid}:`,
-          err,
-        );
+        console.warn(`[zombie-prevention] Failed to kill stuck process ${processInfo.pid}:`, err);
       }
     }
   }
-  
+
   return { stuck, killed };
 }
 
@@ -117,7 +114,7 @@ export function startZombiePreventionMonitor(): void {
   if (checkInterval) {
     return;
   }
-  
+
   checkInterval = setInterval(() => {
     const result = checkAndCleanProcesses();
     if (result.killed.length > 0) {

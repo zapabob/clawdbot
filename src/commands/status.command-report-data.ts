@@ -1,3 +1,9 @@
+import type { OpenClawConfig } from "../config/types.js";
+import type { UpdateCheckResult } from "../infra/update-check.js";
+import type { Tone } from "../memory-host-sdk/status.js";
+import type { PluginCompatibilityNotice } from "../plugins/status.js";
+import type { RenderTableOptions, TableColumn } from "../terminal/table.js";
+import type { HealthSummary } from "./health.js";
 import {
   buildStatusChannelsTableRows,
   statusChannelsTableColumns,
@@ -9,6 +15,7 @@ import {
   buildStatusProbesValue,
   buildStatusSessionsOverviewValue,
 } from "./status-overview-values.ts";
+import type { AgentLocalStatus } from "./status.agent-local.js";
 import {
   buildStatusAgentsValue,
   buildStatusFooterLines,
@@ -25,15 +32,8 @@ import {
   buildStatusTasksValue,
   statusHealthColumns,
 } from "./status.command-sections.js";
-import type { RenderTableOptions, TableColumn } from "../terminal/table.js";
-import type { OpenClawConfig } from "../config/types.js";
-import type { HealthSummary } from "./health.js";
-import type { Tone } from "../memory-host-sdk/status.js";
 import type { MemoryStatusSnapshot, MemoryPluginStatus } from "./status.scan.shared.js";
 import type { SessionStatus, StatusSummary } from "./status.types.js";
-import type { PluginCompatibilityNotice } from "../plugins/status.js";
-import type { UpdateCheckResult } from "../infra/update-check.js";
-import type { AgentLocalStatus } from "./status.agent-local.js";
 
 export async function buildStatusCommandReportData(params: {
   opts: {
@@ -98,15 +98,17 @@ export async function buildStatusCommandReportData(params: {
   };
   nodeOnlyGateway: unknown;
   summary: StatusSummary;
-  securityAudit: {
-    summary: { critical: number; warn: number; info: number };
-    findings: Array<{
-      severity: "critical" | "warn" | "info";
-      title: string;
-      detail: string;
-      remediation?: string | null;
-    }>;
-  } | undefined;
+  securityAudit:
+    | {
+        summary: { critical: number; warn: number; info: number };
+        findings: Array<{
+          severity: "critical" | "warn" | "info";
+          title: string;
+          detail: string;
+          remediation?: string | null;
+        }>;
+      }
+    | undefined;
   health?: HealthSummary;
   usageLines?: string[];
   lastHeartbeat: unknown;

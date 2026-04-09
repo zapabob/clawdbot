@@ -1,7 +1,7 @@
 // Config loading optimization with caching
 import { LRUCache, memoize } from "../utils/perf.js";
-import type { OpenClawConfig, ConfigFileSnapshot } from "./types.js";
 import { readConfigFileSnapshot, loadConfig } from "./config.js";
+import type { OpenClawConfig, ConfigFileSnapshot } from "./types.js";
 
 // Cache for config snapshots (thread-safe)
 const CONFIG_SNAPSHOT_CACHE_SIZE = 15;
@@ -19,9 +19,7 @@ function getConfigCacheKey(path: string): string {
 
 // Memoized config snapshot reader
 export const getConfigSnapshotCached = memoize(
-  async function getConfigSnapshotCachedFn(
-    configPath?: string,
-  ): Promise<ConfigFileSnapshot> {
+  async function getConfigSnapshotCachedFn(configPath?: string): Promise<ConfigFileSnapshot> {
     const key = getConfigCacheKey(configPath || "default");
     const cached = configSnapshotCache.get(key);
     if (cached) {

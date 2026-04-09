@@ -3,7 +3,9 @@ import { sendChatboxMessage, sendRawOscViaPython } from "./tools/chatbox-enhance
 import { sendInputCommand } from "./tools/input.js";
 import { getListenerStatus } from "./tools/listener.js";
 
-type GatewayMethodContext = Parameters<Parameters<OpenClawPluginApi["registerGatewayMethod"]>[1]>[0];
+type GatewayMethodContext = Parameters<
+  Parameters<OpenClawPluginApi["registerGatewayMethod"]>[1]
+>[0];
 type GatewayRespond = GatewayMethodContext["respond"];
 
 function respondError(
@@ -40,9 +42,7 @@ export function registerVrchatRelayGatewayMethods(api: OpenClawPluginApi): void 
     ({ params, respond }) => {
       const action = typeof params.action === "string" ? params.action.trim() : "";
       const value =
-        typeof params.value === "boolean" || typeof params.value === "number"
-          ? params.value
-          : true;
+        typeof params.value === "boolean" || typeof params.value === "number" ? params.value : true;
       if (!action) {
         respondError(respond, "invalid_request", "action required");
         return;

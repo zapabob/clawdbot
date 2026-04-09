@@ -74,9 +74,7 @@ export function registerLinePushCommand(api: OpenClawPluginApi): void {
         const configured = Boolean(
           account.channelAccessToken?.trim() && account.channelSecret?.trim(),
         );
-        const probe = configured
-          ? await probeLineBot(account.channelAccessToken, 3000)
-          : null;
+        const probe = configured ? await probeLineBot(account.channelAccessToken, 3000) : null;
         const botName = probe?.ok ? (probe.bot?.displayName ?? "Unknown") : "N/A";
         return {
           text: [

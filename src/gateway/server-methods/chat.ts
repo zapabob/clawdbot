@@ -278,8 +278,7 @@ function resolveChatSendOriginatingRoute(params: {
         fb.deliveryContext?.channel ?? fb.lastChannel ?? fb.origin?.provider,
       );
       const fbTo = fb.deliveryContext?.to ?? fb.lastTo;
-      const fbAccountId =
-        fb.deliveryContext?.accountId ?? fb.lastAccountId ?? fb.origin?.accountId;
+      const fbAccountId = fb.deliveryContext?.accountId ?? fb.lastAccountId ?? fb.origin?.accountId;
       const fbThreadId = fb.deliveryContext?.threadId ?? fb.lastThreadId ?? fb.origin?.threadId;
       if (
         fbChannel &&

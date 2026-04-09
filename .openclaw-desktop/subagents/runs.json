@@ -35,6 +35,41 @@
       "frozenResultCapturedAt": 1775496202445,
       "endedHookEmittedAt": 1775496275767,
       "cleanupCompletedAt": 1775496275773
+    },
+    "fd4131d0-1cd8-4c03-8df7-8917d9f0ea87": {
+      "runId": "fd4131d0-1cd8-4c03-8df7-8917d9f0ea87",
+      "childSessionKey": "agent:main:subagent:91bcb8ba-9ac3-48e2-8d46-0261d29a57a3",
+      "controllerSessionKey": "agent:main:telegram:direct:7201110294",
+      "requesterSessionKey": "agent:main:telegram:direct:7201110294",
+      "requesterOrigin": {
+        "channel": "telegram",
+        "to": "telegram:7201110294",
+        "accountId": "default"
+      },
+      "requesterDisplayKey": "agent:main:telegram:direct:7201110294",
+      "task": "Start the LINE webhook server v2 from C:\\Users\\downl\\.openclaw\\workspace-desktop-stack\\vrchat-voice\\line_webhook_server.py. Keep it running in background. Then verify it responds on port 8080.",
+      "cleanup": "keep",
+      "expectsCompletionMessage": true,
+      "spawnMode": "run",
+      "label": "line-webhook-v2",
+      "model": "ollama/qwen-hakua-core2-ctx128k:latest",
+      "workspaceDir": "C:\\Users\\downl\\.openclaw\\workspace-desktop-stack",
+      "runTimeoutSeconds": 30,
+      "createdAt": 1775511174280,
+      "startedAt": 1775511287858,
+      "sessionStartedAt": 1775511174280,
+      "accumulatedRuntimeMs": 0,
+      "cleanupHandled": true,
+      "retainAttachmentsOnKeep": false,
+      "endedAt": 1775511294819,
+      "outcome": {
+        "status": "ok"
+      },
+      "endedReason": "subagent-complete",
+      "frozenResultText": null,
+      "frozenResultCapturedAt": 1775511210940,
+      "endedHookEmittedAt": 1775511290690,
+      "cleanupCompletedAt": 1775511290694
     }
   }
 }
