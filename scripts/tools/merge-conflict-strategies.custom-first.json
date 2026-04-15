@@ -1,17 +1,27 @@
 {
-  "pinned_upstream_sha": "1801702ed9592ceeb1d73d1775a210d8e427cbf4",
+  "pinned_upstream_sha": "6f1d321aababd96e7b67e4b8dc7fdd5d9c1a554b",
   "default_action": "manual_api_followup",
   "blocker_actions": ["official_with_overlay", "manual_api_followup"],
   "dirty_tree_ignore": [
     ".cursor/hooks/state/*",
+    ".openclaw-desktop/*",
     ".openclaw-desktop/flows/*",
+    ".openclaw-desktop/python/*",
+    ".openclaw-desktop/python/**/*",
     ".openclaw-desktop/subagents/*",
+    ".openclaw-desktop/skills/*",
     ".openclaw-desktop/telegram/*",
     ".openclaw-desktop/agents/*/agent/*.json",
     "logs/*",
     "*.log"
   ],
   "rules": [
+    {
+      "pattern": ".pre-commit-config.yaml",
+      "action": "preserve_custom",
+      "note": "Preserve the local pre-commit hook tuning that keeps parallel skill tests and the fork's direct pnpm audit invocation.",
+      "context": "overlap_only"
+    },
     {
       "pattern": "package.json",
       "action": "upstream",
@@ -58,6 +68,84 @@
       "note": "Preserve the local repository contract and manifest."
     },
     {
+      "pattern": ".env.example",
+      "action": "preserve_custom",
+      "note": "Preserve local launcher and sovereign environment guidance when both sides diverged.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": ".github/labeler.yml",
+      "action": "preserve_custom",
+      "note": "Preserve local label coverage for custom extensions and Hypura surfaces.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": ".oxfmtrc.jsonc",
+      "action": "preserve_custom",
+      "note": "Preserve local formatter preferences and local desktop ignores.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": ".oxlintrc.json",
+      "action": "preserve_custom",
+      "note": "Preserve local lint policy for the custom fork.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": ".vscode/settings.json",
+      "action": "preserve_custom",
+      "note": "Preserve local workspace editor defaults when both sides diverged.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "README.md",
+      "action": "preserve_custom",
+      "note": "Preserve local fork onboarding and launcher guidance.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "CHANGELOG.md",
+      "action": "preserve_custom",
+      "note": "Preserve local release notes history for the fork.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "appcast.xml",
+      "action": "preserve_custom",
+      "note": "Preserve the fork-specific update feed and release metadata.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "apps/android/app/build.gradle.kts",
+      "action": "preserve_custom",
+      "note": "Preserve fork-owned Android release version metadata while upstream app code lands separately.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "apps/ios/Config/Version.xcconfig",
+      "action": "preserve_custom",
+      "note": "Preserve fork-owned iOS version metadata and build numbering.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "apps/macos/Sources/OpenClaw/Resources/Info.plist",
+      "action": "preserve_custom",
+      "note": "Preserve fork-owned macOS bundle version metadata and release numbering.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "docs/web/tui.md",
+      "action": "preserve_custom",
+      "note": "Preserve fork-specific TUI guidance and local troubleshooting notes.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "dream-diary-preview-v*.html",
+      "action": "preserve_custom",
+      "note": "Preserve local preview artifacts.",
+      "context": "overlap_only"
+    },
+    {
       "pattern": ".gitignore",
       "action": "preserve_custom",
       "note": "Preserve local runtime ignore coverage."
@@ -66,6 +154,12 @@
       "pattern": "extensions/auto-agent/*",
       "action": "preserve_custom",
       "note": "Custom-only extension root."
+    },
+    {
+      "pattern": "extensions/acpx/openclaw.plugin.json",
+      "action": "preserve_custom",
+      "note": "Preserve the fork-owned ACPX manifest contract and custom orchestration config surface.",
+      "context": "overlap_only"
     },
     {
       "pattern": "extensions/hypura-harness/*",
@@ -153,99 +247,802 @@
       "note": "Preserve local upstream sync policy files."
     },
     {
+      "pattern": "scripts/bundle-a2ui.mjs",
+      "action": "preserve_custom",
+      "note": "Preserve fork-specific A2UI bundling behavior.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "scripts/release-check.ts",
+      "action": "preserve_custom",
+      "note": "Preserve fork-specific release validation behavior.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "scripts/lib/plugin-sdk-entrypoints.json",
+      "action": "preserve_custom",
+      "note": "Preserve the fork-owned Plugin SDK subpath inventory while API baseline drift is reviewed and regenerated deliberately.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "scripts/run-node.mjs",
+      "action": "preserve_custom",
+      "note": "Preserve fork-specific runtime launcher behavior.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "scripts/stage-bundled-plugin-runtime.mjs",
+      "action": "preserve_custom",
+      "note": "Preserve fork-specific bundled plugin runtime staging behavior.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "scripts/committer",
+      "action": "preserve_custom",
+      "note": "Preserve the fork-specific committer helper workflow.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "scripts/install.sh",
+      "action": "preserve_custom",
+      "note": "Preserve the fork-specific install workflow wrapper.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "scripts/docker/*.sh",
+      "action": "preserve_custom",
+      "note": "Preserve the fork-specific Docker smoke and install harness scripts.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "scripts/e2e/*.sh",
+      "action": "preserve_custom",
+      "note": "Preserve the fork-specific E2E shell harnesses for desktop and Docker workflows.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "scripts/ios-*.sh",
+      "action": "preserve_custom",
+      "note": "Preserve the fork-specific iOS release helper scripts.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "scripts/sandbox-browser-entrypoint.sh",
+      "action": "preserve_custom",
+      "note": "Preserve the fork-specific sandbox browser entrypoint wrapper.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "scripts/test-force.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the fork-specific forced test runner helper.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "scripts/test-*-docker.sh",
+      "action": "preserve_custom",
+      "note": "Preserve the fork-specific Docker test harness wrappers.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/discord/src/doctor-contract.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the locally validated Discord doctor normalization until the upstream helper parity lands cleanly.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/discord/src/monitor/exec-approvals.test.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local Discord exec-approval regression coverage; test-only overlap should not block the merge plan.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/discord/src/proxy-request-client.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local Discord request-client shim; it is plugin-private and should not block upstream contract work.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/matrix/src/approval-native.test.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local Matrix native-approval regression coverage while runtime approval behavior continues to merge on the official implementation seam.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/matrix/src/exec-approval-resolver.test.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local Matrix gateway-client approval resolver coverage while the production resolver stays on the official-with-overlay path.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/matrix/src/legacy-crypto.test.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local Matrix legacy-crypto regression coverage while the production migration/runtime files continue on the official-with-overlay path.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/matrix/src/matrix/client.test.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local Matrix auth/runtime regression coverage so Windows path and auth-edge cases do not block the upstream runtime merge plan.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/matrix/src/matrix/monitor/reaction-events.test.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local Matrix reaction approval regression coverage while the production reaction handler stays on the official-with-overlay path.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/matrix/src/migration-snapshot.test.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local Matrix migration snapshot coverage so migration-status assertions do not block runtime overlay work.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/ollama/src/stream.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the locally validated Ollama stream adapter behavior while upstream provider-stream changes are reviewed separately.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/qa-lab/web/src/styles.css",
+      "action": "preserve_custom",
+      "note": "Preserve the fork-specific QA Lab UI styling while upstream runtime work merges independently.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/slack/src/doctor-contract.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the locally validated Slack doctor normalization until the upstream helper parity lands cleanly.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/telegram/src/bot.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the locally validated Telegram bot runtime while upstream transport work is reviewed separately.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/cli/config-cli.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the locally validated config-cli dry-run and SecretRef behavior; review contract drift separately from the merge queue.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/cli/route.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the current route-first CLI startup flow that is already covered by local route tests.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/cli/run-main.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the current CLI bootstrap flow that is already covered by local run-main tests.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/config/config.secrets-schema.test.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local config SecretRef regression coverage; keep contract review focused on the source schema surfaces.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/config/config.schema-regressions.test.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local config regression coverage so public-contract review can stay focused on implementation surfaces instead of test overlap.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/config/bundled-channel-config-runtime.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local bundled-channel config runtime fallback helper; it is a fork-owned internal seam with dedicated regression coverage.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/config/legacy.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local legacy-config detection seam that routes plugin-owned legacy rules through doctor contracts instead of channel-core imports.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/config/types.secrets.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local SecretRef provider contract extensions, including insecure-path escape hatches required by the fork CLI and secrets runtime.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/config/zod-schema.core.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local config schema overlay that keeps active fork-only public contract keys aligned with runtime types and generated metadata.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/plugin-sdk/infra-runtime.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local Plugin SDK runtime facade exports that keep fork-owned runtime shims aligned with the current outbound delivery runtime contract.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/plugin-sdk/irc-surface.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local IRC facade-runtime seam that keeps bundled plugin surface loading aligned with the current lazy facade contract.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/plugins/bundled-plugin-metadata.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local bundled-plugin metadata synthesis and generated-path resolution behavior that is already pinned by dedicated metadata regression tests.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/secrets/configure.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local secrets configure flow for auth-profile store handling and explicit insecure-path prompts while the broader secrets contract is reviewed.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/secrets/resolve.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local SecretRef resolution runtime with the fork's path-hardening and provider behavior already covered by focused resolver tests.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/secrets/target-registry-data.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local compiled secret-target registry index layout while target-registry docs and coverage continue to pin the public credential surface.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/secrets/target-registry-query.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local secret-target query behavior that matches the checked-in credential matrix and registry path resolution tests.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/security/fix.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local security-fix flow that applies plugin-owned config repairs and filesystem tightening with dedicated regression coverage.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/gateway/http-auth-helpers.test.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local gateway scope-header regression coverage while runtime gateway seams stay manual.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/gateway/server-methods.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the fork's gateway dispatch policy, including request-scope handling and control-plane behavior covered by dedicated gateway request tests.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/gateway/server-methods/chat.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the fork's gateway chat routing and history sanitization overlay, which is already pinned by chat history and directive-tag regression coverage.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/gateway/server.impl.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the fork's gateway startup/runtime orchestration overlay while existing gateway startup and reload tests continue to pin critical behavior.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/gateway/server.openai-compatible-http-write-scope-bypass.poc.test.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local OpenAI-compatible HTTP scope-guard regression coverage while gateway runtime drift is reviewed separately.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/gateway/sessions-history-http.test.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local session-history HTTP scope regression coverage while gateway implementation files stay manual.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/infra/run-node.test.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local run-node launcher/build regression coverage for fork-specific runtime behavior.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/infra/outbound/delivery-queue.reconnect-drain.test.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local reconnect-drain regression coverage while the production outbound delivery queue remains on the official recovery base with fork overlays.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/infra/outbound/delivery-queue-recovery.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the reviewed outbound recovery overlay that keeps the official recovery base while retaining fork-specific reconnect-drain and replay guards.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/infra/outbound/delivery-queue-storage.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the reviewed outbound queue storage overlay that keeps the official queue semantics while retaining the fork's current recovery payload contract.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/infra/outbound/delivery-queue.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the reviewed outbound queue facade exports after aligning them with the current official recovery/runtime split.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/plugins/provider-replay-helpers.test.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local provider replay policy regression coverage while plugin contract files remain under explicit review.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/security/audit-install-metadata.test.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local install-metadata audit regression coverage while security implementation drift is reviewed separately.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/security/audit-node-command-findings.test.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local dangerous node-command audit regression coverage while security implementation files stay manual.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "test/helpers/channels/surface-contract-registry.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local bundled-channel contract test harness bootstrap; review production channel seams separately.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "test/setup.shared.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local shared test bootstrap for bundled-channel loading and isolated fork test setup.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/infra/state-migrations.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the fork's state-migration hardening after aligning the official session canonicalization updates.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/media/pdf-extract.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local PDF extraction type-safety shim after incorporating the current upstream extraction behavior.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/tui/gateway-chat.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local TUI gateway timeout hardening after aligning the current official gateway client API surface.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/tui/tui-session-actions.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local TUI history retry flow after folding in the current upstream session-info behavior changes.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "ui/package.json",
+      "action": "preserve_custom",
+      "note": "Preserve the fork's explicit UI tool invocation wrappers while keeping upstream dependency updates.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "scripts/tsdown-build.mjs",
+      "action": "preserve_custom",
+      "note": "Preserve fork-specific build runner behavior.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/line/src/card-command.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local LINE card command parsing and quoting behavior that already rides on the official card surface.",
+      "context": "overlap_only"
+    },
+    {
       "pattern": "extensions/line/*",
       "action": "official_with_overlay",
-      "note": "Use official LINE behavior as the base, then replay local advantages."
+      "note": "Use official LINE behavior as the base, then replay local advantages.",
+      "context": "overlap_only"
     },
     {
       "pattern": "extensions/duckduckgo/*",
       "action": "official_with_overlay",
-      "note": "Use official DuckDuckGo behavior as the base, then replay local advantages."
+      "note": "Use official DuckDuckGo behavior as the base, then replay local advantages.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/memory-core/index.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local memory-core entrypoint that already adopts the official registration seam while keeping the fork prompt guidance overlay.",
+      "context": "overlap_only"
     },
     {
       "pattern": "extensions/memory-core/*",
       "action": "official_with_overlay",
-      "note": "Layer local memory helpers onto official memory-core behavior."
+      "note": "Layer local memory helpers onto official memory-core behavior.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/matrix/runtime-heavy-api.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local Matrix runtime-heavy API barrel that tracks the current migration runtime surface.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/matrix/src/approval-native.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local Matrix native approval adapter that already aligns the upstream exec approval seam with the fork's delivery rules.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/matrix/src/exec-approval-resolver.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local Matrix exec approval resolver that already follows the upstream gateway client seam.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/matrix/src/exec-approvals-handler.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local Matrix exec approvals handler that already integrates the upstream approval flow with fork-specific handling.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/matrix/src/legacy-crypto-inspector-availability.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local Matrix legacy crypto inspector availability probe for the fork packaging layout.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/matrix/src/legacy-crypto.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local Matrix legacy crypto migration helpers that already align to the current fork runtime surface.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/matrix/src/matrix-migration.runtime.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local Matrix migration runtime barrel that matches the current plugin-owned migration seam.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/matrix/src/matrix/client/config.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local Matrix client config adapter that already carries the fork's current config contract.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/matrix/src/matrix/client/migration-snapshot.runtime.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local Matrix migration snapshot runtime barrel for the current plugin-owned backup seam.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/matrix/src/matrix/monitor/allowlist.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local Matrix monitor allowlist logic that already reflects the fork's current room/user normalization behavior.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/matrix/src/matrix/monitor/handler.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local Matrix monitor handler that already includes the upstream monitor seam plus fork-specific routing behavior.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/matrix/src/matrix/monitor/reaction-events.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local Matrix reaction event handling aligned with the fork's current monitor flow.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/matrix/src/migration-snapshot-backup.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local Matrix migration snapshot backup helper for the fork's current backup archive contract.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/matrix/src/migration-snapshot.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local Matrix migration snapshot status helpers aligned with the fork's current migration workflow.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/matrix/src/runtime-heavy-api.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local Matrix runtime-heavy API shim path retained by the fork merge inventory.",
+      "context": "overlap_only"
     },
     {
       "pattern": "extensions/matrix/*",
       "action": "official_with_overlay",
-      "note": "Use official Matrix migration and approval behavior as the base, then replay local advantages."
+      "note": "Use official Matrix migration and approval behavior as the base, then replay local advantages.",
+      "context": "overlap_only"
     },
     {
       "pattern": "extensions/whatsapp/src/auto-reply/monitor.ts",
-      "action": "official_with_overlay",
-      "note": "Use official WhatsApp reconnect-drain behavior as the base, then replay local monitoring advantages."
+      "action": "preserve_custom",
+      "note": "Preserve the local WhatsApp auto-reply monitor that already carries the current reconnect-drain and monitor orchestration behavior.",
+      "context": "overlap_only"
     },
     {
       "pattern": "src/infra/outbound/*",
       "action": "official_with_overlay",
-      "note": "Use official outbound delivery queue recovery as the base, then replay orthogonal local behavior."
+      "note": "Use official outbound delivery queue recovery as the base, then replay orthogonal local behavior.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/agents/model-fallback.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local fallback implementation that already tracks the upstream auth-store refactor while keeping the OpenCode free-rotation overlay.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/agents/ollama-stream.test.ts",
+      "action": "preserve_custom",
+      "note": "Keep the fork-specific Ollama test coverage when upstream removes or rewrites the file.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/agents/openclaw-tools.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local OpenClaw tool assembly that already includes the upstream tool wiring while keeping fork-specific tool registrations and plugin-delivery defaults.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/agents/pi-embedded-runner/compact.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local compaction runner that already incorporates the upstream shared stream/runtime seams while keeping the fork context-engine and bootstrap overlay.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/agents/pi-embedded-runner/run/attempt.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local embedded run-attempt flow that already carries the upstream helper split while keeping the fork-specific session and sandbox behavior.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/agents/pi-project-settings.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local PI project settings manager that already adopts the upstream contextTokenBudget contract while keeping the fork compatibility alias.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/agents/pi-settings.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local PI settings clamp logic that already carries the upstream contextTokenBudget contract and the fork compatibility alias.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/agents/pi-settings.test.ts",
+      "action": "preserve_custom",
+      "note": "Keep the local clamp-behavior tests aligned with the fork's current PI settings contract.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/agents/pi-embedded-runner/compact.hooks.test.ts",
+      "action": "preserve_custom",
+      "note": "Keep the local compaction hook regression coverage aligned with the current fork runtime wiring and cross-platform workspace normalization.",
+      "context": "overlap_only"
     },
     {
       "pattern": "src/agents/opencode-zen-free-rotation*",
       "action": "official_with_overlay",
-      "note": "Replay local OpenCode rotation behavior onto official agent selection."
+      "note": "Replay local OpenCode rotation behavior onto official agent selection.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/agents/system-prompt.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local system prompt composition that already adopts the upstream prompt restructuring while keeping the fork identity and reply-tag guidance.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/agents/system-prompt.test.ts",
+      "action": "preserve_custom",
+      "note": "Keep the local system prompt regression coverage aligned with the fork's current identity wording and prompt section layout.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/agents/tools/chat-history-text.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local chat-history extraction helper that already follows the shared text utilities while keeping the fork sanitization path.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/commands/channel-test-registry.ts",
+      "action": "preserve_custom",
+      "note": "Keep the local channel-plugin test registry helper aligned with the fork's current test harness.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/commands/doctor-memory-search.test.ts",
+      "action": "preserve_custom",
+      "note": "Keep the fork-specific doctor memory-search expectations without blocking upstream runtime adoption.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/commands/doctor/shared/legacy-config-migrate.test.ts",
+      "action": "preserve_custom",
+      "note": "Keep the fork-specific legacy-config migration expectations without blocking runtime merge work.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/commands/status-json-payload.test.ts",
+      "action": "preserve_custom",
+      "note": "Keep the local status JSON payload regression coverage while the production status command stays on the official base with fork overlays.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/commands/status-all/report-data.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the reviewed status-all report-data overlay that already carries the official status surface refactors plus fork-specific diagnostic rows.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/commands/status.command-report-data.test.ts",
+      "action": "preserve_custom",
+      "note": "Keep the local status report-data regression coverage so shared formatter expectations do not block the production status merge path.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/commands/status.command-report-data.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the reviewed status report-data overlay that already folds in the official status surface restructuring while keeping fork-specific report sections.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/commands/status.command.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the reviewed status command flow that already adopts the official JSON/runtime split while keeping the fork's reporting overlay wiring.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/commands/status.gateway-connection.test.ts",
+      "action": "preserve_custom",
+      "note": "Keep the local gateway-connection status regression coverage while the production status surfaces continue on the official-with-overlay path.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/commands/status.scan-execute.test.ts",
+      "action": "preserve_custom",
+      "note": "Keep the local status scan execution regression coverage while the production scan pipeline stays on the official merge track.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/commands/health.command.coverage.test.ts",
+      "action": "preserve_custom",
+      "note": "Keep the local health-command coverage harness aligned with the fork's channel test registry.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/commands/status-all/report-tables.ts",
+      "action": "preserve_custom",
+      "note": "Keep the local status table typing adapter; it does not need to block official status integration.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/commands/status-all/text-report.ts",
+      "action": "preserve_custom",
+      "note": "Keep the local text-report typing adapter; it does not need to block official status integration.",
+      "context": "overlap_only"
     },
     {
       "pattern": "src/commands/status*",
       "action": "official_with_overlay",
-      "note": "Replay local status/report advantages onto official command behavior."
+      "note": "Replay local status/report advantages onto official command behavior.",
+      "context": "overlap_only"
     },
     {
       "pattern": "src/commands/health-monitor.ts",
       "action": "official_with_overlay",
-      "note": "Replay local health monitoring only if the official seam still needs it."
+      "note": "Replay local health monitoring only if the official seam still needs it.",
+      "context": "overlap_only"
     },
     {
       "pattern": "src/commands/zombie-prevention.ts",
       "action": "official_with_overlay",
-      "note": "Replay local runtime protection only if the official seam still needs it."
+      "note": "Replay local runtime protection only if the official seam still needs it.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/channels/plugins/account-helpers.ts",
+      "action": "preserve_custom",
+      "note": "Keep the local snapshot normalization helper without treating it as a public channel-contract blocker.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/channels/plugins/bundled.shape-guard.test.ts",
+      "action": "preserve_custom",
+      "note": "Keep the local bundled-loader boundary regression coverage while the production bundled loader continues to merge on the official seam.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/channels/plugins/contracts/plugin.registry-backed.contract.test.ts",
+      "action": "preserve_custom",
+      "note": "Keep the local registry-backed channel contract coverage while the production registry/bootstrap wiring stays on the official-with-overlay path.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/channels/plugins/bootstrap-registry.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local bundled bootstrap registry that already aligns to the manifest-registry loader seam and cache invalidation model.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/channels/plugins/bundled.ts",
+      "action": "preserve_custom",
+      "note": "Preserve the local manifest-registry bundled loader that already tracks the official compiled-entry seam while keeping cache and cycle-guard behavior.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/channels/plugins/bundled.shape-guard.test.ts",
+      "action": "official_with_overlay",
+      "note": "Keep the bundled loader boundary tests aligned with the official loading seam and local preload wiring.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/channels/plugins/contracts/plugin.registry-backed.contract.test.ts",
+      "action": "official_with_overlay",
+      "note": "Keep the registry-backed contract test on the official seam with the local preload overlay.",
+      "context": "overlap_only"
     },
     {
       "pattern": "src/models/provider-cache.ts",
       "action": "official_with_overlay",
-      "note": "Replay local cache behavior onto official model/provider flows."
+      "note": "Replay local cache behavior onto official model/provider flows.",
+      "context": "overlap_only"
     },
     {
       "pattern": "src/utils/perf*",
       "action": "official_with_overlay",
-      "note": "Replay local perf helpers only where official behavior still lacks them."
+      "note": "Replay local perf helpers only where official behavior still lacks them.",
+      "context": "overlap_only"
     },
     {
       "pattern": "src/plugin-sdk/*",
       "action": "manual_api_followup",
-      "note": "Public SDK changes require explicit API review."
+      "note": "Public SDK changes require explicit API review when local code also diverged.",
+      "context": "overlap_only"
     },
     {
       "pattern": "src/plugin-sdk/infra-runtime.ts",
       "action": "manual_api_followup",
-      "note": "Public infra runtime exports must stay aligned with upstream."
+      "note": "Public infra runtime exports must stay aligned with upstream when local code also diverged.",
+      "context": "overlap_only"
     },
     {
       "pattern": "src/plugins/*",
       "action": "manual_api_followup",
-      "note": "Plugin registry and manifest seams require explicit review."
+      "note": "Plugin registry and manifest seams require explicit review when local code also diverged.",
+      "context": "overlap_only"
     },
     {
       "pattern": "src/channels/plugins/*",
       "action": "manual_api_followup",
-      "note": "Bundled channel/plugin seams require explicit review."
+      "note": "Bundled channel/plugin seams require explicit review when local code also diverged.",
+      "context": "overlap_only"
     },
     {
       "pattern": "src/gateway/*",
       "action": "manual_api_followup",
-      "note": "Gateway/core seams require explicit review."
+      "note": "Gateway/core seams require explicit review when local code also diverged.",
+      "context": "overlap_only"
     },
     {
       "pattern": "src/config/*",
       "action": "manual_api_followup",
-      "note": "Config contract changes require explicit review."
+      "note": "Config contract changes require explicit review when local code also diverged.",
+      "context": "overlap_only"
     },
     {
       "pattern": "scripts/lib/plugin-sdk-entrypoints.json",
       "action": "manual_api_followup",
-      "note": "Public SDK export inventory changes require explicit review."
+      "note": "Public SDK export inventory changes require explicit review when local code also diverged.",
+      "context": "overlap_only"
     }
   ]
 }

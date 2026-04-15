@@ -668,7 +668,7 @@ describe("buildAgentSystemPrompt", () => {
     });
 
     expect(prompt).toContain(
-      "If SOUL.md is present, embody its persona and tone. Avoid stiff, generic replies; follow its guidance unless higher-priority instructions override it.",
+      "Files in the `identity/` directory (e.g., identity/SOUL.md) define your core identity, will, and behavioral constraints. Embody that persona and tone faithfully; avoid stiff, generic replies unless higher-priority instructions override it.",
     );
   });
 

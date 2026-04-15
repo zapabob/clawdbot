@@ -17,12 +17,17 @@ VALID_ACTIONS = frozenset(
         "drop_generated",
     },
 )
-DEFAULT_PINNED_UPSTREAM_SHA = "1801702ed9592ceeb1d73d1775a210d8e427cbf4"
+VALID_RULE_CONTEXTS = frozenset({"always", "overlap_only", "upstream_only", "custom_only"})
+DEFAULT_PINNED_UPSTREAM_SHA = "6f1d321aababd96e7b67e4b8dc7fdd5d9c1a554b"
 DEFAULT_BLOCKER_ACTIONS = frozenset({"official_with_overlay", "manual_api_followup"})
 DEFAULT_DIRTY_TREE_IGNORE = (
     ".cursor/hooks/state/*",
+    ".openclaw-desktop/*",
     ".openclaw-desktop/flows/*",
+    ".openclaw-desktop/python/*",
+    ".openclaw-desktop/python/**/*",
     ".openclaw-desktop/subagents/*",
+    ".openclaw-desktop/skills/*",
     ".openclaw-desktop/telegram/*",
     ".openclaw-desktop/agents/*/agent/*.json",
     "logs/*",
@@ -35,6 +40,7 @@ class StrategyRule:
     pattern: str
     action: str
     note: str = ""
+    context: str = "always"
 
 
 @dataclass(frozen=True)
@@ -105,11 +111,15 @@ def load_strategy(path: Path) -> Strategy:
         action = item["action"]
         if action not in VALID_ACTIONS:
             raise ValueError(f"Unknown action: {action}")
+        context = item.get("context", "always")
+        if context not in VALID_RULE_CONTEXTS:
+            raise ValueError(f"Unknown rule context: {context}")
         rules.append(
             StrategyRule(
                 pattern=normalize_repo_path(item["pattern"]),
                 action=action,
                 note=item.get("note", ""),
+                context=context,
             ),
         )
 
@@ -122,10 +132,37 @@ def load_strategy(path: Path) -> Strategy:
     )
 
 
-def match_rule(path: str, strategy: Strategy) -> StrategyRule | None:
+def rule_applies_for_context(
+    rule: StrategyRule,
+    *,
+    touched_upstream: bool,
+    touched_custom: bool,
+) -> bool:
+    if rule.context == "always":
+        return True
+    if rule.context == "overlap_only":
+        return touched_upstream and touched_custom
+    if rule.context == "upstream_only":
+        return touched_upstream and not touched_custom
+    if rule.context == "custom_only":
+        return touched_custom and not touched_upstream
+    raise ValueError(f"Unknown rule context: {rule.context}")
+
+
+def match_rule(
+    path: str,
+    strategy: Strategy,
+    *,
+    touched_upstream: bool = False,
+    touched_custom: bool = False,
+) -> StrategyRule | None:
     normalized = normalize_repo_path(path)
     for rule in strategy.rules:
-        if fnmatch.fnmatch(normalized, rule.pattern):
+        if fnmatch.fnmatch(normalized, rule.pattern) and rule_applies_for_context(
+            rule,
+            touched_upstream=touched_upstream,
+            touched_custom=touched_custom,
+        ):
             return rule
     return None
 
@@ -150,7 +187,12 @@ def classify_path_with_context(
     touched_custom: bool = False,
 ) -> Classification:
     normalized = normalize_repo_path(path)
-    rule = match_rule(normalized, strategy)
+    rule = match_rule(
+        normalized,
+        strategy,
+        touched_upstream=touched_upstream,
+        touched_custom=touched_custom,
+    )
     if rule is not None:
         action = rule.action
         note = rule.note

@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import { getApiProvider, unregisterApiProviders } from "@mariozechner/pi-ai";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -167,6 +168,7 @@ describe("compactEmbeddedPiSessionDirect hooks", () => {
   });
 
   it("bootstraps runtime plugins with the resolved workspace", async () => {
+    const expectedWorkspaceDir = path.resolve("/tmp/workspace");
     // This assertion only cares about bootstrap wiring, so stop before the
     // rest of the compaction pipeline can pull in unrelated runtime surfaces.
     resolveModelMock.mockReturnValue({
@@ -182,13 +184,16 @@ describe("compactEmbeddedPiSessionDirect hooks", () => {
       workspaceDir: "/tmp/workspace",
     });
 
-    expect(ensureRuntimePluginsLoaded).toHaveBeenCalledWith({
-      config: undefined,
-      workspaceDir: "/tmp/workspace",
-    });
+    expect(ensureRuntimePluginsLoaded).toHaveBeenCalledWith(
+      expect.objectContaining({
+        config: undefined,
+        workspaceDir: expectedWorkspaceDir,
+      }),
+    );
   });
 
   it("forwards gateway subagent binding opt-in during compaction bootstrap", async () => {
+    const expectedWorkspaceDir = path.resolve("/tmp/workspace");
     // Coding-tool forwarding is covered elsewhere; this compaction test only
     // owns the runtime bootstrap wiring.
     resolveModelMock.mockReturnValue({
@@ -207,12 +212,13 @@ describe("compactEmbeddedPiSessionDirect hooks", () => {
 
     expect(ensureRuntimePluginsLoaded).toHaveBeenCalledWith({
       config: undefined,
-      workspaceDir: "/tmp/workspace",
+      workspaceDir: expectedWorkspaceDir,
       allowGatewaySubagentBinding: true,
     });
   });
 
   it("routes compaction through shared stream resolution and extra params", async () => {
+    const expectedWorkspaceDir = path.resolve("/tmp/workspace");
     const resolvedStreamFn = vi.fn();
     resolveEmbeddedAgentStreamFnMock.mockReturnValue(resolvedStreamFn);
     applyExtraParamsToAgentMock.mockReturnValue({
@@ -243,9 +249,9 @@ describe("compactEmbeddedPiSessionDirect hooks", () => {
       "openai",
       "gpt-5.4",
       undefined,
-      undefined,
+      "off",
       "main",
-      "/tmp/workspace",
+      expectedWorkspaceDir,
       expect.objectContaining({
         provider: "openai",
         id: "fake",
