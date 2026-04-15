@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { extensionForMime } from "openclaw/plugin-sdk/msteams";
+import { extensionForMime } from "openclaw/plugin-sdk/media-runtime";
 import type {
   GeneratedMusicAsset,
   MusicGenerationProvider,
