@@ -91,6 +91,7 @@ auto_osc: VRChatAutoOSC = create_auto_osc(
     osc_controller=osc_ctrl,
     voicevox_sequencer=voicevox_seq,
     interval=config.get("auto_osc_interval", 300),
+    system_interval=config.get("auto_osc_system_interval", 60),
 )
 
 
@@ -203,7 +204,7 @@ async def osc(req: OscRequest) -> dict:
     if not is_vrchat_active():
         logger.info("OSC suppressed: VRChat manifold not active.")
         return {"success": False, "error": "VRChat not active"}
-    
+
     action = req.action
     payload = req.payload
     try:
@@ -232,8 +233,21 @@ async def osc(req: OscRequest) -> dict:
             "turn_right",
         ):
             osc_ctrl.send_action(action, payload.get("value", 1.0))
+        elif action == "system_info":
+            # EVOLVED: Send GPU/RAM info to chatbox
+            info = osc_ctrl.get_system_info()
+            msg = osc_ctrl.format_system_message(info)
+            osc_ctrl.send_chatbox(msg, immediate=True, sfx=False)
+            return {"success": True, "system_info": info, "chatbox": msg}
+        elif action == "system_status":
+            # Return system info without sending to chatbox
+            info = osc_ctrl.get_system_info()
+            msg = osc_ctrl.format_system_message(info)
+            return {"success": True, "system_info": info, "formatted": msg}
         else:
             raise HTTPException(status_code=400, detail=f"Unknown OSC action: {action}")
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("OSC error: %s", e)
         return {"success": False, "error": str(e)}

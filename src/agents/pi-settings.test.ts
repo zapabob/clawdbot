@@ -121,7 +121,24 @@ describe("applyPiCompactionSettingsFromConfig", () => {
     expect(settingsManager.applyOverrides).not.toHaveBeenCalled();
   });
 
-  it("clamps Pi compaction reserve targets when contextWindowTokens is small", () => {
+  it("clamps Pi compaction reserve targets when contextTokenBudget is small", () => {
+    const settingsManager = {
+      getCompactionReserveTokens: () => 16_384,
+      getCompactionKeepRecentTokens: () => 20_000,
+      applyOverrides: vi.fn(),
+    };
+
+    const result = applyPiCompactionSettingsFromConfig({
+      settingsManager,
+      cfg: {},
+      contextTokenBudget: 16_384,
+    });
+
+    expect(result.compaction.reserveTokens).toBe(Math.floor(16_384 * 0.46));
+    expect(settingsManager.applyOverrides).toHaveBeenCalled();
+  });
+
+  it("accepts the legacy contextWindowTokens alias for compatibility", () => {
     const settingsManager = {
       getCompactionReserveTokens: () => 16_384,
       getCompactionKeepRecentTokens: () => 20_000,

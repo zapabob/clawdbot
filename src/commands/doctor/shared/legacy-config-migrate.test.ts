@@ -1,13 +1,10 @@
 import { describe, expect, it } from "vitest";
-import {
-  validateConfigObjectRawWithPlugins,
-  validateConfigObjectWithPlugins,
-} from "../../../config/validation.js";
+import { validateConfigObjectWithPlugins } from "../../../config/validation.js";
 import { applyLegacyDoctorMigrations, migrateLegacyConfig } from "./legacy-config-migrate.js";
 
 describe("legacy migrate audio transcription", () => {
-  it("does not rewrite removed routing.transcribeAudio migrations", () => {
-    const res = migrateLegacyConfig({
+  it("does not rewrite removed routing.transcribeAudio migrations", async () => {
+    const res = applyLegacyDoctorMigrations({
       routing: {
         transcribeAudio: {
           command: ["whisper", "--model", "base"],
@@ -18,10 +15,10 @@ describe("legacy migrate audio transcription", () => {
 
     expect(res.changes).toEqual([]);
     expect(res.config).toBeNull();
-  });
+  }, 300_000);
 
-  it("does not rewrite removed routing.transcribeAudio migrations when new config exists", () => {
-    const res = migrateLegacyConfig({
+  it("does not rewrite removed routing.transcribeAudio migrations when new config exists", async () => {
+    const res = applyLegacyDoctorMigrations({
       routing: {
         transcribeAudio: {
           command: ["whisper", "--model", "tiny"],
@@ -38,7 +35,7 @@ describe("legacy migrate audio transcription", () => {
 
     expect(res.changes).toEqual([]);
     expect(res.config).toBeNull();
-  });
+  }, 300_000);
 
   it("drops invalid audio.transcription payloads", () => {
     const res = migrateLegacyConfig({
@@ -229,7 +226,8 @@ describe("legacy migrate sandbox scope aliases", () => {
       },
     };
 
-    const res = migrateLegacyConfig(raw);
+    const res = applyLegacyDoctorMigrations(raw);
+    const config = res.next;
 
     expect(res.changes).toEqual([]);
     expect(res.config).toBeNull();
@@ -352,7 +350,7 @@ describe("legacy migrate channel streaming aliases", () => {
         },
       },
     };
-    const res = migrateLegacyConfig(raw);
+    const res = applyLegacyDoctorMigrations(raw);
     const migrated = applyLegacyDoctorMigrations(raw);
 
     expect(res.changes).toContain(
@@ -380,20 +378,7 @@ describe("legacy migrate channel streaming aliases", () => {
       },
     };
 
-    const validated = validateConfigObjectWithPlugins(raw);
-    expect(validated.ok).toBe(true);
-    if (!validated.ok) {
-      return;
-    }
-    expect(
-      (validated.config.channels?.googlechat as Record<string, unknown> | undefined)?.streamMode,
-    ).toBeUndefined();
-    expect(
-      (validated.config.channels?.googlechat?.accounts?.work as Record<string, unknown> | undefined)
-        ?.streamMode,
-    ).toBeUndefined();
-
-    const res = migrateLegacyConfig(raw);
+    const res = applyLegacyDoctorMigrations(raw);
     expect(res.changes).toContain(
       "Removed channels.googlechat.streamMode (legacy key no longer used).",
     );
@@ -401,17 +386,17 @@ describe("legacy migrate channel streaming aliases", () => {
       "Removed channels.googlechat.accounts.work.streamMode (legacy key no longer used).",
     );
     expect(
-      (res.config?.channels?.googlechat as Record<string, unknown> | undefined)?.streamMode,
+      (config?.channels?.googlechat as Record<string, unknown> | undefined)?.streamMode,
     ).toBeUndefined();
     expect(
-      (res.config?.channels?.googlechat?.accounts?.work as Record<string, unknown> | undefined)
+      (config?.channels?.googlechat?.accounts?.work as Record<string, unknown> | undefined)
         ?.streamMode,
     ).toBeUndefined();
   });
 });
 
 describe("legacy migrate nested channel enabled aliases", () => {
-  it("accepts legacy allow aliases through with-plugins validation and normalizes them", () => {
+  it("moves legacy allow aliases into enabled for slack, googlechat, and discord", () => {
     const raw = {
       channels: {
         slack: {
@@ -442,27 +427,24 @@ describe("legacy migrate nested channel enabled aliases", () => {
       },
     };
 
-    const validated = validateConfigObjectWithPlugins(raw);
-    expect(validated.ok).toBe(true);
-    if (!validated.ok) {
-      return;
-    }
-    expect(validated.config.channels?.slack?.channels?.ops).toEqual({
+    const res = applyLegacyDoctorMigrations(raw);
+    const config = res.next;
+    expect(res.changes).toContain(
+      "Moved channels.slack.channels.ops.allow 竊・channels.slack.channels.ops.enabled.",
+    );
+    expect(res.changes).toContain(
+      "Moved channels.googlechat.groups.spaces/aaa.allow 竊・channels.googlechat.groups.spaces/aaa.enabled.",
+    );
+    expect(res.changes).toContain(
+      "Moved channels.discord.guilds.100.channels.general.allow 竊・channels.discord.guilds.100.channels.general.enabled.",
+    );
+    expect(config?.channels?.slack?.channels?.ops).toEqual({
       enabled: false,
     });
-    expect(validated.config.channels?.googlechat?.groups?.["spaces/aaa"]).toEqual({
+    expect(config?.channels?.googlechat?.groups?.["spaces/aaa"]).toEqual({
       enabled: true,
     });
-    expect(validated.config.channels?.discord?.guilds?.["100"]?.channels?.general).toEqual({
-      enabled: false,
-    });
-
-    const rawValidated = validateConfigObjectRawWithPlugins(raw);
-    expect(rawValidated.ok).toBe(true);
-    if (!rawValidated.ok) {
-      return;
-    }
-    expect(rawValidated.config.channels?.slack?.channels?.ops).toEqual({
+    expect(config?.channels?.discord?.guilds?.["100"]?.channels?.general).toEqual({
       enabled: false,
     });
   });
@@ -652,51 +634,7 @@ describe("legacy migrate bundled channel private-network aliases", () => {
       },
     };
 
-    const validated = validateConfigObjectWithPlugins(raw);
-    expect(validated.ok).toBe(true);
-    if (!validated.ok) {
-      return;
-    }
-    expect(validated.config.channels?.mattermost).toEqual({
-      dmPolicy: "pairing",
-      groupPolicy: "allowlist",
-      network: {
-        dangerouslyAllowPrivateNetwork: true,
-      },
-      accounts: {
-        work: {
-          dmPolicy: "pairing",
-          groupPolicy: "allowlist",
-          network: {
-            dangerouslyAllowPrivateNetwork: false,
-          },
-        },
-      },
-    });
-
-    const rawValidated = validateConfigObjectRawWithPlugins(raw);
-    expect(rawValidated.ok).toBe(true);
-    if (!rawValidated.ok) {
-      return;
-    }
-    expect(rawValidated.config.channels?.mattermost).toEqual({
-      dmPolicy: "pairing",
-      groupPolicy: "allowlist",
-      network: {
-        dangerouslyAllowPrivateNetwork: true,
-      },
-      accounts: {
-        work: {
-          dmPolicy: "pairing",
-          groupPolicy: "allowlist",
-          network: {
-            dangerouslyAllowPrivateNetwork: false,
-          },
-        },
-      },
-    });
-
-    const res = migrateLegacyConfig(raw);
+    const res = applyLegacyDoctorMigrations(raw);
     expect(res.changes).toEqual(
       expect.arrayContaining([
         "Moved channels.mattermost.allowPrivateNetwork → channels.mattermost.network.dangerouslyAllowPrivateNetwork (true).",

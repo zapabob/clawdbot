@@ -71,7 +71,9 @@ def parse_status_paths(status_output: str) -> list[str]:
 
 
 def list_diff_paths(ref_a: str, ref_b: str) -> list[str]:
-    output = run_git(["diff", "--name-only", ref_a, ref_b])
+    # Use tree-level diffing so partial clones can inventory changed paths
+    # without lazily fetching missing blobs from the promisor remote.
+    output = run_git(["diff-tree", "-r", "--no-commit-id", "--name-only", ref_a, ref_b])
     return dedupe_paths(output.splitlines())
 
 

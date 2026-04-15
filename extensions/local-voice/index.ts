@@ -4,6 +4,7 @@ import { captureAndAnalyze } from "./src/camera.js";
 import { getOSCClient, resetOSCClient } from "./src/osc.js";
 import { VoiceSession, type VoiceSessionState } from "./src/session.js";
 import { synthesizeSpeech, getTTSConfig, playAudio, playAudioData } from "./src/tts.js";
+import { buildVoiceVoxSpeechProvider } from "./voicevox-speech-provider.js";
 
 type LocalVoiceConfig = {
   sttProvider: "openai-realtime" | "whisper";
@@ -40,6 +41,8 @@ export default function register(api: OpenClawPluginApi): void {
   let session: VoiceSession | null = null;
   let sessionState: VoiceSessionState = "idle";
   let lastCameraCaptureAtMs = 0;
+
+  api.registerSpeechProvider(buildVoiceVoxSpeechProvider());
 
   api.registerCommand({
     name: "voice-assistant",

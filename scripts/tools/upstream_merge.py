@@ -178,6 +178,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Pass --no-verify to the final merge commit.",
     )
+    parser.add_argument(
+        "--skip-fetch",
+        action="store_true",
+        help="Skip fetching the remote when the upstream ref was already refreshed externally.",
+    )
     parser.add_argument("--dry-run", action="store_true", help="Run only inventory + dry-run classification.")
     return parser.parse_args()
 
@@ -199,6 +204,7 @@ def main() -> int:
         "conflict_policy": args.conflict_policy,
         "strategy_file": args.strategy_file,
         "dry_run": args.dry_run,
+        "skip_fetch": args.skip_fetch,
         "pipeline": [],
         "steps": [],
     }
@@ -211,8 +217,11 @@ def main() -> int:
                 run_git(["switch", args.target])
                 report["steps"].append(f"checked out {args.target}")
 
-        run_git(["fetch", args.remote, "--prune"])
-        report["steps"].append(f"fetched {args.remote} --prune")
+        if args.skip_fetch:
+            report["steps"].append(f"skipped fetch for {args.remote}")
+        else:
+            run_git(["fetch", args.remote, "--prune"])
+            report["steps"].append(f"fetched {args.remote} --prune")
 
         resolved_upstream_sha = resolve_ref_sha(args.upstream_ref)
         report["resolved_upstream_sha"] = resolved_upstream_sha

@@ -15,6 +15,17 @@ type PiSettingsManagerLike = {
   setCompactionEnabled?: (enabled: boolean) => void;
 };
 
+function resolveEffectiveContextTokenBudget(params: {
+  contextTokenBudget?: number;
+  contextWindowTokens?: number;
+}): number | undefined {
+  const candidate = params.contextTokenBudget ?? params.contextWindowTokens;
+  if (typeof candidate !== "number" || !Number.isFinite(candidate)) {
+    return undefined;
+  }
+  return candidate;
+}
+
 export function ensurePiCompactionReserveTokens(params: {
   settingsManager: PiSettingsManagerLike;
   minReserveTokens?: number;
@@ -87,7 +98,9 @@ function toPositiveInt(value: unknown): number | undefined {
 export function applyPiCompactionSettingsFromConfig(params: {
   settingsManager: PiSettingsManagerLike;
   cfg?: OpenClawConfig;
-  /** Effective model context window (tokens). When set, reserve targets are clamped for small windows. */
+  /** Official upstream name for the effective model context budget. */
+  contextTokenBudget?: number;
+  /** Backward-compatible fork alias. */
   contextWindowTokens?: number;
 }): {
   didOverride: boolean;
@@ -99,9 +112,13 @@ export function applyPiCompactionSettingsFromConfig(params: {
 
   const configuredReserveTokens = toNonNegativeInt(compactionCfg?.reserveTokens);
   const configuredKeepRecentTokens = toPositiveInt(compactionCfg?.keepRecentTokens);
+  const contextTokenBudget = resolveEffectiveContextTokenBudget({
+    contextTokenBudget: params.contextTokenBudget,
+    contextWindowTokens: params.contextWindowTokens,
+  });
   const reserveTokensFloor = clampCompactionReserveTokensFloorForContext({
     floor: resolveCompactionReserveTokensFloor(params.cfg),
-    contextWindowTokens: params.contextWindowTokens,
+    contextWindowTokens: contextTokenBudget,
   });
 
   let targetReserveTokens = Math.max(
@@ -110,7 +127,7 @@ export function applyPiCompactionSettingsFromConfig(params: {
   );
   targetReserveTokens = clampCompactionReserveTokensToContextWindow({
     reserveTokens: targetReserveTokens,
-    contextWindowTokens: params.contextWindowTokens,
+    contextWindowTokens: contextTokenBudget,
   });
   const targetKeepRecentTokens = configuredKeepRecentTokens ?? currentKeepRecentTokens;
 

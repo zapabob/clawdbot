@@ -1,11 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
-import {
-  ensureBundledChannelPluginsLoaded,
-  listBundledChannelPlugins,
-} from "../channels/plugins/bundled.js";
-import type { ChannelPlugin } from "../channels/plugins/types.js";
+import { getBundledChannelPlugin } from "../channels/plugins/bundled.js";
 import type { OpenClawConfig } from "../config/config.js";
 import { createConfigIO } from "../config/config.js";
 import { collectIncludePathsRecursive } from "../config/includes-scan.js";
@@ -252,23 +248,15 @@ async function collectChannelSecurityConfigFixMutation(params: {
   cfg: OpenClawConfig;
   env: NodeJS.ProcessEnv;
 }) {
-  await ensureBundledChannelPluginsLoaded();
   let nextCfg = params.cfg;
   const changes: string[] = [];
-  const collectPlugins = (): ChannelPlugin[] => {
-    try {
-      const pluginIds = Object.keys(params.cfg.channels ?? {}).filter(Boolean);
-      if (pluginIds.length === 0) {
-        return [];
-      }
-      const wanted = new Set(pluginIds);
-      return listBundledChannelPlugins().filter((plugin) => wanted.has(plugin.id));
-    } catch {
-      return [];
-    }
-  };
+  const pluginIds = Object.keys(params.cfg.channels ?? {}).filter(Boolean).toSorted();
 
-  for (const plugin of collectPlugins()) {
+  for (const pluginId of pluginIds) {
+    const plugin = getBundledChannelPlugin(pluginId);
+    if (!plugin) {
+      continue;
+    }
     const mutation = await plugin.security?.applyConfigFixes?.({
       cfg: nextCfg,
       env: params.env,

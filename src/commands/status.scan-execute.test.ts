@@ -4,6 +4,7 @@ const { resolveStatusSummaryFromOverview, resolveMemoryPluginStatus } = vi.hoist
   resolveStatusSummaryFromOverview: vi.fn(async () => ({ sessions: { count: 1 } })),
   resolveMemoryPluginStatus: vi.fn(() => ({
     enabled: false,
+    slot: null,
     reason: "memorySearch not configured",
   })),
 }));
@@ -49,7 +50,7 @@ describe("executeStatusScanFromOverview", () => {
       async () =>
         ({
           agentId: "main",
-          backend: "memory-core",
+          backend: "builtin",
           provider: "memory-core",
         }) as never,
     );
@@ -78,7 +79,7 @@ describe("executeStatusScanFromOverview", () => {
         gatewayReachable: true,
         channels: { rows: [], details: [] },
         summary: { sessions: { count: 1 } },
-        memory: { agentId: "main" },
+        memory: { agentId: "main", backend: "builtin", provider: "memory-core" },
         pluginCompatibility: [],
       }),
     );

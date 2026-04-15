@@ -187,13 +187,16 @@ export function createPreparedEmbeddedPiSettingsManager(params: {
   cwd: string;
   agentDir: string;
   cfg?: OpenClawConfig;
-  /** Effective context window (tokens) for Pi compaction reserve clamping. */
+  /** Official upstream name for the effective model context budget. */
+  contextTokenBudget?: number;
+  /** Backward-compatible fork alias. */
   contextWindowTokens?: number;
 }): SettingsManager {
   const settingsManager = createEmbeddedPiSettingsManager(params);
   applyPiCompactionSettingsFromConfig({
     settingsManager,
     cfg: params.cfg,
+    contextTokenBudget: params.contextTokenBudget,
     contextWindowTokens: params.contextWindowTokens,
   });
   return settingsManager;

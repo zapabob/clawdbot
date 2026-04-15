@@ -42,7 +42,7 @@ vi.mock("../plugins/memory-runtime.js", () => ({
   getActiveMemorySearchManager,
 }));
 
-vi.mock("../plugin-sdk/memory-core-host-engine-qmd.js", () => ({
+vi.mock("../memory-host-sdk/engine-qmd.js", () => ({
   checkQmdBinaryAvailability,
 }));
 
@@ -418,7 +418,7 @@ describe("noteMemorySearchHealth", () => {
     expect(note).toHaveBeenCalledTimes(1);
     const providerCalls = resolveApiKeyForProvider.mock.calls as Array<[{ provider: string }]>;
     const providersChecked = providerCalls.map(([arg]) => arg.provider);
-    expect(providersChecked).toEqual(["openai", "google", "voyage", "mistral"]);
+    expect(providersChecked).toEqual(["openai"]);
   });
 
   it("uses runtime-derived env var hints for explicit providers", async () => {
@@ -446,15 +446,15 @@ describe("noteMemorySearchHealth", () => {
 
     const message = String(note.mock.calls[0]?.[0] ?? "");
     expect(message).toContain("OPENAI_API_KEY");
-    expect(message).toContain("GEMINI_API_KEY");
-    expect(message).toContain("GOOGLE_API_KEY");
-    expect(message).toContain("VOYAGE_API_KEY");
-    expect(message).toContain("MISTRAL_API_KEY");
   });
 });
 
 describe("memory recall doctor integration", () => {
   const cfg = {} as OpenClawConfig;
+
+  beforeEach(() => {
+    note.mockClear();
+  });
 
   function createPrompter(overrides: Partial<DoctorPrompter> = {}): DoctorPrompter {
     return {

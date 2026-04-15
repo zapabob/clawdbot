@@ -17,6 +17,7 @@ import {
   maybeCreateMatrixMigrationSnapshot,
   resolveMatrixMigrationSnapshotMarkerPath,
   resolveMatrixMigrationSnapshotOutputDir,
+  resolveMatrixMigrationStatus,
 } from "./migration-snapshot.js";
 import { resolveMatrixAccountStorageRoot } from "./storage-paths.js";
 
@@ -124,8 +125,13 @@ describe("matrix migration snapshots", () => {
         cfg,
         env: process.env,
       });
+      expect(detection.inspectorAvailable).toBe(true);
       expect(detection.plans).toHaveLength(1);
       expect(detection.warnings).toEqual([]);
+      const status = resolveMatrixMigrationStatus({ cfg, env: process.env });
+      expect(status.pending).toBe(true);
+      expect(status.actionable).toBe(true);
+      expect(status.legacyCrypto.inspectorAvailable).toBe(true);
       expect(
         hasActionableMatrixMigration({
           cfg,
@@ -167,10 +173,14 @@ describe("matrix migration snapshots", () => {
         cfg,
         env: process.env,
       });
+      expect(detection.inspectorAvailable).toBe(false);
       expect(detection.plans).toHaveLength(1);
       expect(detection.warnings).toContain(
         "Legacy Matrix encrypted state was detected, but the Matrix crypto inspector is unavailable.",
       );
+      const status = resolveMatrixMigrationStatus({ cfg, env: process.env });
+      expect(status.pending).toBe(true);
+      expect(status.actionable).toBe(false);
       expect(
         hasActionableMatrixMigration({
           cfg,

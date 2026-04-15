@@ -93,6 +93,12 @@ function hasMatrixPluginApprovers(params: { cfg: CoreConfig; accountId?: string 
   return getMatrixApprovalAuthApprovers(params).length > 0;
 }
 
+function hasAnyMatrixApprovalApprovers(params: { cfg: CoreConfig; accountId?: string | null }): boolean {
+  return (
+    getMatrixExecApprovalApprovers(params).length > 0 || hasMatrixPluginApprovers(params)
+  );
+}
+
 const resolveMatrixOriginTarget = createChannelNativeOriginTargetResolver({
   channel: "matrix",
   shouldHandleRequest: ({ cfg, accountId, request }) =>
@@ -131,8 +137,7 @@ const matrixNativeApprovalCapability = createApproverRestrictedNativeApprovalCap
     return `Approve it from the Web UI or terminal UI for now. Matrix supports native exec approvals for this account. Configure \`${prefix}.execApprovals.approvers\` or \`${prefix}.dm.allowFrom\`; leave \`${prefix}.execApprovals.enabled\` unset/\`auto\` or set it to \`true\`.`;
   },
   listAccountIds: listMatrixAccountIds,
-  hasApprovers: ({ cfg, accountId }) =>
-    getMatrixExecApprovalApprovers({ cfg, accountId }).length > 0,
+  hasApprovers: ({ cfg, accountId }) => hasAnyMatrixApprovalApprovers({ cfg, accountId }),
   isExecAuthorizedSender: ({ cfg, accountId, senderId }) =>
     isMatrixExecApprovalAuthorizedSender({ cfg, accountId, senderId }),
   isNativeDeliveryEnabled: ({ cfg, accountId }) =>

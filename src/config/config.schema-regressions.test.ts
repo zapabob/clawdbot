@@ -245,6 +245,20 @@ describe("config schema regressions", () => {
     expect(res.ok).toBe(true);
   });
 
+  it("accepts tools.media.asyncCompletion.directSend", () => {
+    const res = validateConfigObject({
+      tools: {
+        media: {
+          asyncCompletion: {
+            directSend: true,
+          },
+        },
+      },
+    });
+
+    expect(res.ok).toBe(true);
+  });
+
   it("rejects browser.extraArgs with non-array value", () => {
     const res = validateConfigObject({
       browser: {
