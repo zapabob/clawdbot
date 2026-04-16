@@ -40,17 +40,24 @@ vi.mock("../agents/pi-embedded-runner/model.js", () => ({
 }));
 
 let prewarmConfiguredPrimaryModel: typeof import("./server-startup.js").__testing.prewarmConfiguredPrimaryModel;
+let prewarmConfiguredPrimaryModelWithTimeout: typeof import("./server-startup.js").__testing.prewarmConfiguredPrimaryModelWithTimeout;
+let startConfiguredPrimaryModelWarmup: typeof import("./server-startup.js").__testing.startConfiguredPrimaryModelWarmup;
 
 describe("gateway startup primary model warmup", () => {
   beforeAll(async () => {
     ({
-      __testing: { prewarmConfiguredPrimaryModel },
+      __testing: {
+        prewarmConfiguredPrimaryModel,
+        prewarmConfiguredPrimaryModelWithTimeout,
+        startConfiguredPrimaryModelWarmup,
+      },
     } = await import("./server-startup.js"));
   });
 
   beforeEach(() => {
     ensureOpenClawModelsJsonMock.mockClear();
     resolveModelMock.mockClear();
+    vi.useRealTimers();
   });
 
   it("prewarms an explicit configured primary model", async () => {
@@ -83,5 +90,62 @@ describe("gateway startup primary model warmup", () => {
 
     expect(ensureOpenClawModelsJsonMock).not.toHaveBeenCalled();
     expect(resolveModelMock).not.toHaveBeenCalled();
+  });
+
+  it("times out model warmup without blocking startup", async () => {
+    vi.useFakeTimers();
+    const warn = vi.fn();
+    const cfg = {
+      agents: {
+        defaults: {
+          model: {
+            primary: "openai-codex/gpt-5.4",
+          },
+        },
+      },
+    } as OpenClawConfig;
+    ensureOpenClawModelsJsonMock.mockImplementationOnce(
+      async () => await new Promise<{ agentDir: string; wrote: boolean }>(() => {}),
+    );
+
+    const warmupPromise = prewarmConfiguredPrimaryModelWithTimeout({
+      cfg,
+      log: { warn },
+    });
+    await vi.advanceTimersByTimeAsync(5_000);
+    await warmupPromise;
+
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("startup model warmup exceeded 5000ms"),
+    );
+  });
+
+  it("starts model warmup in the background", async () => {
+    vi.useFakeTimers();
+    const warn = vi.fn();
+    const cfg = {
+      agents: {
+        defaults: {
+          model: {
+            primary: "openai-codex/gpt-5.4",
+          },
+        },
+      },
+    } as OpenClawConfig;
+    ensureOpenClawModelsJsonMock.mockImplementationOnce(
+      async () => await new Promise<{ agentDir: string; wrote: boolean }>(() => {}),
+    );
+
+    startConfiguredPrimaryModelWarmup({
+      cfg,
+      log: { warn },
+    });
+
+    expect(ensureOpenClawModelsJsonMock).toHaveBeenCalledWith(cfg, "/tmp/agent");
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("startup model warmup exceeded 5000ms"),
+    );
   });
 });

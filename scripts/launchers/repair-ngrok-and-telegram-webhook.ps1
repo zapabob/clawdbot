@@ -1,7 +1,7 @@
 param(
     [int]$Port = 18789,
     [string]$ProjectDir = (Split-Path $PSScriptRoot -Parent | Split-Path -Parent),
-    [int]$GatewayWaitSeconds = 45,
+    [int]$GatewayWaitSeconds = 180,
     [int]$TunnelWaitSeconds = 30,
     [int]$NgrokUpstreamWaitSeconds = 2,
     [switch]$SkipGatewayStart,
@@ -96,8 +96,9 @@ if ($upstreamPort -le 0) {
 }
 
 Start-GatewayIfNeeded -GatewayPort $Port -RootDir $ProjectDir -NoStart:$SkipGatewayStart
+Write-Host "[repair] Waiting for upstream port :$upstreamPort (gateway port :$Port)..." -ForegroundColor DarkCyan
 if (-not (Wait-ListenPort -TargetPort $upstreamPort -TimeoutSeconds $GatewayWaitSeconds)) {
-    throw "[repair] Upstream port :$upstreamPort did not become ready within ${GatewayWaitSeconds}s."
+    throw "[repair] Upstream port :$upstreamPort did not become ready within ${GatewayWaitSeconds}s. Cold Telegram webhook startup on this machine can take around 2 minutes, so retry with a larger -GatewayWaitSeconds or start the gateway first."
 }
 
 Start-NgrokInBackground -GatewayPort $Port -UpstreamWaitSeconds $NgrokUpstreamWaitSeconds -RootDir $ProjectDir

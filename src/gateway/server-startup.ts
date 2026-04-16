@@ -33,6 +33,7 @@ import {
 import { startGatewayMemoryBackend } from "./server-startup-memory.js";
 
 const SESSION_LOCK_STALE_MS = 30 * 60 * 1000;
+const STARTUP_MODEL_WARMUP_TIMEOUT_MS = 5_000;
 
 async function prewarmConfiguredPrimaryModel(params: {
   cfg: ReturnType<typeof loadConfig>;
@@ -62,6 +63,39 @@ async function prewarmConfiguredPrimaryModel(params: {
   } catch (err) {
     params.log.warn(`startup model warmup failed for ${provider}/${model}: ${String(err)}`);
   }
+}
+
+async function prewarmConfiguredPrimaryModelWithTimeout(params: {
+  cfg: ReturnType<typeof loadConfig>;
+  log: { warn: (msg: string) => void };
+}): Promise<void> {
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+  try {
+    await Promise.race([
+      prewarmConfiguredPrimaryModel(params),
+      new Promise<void>((resolve) => {
+        timeoutHandle = setTimeout(() => {
+          params.log.warn(
+            `startup model warmup exceeded ${String(STARTUP_MODEL_WARMUP_TIMEOUT_MS)}ms; continuing startup without waiting`,
+          );
+          resolve();
+        }, STARTUP_MODEL_WARMUP_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timeoutHandle) {
+      clearTimeout(timeoutHandle);
+    }
+  }
+}
+
+function startConfiguredPrimaryModelWarmup(params: {
+  cfg: ReturnType<typeof loadConfig>;
+  log: { warn: (msg: string) => void };
+}): void {
+  void prewarmConfiguredPrimaryModelWithTimeout(params).catch((err) => {
+    params.log.warn(`startup model warmup failed unexpectedly: ${String(err)}`);
+  });
 }
 
 export async function startGatewaySidecars(params: {
@@ -153,7 +187,7 @@ export async function startGatewaySidecars(params: {
     isTruthyEnvValue(process.env.OPENCLAW_SKIP_PROVIDERS);
   if (!skipChannels) {
     try {
-      await prewarmConfiguredPrimaryModel({
+      startConfiguredPrimaryModelWarmup({
         cfg: params.cfg,
         log: params.log,
       });
@@ -220,4 +254,6 @@ export async function startGatewaySidecars(params: {
 
 export const __testing = {
   prewarmConfiguredPrimaryModel,
+  prewarmConfiguredPrimaryModelWithTimeout,
+  startConfiguredPrimaryModelWarmup,
 };
