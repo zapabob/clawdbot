@@ -1,8 +1,5 @@
-import {
-  getBundledChannelPlugin,
-  listBundledChannelPluginIds,
-  setBundledChannelRuntime,
-} from "../channels/plugins/bundled.js";
+import { listBundledChannelPluginIds } from "../channels/plugins/bundled-ids.js";
+import { getBundledChannelPlugin, setBundledChannelRuntime } from "../channels/plugins/bundled.js";
 import { setActivePluginRegistry } from "../plugins/runtime.js";
 import type { PluginRuntime } from "../plugins/runtime/index.js";
 import { createTestRegistry } from "../test-utils/channel-plugins.js";

@@ -150,6 +150,15 @@ describe("bundled channel entry shape guards", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("keeps the channel test registry on the bundled channel id helper seam", () => {
+    const source = fs.readFileSync(path.resolve("src/commands/channel-test-registry.ts"), "utf8");
+
+    expect(source).toContain('from "../channels/plugins/bundled-ids.js"');
+    expect(source).not.toMatch(
+      /listBundledChannelPluginIds[\s\S]*from "\.\.\/channels\/plugins\/bundled\.js"/u,
+    );
+  });
+
   it("keeps extension-shared off the broad runtime barrel", () => {
     const source = fs.readFileSync(path.resolve("src/plugin-sdk/extension-shared.ts"), "utf8");
 
