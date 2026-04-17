@@ -7,6 +7,7 @@
  *   const modelPath = await discoverModel();
  */
 export async function discoverModel() {
-  if (!window.companionBridge?.discoverModel) return null;
-  return window.companionBridge.discoverModel();
+    if (!window.companionBridge?.discoverModel)
+        return null;
+    return window.companionBridge.discoverModel();
 }

@@ -3,17 +3,30 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Hakua Companion</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap"
-      rel="stylesheet"
-    />
+    <title>Desktop Companion</title>
     <style>
+      :root {
+        color-scheme: dark;
+        --bg-strong: rgba(18, 16, 28, 0.92);
+        --bg-soft: rgba(26, 24, 38, 0.74);
+        --bg-panel: rgba(18, 17, 30, 0.88);
+        --border-soft: rgba(255, 255, 255, 0.1);
+        --border-strong: rgba(255, 180, 205, 0.25);
+        --text-primary: rgba(246, 244, 255, 0.96);
+        --text-secondary: rgba(206, 201, 225, 0.8);
+        --text-muted: rgba(176, 172, 196, 0.64);
+        --accent-rose: #f686ad;
+        --accent-blue: #82b7ff;
+        --accent-mint: #79d0a8;
+        --accent-gold: #f1c56d;
+        --danger: #ff907d;
+        --shadow-panel: 0 28px 52px rgba(6, 4, 14, 0.45);
+        --shadow-soft: 0 14px 32px rgba(6, 4, 14, 0.28);
+        --font-ui:
+          "Segoe UI", "Yu Gothic UI", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+      }
+
       * {
-        margin: 0;
-        padding: 0;
         box-sizing: border-box;
       }
 
@@ -21,642 +34,975 @@
       body {
         width: 100%;
         height: 100%;
+        margin: 0;
         overflow: hidden;
         background: transparent;
-        font-family: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "Yu Gothic", sans-serif;
+        color: var(--text-primary);
+        font-family: var(--font-ui);
       }
 
-      /* ═══════════════════════════════════════════════
-       IMAS STAGE BACKGROUND
-    ═══════════════════════════════════════════════ */
-      #imas-bg {
+      body {
+        position: relative;
+      }
+
+      #stage-backdrop {
         position: absolute;
         inset: 0;
         background:
-          radial-gradient(ellipse at 50% -10%, rgba(255, 255, 255, 0.18) 0%, transparent 55%),
-          linear-gradient(
-            160deg,
-            #1a0533 0%,
-            #2d0a5c 18%,
-            #4a1080 32%,
-            #3b1468 50%,
-            #1e0c50 68%,
-            #0f0838 100%
+          radial-gradient(circle at 18% 18%, rgba(255, 131, 177, 0.22), transparent 36%),
+          radial-gradient(circle at 82% 22%, rgba(127, 178, 255, 0.2), transparent 34%),
+          radial-gradient(circle at 50% 90%, rgba(144, 109, 255, 0.18), transparent 34%),
+          linear-gradient(180deg, rgba(38, 16, 58, 0.94) 0%, rgba(15, 15, 32, 0.98) 100%);
+      }
+
+      #stage-backdrop::before,
+      #stage-backdrop::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      #stage-backdrop::before {
+        background:
+          radial-gradient(circle at 50% 100%, rgba(246, 134, 173, 0.18), transparent 30%),
+          repeating-linear-gradient(
+            90deg,
+            transparent 0,
+            transparent 64px,
+            rgba(255, 255, 255, 0.02) 64px,
+            rgba(255, 255, 255, 0.02) 65px
           );
-        border-radius: 4px;
-        overflow: hidden;
-        z-index: 0;
+        opacity: 0.8;
       }
 
-      /* 虹色グロー境界線 */
-      #imas-bg::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        border-radius: 4px;
-        background: transparent;
+      #stage-backdrop::after {
+        inset: 10px;
+        border: 1px solid rgba(255, 187, 211, 0.14);
+        border-radius: 22px;
         box-shadow:
-          inset 0 0 0 1.5px rgba(255, 120, 200, 0.55),
-          inset 0 0 30px rgba(200, 100, 255, 0.12),
-          inset 0 0 60px rgba(100, 150, 255, 0.08),
-          0 0 18px rgba(255, 80, 180, 0.35);
-        pointer-events: none;
-        z-index: 30;
+          inset 0 0 40px rgba(255, 255, 255, 0.02),
+          0 0 40px rgba(255, 105, 162, 0.14);
       }
 
-      /* スキャンライン（控えめ） */
-      #imas-bg::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: repeating-linear-gradient(
-          0deg,
-          rgba(0, 0, 0, 0.04) 0px,
-          rgba(0, 0, 0, 0.04) 1px,
-          transparent 1px,
-          transparent 4px
-        );
-        pointer-events: none;
-        z-index: 1;
-      }
-
-      /* ── ステージスポットライト ── */
-      #imas-lights {
-        position: absolute;
-        inset: 0;
-        overflow: hidden;
-        pointer-events: none;
-        z-index: 2;
-      }
-      .spot {
-        position: absolute;
-        top: -20px;
-        width: 120px;
-        height: 340px;
-        transform-origin: top center;
-        opacity: 0.28;
-        border-radius: 0 0 50% 50%;
-      }
-      .spot-1 {
-        left: 12%;
-        background: linear-gradient(
-          180deg,
-          rgba(255, 160, 220, 0.9) 0%,
-          rgba(255, 100, 200, 0) 100%
-        );
-        transform: rotate(-18deg);
-        animation: spot-sway 6s ease-in-out infinite alternate;
-      }
-      .spot-2 {
-        left: 38%;
-        background: linear-gradient(
-          180deg,
-          rgba(180, 140, 255, 0.9) 0%,
-          rgba(140, 100, 255, 0) 100%
-        );
-        transform: rotate(-4deg);
-        animation: spot-sway 8s ease-in-out infinite alternate-reverse;
-      }
-      .spot-3 {
-        left: 62%;
-        background: linear-gradient(
-          180deg,
-          rgba(120, 200, 255, 0.9) 0%,
-          rgba(80, 160, 255, 0) 100%
-        );
-        transform: rotate(6deg);
-        animation: spot-sway 7s ease-in-out infinite alternate;
-      }
-      .spot-4 {
-        left: 78%;
-        background: linear-gradient(
-          180deg,
-          rgba(255, 200, 100, 0.8) 0%,
-          rgba(255, 160, 80, 0) 100%
-        );
-        transform: rotate(20deg);
-        animation: spot-sway 5s ease-in-out infinite alternate-reverse;
-      }
-      @keyframes spot-sway {
-        0% {
-          opacity: 0.22;
-        }
-        50% {
-          opacity: 0.34;
-        }
-        100% {
-          opacity: 0.2;
-        }
-      }
-
-      /* ── ステージ床 (反射) ── */
-      #stage-floor {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 64px;
-        background: linear-gradient(
-          180deg,
-          transparent 0%,
-          rgba(200, 100, 255, 0.06) 50%,
-          rgba(255, 120, 200, 0.14) 100%
-        );
-        pointer-events: none;
-        z-index: 3;
-      }
-      #stage-floor::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: repeating-linear-gradient(
-          90deg,
-          rgba(255, 150, 220, 0.07) 0px,
-          rgba(255, 150, 220, 0.07) 1px,
-          transparent 1px,
-          transparent 22px
-        );
-      }
-      /* 水平グロウライン */
-      #stage-glow {
-        position: absolute;
-        bottom: 62px;
-        left: 4%;
-        right: 4%;
-        height: 2px;
-        background: linear-gradient(
-          90deg,
-          transparent 0%,
-          rgba(255, 120, 200, 0.6) 25%,
-          rgba(200, 140, 255, 0.8) 50%,
-          rgba(100, 180, 255, 0.6) 75%,
-          transparent 100%
-        );
-        filter: blur(1px);
-        pointer-events: none;
-        z-index: 4;
-        animation: stage-glow-pulse 3s ease-in-out infinite;
-      }
-      @keyframes stage-glow-pulse {
-        0%,
-        100% {
-          opacity: 0.7;
-        }
-        50% {
-          opacity: 1;
-        }
-      }
-
-      /* ── パーティクル (スター) ── */
-      #particles {
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        z-index: 3;
-        overflow: hidden;
-      }
-      .star {
-        position: absolute;
-        border-radius: 50%;
-        background: white;
-        animation: star-twinkle var(--dur, 3s) ease-in-out infinite var(--delay, 0s);
-      }
-      @keyframes star-twinkle {
-        0%,
-        100% {
-          opacity: 0;
-          transform: scale(0.3);
-        }
-        50% {
-          opacity: var(--peak, 0.9);
-          transform: scale(1);
-        }
-      }
-      .star-drift {
-        animation: star-drift-anim var(--dur, 8s) linear infinite var(--delay, 0s);
-      }
-      @keyframes star-drift-anim {
-        0% {
-          transform: translateY(0) translateX(0) scale(0.5);
-          opacity: 0;
-        }
-        10% {
-          opacity: var(--peak, 0.8);
-        }
-        90% {
-          opacity: var(--peak, 0.8);
-        }
-        100% {
-          transform: translateY(-120px) translateX(var(--dx, 20px)) scale(0.8);
-          opacity: 0;
-        }
-      }
-
-      /* ── ハート / ダイヤ デコ ── */
-      #deco-layer {
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        z-index: 2;
-        overflow: hidden;
-      }
-      .deco {
-        position: absolute;
-        font-size: 10px;
-        opacity: 0;
-        animation: deco-float var(--dur, 10s) ease-in-out infinite var(--delay, 0s);
-        user-select: none;
-      }
-      @keyframes deco-float {
-        0% {
-          opacity: 0;
-          transform: translateY(10px) scale(0.6) rotate(0deg);
-        }
-        15% {
-          opacity: 0.55;
-        }
-        85% {
-          opacity: 0.35;
-        }
-        100% {
-          opacity: 0;
-          transform: translateY(-80px) scale(1) rotate(30deg);
-        }
-      }
-
-      /* ═══════════════════════════════════════════════
-       CANVAS
-    ═══════════════════════════════════════════════ */
       #canvas-container {
         position: absolute;
         inset: 0;
-        z-index: 5;
+        z-index: 1;
       }
 
-      /* ═══════════════════════════════════════════════
-       MODEL BADGE (上部ラベル)
-    ═══════════════════════════════════════════════ */
-      #model-badge {
+      #ui-shell {
         position: absolute;
-        top: 7px;
-        left: 10px;
-        right: 10px;
-        font-size: 9px;
-        font-weight: 700;
-        color: rgba(255, 210, 240, 0.92);
-        font-family: "M PLUS Rounded 1c", sans-serif;
-        text-shadow:
-          0 0 8px rgba(255, 120, 200, 0.8),
-          0 0 16px rgba(200, 100, 255, 0.5);
+        inset: 0;
+        z-index: 4;
         pointer-events: none;
-        z-index: 15;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        letter-spacing: 0.06em;
-        text-align: center;
-      }
-      #model-badge:not(:empty)::before {
-        content: "♪ ";
-        color: rgba(255, 180, 220, 0.9);
       }
 
-      /* SYSTEM ID */
-      #sys-id {
-        position: absolute;
-        top: 8px;
-        right: 10px;
-        font-size: 7.5px;
-        font-weight: 700;
-        color: rgba(200, 160, 255, 0.5);
-        font-family: "M PLUS Rounded 1c", sans-serif;
-        pointer-events: none;
-        z-index: 15;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-      }
-
-      /* STATUS TEXT */
-      #status-text {
-        position: absolute;
-        bottom: 58px;
-        left: 6px;
-        right: 6px;
-        font-size: 9px;
-        font-weight: 700;
-        color: rgba(255, 230, 245, 0.9);
-        font-family: "M PLUS Rounded 1c", sans-serif;
-        text-shadow:
-          0 0 6px rgba(255, 120, 200, 0.7),
-          0 0 12px rgba(200, 100, 255, 0.4);
-        text-align: center;
-        pointer-events: none;
-        z-index: 15;
-        letter-spacing: 0.04em;
-      }
-
-      /* ═══════════════════════════════════════════════
-       ボタンバー (下部)
-    ═══════════════════════════════════════════════ */
-      #btn-bar {
-        position: absolute;
-        bottom: 8px;
-        left: 4px;
-        right: 4px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 5px;
-        z-index: 16;
+      .interactive {
+        pointer-events: auto;
         -webkit-app-region: no-drag;
       }
 
-      /* 共通ボタンスタイル */
-      .imas-btn {
-        height: 28px;
-        border-radius: 14px;
-        border: none;
-        cursor: pointer;
-        font-family: "M PLUS Rounded 1c", sans-serif;
-        font-weight: 800;
-        font-size: 9px;
-        letter-spacing: 0.04em;
-        display: flex;
-        align-items: center;
-        gap: 3px;
-        padding: 0 10px;
-        transition:
-          filter 0.15s,
-          transform 0.1s,
-          box-shadow 0.15s;
-        user-select: none;
-        -webkit-app-region: no-drag;
-        white-space: nowrap;
-      }
-      .imas-btn:hover {
-        filter: brightness(1.2);
-        transform: translateY(-1px);
-      }
-      .imas-btn:active {
-        transform: translateY(0px) scale(0.96);
-      }
-
-      /* Live2D ボタン — ピンク */
-      #pick-live2d {
-        background: linear-gradient(135deg, #ff6eb4 0%, #ff3d9a 100%);
-        box-shadow:
-          0 2px 10px rgba(255, 80, 160, 0.5),
-          inset 0 1px 0 rgba(255, 255, 255, 0.25);
-        color: #fff;
-      }
-
-      /* VRM ボタン — 青紫 */
-      #pick-vrm {
-        background: linear-gradient(135deg, #8b6fff 0%, #6040e8 100%);
-        box-shadow:
-          0 2px 10px rgba(120, 80, 255, 0.5),
-          inset 0 1px 0 rgba(255, 255, 255, 0.2);
-        color: #fff;
-      }
-
-      /* FBX ボタン — ティール */
-      #pick-fbx {
-        background: linear-gradient(135deg, #34d0e8 0%, #1aabcc 100%);
-        box-shadow:
-          0 2px 10px rgba(30, 180, 220, 0.5),
-          inset 0 1px 0 rgba(255, 255, 255, 0.2);
-        color: #fff;
-      }
-
-      /* 📸 スクリーンショット */
-      #screenshot-btn {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        background: linear-gradient(
-          135deg,
-          rgba(255, 220, 100, 0.2) 0%,
-          rgba(255, 180, 60, 0.3) 100%
-        );
-        border: 1.5px solid rgba(255, 200, 80, 0.65);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 13px;
-        transition:
-          filter 0.15s,
-          transform 0.1s;
-        -webkit-app-region: no-drag;
-        box-shadow: 0 0 8px rgba(255, 180, 60, 0.3);
-      }
-      #screenshot-btn:hover {
-        filter: brightness(1.3);
-        transform: translateY(-1px);
-      }
-      #screenshot-btn:active {
-        transform: scale(0.94);
-      }
-
-      /* 📷 カメラ */
-      #camera-btn {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        background: linear-gradient(
-          135deg,
-          rgba(100, 220, 180, 0.18) 0%,
-          rgba(60, 200, 140, 0.25) 100%
-        );
-        border: 1.5px solid rgba(100, 220, 170, 0.65);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 13px;
-        transition:
-          filter 0.15s,
-          transform 0.1s,
-          background 0.2s;
-        -webkit-app-region: no-drag;
-        box-shadow: 0 0 8px rgba(60, 200, 140, 0.3);
-      }
-      #camera-btn:hover {
-        filter: brightness(1.25);
-        transform: translateY(-1px);
-      }
-      #camera-btn:active {
-        transform: scale(0.94);
-      }
-      #camera-btn.active {
-        background: linear-gradient(
-          135deg,
-          rgba(60, 200, 140, 0.45) 0%,
-          rgba(40, 180, 120, 0.4) 100%
-        );
-        border-color: rgba(60, 210, 150, 0.9);
-        box-shadow: 0 0 14px rgba(40, 200, 130, 0.65);
-      }
-
-      /* 📷 カメラプレビュー (右下小窓) */
-      #camera-preview {
-        position: absolute;
-        bottom: 44px;
-        right: 6px;
-        width: 108px;
-        height: 81px;
-        border-radius: 8px;
-        object-fit: cover;
-        z-index: 14;
-        display: none;
-        border: 1.5px solid rgba(100, 220, 170, 0.6);
-        opacity: 0.88;
-        box-shadow: 0 0 12px rgba(40, 200, 130, 0.4);
-      }
-
-      /* 🎤 マイク */
-      #mic-btn {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        background: linear-gradient(
-          135deg,
-          rgba(255, 120, 200, 0.18) 0%,
-          rgba(200, 100, 255, 0.25) 100%
-        );
-        border: 1.5px solid rgba(255, 140, 210, 0.65);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 13px;
-        transition:
-          filter 0.15s,
-          transform 0.1s,
-          background 0.2s;
-        -webkit-app-region: no-drag;
-        box-shadow: 0 0 8px rgba(255, 100, 180, 0.3);
-      }
-      #mic-btn:hover {
-        filter: brightness(1.25);
-        transform: translateY(-1px);
-      }
-      #mic-btn:active {
-        transform: scale(0.94);
-      }
-      #mic-btn.active {
-        background: linear-gradient(
-          135deg,
-          rgba(255, 80, 160, 0.45) 0%,
-          rgba(200, 60, 220, 0.4) 100%
-        );
-        border-color: rgba(255, 80, 180, 0.9);
-        box-shadow: 0 0 14px rgba(255, 60, 160, 0.65);
-      }
-
-      /* ── D&D オーバーレイ（非表示基本） ── */
       #drop-overlay {
         position: absolute;
         inset: 0;
+        display: grid;
+        place-items: center;
+        background: rgba(17, 14, 26, 0);
+        border: 2px dashed transparent;
+        border-radius: 24px;
+        opacity: 0;
+        transition:
+          opacity 140ms ease,
+          background 140ms ease,
+          border-color 140ms ease;
+        pointer-events: none;
+      }
+
+      body.drag-active #drop-overlay {
+        opacity: 1;
+        background: rgba(17, 14, 26, 0.36);
+        border-color: rgba(246, 134, 173, 0.45);
+      }
+
+      #drop-hint {
+        min-width: 260px;
+        padding: 18px 20px;
+        border-radius: 20px;
+        border: 1px solid rgba(246, 134, 173, 0.36);
+        background: rgba(17, 15, 28, 0.88);
+        box-shadow: var(--shadow-panel);
+        text-align: center;
+      }
+
+      #drop-title {
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      #drop-subtitle {
+        margin-top: 8px;
+        color: var(--text-secondary);
+        font-size: 12px;
+      }
+
+      #companion-dock {
+        position: absolute;
+        right: 18px;
+        bottom: 18px;
         display: flex;
         align-items: center;
-        justify-content: center;
-        background: rgba(20, 0, 40, 0);
-        border: 2px dashed transparent;
-        border-radius: 4px;
-        pointer-events: none;
-        transition:
-          background 0.15s,
-          border-color 0.15s;
-        z-index: 20;
+        gap: 12px;
+        width: min(360px, calc(100vw - 36px));
+        padding: 12px 14px;
+        border-radius: 22px;
+        border: 1px solid var(--border-strong);
+        background: linear-gradient(180deg, rgba(31, 23, 44, 0.95) 0%, rgba(18, 17, 28, 0.9) 100%);
+        box-shadow: var(--shadow-panel);
+        backdrop-filter: blur(16px);
       }
-      body.drag-active #drop-overlay {
-        background: rgba(60, 0, 80, 0.28);
-        border-color: rgba(255, 140, 210, 0.7);
+
+      .dock-meta {
+        min-width: 0;
+        flex: 1;
       }
-      #drop-hint {
-        padding: 8px 16px;
-        background: rgba(20, 0, 40, 0.88);
-        border: 1px solid rgba(255, 140, 210, 0.5);
-        color: rgba(255, 220, 240, 0.95);
-        font-size: 11px;
-        font-family: "M PLUS Rounded 1c", sans-serif;
+
+      #dock-avatar-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 14px;
         font-weight: 700;
-        border-radius: 14px;
-        text-align: center;
-        opacity: 0;
-        transition: opacity 0.15s;
-        pointer-events: none;
-        user-select: none;
-        box-shadow: 0 0 20px rgba(255, 100, 200, 0.3);
-        letter-spacing: 0.05em;
       }
-      body.drag-active #drop-hint {
+
+      .dock-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 6px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 22px;
+        padding: 0 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        font-size: 11px;
+        color: var(--text-secondary);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .badge--accent {
+        color: rgba(255, 232, 240, 0.96);
+        border-color: rgba(246, 134, 173, 0.28);
+        background: rgba(246, 134, 173, 0.12);
+      }
+
+      .badge--success {
+        border-color: rgba(121, 208, 168, 0.3);
+        background: rgba(121, 208, 168, 0.12);
+        color: rgba(223, 255, 236, 0.95);
+      }
+
+      .badge--muted {
+        color: var(--text-muted);
+      }
+
+      .dock-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .icon-button,
+      .action-button,
+      .ghost-button {
+        appearance: none;
+        border: 0;
+        cursor: pointer;
+        font: inherit;
+        transition:
+          transform 120ms ease,
+          opacity 120ms ease,
+          background 120ms ease,
+          border-color 120ms ease;
+      }
+
+      .icon-button:hover,
+      .action-button:hover,
+      .ghost-button:hover {
+        transform: translateY(-1px);
+      }
+
+      .icon-button:active,
+      .action-button:active,
+      .ghost-button:active {
+        transform: translateY(0);
+      }
+
+      .icon-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        color: var(--text-primary);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .icon-button.is-active {
+        border-color: rgba(121, 208, 168, 0.42);
+        background: rgba(121, 208, 168, 0.16);
+        color: rgba(228, 255, 238, 0.98);
+      }
+
+      .panel-toggle {
+        min-width: 92px;
+        height: 42px;
+        padding: 0 14px;
+        border-radius: 999px;
+        color: rgba(255, 241, 246, 0.98);
+        background: linear-gradient(135deg, rgba(246, 134, 173, 0.92), rgba(117, 139, 255, 0.88));
+        box-shadow: 0 14px 30px rgba(86, 75, 180, 0.26);
+      }
+
+      #companion-panel {
+        position: absolute;
+        top: 18px;
+        right: 18px;
+        bottom: 86px;
+        width: min(396px, calc(100vw - 36px));
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        padding: 18px;
+        border-radius: 26px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: linear-gradient(180deg, rgba(24, 23, 36, 0.96) 0%, rgba(16, 15, 24, 0.9) 100%);
+        box-shadow: var(--shadow-panel);
+        backdrop-filter: blur(18px);
+        opacity: 0;
+        transform: translateX(18px);
+        transition:
+          opacity 160ms ease,
+          transform 160ms ease;
+        pointer-events: none;
+      }
+
+      #companion-panel.is-open {
         opacity: 1;
+        transform: translateX(0);
+        pointer-events: auto;
+      }
+
+      .panel-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .panel-header h1 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+      }
+
+      .panel-subtitle {
+        margin-top: 4px;
+        color: var(--text-secondary);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .panel-body {
+        display: grid;
+        gap: 14px;
+        overflow: auto;
+        padding-right: 4px;
+      }
+
+      .panel-body::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      .panel-body::-webkit-scrollbar-thumb {
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.12);
+      }
+
+      .card {
+        padding: 16px;
+        border-radius: 22px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+        box-shadow: var(--shadow-soft);
+      }
+
+      .card-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      .card-title {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .card-copy {
+        margin-top: 4px;
+        color: var(--text-secondary);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .stack {
+        display: grid;
+        gap: 10px;
+      }
+
+      .permission-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .permission-chip {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .permission-chip-label {
+        display: grid;
+        gap: 3px;
+      }
+
+      .permission-chip-title {
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .permission-chip-state {
+        color: var(--text-muted);
+        font-size: 11px;
+      }
+
+      .permission-chip button {
+        min-width: 62px;
+        height: 28px;
+        padding: 0 10px;
+        border-radius: 999px;
+        color: var(--text-primary);
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .permission-chip button.is-enabled {
+        background: rgba(121, 208, 168, 0.18);
+        color: rgba(229, 255, 238, 0.98);
+      }
+
+      .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .action-button {
+        min-height: 40px;
+        padding: 0 12px;
+        border-radius: 14px;
+        color: var(--text-primary);
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .ghost-button {
+        height: 36px;
+        padding: 0 14px;
+        border-radius: 12px;
+        color: var(--text-secondary);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .progress-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .progress-copy {
+        min-width: 0;
+      }
+
+      .progress-copy strong {
+        display: block;
+        font-size: 12px;
+      }
+
+      .progress-copy span {
+        display: block;
+        margin-top: 4px;
+        color: var(--text-secondary);
+        font-size: 11px;
+      }
+
+      .progress-pill {
+        white-space: nowrap;
+        font-size: 11px;
+        color: var(--text-secondary);
+      }
+
+      .checklist {
+        display: grid;
+        gap: 10px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .checklist-item {
+        display: grid;
+        grid-template-columns: 22px 1fr;
+        gap: 10px;
+        align-items: start;
+        padding: 10px 12px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .check-indicator {
+        display: grid;
+        place-items: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        font-size: 11px;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.9);
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .check-indicator.is-complete {
+        background: rgba(121, 208, 168, 0.28);
+        color: rgba(227, 255, 238, 1);
+      }
+
+      .check-indicator.is-optional {
+        background: rgba(130, 183, 255, 0.2);
+        color: rgba(228, 240, 255, 0.94);
+      }
+
+      .check-text strong {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+      }
+
+      .check-text span {
+        display: block;
+        margin-top: 5px;
+        color: var(--text-secondary);
+        font-size: 11px;
+        line-height: 1.45;
+      }
+
+      .check-tag {
+        padding: 2px 6px;
+        border-radius: 999px;
+        color: var(--text-muted);
+        background: rgba(255, 255, 255, 0.05);
+        font-size: 10px;
+        font-weight: 600;
+      }
+
+      .browser-card-status,
+      .camera-meta {
+        display: grid;
+        gap: 10px;
+      }
+
+      .info-row {
+        display: grid;
+        gap: 4px;
+      }
+
+      .info-label {
+        color: var(--text-muted);
+        font-size: 11px;
+      }
+
+      .info-value {
+        font-size: 12px;
+        line-height: 1.45;
+        word-break: break-word;
+      }
+
+      .asset-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .asset-library {
+        display: grid;
+        gap: 10px;
+      }
+
+      .asset-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 12px;
+        padding: 12px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .asset-row.is-active {
+        border-color: rgba(121, 208, 168, 0.32);
+        background: rgba(121, 208, 168, 0.08);
+      }
+
+      .asset-row.is-selected {
+        border-color: rgba(130, 183, 255, 0.34);
+      }
+
+      .asset-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .asset-type {
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--text-secondary);
+        background: rgba(255, 255, 255, 0.05);
+        text-transform: uppercase;
+      }
+
+      .asset-copy {
+        margin-top: 6px;
+        color: var(--text-secondary);
+        font-size: 11px;
+        line-height: 1.5;
+      }
+
+      .asset-controls {
+        display: grid;
+        align-content: space-between;
+        gap: 8px;
+        justify-items: end;
+      }
+
+      .asset-controls button {
+        min-width: 82px;
+      }
+
+      details summary {
+        cursor: pointer;
+        font-weight: 700;
+        list-style: none;
+      }
+
+      details summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .camera-preview-shell {
+        overflow: hidden;
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01)),
+          rgba(11, 10, 18, 0.9);
+      }
+
+      #camera-preview {
+        display: block;
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        object-fit: cover;
+        opacity: 0;
+        transition: opacity 140ms ease;
+      }
+
+      #camera-preview.is-live {
+        opacity: 1;
+      }
+
+      .preview-empty {
+        display: grid;
+        place-items: center;
+        min-height: 152px;
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+
+      #toast-region {
+        position: absolute;
+        left: 18px;
+        right: 18px;
+        bottom: 94px;
+        display: grid;
+        justify-items: center;
+        gap: 8px;
+        pointer-events: none;
+      }
+
+      .toast {
+        min-width: 220px;
+        max-width: min(420px, calc(100vw - 60px));
+        padding: 12px 14px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(18, 17, 30, 0.92);
+        box-shadow: var(--shadow-soft);
+        color: var(--text-primary);
+        font-size: 12px;
+      }
+
+      .toast[data-tone="success"] {
+        border-color: rgba(121, 208, 168, 0.28);
+      }
+
+      .toast[data-tone="warning"] {
+        border-color: rgba(241, 197, 109, 0.28);
+      }
+
+      .toast[data-tone="danger"] {
+        border-color: rgba(255, 144, 125, 0.28);
+      }
+
+      #dialog-backdrop {
+        position: absolute;
+        inset: 0;
+        display: none;
+        place-items: center;
+        background: rgba(10, 9, 18, 0.54);
+        pointer-events: auto;
+      }
+
+      #dialog-backdrop.is-open {
+        display: grid;
+      }
+
+      #dialog-sheet {
+        width: min(460px, calc(100vw - 40px));
+        padding: 20px;
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: linear-gradient(180deg, rgba(25, 23, 37, 0.98), rgba(16, 15, 25, 0.96));
+        box-shadow: var(--shadow-panel);
+      }
+
+      #dialog-title {
+        margin: 0;
+        font-size: 18px;
+      }
+
+      #dialog-message {
+        margin: 10px 0 0;
+        color: var(--text-secondary);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      #dialog-file-line {
+        margin-top: 10px;
+        color: var(--text-muted);
+        font-size: 12px;
+        word-break: break-word;
+      }
+
+      .field {
+        display: grid;
+        gap: 8px;
+        margin-top: 14px;
+      }
+
+      .field label {
+        color: var(--text-secondary);
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .field textarea {
+        width: 100%;
+        min-height: 92px;
+        padding: 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text-primary);
+        font: inherit;
+        resize: vertical;
+      }
+
+      .checkbox-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        margin-top: 14px;
+        padding: 12px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text-secondary);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .checkbox-row input {
+        margin-top: 2px;
+      }
+
+      .dialog-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 18px;
+      }
+
+      .dialog-actions button {
+        min-width: 96px;
+        height: 40px;
+        padding: 0 14px;
+        border-radius: 12px;
+      }
+
+      #dialog-cancel {
+        color: var(--text-secondary);
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      #dialog-confirm {
+        color: rgba(255, 241, 246, 0.98);
+        background: linear-gradient(135deg, rgba(246, 134, 173, 0.92), rgba(117, 139, 255, 0.88));
+      }
+
+      #dialog-confirm:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      @media (max-width: 640px) {
+        #companion-dock {
+          left: 18px;
+          width: auto;
+        }
+
+        #companion-panel {
+          left: 18px;
+          width: auto;
+        }
+
+        .permission-grid,
+        .quick-actions,
+        .asset-actions {
+          grid-template-columns: 1fr;
+        }
+
+        .asset-row {
+          grid-template-columns: 1fr;
+        }
+
+        .asset-controls {
+          justify-items: start;
+        }
       }
     </style>
   </head>
   <body>
-    <!-- ── アイドルマスター背景 ── -->
-    <div id="imas-bg"></div>
-
-    <!-- スポットライト -->
-    <div id="imas-lights">
-      <div class="spot spot-1"></div>
-      <div class="spot spot-2"></div>
-      <div class="spot spot-3"></div>
-      <div class="spot spot-4"></div>
-    </div>
-
-    <!-- ステージ床 -->
-    <div id="stage-floor"></div>
-    <div id="stage-glow"></div>
-
-    <!-- パーティクル -->
-    <div id="particles"></div>
-    <div id="deco-layer"></div>
-
-    <!-- アバターキャンバス -->
+    <div id="stage-backdrop"></div>
     <div id="canvas-container"></div>
 
-    <!-- カメラプレビュー (小窓) + 非表示キャンバス -->
-    <video id="camera-preview" autoplay muted playsinline></video>
-    <canvas id="camera-canvas" style="display: none" width="640" height="480"></canvas>
+    <div id="ui-shell">
+      <div id="drop-overlay">
+        <div id="drop-hint">
+          <div id="drop-title">ローカルの avatar asset をここへドロップ</div>
+          <div id="drop-subtitle">VRM / FBX / Live2D model3.json を creator-safe local import</div>
+        </div>
+      </div>
 
-    <!-- D&D オーバーレイ -->
-    <div id="drop-overlay">
-      <div id="drop-hint">
-        ♪ ファイルをドロップ ♪<br /><span style="font-size: 9px; opacity: 0.7"
-          >.vrm / .fbx / .model3.json</span
-        >
+      <div id="companion-dock" class="interactive">
+        <div class="dock-meta">
+          <div id="dock-avatar-name">No avatar selected</div>
+          <div class="dock-badges">
+            <span id="dock-local-badge" class="badge badge--accent">Local only</span>
+            <span id="dock-voice-status" class="badge badge--muted">Mic off</span>
+          </div>
+        </div>
+        <div class="dock-actions">
+          <button id="dock-mic-toggle" class="icon-button" title="Toggle microphone">Mic</button>
+          <button id="dock-panel-toggle" class="panel-toggle">Open setup</button>
+        </div>
+      </div>
+
+      <aside id="companion-panel" class="interactive" aria-hidden="true">
+        <div class="panel-header">
+          <div>
+            <h1>Desktop Companion</h1>
+            <div class="panel-subtitle">
+              Creator-safe local overlay for VRM / FBX avatars with explicit permissions and browser
+              follow visibility.
+            </div>
+          </div>
+          <button id="panel-close" class="ghost-button">Close</button>
+        </div>
+
+        <div class="panel-body">
+          <section class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Safety overview</h2>
+                <div class="card-copy">
+                  Capabilities stay local-only and can be granted or revoked one by one.
+                </div>
+              </div>
+              <span id="safety-runtime-badge" class="badge badge--accent">Strict local</span>
+            </div>
+            <div id="permission-chip-list" class="permission-grid"></div>
+            <div class="quick-actions" style="margin-top: 12px">
+              <button id="panel-mic-toggle" class="action-button">Start mic</button>
+              <button id="panel-camera-toggle" class="action-button">Start camera</button>
+              <button id="panel-screen-capture" class="action-button">Capture screen</button>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Setup checklist</h2>
+                <div class="card-copy">
+                  Work through the essentials first. Optional items stay visible without blocking the
+                  core setup.
+                </div>
+              </div>
+            </div>
+            <div id="setup-progress" class="progress-row"></div>
+            <ol id="setup-checklist" class="checklist"></ol>
+          </section>
+
+          <section class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Browser follow</h2>
+                <div class="card-copy">
+                  This card reflects the currently attached helper tab. Helper installation UX lands in
+                  the next slice.
+                </div>
+              </div>
+            </div>
+            <div id="browser-follow-status" class="browser-card-status"></div>
+          </section>
+
+          <section class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Asset library</h2>
+                <div class="card-copy">
+                  Import local creator-owned avatars, then switch between them without leaving the
+                  overlay.
+                </div>
+              </div>
+              <span id="asset-library-badge" class="badge badge--muted">0 assets</span>
+            </div>
+            <div class="asset-actions">
+              <button id="import-vrm" class="action-button">Import VRM</button>
+              <button id="import-fbx" class="action-button">Import FBX</button>
+            </div>
+            <div id="asset-library" class="asset-library" style="margin-top: 12px"></div>
+          </section>
+
+          <details class="card" id="compatibility-card">
+            <summary>Compatibility</summary>
+            <div class="card-copy" style="margin-top: 12px">
+              Live2D stays available as a compatibility path, but VRM and FBX remain the primary v1
+              experience.
+            </div>
+            <div class="asset-actions" style="margin-top: 12px">
+              <button id="import-live2d" class="action-button">Import Live2D</button>
+            </div>
+          </details>
+
+          <section class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Camera preview</h2>
+                <div class="card-copy">
+                  Camera preview stays inside the panel and only appears while the local camera session is
+                  active.
+                </div>
+              </div>
+              <span id="camera-preview-badge" class="badge badge--muted">Camera idle</span>
+            </div>
+            <div class="camera-meta">
+              <div id="camera-status-copy" class="info-value">
+                Camera access is off until you explicitly allow it.
+              </div>
+              <div class="camera-preview-shell">
+                <video id="camera-preview" autoplay muted playsinline></video>
+                <div id="camera-preview-empty" class="preview-empty">Camera preview appears here</div>
+              </div>
+            </div>
+            <canvas id="camera-canvas" style="display: none" width="640" height="480"></canvas>
+          </section>
+        </div>
+      </aside>
+
+      <div id="toast-region"></div>
+
+      <div id="dialog-backdrop" class="interactive" aria-hidden="true">
+        <div id="dialog-sheet">
+          <h2 id="dialog-title">Dialog</h2>
+          <p id="dialog-message"></p>
+          <div id="dialog-file-line"></div>
+          <div id="dialog-license-field" class="field">
+            <label for="dialog-license-input">Local license or source memo</label>
+            <textarea
+              id="dialog-license-input"
+              placeholder="Example: BOOTH purchase for personal local use"
+            ></textarea>
+          </div>
+          <label id="dialog-rights-row" class="checkbox-row">
+            <input id="dialog-rights-checkbox" type="checkbox" />
+            <span>
+              I have the rights to use this asset locally, and I understand that remote upload stays
+              disabled in this creator-safe build.
+            </span>
+          </label>
+          <div class="dialog-actions">
+            <button id="dialog-cancel">Cancel</button>
+            <button id="dialog-confirm">Confirm</button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- UI クローム -->
-    <div id="model-badge"></div>
-    <div id="sys-id">HAKUA★CORE</div>
-    <div id="status-text"></div>
-
-    <!-- ボタンバー -->
-    <div id="btn-bar">
-      <button class="imas-btn" id="pick-live2d" title="Live2Dモデルを選択 (.model3.json)">
-        ★ Live2D
-      </button>
-      <button class="imas-btn" id="pick-vrm" title="VRMアバターを選択 (.vrm)">♦ VRM</button>
-      <button class="imas-btn" id="pick-fbx" title="FBXモデルを選択 (.fbx)">◈ FBX</button>
-      <button id="screenshot-btn" title="スクリーンキャプチャ (AIに画面を見せる)">📸</button>
-      <button id="camera-btn" title="カメラ ON/OFF (AIにカメラ映像を見せる)">📷</button>
-      <button id="mic-btn" title="音声入力 (STT)">🎤</button>
-    </div>
-
-    <!-- 非表示ファイル入力 -->
-    <input id="input-live2d" type="file" accept=".model3.json,.model.json" style="display: none" />
-    <input id="input-vrm" type="file" accept=".vrm" style="display: none" />
-    <input id="input-fbx" type="file" accept=".fbx" style="display: none" />
-
-    <!--
-    Import map: Three.js core + @pixiv/three-vrm
-  -->
     <script type="importmap">
       {
         "imports": {
@@ -709,85 +1055,10 @@
       }
     </script>
 
-    <!-- Live2D Cubism SDK (省略可) -->
     <script
       src="./lib/live2dcubismcore.min.js"
-      onerror="console.warn('[Hakua] live2dcubismcore not found')"
+      onerror="console.warn('[Companion] live2dcubismcore not found')"
     ></script>
-
-    <!-- パーティクル生成スクリプト -->
-    <script>
-      (function () {
-        const particles = document.getElementById("particles");
-        const deco = document.getElementById("deco-layer");
-        if (!particles || !deco) return;
-
-        // スター
-        const starColors = ["#fff", "#ffd6f0", "#e0d0ff", "#b8e4ff", "#fffce0"];
-        for (let i = 0; i < 38; i++) {
-          const s = document.createElement("div");
-          s.className = "star star-drift";
-          const size = 1.5 + Math.random() * 2.5;
-          const color = starColors[Math.floor(Math.random() * starColors.length)];
-          s.style.cssText = [
-            `width:${size}px`,
-            `height:${size}px`,
-            `left:${Math.random() * 100}%`,
-            `bottom:${Math.random() * 65}%`,
-            `background:${color}`,
-            `--dur:${6 + Math.random() * 10}s`,
-            `--delay:${-Math.random() * 12}s`,
-            `--peak:${0.4 + Math.random() * 0.6}`,
-            `--dx:${(Math.random() - 0.5) * 30}px`,
-            `box-shadow:0 0 ${size * 2}px ${color}`,
-          ].join(";");
-          particles.appendChild(s);
-        }
-
-        // きらめきドット
-        for (let i = 0; i < 18; i++) {
-          const s = document.createElement("div");
-          s.className = "star";
-          const size = 1 + Math.random() * 1.5;
-          s.style.cssText = [
-            `width:${size}px`,
-            `height:${size}px`,
-            `left:${Math.random() * 100}%`,
-            `top:${Math.random() * 100}%`,
-            `--dur:${1.5 + Math.random() * 3}s`,
-            `--delay:${-Math.random() * 4}s`,
-            `--peak:${0.5 + Math.random() * 0.5}`,
-          ].join(";");
-          particles.appendChild(s);
-        }
-
-        // デコ記号 (♥ ★ ♪ ✦ ◆)
-        const decoChars = ["♥", "★", "♪", "✦", "◆", "♡", "✧", "♫"];
-        const decoColors = [
-          "rgba(255,160,210,0.7)",
-          "rgba(200,160,255,0.7)",
-          "rgba(140,200,255,0.7)",
-          "rgba(255,230,100,0.6)",
-        ];
-        for (let i = 0; i < 20; i++) {
-          const d = document.createElement("div");
-          d.className = "deco";
-          d.textContent = decoChars[Math.floor(Math.random() * decoChars.length)];
-          const color = decoColors[Math.floor(Math.random() * decoColors.length)];
-          d.style.cssText = [
-            `left:${5 + Math.random() * 90}%`,
-            `bottom:${5 + Math.random() * 85}%`,
-            `color:${color}`,
-            `font-size:${8 + Math.random() * 8}px`,
-            `--dur:${8 + Math.random() * 14}s`,
-            `--delay:${-Math.random() * 14}s`,
-            `text-shadow:0 0 6px ${color}`,
-          ].join(";");
-          deco.appendChild(d);
-        }
-      })();
-    </script>
-
     <script type="module" src="./app.js"></script>
   </body>
 </html>

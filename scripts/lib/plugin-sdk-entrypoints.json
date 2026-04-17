@@ -152,6 +152,8 @@
   "line-core",
   "line-runtime",
   "line-surface",
+  "live2d-companion",
+  "local-voice",
   "llm-task",
   "matrix",
   "matrix-helper",

@@ -651,6 +651,14 @@
       "types": "./dist/plugin-sdk/line-surface.d.ts",
       "default": "./dist/plugin-sdk/line-surface.js"
     },
+    "./plugin-sdk/live2d-companion": {
+      "types": "./dist/plugin-sdk/live2d-companion.d.ts",
+      "default": "./dist/plugin-sdk/live2d-companion.js"
+    },
+    "./plugin-sdk/local-voice": {
+      "types": "./dist/plugin-sdk/local-voice.d.ts",
+      "default": "./dist/plugin-sdk/local-voice.js"
+    },
     "./plugin-sdk/llm-task": {
       "types": "./dist/plugin-sdk/llm-task.d.ts",
       "default": "./dist/plugin-sdk/llm-task.js"

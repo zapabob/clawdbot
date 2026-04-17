@@ -14,6 +14,7 @@ import {
   playAudioData,
   mapPhonemeToViseme,
 } from "./tts.js";
+import { AudioInput } from "./audio-input.js";
 
 export type VoiceSessionState =
   | "idle"
@@ -225,67 +226,4 @@ export class VoiceSession {
 
 type AgentResponse = {
   response?: string;
-};
-
-class AudioInput {
-  private callback: ((data: Buffer) => void) | null = null;
-  private audio: unknown | null = null;
-
-  onData(callback: (data: Buffer) => void): void {
-    this.callback = callback;
-  }
-
-  start(): void {
-    try {
-      const naudiodon = require("naudiodon");
-
-      this.audio = naudiodon.AudioInput({
-        rate: 8000,
-        channels: 1,
-        format: naudiodon.AudioFormatFormatFloat32,
-      });
-
-      (this.audio as AudioInputInterface).on("data", (data: Buffer) => {
-        const muLaw = this.floatToMuLaw(data);
-        this.callback?.(muLaw);
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error("[local-voice] Failed to start audio input:", message);
-      console.error("[local-voice] Ensure naudiodon is installed: npm install naudiodon");
-    }
-  }
-
-  private floatToMuLaw(floatData: Buffer): Buffer {
-    const samples = floatData.length / 4;
-    const muLawData = Buffer.alloc(samples);
-
-    for (let i = 0; i < samples; i++) {
-      const sample = floatData.readFloatLE(i * 4);
-      muLawData[i] = this.linearToMuLaw(sample);
-    }
-
-    return muLawData;
-  }
-
-  private linearToMuLaw(sample: number): number {
-    const MU = 255;
-    const s = Math.max(-1, Math.min(1, sample));
-    const sign = s < 0 ? 0x80 : 0;
-    const absS = Math.abs(s);
-    const exponent = Math.floor((Math.log1p(MU * absS) / Math.log(1 + MU)) * 128);
-    return sign | (127 - Math.min(127, exponent));
-  }
-
-  stop(): void {
-    if (this.audio) {
-      (this.audio as AudioInputInterface).quit();
-      this.audio = null;
-    }
-  }
-}
-
-type AudioInputInterface = {
-  on(event: string, callback: (data: Buffer) => void): void;
-  quit(): void;
 };

@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "OpenClaw Desktop Companion Helper",
+  "version": "0.1.0",
+  "description": "Opt-in browser helper for the OpenClaw Desktop Companion. Attaches only the current tab and forwards local tab context through Native Messaging.",
+  "permissions": ["activeTab", "tabs", "scripting", "storage", "nativeMessaging"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Desktop Companion Helper",
+    "default_popup": "popup.html"
+  }
+}

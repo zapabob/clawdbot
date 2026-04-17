@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Desktop Companion Helper</title>
+    <style>
+      body {
+        margin: 0;
+        width: 280px;
+        min-height: 220px;
+        padding: 16px;
+        font: 13px/1.4 "Segoe UI", sans-serif;
+        background: linear-gradient(180deg, #0f1725 0%, #1a2236 100%);
+        color: #f7f1ff;
+      }
+
+      h1 {
+        margin: 0 0 6px;
+        font-size: 16px;
+      }
+
+      p {
+        margin: 0 0 12px;
+        color: #d1d6e8;
+      }
+
+      .panel {
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 12px;
+        white-space: pre-wrap;
+      }
+
+      .actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      button {
+        flex: 1;
+        height: 36px;
+        border: 0;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      #attach {
+        background: #8ad1ff;
+        color: #09243a;
+      }
+
+      #detach {
+        background: #ffc4d1;
+        color: #4e1726;
+      }
+
+      #status {
+        font-size: 12px;
+        color: #d1d6e8;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Desktop Companion</h1>
+    <p>Explicit attach only. This helper never monitors every tab.</p>
+    <div class="panel" id="summary">Loading helper state...</div>
+    <div class="actions">
+      <button id="attach">Attach Active Tab</button>
+      <button id="detach">Detach</button>
+    </div>
+    <p id="status"></p>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

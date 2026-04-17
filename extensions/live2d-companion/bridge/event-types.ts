@@ -43,6 +43,8 @@ export interface AvatarCommand {
   expression?: string;
   /** Play a named motion group */
   motion?: string;
+  /** Optional motion index within the named motion group */
+  motionIndex?: number;
   /** Speak text via TTS (triggers lip sync) */
   speakText?: string;
   /** Eye gaze direction: normalised [-1,1] per axis */
@@ -73,6 +75,7 @@ export const IPC_CHANNELS = {
   SPEAK_TEXT: "companion:speak-text",
   CONTROL: "companion:control",
   STATE_UPDATE: "companion:state-update",
+  RUNTIME_STATE: "companion:runtime-state",
   AVATAR_COMMAND: "companion:avatar-command",
   // Screen capture
   SCREENSHOT_REQUEST: "companion:screenshot-request",

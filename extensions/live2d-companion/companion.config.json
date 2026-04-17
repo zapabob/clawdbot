@@ -12,6 +12,26 @@
   "gatewayUrl": "http://127.0.0.1:18789",
   "controlPort": 18791,
   "stateDir": ".openclaw-desktop",
+  "security": {
+    "allowLegacyHttpControl": false,
+    "allowLegacyFlagTransport": false
+  },
+  "browserHelper": {
+    "enabled": true,
+    "nativeHostName": "io.openclaw.desktop_companion",
+    "persistentFollow": true
+  },
+  "assetPolicy": {
+    "requireRightsAck": true,
+    "importMode": "local-reference",
+    "remoteUploadAllowed": false
+  },
+  "capturePolicy": {
+    "mic": "deny-until-approved",
+    "camera": "deny-until-approved",
+    "screen": "deny-until-approved",
+    "tab-follow": "deny-until-approved"
+  },
   "window": {
     "width": 380,
     "height": 480,

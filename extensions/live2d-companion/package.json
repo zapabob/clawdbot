@@ -1,8 +1,8 @@
 {
   "name": "@openclaw/live2d-companion",
-  "version": "2026.3.20",
+  "version": "2026.4.17",
   "private": true,
-  "description": "Hakua Live2D Desktop Companion - transparent Electron window with pixi-live2d-display",
+  "description": "OpenClaw Desktop Companion - strict-local desktop overlay with VRM, FBX, and Live2D support",
   "type": "module",
   "main": "electron/main.js",
   "scripts": {
@@ -20,7 +20,11 @@
     "@types/node": "^20.0.0",
     "@types/three": "^0.164.0",
     "electron": "^28.0.0",
+    "openclaw": "workspace:*",
     "typescript": "^5.3.0"
+  },
+  "peerDependencies": {
+    "openclaw": "workspace:*"
   },
   "openclaw": {
     "extensions": [

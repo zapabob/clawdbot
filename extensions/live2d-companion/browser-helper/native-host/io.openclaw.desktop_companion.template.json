@@ -1,0 +1,7 @@
+{
+  "name": "io.openclaw.desktop_companion",
+  "description": "Native Messaging bridge for the OpenClaw Desktop Companion browser helper",
+  "path": "REPLACE_WITH_ABSOLUTE_PATH_TO_native-host.mjs",
+  "type": "stdio",
+  "allowed_origins": ["chrome-extension://REPLACE_WITH_EXTENSION_ID/"]
+}
