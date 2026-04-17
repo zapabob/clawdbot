@@ -1,6 +1,9 @@
 node_modules
 **/node_modules/
 .env
+.env.*
+!.env.example
+!.env.atlas.example
 .env.local
 .env.secrets
 docker-compose.extra.yml
@@ -112,6 +115,7 @@ apps/ios/fastlane/screenshots/
 apps/ios/fastlane/test_output/
 apps/ios/fastlane/logs/
 apps/ios/fastlane/.env
+!apps/ios/fastlane/.env.example
 
 # fastlane build artifacts (local)
 apps/ios/*.ipa

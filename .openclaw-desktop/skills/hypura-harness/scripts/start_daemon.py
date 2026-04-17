@@ -12,7 +12,8 @@ DAEMON_URL = "http://127.0.0.1:18794/status"
 # skills/hypura-harness/scripts/ -> repo root is parents[3]
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 PID_FILE = _REPO_ROOT / ".openclaw-desktop" / "harness_daemon.pid"
-HARNESS_DIR = _REPO_ROOT / "scripts" / "hypura"
+HARNESS_DIR = _REPO_ROOT / "extensions" / "hypura-harness" / "scripts"
+HARNESS_SCRIPT = HARNESS_DIR / "harness_daemon.py"
 TIMEOUT_SEC = 10
 POLL_INTERVAL_SEC = 0.5
 
@@ -29,6 +30,10 @@ def start() -> None:
     if is_running():
         print("[hypura] Daemon already running.")
         return
+
+    if not HARNESS_SCRIPT.exists():
+        print(f"[hypura] ERROR: harness daemon not found at {HARNESS_SCRIPT}", file=sys.stderr)
+        sys.exit(1)
 
     print("[hypura] Starting harness daemon...")
     proc = subprocess.Popen(

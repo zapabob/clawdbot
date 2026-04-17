@@ -133,15 +133,15 @@ openclaw config set models.providers.hypura.baseUrl=http://127.0.0.1:8080
 
 ## Environment variables
 
-| Variable                       | Description                                                         |
-| ------------------------------ | ------------------------------------------------------------------- |
-| `HAKUA_HYPURA_EXE` / `HYPURA_EXE` | Full path to `hypura.exe` when not on PATH (OpenClaw launchers use this first). |
-| `HAKUA_HYPURA_GGUF` / `HYPURA_GGUF` | Full path to `.gguf` for `launch-desktop-stack` auto-start.         |
-| `HYPURA_CUDA_ARCHITECTURES`    | CUDA sm targets (default: `75;86;89;90`)                            |
-| `HYPURA_NO_CUDA`               | Disable CUDA auto-detection                                         |
-| `HYPURA_CUDA`                  | Force CUDA even without auto-detection                              |
-| `HYPURA_PREGENERATED_BINDINGS` | Path to pre-generated bindgen bindings                              |
-| `LIBCLANG_PATH`                | Path to `libclang.dll` (Windows, e.g., `C:\Program Files\LLVM\bin`) |
+| Variable                            | Description                                                                     |
+| ----------------------------------- | ------------------------------------------------------------------------------- |
+| `HAKUA_HYPURA_EXE` / `HYPURA_EXE`   | Full path to `hypura.exe` when not on PATH (OpenClaw launchers use this first). |
+| `HAKUA_HYPURA_GGUF` / `HYPURA_GGUF` | Full path to `.gguf` for `launch-desktop-stack` auto-start.                     |
+| `HYPURA_CUDA_ARCHITECTURES`         | CUDA sm targets (default: `75;86;89;90`)                                        |
+| `HYPURA_NO_CUDA`                    | Disable CUDA auto-detection                                                     |
+| `HYPURA_CUDA`                       | Force CUDA even without auto-detection                                          |
+| `HYPURA_PREGENERATED_BINDINGS`      | Path to pre-generated bindgen bindings                                          |
+| `LIBCLANG_PATH`                     | Path to `libclang.dll` (Windows, e.g., `C:\Program Files\LLVM\bin`)             |
 
 ---
 
