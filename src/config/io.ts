@@ -14,6 +14,7 @@ import {
   shouldEnableShellEnvFallback,
 } from "../infra/shell-env.js";
 import { listPluginDoctorLegacyConfigRules } from "../plugins/doctor-contract-registry.js";
+import { runPluginSetupConfigMigrations } from "../plugins/setup-registry.js";
 import { sanitizeTerminalText } from "../terminal/safe-text.js";
 import { VERSION } from "../version.js";
 import { DuplicateAgentDirError, findDuplicateAgentDirs } from "./agent-dirs.js";
@@ -1648,6 +1649,30 @@ function resolveLegacyConfigForRead(
   return { effectiveConfigRaw: resolvedConfigRaw, sourceLegacyIssues };
 }
 
+function resolvePluginSetupMigrationWorkspaceDir(config: OpenClawConfig): string | undefined {
+  const workspace = config.agents?.defaults?.workspace;
+  return typeof workspace === "string" && workspace.trim().length > 0 ? workspace : undefined;
+}
+
+function applyPluginSetupConfigMigrationsForRead(
+  resolvedConfigRaw: unknown,
+  env: NodeJS.ProcessEnv,
+): unknown {
+  if (
+    !resolvedConfigRaw ||
+    typeof resolvedConfigRaw !== "object" ||
+    Array.isArray(resolvedConfigRaw)
+  ) {
+    return resolvedConfigRaw;
+  }
+  const config = resolvedConfigRaw as OpenClawConfig;
+  return runPluginSetupConfigMigrations({
+    config,
+    env,
+    workspaceDir: resolvePluginSetupMigrationWorkspaceDir(config),
+  }).config;
+}
+
 type ReadConfigFileSnapshotInternalResult = {
   snapshot: ConfigFileSnapshot;
   envSnapshotForRestore?: Record<string, string | undefined>;
@@ -1734,7 +1759,10 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
       );
       const resolvedConfig = readResolution.resolvedConfigRaw;
       const legacyResolution = resolveLegacyConfigForRead(resolvedConfig, effectiveParsed);
-      const effectiveConfigRaw = legacyResolution.effectiveConfigRaw;
+      const effectiveConfigRaw = applyPluginSetupConfigMigrationsForRead(
+        legacyResolution.effectiveConfigRaw,
+        deps.env,
+      );
       for (const w of readResolution.envWarnings) {
         deps.logger.warn(
           `Config (${configPath}): missing env var "${w.varName}" at ${w.configPath} - feature using this value will be unavailable`,
@@ -1992,7 +2020,10 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
 
       const resolvedConfigRaw = readResolution.resolvedConfigRaw;
       const legacyResolution = resolveLegacyConfigForRead(resolvedConfigRaw, effectiveParsed);
-      const effectiveConfigRaw = legacyResolution.effectiveConfigRaw;
+      const effectiveConfigRaw = applyPluginSetupConfigMigrationsForRead(
+        legacyResolution.effectiveConfigRaw,
+        deps.env,
+      );
 
       const validated = validateConfigObjectWithPlugins(effectiveConfigRaw, { env: deps.env });
       if (!validated.ok) {

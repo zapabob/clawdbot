@@ -38,9 +38,6 @@
         "type": "number",
         "minimum": 0
       },
-      "codexHarness": {
-        "type": "boolean"
-      },
       "mcpServers": {
         "type": "object",
         "additionalProperties": {
@@ -69,6 +66,7 @@
         "type": "object",
         "additionalProperties": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "command": {
               "type": "string",
@@ -115,11 +113,6 @@
     "queueOwnerTtlSeconds": {
       "label": "Queue Owner TTL Seconds",
       "help": "Reserved compatibility field for future queued embedded prompt ownership.",
-      "advanced": true
-    },
-    "codexHarness": {
-      "label": "Codex Harness",
-      "help": "Inject Codex harness environment variables into ACPX prompt turns for local OpenClaw orchestration.",
       "advanced": true
     },
     "mcpServers": {

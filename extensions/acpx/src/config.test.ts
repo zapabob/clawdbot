@@ -1,7 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { resolveAcpxPluginConfig, resolveAcpxPluginRoot } from "./config.js";
+import {
+  createAcpxPluginConfigSchema,
+  resolveAcpxPluginConfig,
+  resolveAcpxPluginRoot,
+} from "./config.js";
 
 describe("embedded acpx plugin config", () => {
   it("resolves workspace stateDir and cwd by default", () => {
@@ -11,8 +15,8 @@ describe("embedded acpx plugin config", () => {
       workspaceDir,
     });
 
-    expect(resolved.cwd).toBe(workspaceDir);
-    expect(resolved.stateDir).toBe(path.join(workspaceDir, "state"));
+    expect(resolved.cwd).toBe(path.resolve(workspaceDir));
+    expect(resolved.stateDir).toBe(path.resolve(path.join(workspaceDir, "state")));
     expect(resolved.permissionMode).toBe("approve-reads");
     expect(resolved.nonInteractivePermissions).toBe("fail");
     expect(resolved.agents).toEqual({});
@@ -50,21 +54,25 @@ describe("embedded acpx plugin config", () => {
     expect(server.args?.length).toBeGreaterThan(0);
   });
 
+  it("ignores the legacy codexHarness config key", () => {
+    const resolved = resolveAcpxPluginConfig({
+      rawConfig: {
+        permissionMode: "approve-all",
+        codexHarness: true,
+      },
+      workspaceDir: "/tmp/openclaw-acpx",
+    });
+
+    expect(resolved.permissionMode).toBe("approve-all");
+    expect(resolved.pluginToolsMcpBridge).toBe(false);
+  });
+
   it("keeps the runtime json schema in sync with the manifest config schema", () => {
     const pluginRoot = resolveAcpxPluginRoot();
     const manifest = JSON.parse(
       fs.readFileSync(path.join(pluginRoot, "openclaw.plugin.json"), "utf8"),
     ) as { configSchema?: unknown };
 
-    expect(manifest.configSchema).toMatchObject({
-      type: "object",
-      additionalProperties: false,
-      properties: expect.objectContaining({
-        cwd: expect.any(Object),
-        stateDir: expect.any(Object),
-        agents: expect.any(Object),
-        mcpServers: expect.any(Object),
-      }),
-    });
+    expect(createAcpxPluginConfigSchema().jsonSchema).toEqual(manifest.configSchema);
   });
 });

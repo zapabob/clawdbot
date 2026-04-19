@@ -111,6 +111,18 @@ type ParseResult =
   | { ok: true; value: AcpxPluginConfig | undefined }
   | { ok: false; message: string };
 
+function stripLegacyAcpxConfigKeys(value: unknown): unknown {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return value;
+  }
+  const record = value as Record<string, unknown>;
+  if (!Object.prototype.hasOwnProperty.call(record, "codexHarness")) {
+    return value;
+  }
+  const { codexHarness: _legacyCodexHarness, ...rest } = record;
+  return rest;
+}
+
 function formatAcpxConfigIssue(issue: z.ZodIssue | undefined): string {
   if (!issue) {
     return "invalid config";
@@ -128,7 +140,7 @@ function parseAcpxPluginConfig(value: unknown): ParseResult {
   if (value === undefined) {
     return { ok: true, value: undefined };
   }
-  const parsed = AcpxPluginConfigSchema.safeParse(value);
+  const parsed = AcpxPluginConfigSchema.safeParse(stripLegacyAcpxConfigKeys(value));
   if (!parsed.success) {
     return { ok: false, message: formatAcpxConfigIssue(parsed.error.issues[0]) };
   }

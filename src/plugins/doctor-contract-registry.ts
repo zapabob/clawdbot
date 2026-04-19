@@ -63,12 +63,32 @@ function resolveContractApiPath(rootDir: string): string | null {
   const orderedExtensions = RUNNING_FROM_BUILT_ARTIFACT
     ? CONTRACT_API_EXTENSIONS
     : ([...CONTRACT_API_EXTENSIONS.slice(3), ...CONTRACT_API_EXTENSIONS.slice(0, 3)] as const);
-  for (const extension of orderedExtensions) {
-    const candidate = path.join(rootDir, `contract-api${extension}`);
-    if (fs.existsSync(candidate)) {
-      return candidate;
+
+  const findContractApi = (candidateRootDir: string): string | null => {
+    for (const extension of orderedExtensions) {
+      const candidate = path.join(candidateRootDir, `contract-api${extension}`);
+      if (fs.existsSync(candidate)) {
+        return candidate;
+      }
+    }
+    return null;
+  };
+
+  const direct = findContractApi(rootDir);
+  if (direct) {
+    return direct;
+  }
+
+  const bundledExtensionDir = path.basename(rootDir);
+  const repoRoot = path.resolve(path.dirname(CURRENT_MODULE_PATH), "..", "..");
+  const sourceExtensionRoot = path.join(repoRoot, "extensions", bundledExtensionDir);
+  if (sourceExtensionRoot !== rootDir) {
+    const sourceFallback = findContractApi(sourceExtensionRoot);
+    if (sourceFallback) {
+      return sourceFallback;
     }
   }
+
   return null;
 }
 

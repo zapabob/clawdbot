@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -46,18 +47,6 @@ function dependencyNodeModulesPath(nodeModulesDir, depName) {
   return path.join(nodeModulesDir, ...depName.split("/"));
 }
 
-function readInstalledDependencyVersion(nodeModulesDir, depName) {
-  const packageJsonPath = path.join(
-    dependencyNodeModulesPath(nodeModulesDir, depName),
-    "package.json",
-  );
-  if (!fs.existsSync(packageJsonPath)) {
-    return null;
-  }
-  const version = readJson(packageJsonPath).version;
-  return typeof version === "string" ? version : null;
-}
-
 function dependencyVersionSatisfied(spec, installedVersion) {
   return semverSatisfies(installedVersion, spec, { includePrerelease: false });
 }
@@ -66,40 +55,94 @@ const stagedRuntimeDepPruneRules = new Map([
   // Type declarations only; runtime resolves through lib/es entrypoints.
   ["@larksuiteoapi/node-sdk", ["types"]],
 ]);
-const runtimeDepsStagingVersion = 2;
+const runtimeDepsStagingVersion = 3;
 
-function collectInstalledRuntimeClosure(rootNodeModulesDir, dependencySpecs) {
-  const packageCache = new Map();
-  const closure = new Set();
-  const queue = Object.entries(dependencySpecs);
+function isPathInside(parentPath, childPath) {
+  const relativePath = path.relative(parentPath, childPath);
+  return (
+    relativePath.length > 0 && !relativePath.startsWith("..") && !path.isAbsolute(relativePath)
+  );
+}
+
+function resolveInstalledDependency(rootNodeModulesDir, resolveFromDir, depName) {
+  let packageJsonPath;
+  try {
+    const resolver = createRequire(path.join(resolveFromDir, "__openclaw-runtime-deps__.cjs"));
+    packageJsonPath = resolver.resolve(`${depName}/package.json`);
+  } catch {
+    return null;
+  }
+
+  const packageDir = path.dirname(packageJsonPath);
+  if (!isPathInside(rootNodeModulesDir, packageDir)) {
+    return null;
+  }
+
+  const packageJson = readJson(packageJsonPath);
+  const version = typeof packageJson.version === "string" ? packageJson.version : null;
+  if (version === null) {
+    return null;
+  }
+
+  return {
+    packageDir,
+    packageJson,
+    relativeNodeModulesPath: path.relative(rootNodeModulesDir, packageDir),
+    version,
+  };
+}
+
+function collectInstalledRuntimeClosure(repoRoot, rootNodeModulesDir, dependencySpecs) {
+  const closure = new Map();
+  const queue = Object.entries(dependencySpecs).map(([depName, spec]) => ({
+    depName,
+    resolveFromDir: repoRoot,
+    spec,
+  }));
 
   while (queue.length > 0) {
-    const [depName, spec] = queue.shift();
-    const installedVersion = readInstalledDependencyVersion(rootNodeModulesDir, depName);
-    if (installedVersion === null || !dependencyVersionSatisfied(spec, installedVersion)) {
-      return null;
-    }
-    if (closure.has(depName)) {
+    const nextEntry = queue.shift();
+    if (!nextEntry) {
       continue;
     }
-
-    const packageJsonPath = path.join(
-      dependencyNodeModulesPath(rootNodeModulesDir, depName),
-      "package.json",
+    const resolvedDependency = resolveInstalledDependency(
+      rootNodeModulesDir,
+      nextEntry.resolveFromDir,
+      nextEntry.depName,
     );
-    const packageJson = packageCache.get(depName) ?? readJson(packageJsonPath);
-    packageCache.set(depName, packageJson);
-    closure.add(depName);
-
-    for (const [childName, childSpec] of Object.entries(packageJson.dependencies ?? {})) {
-      queue.push([childName, childSpec]);
+    if (
+      resolvedDependency === null ||
+      !dependencyVersionSatisfied(nextEntry.spec, resolvedDependency.version)
+    ) {
+      return null;
     }
-    for (const [childName, childSpec] of Object.entries(packageJson.optionalDependencies ?? {})) {
-      queue.push([childName, childSpec]);
+
+    if (closure.has(resolvedDependency.relativeNodeModulesPath)) {
+      continue;
+    }
+    closure.set(resolvedDependency.relativeNodeModulesPath, resolvedDependency);
+
+    for (const [childName, childSpec] of Object.entries(
+      resolvedDependency.packageJson.dependencies ?? {},
+    )) {
+      queue.push({
+        depName: childName,
+        resolveFromDir: resolvedDependency.packageDir,
+        spec: childSpec,
+      });
+    }
+    for (const [childName, childSpec] of Object.entries(
+      resolvedDependency.packageJson.optionalDependencies ?? {},
+    )) {
+      queue.push({
+        depName: childName,
+        resolveFromDir: resolvedDependency.packageDir,
+        spec: childSpec,
+      });
     }
   }
 
-  return [...closure];
+  return [...closure.values()];
 }
 
 function pruneStagedInstalledDependencyCargo(nodeModulesDir, depName) {
@@ -226,8 +269,12 @@ function stageInstalledRootRuntimeDeps(params) {
     return false;
   }
 
-  const dependencyNames = collectInstalledRuntimeClosure(rootNodeModulesDir, dependencySpecs);
-  if (dependencyNames === null) {
+  const resolvedDependencies = collectInstalledRuntimeClosure(
+    repoRoot,
+    rootNodeModulesDir,
+    dependencySpecs,
+  );
+  if (resolvedDependencies === null) {
     return false;
   }
 
@@ -242,9 +289,12 @@ function stageInstalledRootRuntimeDeps(params) {
   );
 
   try {
-    for (const depName of dependencyNames) {
-      const sourcePath = dependencyNodeModulesPath(rootNodeModulesDir, depName);
-      const targetPath = dependencyNodeModulesPath(stagedNodeModulesDir, depName);
+    for (const resolvedDependency of resolvedDependencies) {
+      const sourcePath = resolvedDependency.packageDir;
+      const targetPath = path.join(
+        stagedNodeModulesDir,
+        ...resolvedDependency.relativeNodeModulesPath.split(path.sep),
+      );
       fs.mkdirSync(path.dirname(targetPath), { recursive: true });
       fs.cpSync(sourcePath, targetPath, { recursive: true, force: true, dereference: true });
     }
