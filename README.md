@@ -128,6 +128,9 @@ pnpm build
 
 - **OpenClaw core vs Sovereign overlay** (what is upstream-shaped vs fork-specific, no-delete policy): [\_docs/2026-04-05_OpenClaw-layout-Sovereign-overlay_clawdbot-main.md](_docs/2026-04-05_OpenClaw-layout-Sovereign-overlay_clawdbot-main.md).
 - **Hypura harness** (daemon, config, Windows launchers, plugin tools): [extensions/hypura-harness/README.md](extensions/hypura-harness/README.md).
+- **Root map** (official root, sanctioned overlay, legacy capture, vendor submodules): [docs/help/repo-layout.md](docs/help/repo-layout.md).
+- **External repos** now live under `vendor/submodules/`, with `vendor/submodules/vrchat-mcp-osc` as the canonical VRChat MCP location.
+- **Desktop state** is tracked only as a minimal scaffold in `.openclaw-desktop/`; historical tracked runtime payloads were relocated to `_artifacts/runtime-captured/`.
 
 ### Manifestation (顕現)
 

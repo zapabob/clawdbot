@@ -155,6 +155,7 @@ export class FbxController {
         this.mixer = new this.three.AnimationMixer(fbx);
         this.clips = fbx.animations ?? [];
         this.resolveLipMeshes(fbx);
+        this.playDefaultMotion();
     }
     /** Load FBX from an ArrayBuffer — works reliably without URL/XHR restrictions. */
     async reloadModelFromBuffer(buffer, filePath) {
@@ -183,6 +184,7 @@ export class FbxController {
         this.mixer = new this.three.AnimationMixer(fbx);
         this.clips = fbx.animations ?? [];
         this.resolveLipMeshes(fbx);
+        this.playDefaultMotion();
     }
     playMotion(group, index = 0, loop = false) {
         if (!this.mixer || !this.clips.length || !this.three)
@@ -273,6 +275,19 @@ export class FbxController {
                 mesh.morphTargetInfluences[idx] = value;
             }
         });
+    }
+    playDefaultMotion() {
+        if (!this.mixer || !this.three || this.clips.length === 0) {
+            return;
+        }
+        const preferredClip = this.clips.find((clip) => /idle|stand|breath/i.test(clip.name)) ?? this.clips[0];
+        if (!preferredClip) {
+            return;
+        }
+        this.mixer.stopAllAction();
+        const action = this.mixer.clipAction(preferredClip);
+        action.setLoop(this.three.LoopRepeat, Infinity);
+        action.reset().play();
     }
     startRenderLoop() {
         const loop = () => {

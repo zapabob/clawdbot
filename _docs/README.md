@@ -1,12 +1,11 @@
-# \_docs/
+# _docs/
 
-Sovereign / Antigravity 作業の実装ログ・HANDOFF・設定の正のメモ。時系列でファイル名に日付を含めます。
+Implementation logs, handoff notes, and fork-specific operating documents live here.
 
-ルート掃除で退避した作業ファイル: リポジトリの `_artifacts/root-captured/`（説明は `_artifacts/README.md`）。
+Use `_docs/` for:
 
-優先して読むもの:
+- historical implementation notes
+- handoff and operator runbooks
+- workspace overlay notes moved out of the canonical root
 
-- `2026-04-05_OpenClaw-layout-Sovereign-overlay_clawdbot-main.md` — 公式ディレクトリ vs Sovereign オーバーレイ、Hypura 正規パス
-- `2026-03-28_OpenClaw_Config_Source_of_Truth_clawdbot-main.md` — `openclaw.json` の所在と `OPENCLAW_CONFIG_PATH`
-- `HANDOFF_Antigravity_2026-03-28.md` — ATLAS / Redis / Docker ループ
-- `2026-03-28_Repository_Organization_Antigravity.md` — ディレクトリ整理方針（削除なし・移動のみ）
+Use [`_artifacts/`](../_artifacts/README.md) for relocated files and captured runtime payloads instead of adding dumps here.

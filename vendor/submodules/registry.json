@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "repos": [
+    {
+      "id": "vrchat-mcp-osc",
+      "path": "vendor/submodules/vrchat-mcp-osc",
+      "source": {
+        "url": "https://github.com/Krekun/vrchat-mcp-osc.git",
+        "ref": "bd125daa1c3a04feac68f1d9addf615e2e23f90e"
+      },
+      "runtime": "node",
+      "presets": {
+        "status": {
+          "command": ["git", "status", "--short", "--branch"]
+        },
+        "build": {
+          "command": ["pnpm", "build"]
+        },
+        "test": {
+          "command": ["pnpm", "test"]
+        },
+        "dev": {
+          "command": ["pnpm", "dev"]
+        }
+      }
+    }
+  ]
+}

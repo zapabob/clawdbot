@@ -213,6 +213,7 @@ export class VrmController implements IAvatarController {
     if (this.mixer) this.mixer.stopAllAction();
     this.mixer = new this.three.AnimationMixer(vrm.scene);
     this.clips = gltf.animations ?? [];
+    this.playDefaultMotion();
   }
 
   /** Load VRM from an ArrayBuffer — works reliably without URL/XHR restrictions. */
@@ -253,6 +254,7 @@ export class VrmController implements IAvatarController {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     this.mixer = new this.three!.AnimationMixer(vrm.scene);
     this.clips = gltf.animations ?? [];
+    this.playDefaultMotion();
   }
 
   playMotion(group: string, index = 0, loop = false): void {
@@ -266,6 +268,21 @@ export class VrmController implements IAvatarController {
     const action = this.mixer.clipAction(clip);
     action.setLoop(loop ? this.three.LoopRepeat : this.three.LoopOnce, Infinity);
     action.clampWhenFinished = !loop;
+    action.reset().play();
+  }
+
+  private playDefaultMotion(): void {
+    if (!this.mixer || !this.three || this.clips.length === 0) {
+      return;
+    }
+    const preferredClip =
+      this.clips.find((clip) => /idle|stand|breath/i.test(clip.name)) ?? this.clips[0];
+    if (!preferredClip) {
+      return;
+    }
+    this.mixer.stopAllAction();
+    const action = this.mixer.clipAction(preferredClip);
+    action.setLoop(this.three.LoopRepeat, Infinity);
     action.reset().play();
   }
 

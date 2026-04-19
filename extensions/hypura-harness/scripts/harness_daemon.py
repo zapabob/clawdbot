@@ -7,6 +7,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Any, Literal
 
@@ -43,11 +44,13 @@ def is_vrchat_active() -> bool:
     return False
 
 DEFAULT_DAEMON_PORT = 18794
+DEFAULT_GATEWAY_BASE_URL = "http://127.0.0.1:18789"
 
 logger = logging.getLogger(__name__)
 ROOT = Path(__file__).parent
 REPO_ROOT = ROOT.parent.parent.parent
 CONFIG_PATH = ROOT.parent / "config" / "harness.config.json"
+DEFAULT_OPENCLAW_CONFIG_PATH = REPO_ROOT / ".openclaw-desktop" / "openclaw.json"
 config: dict[str, Any] = {}
 job_store: JobStore | None = None
 
@@ -84,6 +87,7 @@ skill_gen: SkillGenerator = SkillGenerator()
 shinka: ShinkaAdapter = ShinkaAdapter()
 companion_bridge: CompanionBridge = CompanionBridge(
     config.get("companion_url", "http://127.0.0.1:18791"),
+    repo_root=REPO_ROOT,
 )
 web_scavenger: WebScavenger = WebScavenger()
 knowledge_graph: KnowledgeGraphShinka = KnowledgeGraphShinka()
@@ -105,6 +109,23 @@ class SpeakRequest(BaseModel):
     emotion: str = "neutral"
     speaker: int = 8
     scene: list[dict[str, Any]] = []
+
+
+class CompanionControlRequest(BaseModel):
+    action: Literal[
+        "speak", "emotion", "motion", "expression", "look_at", "load_model"
+    ]
+    value: str | None = None
+    motion_index: int = 0
+    x: float | None = None
+    y: float | None = None
+    model_path: str | None = None
+
+
+class SubmoduleRunRequest(BaseModel):
+    repoId: str
+    preset: str
+    extraArgs: list[str] = []
 
 
 class RunRequest(BaseModel):
@@ -163,6 +184,48 @@ def _get_job_store() -> JobStore:
     if job_store is None:
         job_store = JobStore(resolve_artifacts_root(config) / "jobs")
     return job_store
+
+
+def _resolve_gateway_base_url() -> str:
+    env_base_url = os.environ.get("OPENCLAW_GATEWAY_URL", "").strip()
+    if env_base_url:
+        return env_base_url.rstrip("/")
+    raw = config.get("gateway_base_url")
+    if isinstance(raw, str) and raw.strip():
+        return raw.strip().rstrip("/")
+    return DEFAULT_GATEWAY_BASE_URL
+
+
+def _resolve_gateway_config_path() -> Path:
+    override = os.environ.get("OPENCLAW_CONFIG_PATH", "").strip()
+    if override:
+        return Path(override).expanduser()
+    return DEFAULT_OPENCLAW_CONFIG_PATH
+
+
+def _resolve_gateway_auth_token() -> str | None:
+    env_token = os.environ.get("OPENCLAW_GATEWAY_TOKEN", "").strip()
+    if env_token:
+        return env_token
+    config_path = _resolve_gateway_config_path()
+    if not config_path.exists():
+        return None
+    try:
+        cfg = json.loads(config_path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    gateway = cfg.get("gateway")
+    if not isinstance(gateway, dict):
+        return None
+    auth = gateway.get("auth")
+    if not isinstance(auth, dict):
+        return None
+    token = auth.get("token")
+    if isinstance(token, str):
+        normalized = token.strip()
+        if normalized:
+            return normalized
+    return None
 
 
 @app.get("/status")
@@ -298,6 +361,102 @@ async def speak(req: SpeakRequest) -> dict:
     return {"success": True}
 
 
+@app.post("/companion/control")
+async def companion_control(req: CompanionControlRequest) -> dict[str, Any]:
+    try:
+        if req.action == "speak":
+            if not req.value:
+                raise HTTPException(status_code=400, detail="value required for speak")
+            await companion_bridge.forward_speak(req.value, "neutral")
+        elif req.action == "emotion":
+            if not req.value:
+                raise HTTPException(status_code=400, detail="value required for emotion")
+            await companion_bridge.forward_emotion(req.value)
+        elif req.action == "motion":
+            if not req.value:
+                raise HTTPException(status_code=400, detail="value required for motion")
+            await companion_bridge.forward_motion(req.value, req.motion_index)
+        elif req.action == "expression":
+            if not req.value:
+                raise HTTPException(status_code=400, detail="value required for expression")
+            await companion_bridge.forward_expression(req.value)
+        elif req.action == "look_at":
+            if req.x is None or req.y is None:
+                raise HTTPException(status_code=400, detail="x and y required for look_at")
+            await companion_bridge.forward_look(req.x, req.y)
+        elif req.action == "load_model":
+            if not req.model_path:
+                raise HTTPException(status_code=400, detail="model_path required for load_model")
+            requested_model_path = Path(req.model_path).expanduser()
+            resolved_model_path = (
+                requested_model_path
+                if requested_model_path.is_absolute()
+                else (REPO_ROOT / requested_model_path)
+            )
+            await companion_bridge.forward_load_model(str(resolved_model_path.resolve()))
+        else:
+            raise HTTPException(status_code=400, detail=f"Unknown companion action: {req.action}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Companion control error: %s", e)
+        return {"success": False, "error": str(e)}
+    return {"success": True, "action": req.action}
+
+
+@app.post("/submodule/run")
+async def submodule_run(req: SubmoduleRunRequest) -> dict[str, Any]:
+    token = _resolve_gateway_auth_token()
+    if not token:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Gateway auth token unavailable. Set OPENCLAW_GATEWAY_TOKEN or configure "
+                "gateway.auth.token in the active openclaw.json before using /submodule/run."
+            ),
+        )
+
+    gateway_base_url = _resolve_gateway_base_url()
+    body = {
+        "tool": "submodule_run",
+        "args": {
+            "repoId": req.repoId,
+            "preset": req.preset,
+            "extraArgs": req.extraArgs,
+        },
+    }
+    try:
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(
+                f"{gateway_base_url}/tools/invoke",
+                json=body,
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "x-openclaw-message-channel": "node",
+                },
+            )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Failed to reach OpenClaw gateway at {gateway_base_url}: {exc}",
+        ) from exc
+
+    payload: dict[str, Any]
+    try:
+        payload = response.json()
+    except Exception:
+        payload = {"ok": False, "raw": response.text}
+
+    if not response.is_success:
+        detail = payload.get("error") if isinstance(payload.get("error"), dict) else payload
+        raise HTTPException(status_code=response.status_code, detail=detail)
+
+    result = payload.get("result")
+    if isinstance(result, dict):
+        return result
+    return {"ok": False, "status": "invalid-result", "gateway": payload}
+
+
 @app.post("/reload")
 async def reload_config_endpoint() -> dict[str, Any]:
     global companion_bridge, job_store
@@ -305,6 +464,7 @@ async def reload_config_endpoint() -> dict[str, Any]:
     job_store = None
     companion_bridge = CompanionBridge(
         cfg.get("companion_url", "http://127.0.0.1:18791"),
+        repo_root=REPO_ROOT,
     )
     return {"reloaded": True, "config": cfg}
 

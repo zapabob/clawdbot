@@ -1,9 +1,14 @@
-# \_artifacts/
+# _artifacts/
 
-リポジトリルートを公式 OpenClaw レイアウトに近づけるため、**削除せず退避した**作業用ファイル用の領域です（`logs/` は `.gitignore` 対象のため、Git に残したい説明と `.txt`/`.csv` はここに置く）。
+Captured files that were deliberately relocated out of the canonical root layout.
 
-| パス             | 内容                                                                                                    |
-| ---------------- | ------------------------------------------------------------------------------------------------------- |
-| `root-captured/` | 以前ルートにあった診断 `.txt` / `.csv`（`.log` はリポジトリ全体で `*.log` ignore のためコミット対象外） |
+Use this directory for:
 
-ランタイムログは引き続きローカルの `logs/` を使用してください。
+- `root-captured/`: loose root files that should not stay at repository root.
+- `legacy-desktop/`: historical desktop-only helpers that are no longer canonical.
+- `legacy-workspaces/`: preserved workspace overlays such as the old `brain/` tree.
+- `runtime-captured/`: tracked runtime payloads moved out of `.openclaw-desktop/`.
+- `vendor-imports/`: captured nested-repo state kept before converting to real submodules.
+- `repo-layout/`: manifests describing root realignment moves.
+
+This directory is a relocation target, not a new working root.

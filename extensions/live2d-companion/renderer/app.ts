@@ -10,6 +10,7 @@ import type {
   CompanionRuntimeState,
 } from "../runtime-api.js";
 import companionConfig from "../companion.config.json" with { type: "json" };
+import { shouldAutoExpandCompanionPanel } from "../companion-startup.js";
 import type { IAvatarController } from "./avatar-controller.js";
 import { createAvatarController, inferAvatarType, type AvatarType } from "./avatar-factory.js";
 import { applyEmotion, detectEmotion } from "./emotion-mapper.js";
@@ -313,6 +314,13 @@ async function main(): Promise<void> {
   const setupProgress = requireElement<HTMLDivElement>("setup-progress");
   const setupChecklist = requireElement<HTMLOListElement>("setup-checklist");
   const browserFollowStatus = requireElement<HTMLDivElement>("browser-follow-status");
+  const avatarActionIdle = requireElement<HTMLButtonElement>("avatar-action-idle");
+  const avatarActionHappy = requireElement<HTMLButtonElement>("avatar-action-happy");
+  const avatarActionSurprised = requireElement<HTMLButtonElement>("avatar-action-surprised");
+  const avatarActionLookLeft = requireElement<HTMLButtonElement>("avatar-action-look-left");
+  const avatarActionLookCenter = requireElement<HTMLButtonElement>("avatar-action-look-center");
+  const avatarActionLookRight = requireElement<HTMLButtonElement>("avatar-action-look-right");
+  const avatarActionDemoSpeak = requireElement<HTMLButtonElement>("avatar-action-demo-speak");
   const assetLibraryBadge = requireElement<HTMLSpanElement>("asset-library-badge");
   const assetLibrary = requireElement<HTMLDivElement>("asset-library");
   const importVrmButton = requireElement<HTMLButtonElement>("import-vrm");
@@ -338,8 +346,15 @@ async function main(): Promise<void> {
   const camera = new CameraHandler(cameraPreview, cameraCanvas);
   let runtimeState = await window.companionBridge.getStateSnapshot();
   let assets = await window.companionBridge.listAssets();
+  const discoveredModel =
+    runtimeState.activeAsset?.resolvedPath ?? (await window.companionBridge.discoverModel());
   let uiState = createCompanionUiState({
     onboardingSeen: readOnboardingSeen(),
+    autoExpanded: shouldAutoExpandCompanionPanel({
+      onboardingSeen: readOnboardingSeen(),
+      activeAssetId: runtimeState.activeAssetId,
+      assetCount: assets.length,
+    }),
     selectedAssetId: runtimeState.activeAssetId,
   });
   let assetDialogDraft: AssetImportDialogDraft = {
@@ -348,8 +363,6 @@ async function main(): Promise<void> {
   };
   let pendingDialogResolver: PendingDialogResolver | null = null;
 
-  const discoveredModel =
-    runtimeState.activeAsset?.resolvedPath ?? (await window.companionBridge.discoverModel());
   const initialAvatarType = toConcreteAvatarType(
     discoveredModel ? inferAvatarType(discoveredModel) : configuredAvatarType,
   );
@@ -980,6 +993,20 @@ async function main(): Promise<void> {
     await lipSync.speak(trimmed, emotionProfile);
   }
 
+  function cueAvatarExpression(emotion: CompanionEmotionEvent["emotion"]): void {
+    applyEmotion(avatar, emotion);
+    showToast(toastRegion, `Avatar emotion: ${emotion}`, "info");
+  }
+
+  function cueAvatarLook(x: number): void {
+    avatar.lookAt(x, 0);
+  }
+
+  function cueAvatarIdle(): void {
+    avatar.playMotion("Idle", 0, true);
+    showToast(toastRegion, "Avatar idle motion queued.", "info");
+  }
+
   async function handleAvatarCommand(cmd: AvatarCommand): Promise<void> {
     if (cmd.loadModel) {
       try {
@@ -1054,6 +1081,27 @@ async function main(): Promise<void> {
   });
   panelScreenCapture.addEventListener("click", () => {
     void captureScreenNow();
+  });
+  avatarActionIdle.addEventListener("click", () => {
+    cueAvatarIdle();
+  });
+  avatarActionHappy.addEventListener("click", () => {
+    cueAvatarExpression("happy");
+  });
+  avatarActionSurprised.addEventListener("click", () => {
+    cueAvatarExpression("surprised");
+  });
+  avatarActionLookLeft.addEventListener("click", () => {
+    cueAvatarLook(-0.8);
+  });
+  avatarActionLookCenter.addEventListener("click", () => {
+    cueAvatarLook(0);
+  });
+  avatarActionLookRight.addEventListener("click", () => {
+    cueAvatarLook(0.8);
+  });
+  avatarActionDemoSpeak.addEventListener("click", () => {
+    void speakWithEmotion("こんにちは。ローカル companion の動作確認中です。", "happy");
   });
   importVrmButton.addEventListener("click", () => {
     void openAssetPicker("vrm");

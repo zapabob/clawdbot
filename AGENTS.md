@@ -12,6 +12,13 @@
 - **Primary Actuator**: **Harness-Actuator** (Unified virtual/physical execution).
 - **Target OS**: Windows (Sovereign Authority Active - Parent/Origin).
 
+### Root Map
+
+- **Official root**: upstream OpenClaw roots such as `src/`, `extensions/`, `scripts/`, `docs/`, `ui/`, `vendor/`.
+- **Sanctioned overlay**: `.openclaw-desktop/`, `identity/`, `memory/`, `_artifacts/`, `_docs/`, `_snapshots/`, `logs/`, `state/`, `tests/`, `tmp/`, plus root bootstrap files like `SOUL.md` and `MEMORY.md`, and fork-owned root tooling files such as `.cursor`, `.cursorindexingignore`, `docker-compose.override.yml`, `uv.lock`, and sharded `vitest.*` configs.
+- **Legacy capture**: files removed from root are relocated into `_artifacts/` or `_docs/workspace-overlay/` instead of being deleted.
+- **Vendor submodules**: external repositories belong under `vendor/submodules/`; `vendor/submodules/vrchat-mcp-osc` is the canonical VRChat MCP location.
+
 ---
 
 ## Ghost Protocol

@@ -55,6 +55,15 @@ apps/ios/.swiftpm/
 apps/ios/.derivedData/
 apps/ios/.local-signing.xcconfig
 vendor/
+!vendor/
+vendor/*
+!vendor/README.md
+!vendor/submodules/
+vendor/submodules/*
+!vendor/submodules/README.md
+!vendor/submodules/registry.json
+!vendor/submodules/vrchat-mcp-osc
+!vendor/submodules/vrchat-mcp-osc/
 apps/ios/Clawdbot.xcodeproj/
 apps/ios/Clawdbot.xcodeproj/**
 apps/macos/.build/**
@@ -74,6 +83,7 @@ extensions/live2d-companion/renderer/lib/live2dcubismcore.min.js
 extensions/live2d-companion/models/
 
 # Runtime state (credentials, logs, sessions - never commit)
+.openclaw-desktop/*
 .openclaw-desktop/logs/
 .openclaw-desktop/tasks/
 .openclaw-desktop/identity/
@@ -95,6 +105,9 @@ vrchat-mcp-osc/
 
 # Repo-root log directory (local dev / gateway test runs)
 logs/
+!logs/
+logs/*
+!logs/README.md
 
 # Build/runtime generated artifacts
 dist-runtime/
@@ -128,7 +141,10 @@ apps/ios/*.mobileprovision
 .local/
 docs/.local/
 docs/internal/
-tmp/
+/tmp/
+!/tmp/
+/tmp/*
+!/tmp/README.md
 IDENTITY.md
 USER.md
 .tgz
@@ -139,6 +155,9 @@ USER.md
 
 # Agent credentials and memory (NEVER COMMIT)
 /memory/
+!/memory/
+/memory/*
+!/memory/README.md
 .agent/*.json
 !.agent/workflows/
 /local/
@@ -179,6 +198,7 @@ extensions/local-voice/moonshine-venv/
 .gemini/
 .agents/
 .agent/
+.openclaw/
 
 # Hypura harness generated scripts (keep dirs tracked via .gitkeep)
 scripts/hypura/generated/*.py
@@ -191,6 +211,11 @@ scripts/hypura/evolved/*.py
 .openclaw-desktop/devices/pending.json
 .openclaw-desktop/openclaw.json
 .openclaw-desktop/telegram/update-offset-default.json
+!.openclaw-desktop/README.md
+!.openclaw-desktop/openclaw.json
+!.openclaw-desktop/skills/
+.openclaw-desktop/skills/*
+!.openclaw-desktop/skills/README.md
 
 # Local assistant/tooling workspaces (machine-specific)
 .codebuddy/
@@ -246,13 +271,19 @@ test3.mjs
 test4.mjs
 _docs/resonance/
 
+# Generated publish-locale docs live in the separate openclaw/docs repo.
+docs/zh-CN/
+
 # ASI Sovereignty: Identity & Soul (NEVER COMMIT/PUBLISH)
-identity/
-SOUL.md
-IDENTITY.md
-USER.md
-MEMORY.md
-AGENT.md
+/identity/
+!/identity/
+/identity/*
+!/identity/README.md
+/SOUL.md
+/IDENTITY.md
+/USER.md
+/MEMORY.md
+/AGENT.md
 
 # Temporary and Workspace artifacts
 tmp/

@@ -1,0 +1,3 @@
+[submodule "vendor/submodules/vrchat-mcp-osc"]
+	path = vendor/submodules/vrchat-mcp-osc
+	url = https://github.com/Krekun/vrchat-mcp-osc.git

@@ -136,19 +136,26 @@ foreach ($name in $obsoleteDesktopLnks) {
 }
 
 $targetLnk = Join-Path $DesktopPath "OpenClaw.lnk"
-$shortcutDescription = "OpenClaw — full desktop stack (Gateway, TUI, ngrok, Hypura, VOICEVOX, browser)."
+$managedDesktopLnks = @($targetLnk)
+$legacyAliasLnk = Join-Path $DesktopPath "Hakua-Sovereign-Manifestation.lnk"
+if (Test-Path -LiteralPath $legacyAliasLnk) {
+    $managedDesktopLnks += $legacyAliasLnk
+}
+$shortcutDescription = "OpenClaw - full desktop stack (Gateway, TUI, ngrok, Hypura, VOICEVOX, browser)."
 $resolvedIconLocation = $null
 if ($HasIcon) {
     $resolvedIconLocation = $IconPath
 }
-Set-Shortcut `
-    -Path $targetLnk `
-    -TargetPath $ShellExe `
-    -Arguments $stackArgsFull `
-    -WorkingDirectory $ProjectRoot `
-    -Description $shortcutDescription `
-    -IconLocation $resolvedIconLocation `
-    -ForceRewrite:$Force
+foreach ($desktopLnk in $managedDesktopLnks) {
+    Set-Shortcut `
+        -Path $desktopLnk `
+        -TargetPath $ShellExe `
+        -Arguments $stackArgsFull `
+        -WorkingDirectory $ProjectRoot `
+        -Description $shortcutDescription `
+        -IconLocation $resolvedIconLocation `
+        -ForceRewrite:$Force
+}
 
 if ($AlsoStartMenu) {
     $startMenuLnk = Join-Path $StartMenuProgramsPath "OpenClaw.lnk"

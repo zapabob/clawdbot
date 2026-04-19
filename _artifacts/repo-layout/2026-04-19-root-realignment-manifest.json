@@ -1,0 +1,78 @@
+{
+  "generatedAt": "2026-04-19T07:30:00+09:00",
+  "policy": "relocate-not-delete",
+  "rootMoves": [
+    {
+      "from": "AGENT.md",
+      "to": "_docs/workspace-overlay/root-notes/AGENT.md"
+    },
+    {
+      "from": "Gemini.md",
+      "to": "_docs/workspace-overlay/root-notes/Gemini.md"
+    },
+    {
+      "from": "GOAL.md",
+      "to": "_docs/workspace-overlay/root-notes/GOAL.md"
+    },
+    {
+      "from": "MODEL_CARD.md",
+      "to": "_docs/workspace-overlay/root-notes/MODEL_CARD.md"
+    },
+    {
+      "from": "VISION.md",
+      "to": "_docs/workspace-overlay/root-notes/VISION.md"
+    },
+    {
+      "from": "brain/",
+      "to": "_artifacts/legacy-workspaces/brain/"
+    },
+    {
+      "from": "desktop/",
+      "to": "_artifacts/legacy-desktop/"
+    },
+    {
+      "from": "infra/Modelfile-hakua",
+      "to": "scripts/modelfiles/Modelfile-hakua"
+    }
+  ],
+  "rootCaptures": [
+    {
+      "from": "desktop.ini",
+      "to": "_artifacts/root-captured/desktop.ini"
+    },
+    {
+      "from": "dream-diary-preview-v2.html",
+      "to": "_artifacts/root-captured/dream-diary-preview-v2.html"
+    },
+    {
+      "from": "dream-diary-preview-v3.html",
+      "to": "_artifacts/root-captured/dream-diary-preview-v3.html"
+    },
+    {
+      "from": "fix2.py",
+      "to": "_artifacts/root-captured/fix2.py"
+    },
+    {
+      "from": "shortcuts_debug.txt",
+      "to": "_artifacts/root-captured/shortcuts_debug.txt"
+    },
+    {
+      "from": "shortcuts_utf8.txt",
+      "to": "_artifacts/root-captured/shortcuts_utf8.txt"
+    },
+    {
+      "from": "temp_osc.py",
+      "to": "_artifacts/root-captured/temp_osc.py"
+    }
+  ],
+  "desktopRuntimeCapture": {
+    "sourceRoot": ".openclaw-desktop/",
+    "destinationRoot": "_artifacts/runtime-captured/openclaw-desktop/2026-04-19-prelayout/",
+    "trackedContentsPreserved": "all previously tracked payloads except canonical scaffold files"
+  },
+  "vendorSubmoduleCapture": {
+    "sourceRoot": "vrchat-mcp-osc/",
+    "captureRoot": "_artifacts/vendor-imports/vrchat-mcp-osc-pre-submodule/",
+    "replacement": "vendor/submodules/vrchat-mcp-osc"
+  }
+}

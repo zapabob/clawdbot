@@ -1,6 +1,6 @@
 # scripts/hypura/tests/test_harness_daemon.py
 import json
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 from fastapi.testclient import TestClient
 
@@ -88,6 +88,103 @@ def test_osc_emotion_forwards_companion_bridge() -> None:
         assert resp.status_code == 200
         mock_osc.apply_emotion.assert_called_once_with("happy")
         mock_bridge.forward_emotion.assert_awaited_once_with("happy")
+
+
+def test_companion_control_motion_endpoint() -> None:
+    from harness_daemon import app
+
+    with patch("harness_daemon.companion_bridge") as mock_bridge:
+        mock_bridge.forward_motion = AsyncMock()
+        client = TestClient(app)
+        resp = client.post(
+            "/companion/control",
+            json={"action": "motion", "value": "Idle", "motion_index": 1},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["success"] is True
+        mock_bridge.forward_motion.assert_awaited_once_with("Idle", 1)
+
+
+def test_companion_control_look_at_endpoint() -> None:
+    from harness_daemon import app
+
+    with patch("harness_daemon.companion_bridge") as mock_bridge:
+        mock_bridge.forward_look = AsyncMock()
+        client = TestClient(app)
+        resp = client.post(
+            "/companion/control",
+            json={"action": "look_at", "x": 0.25, "y": -0.5},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["success"] is True
+        mock_bridge.forward_look.assert_awaited_once_with(0.25, -0.5)
+
+
+def test_companion_control_load_model_resolves_repo_relative_path() -> None:
+    from harness_daemon import app
+
+    with patch("harness_daemon.companion_bridge") as mock_bridge:
+        mock_bridge.forward_load_model = AsyncMock()
+        client = TestClient(app)
+        resp = client.post(
+            "/companion/control",
+            json={
+                "action": "load_model",
+                "model_path": "assets/NFD/Hakua/FBX/FBX/Hakua.fbx",
+            },
+        )
+        assert resp.status_code == 200
+        assert resp.json()["success"] is True
+        forwarded_path = mock_bridge.forward_load_model.await_args.args[0]
+        assert forwarded_path.endswith("assets\\NFD\\Hakua\\FBX\\FBX\\Hakua.fbx")
+
+
+def test_submodule_run_proxies_to_gateway_tool_surface() -> None:
+    import harness_daemon as hd
+
+    mock_response = Mock()
+    mock_response.is_success = True
+    mock_response.json.return_value = {
+        "ok": True,
+        "result": {
+            "ok": True,
+            "status": "completed",
+            "repoId": "vrchat-mcp-osc",
+            "preset": "status",
+        },
+    }
+
+    with patch("harness_daemon._resolve_gateway_auth_token", return_value="gateway-token"), patch(
+        "harness_daemon._resolve_gateway_base_url", return_value="http://127.0.0.1:18789"
+    ), patch("harness_daemon.httpx.AsyncClient") as mock_client_cls:
+        mock_client = mock_client_cls.return_value.__aenter__.return_value
+        mock_client.post = AsyncMock(return_value=mock_response)
+        client = TestClient(hd.app)
+        resp = client.post(
+            "/submodule/run",
+            json={
+                "repoId": "vrchat-mcp-osc",
+                "preset": "status",
+                "extraArgs": ["--branch"],
+            },
+        )
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "completed"
+        mock_client.post.assert_awaited_once_with(
+            "http://127.0.0.1:18789/tools/invoke",
+            json={
+                "tool": "submodule_run",
+                "args": {
+                    "repoId": "vrchat-mcp-osc",
+                    "preset": "status",
+                    "extraArgs": ["--branch"],
+                },
+            },
+            headers={
+                "Authorization": "Bearer gateway-token",
+                "x-openclaw-message-channel": "node",
+            },
+        )
 
 
 def test_reload_returns_reloaded_true(tmp_path, monkeypatch) -> None:

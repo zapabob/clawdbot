@@ -1,0 +1,13 @@
+﻿{
+    "sourceRoot":  "vrchat-mcp-osc/",
+    "capturedAt":  "2026-04-19T07:45:00+09:00",
+    "remote":  [
+                   "origin\thttps://github.com/Krekun/vrchat-mcp-osc.git (fetch)",
+                   "origin\thttps://github.com/Krekun/vrchat-mcp-osc.git (push)"
+               ],
+    "head":  "bd125daa1c3a04feac68f1d9addf615e2e23f90e",
+    "dirtyStatus":  [
+                        "M  pnpm-lock.yaml"
+                    ],
+    "note":  "Preserved pre-submodule working tree; .git metadata removed after capture."
+}

@@ -6,9 +6,12 @@ import {
 import {
   LLAMA_CPP_DEFAULT_API_KEY_ENV_VAR,
   LLAMA_CPP_DEFAULT_BASE_URL,
+  LLAMA_CPP_DEFAULT_MODEL_ENV_VAR,
   LLAMA_CPP_MODEL_PLACEHOLDER,
   LLAMA_CPP_PROVIDER_LABEL,
+  buildLlamaCppUnknownModelHint,
   buildLlamaCppProvider,
+  resolveLlamaCppConfiguredModelId,
 } from "./api.js";
 
 const PROVIDER_ID = "llama-cpp";
@@ -26,7 +29,7 @@ export default definePluginEntry({
       id: PROVIDER_ID,
       label: "llama.cpp",
       docsPath: "/providers/llama-cpp",
-      envVars: ["LLAMA_CPP_API_KEY"],
+      envVars: [LLAMA_CPP_DEFAULT_API_KEY_ENV_VAR, LLAMA_CPP_DEFAULT_MODEL_ENV_VAR],
       auth: [
         {
           id: "custom",
@@ -47,8 +50,20 @@ export default definePluginEntry({
           },
           runNonInteractive: async (ctx: ProviderAuthMethodNonInteractiveContext) => {
             const providerSetup = await loadProviderSetup();
+            const modelId = resolveLlamaCppConfiguredModelId({
+              customModelId: ctx.opts.customModelId,
+              env: process.env,
+            });
             return await providerSetup.configureOpenAICompatibleSelfHostedProviderNonInteractive({
-              ctx,
+              ctx: modelId
+                ? {
+                    ...ctx,
+                    opts: {
+                      ...ctx.opts,
+                      customModelId: modelId,
+                    },
+                  }
+                : ctx,
               providerId: PROVIDER_ID,
               providerLabel: LLAMA_CPP_PROVIDER_LABEL,
               defaultBaseUrl: LLAMA_CPP_DEFAULT_BASE_URL,
@@ -85,11 +100,7 @@ export default definePluginEntry({
           methodId: "custom",
         },
       },
-      buildUnknownModelHint: () =>
-        "llama.cpp requires authentication to be registered as a provider. " +
-        'Set LLAMA_CPP_API_KEY (any value works) or run "openclaw configure". ' +
-        "See: https://docs.openclaw.ai/providers/llama-cpp",
+      buildUnknownModelHint: buildLlamaCppUnknownModelHint,
     });
   },
 });
-

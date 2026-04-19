@@ -15,32 +15,59 @@ OpenClaw can also **auto-discover** available models when you opt in with
 `LLAMA_CPP_API_KEY` (any value works if your server does not enforce auth) and
 you do not define an explicit `models.providers.llama-cpp` entry.
 
+For env-first local setups, use:
+
+- `LLAMA_CPP_API_KEY`: auth marker or real server API key
+- `LLAMA_CPP_MODEL`: the API model id OpenClaw should select
+- `LLAMA_CPP_MODEL_PATH`: the GGUF path for the launch helper script
+- `LLAMA_CPP_MMPROJ_PATH`: optional multimodal projector path for the launch helper
+
 ## Quick start
 
-1. Start llama.cpp with an OpenAI-compatible server.
+1. Export your local llama.cpp env vars.
+
+```bash
+export LLAMA_CPP_API_KEY="llama-cpp-local"
+export LLAMA_CPP_MODEL="Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q8_K_P.gguf"
+export LLAMA_CPP_MODEL_PATH="/path/to/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q8_K_P.gguf"
+export LLAMA_CPP_MMPROJ_PATH="/path/to/mmproj-Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-f16.gguf"
+```
+
+2. Start llama.cpp with the bundled launch helper.
+
+```bash
+pnpm llama-cpp:launch
+```
+
+The helper launches `llama-server` with your GGUF path and adds `--mmproj`
+only when `LLAMA_CPP_MMPROJ_PATH` is set.
+
+3. Point OpenClaw at the same `/v1` server.
 
 Your base URL should expose `/v1` endpoints (e.g. `/v1/models`,
 `/v1/chat/completions`). `llama.cpp` commonly runs on:
 
 - `http://127.0.0.1:8080/v1`
 
-2. Opt in (any value works if no auth is configured):
-
-```bash
-export LLAMA_CPP_API_KEY="llama-cpp-local"
-```
-
-3. Select a model (replace with one of your llama.cpp model IDs):
+4. Select a model:
 
 ```json5
 {
   agents: {
     defaults: {
-      model: { primary: "llama-cpp/your-model-id" },
+      model: { primary: "llama-cpp/${LLAMA_CPP_MODEL}" },
     },
   },
 }
 ```
+
+If you prefer to start `llama-server` yourself, the equivalent command shape is:
+
+```bash
+llama-server -m "$LLAMA_CPP_MODEL_PATH" --host 127.0.0.1 --port 8080 --api-key "$LLAMA_CPP_API_KEY" --mmproj "$LLAMA_CPP_MMPROJ_PATH"
+```
+
+Omit `--mmproj` when you do not need multimodal input.
 
 ## Model discovery (implicit provider)
 
@@ -64,6 +91,11 @@ Use explicit config when:
 
 ```json5
 {
+  agents: {
+    defaults: {
+      model: { primary: "llama-cpp/${LLAMA_CPP_MODEL}" },
+    },
+  },
   models: {
     providers: {
       "llama-cpp": {
@@ -72,8 +104,8 @@ Use explicit config when:
         api: "openai-completions",
         models: [
           {
-            id: "your-model-id",
-            name: "Local llama.cpp Model",
+            id: "${LLAMA_CPP_MODEL}",
+            name: "Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q8_K_P.gguf",
             reasoning: false,
             input: ["text"],
             cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
@@ -87,6 +119,12 @@ Use explicit config when:
 }
 ```
 
+`LLAMA_CPP_MODEL` should match the model id exposed by `/v1/models`. For many
+single-model servers, that is the same as the GGUF basename.
+
+`LLAMA_CPP_MMPROJ_PATH` is **not** sent in OpenClaw requests. It is only used by
+the launch helper to start `llama-server --mmproj ...` for multimodal models.
+
 ## Troubleshooting
 
 - Check the server is reachable:
@@ -98,6 +136,11 @@ curl http://127.0.0.1:8080/v1/models
 - If requests fail with auth errors, set a real `LLAMA_CPP_API_KEY` that matches
   your server configuration, or configure the provider explicitly under
   `models.providers.llama-cpp`.
+- If non-interactive setup complains about `--custom-model-id`, set
+  `LLAMA_CPP_MODEL` or pass `--custom-model-id` explicitly.
+- If image input does not work, confirm the server was started with
+  `--mmproj` and that `LLAMA_CPP_MMPROJ_PATH` points at the matching projector
+  GGUF.
 
 ## Proxy-style behavior
 
@@ -109,4 +152,3 @@ native OpenAI endpoint.
   OpenAI reasoning-compat payload shaping
 - hidden OpenClaw attribution headers (`originator`, `version`, `User-Agent`)
   are not injected on custom llama.cpp base URLs
-

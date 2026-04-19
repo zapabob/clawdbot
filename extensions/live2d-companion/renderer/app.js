@@ -1,4 +1,5 @@
 import companionConfig from "../companion.config.json" with { type: "json" };
+import { shouldAutoExpandCompanionPanel } from "../companion-startup.js";
 import { createAvatarController, inferAvatarType } from "./avatar-factory.js";
 import { applyEmotion, detectEmotion } from "./emotion-mapper.js";
 import { LipSyncController } from "./lip-sync.js";
@@ -238,6 +239,13 @@ async function main() {
     const setupProgress = requireElement("setup-progress");
     const setupChecklist = requireElement("setup-checklist");
     const browserFollowStatus = requireElement("browser-follow-status");
+    const avatarActionIdle = requireElement("avatar-action-idle");
+    const avatarActionHappy = requireElement("avatar-action-happy");
+    const avatarActionSurprised = requireElement("avatar-action-surprised");
+    const avatarActionLookLeft = requireElement("avatar-action-look-left");
+    const avatarActionLookCenter = requireElement("avatar-action-look-center");
+    const avatarActionLookRight = requireElement("avatar-action-look-right");
+    const avatarActionDemoSpeak = requireElement("avatar-action-demo-speak");
     const assetLibraryBadge = requireElement("asset-library-badge");
     const assetLibrary = requireElement("asset-library");
     const importVrmButton = requireElement("import-vrm");
@@ -262,8 +270,14 @@ async function main() {
     const camera = new CameraHandler(cameraPreview, cameraCanvas);
     let runtimeState = await window.companionBridge.getStateSnapshot();
     let assets = await window.companionBridge.listAssets();
+    const discoveredModel = runtimeState.activeAsset?.resolvedPath ?? (await window.companionBridge.discoverModel());
     let uiState = createCompanionUiState({
         onboardingSeen: readOnboardingSeen(),
+        autoExpanded: shouldAutoExpandCompanionPanel({
+            onboardingSeen: readOnboardingSeen(),
+            activeAssetId: runtimeState.activeAssetId,
+            assetCount: assets.length,
+        }),
         selectedAssetId: runtimeState.activeAssetId,
     });
     let assetDialogDraft = {
@@ -271,7 +285,6 @@ async function main() {
         rightsAcknowledged: false,
     };
     let pendingDialogResolver = null;
-    const discoveredModel = runtimeState.activeAsset?.resolvedPath ?? (await window.companionBridge.discoverModel());
     const initialAvatarType = toConcreteAvatarType(discoveredModel ? inferAvatarType(discoveredModel) : configuredAvatarType);
     let avatar = await initializeAvatar(initialAvatarType);
     let lipSync = new LipSyncController(avatar);
@@ -787,6 +800,17 @@ async function main() {
         showToast(toastRegion, trimText(trimmed, 72), "info");
         await lipSync.speak(trimmed, emotionProfile);
     }
+    function cueAvatarExpression(emotion) {
+        applyEmotion(avatar, emotion);
+        showToast(toastRegion, `Avatar emotion: ${emotion}`, "info");
+    }
+    function cueAvatarLook(x) {
+        avatar.lookAt(x, 0);
+    }
+    function cueAvatarIdle() {
+        avatar.playMotion("Idle", 0, true);
+        showToast(toastRegion, "Avatar idle motion queued.", "info");
+    }
     async function handleAvatarCommand(cmd) {
         if (cmd.loadModel) {
             try {
@@ -850,6 +874,27 @@ async function main() {
     });
     panelScreenCapture.addEventListener("click", () => {
         void captureScreenNow();
+    });
+    avatarActionIdle.addEventListener("click", () => {
+        cueAvatarIdle();
+    });
+    avatarActionHappy.addEventListener("click", () => {
+        cueAvatarExpression("happy");
+    });
+    avatarActionSurprised.addEventListener("click", () => {
+        cueAvatarExpression("surprised");
+    });
+    avatarActionLookLeft.addEventListener("click", () => {
+        cueAvatarLook(-0.8);
+    });
+    avatarActionLookCenter.addEventListener("click", () => {
+        cueAvatarLook(0);
+    });
+    avatarActionLookRight.addEventListener("click", () => {
+        cueAvatarLook(0.8);
+    });
+    avatarActionDemoSpeak.addEventListener("click", () => {
+        void speakWithEmotion("こんにちは。ローカル companion の動作確認中です。", "happy");
     });
     importVrmButton.addEventListener("click", () => {
         void openAssetPicker("vrm");

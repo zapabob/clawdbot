@@ -57,7 +57,7 @@ Add to your OpenClaw configuration:
 ### Topology Modes
 
 - `relay-primary`: existing `vrchat-relay` remains the main OSC writer/listener.
-- `mcp-primary`: external `vrchat-mcp-osc` is primary, and relay auto-start loops can be disabled to avoid duplicate writes.
+- `mcp-primary`: external `vendor/submodules/vrchat-mcp-osc` is primary, and relay auto-start loops can be disabled to avoid duplicate writes.
 - Recommended for mixed setup:
   - set `controlPlane` to `mcp-primary`
   - set both `autoStartOscListener` and `autoStartGuardianPulse` to `false`

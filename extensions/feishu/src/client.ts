@@ -1,5 +1,6 @@
-import * as Lark from "@larksuiteoapi/node-sdk";
-import { HttpsProxyAgent } from "https-proxy-agent";
+import { createRequire } from "node:module";
+import type * as Lark from "@larksuiteoapi/node-sdk";
+import type { HttpsProxyAgent } from "https-proxy-agent";
 import type { FeishuConfig, FeishuDomain, ResolvedFeishuAccount } from "./types.js";
 
 type FeishuClientSdk = Pick<
@@ -13,18 +14,58 @@ type FeishuClientSdk = Pick<
   | "WSClient"
 >;
 
-const defaultFeishuClientSdk: FeishuClientSdk = {
-  AppType: Lark.AppType,
-  Client: Lark.Client,
-  defaultHttpInstance: Lark.defaultHttpInstance,
-  Domain: Lark.Domain,
-  EventDispatcher: Lark.EventDispatcher,
-  LoggerLevel: Lark.LoggerLevel,
-  WSClient: Lark.WSClient,
-};
+type HttpsProxyAgentCtor = typeof import("https-proxy-agent").HttpsProxyAgent;
+type FeishuClientInstance = InstanceType<FeishuClientSdk["Client"]>;
+type FeishuWSClientInstance = InstanceType<FeishuClientSdk["WSClient"]>;
+type FeishuEventDispatcherInstance = InstanceType<FeishuClientSdk["EventDispatcher"]>;
+type LarkHttpInstance = import("@larksuiteoapi/node-sdk").HttpInstance;
+type LarkHttpRequestOptions<D> = import("@larksuiteoapi/node-sdk").HttpRequestOptions<D>;
 
-let feishuClientSdk: FeishuClientSdk = defaultFeishuClientSdk;
-let httpsProxyAgentCtor: typeof HttpsProxyAgent = HttpsProxyAgent;
+const require = createRequire(import.meta.url);
+
+let defaultFeishuClientSdk: FeishuClientSdk | null = null;
+let defaultHttpsProxyAgentCtor: HttpsProxyAgentCtor | null = null;
+let feishuClientSdk: FeishuClientSdk | null = null;
+let httpsProxyAgentCtor: HttpsProxyAgentCtor | null = null;
+
+function loadDefaultFeishuClientSdk(): FeishuClientSdk {
+  if (!defaultFeishuClientSdk) {
+    const larkRuntime = require("@larksuiteoapi/node-sdk") as typeof import("@larksuiteoapi/node-sdk");
+    defaultFeishuClientSdk = {
+      AppType: larkRuntime.AppType,
+      Client: larkRuntime.Client,
+      defaultHttpInstance: larkRuntime.defaultHttpInstance,
+      Domain: larkRuntime.Domain,
+      EventDispatcher: larkRuntime.EventDispatcher,
+      LoggerLevel: larkRuntime.LoggerLevel,
+      WSClient: larkRuntime.WSClient,
+    };
+  }
+  return defaultFeishuClientSdk;
+}
+
+function resolveFeishuClientSdk(): FeishuClientSdk {
+  if (!feishuClientSdk) {
+    feishuClientSdk = loadDefaultFeishuClientSdk();
+  }
+  return feishuClientSdk;
+}
+
+function loadDefaultHttpsProxyAgentCtor(): HttpsProxyAgentCtor {
+  if (!defaultHttpsProxyAgentCtor) {
+    defaultHttpsProxyAgentCtor = (
+      require("https-proxy-agent") as typeof import("https-proxy-agent")
+    ).HttpsProxyAgent;
+  }
+  return defaultHttpsProxyAgentCtor;
+}
+
+function resolveHttpsProxyAgentCtor(): HttpsProxyAgentCtor {
+  if (!httpsProxyAgentCtor) {
+    httpsProxyAgentCtor = loadDefaultHttpsProxyAgentCtor();
+  }
+  return httpsProxyAgentCtor;
+}
 
 /** Default HTTP timeout for Feishu API requests (30 seconds). */
 export const FEISHU_HTTP_TIMEOUT_MS = 30_000;
@@ -32,7 +73,7 @@ export const FEISHU_HTTP_TIMEOUT_MAX_MS = 300_000;
 export const FEISHU_HTTP_TIMEOUT_ENV_VAR = "OPENCLAW_FEISHU_HTTP_TIMEOUT_MS";
 
 type FeishuHttpInstanceLike = Pick<
-  typeof feishuClientSdk.defaultHttpInstance,
+  FeishuClientSdk["defaultHttpInstance"],
   "request" | "get" | "post" | "put" | "patch" | "delete" | "head" | "options"
 >;
 
@@ -43,24 +84,25 @@ function getWsProxyAgent(): HttpsProxyAgent<string> | undefined {
     process.env.http_proxy ||
     process.env.HTTP_PROXY;
   if (!proxyUrl) return undefined;
-  return new httpsProxyAgentCtor(proxyUrl);
+  return new (resolveHttpsProxyAgentCtor())(proxyUrl);
 }
 
 // Multi-account client cache
 const clientCache = new Map<
   string,
   {
-    client: Lark.Client;
+    client: FeishuClientInstance;
     config: { appId: string; appSecret: string; domain?: FeishuDomain; httpTimeoutMs: number };
   }
 >();
 
-function resolveDomain(domain: FeishuDomain | undefined): Lark.Domain | string {
+function resolveDomain(domain: FeishuDomain | undefined): string {
+  const sdk = resolveFeishuClientSdk();
   if (domain === "lark") {
-    return feishuClientSdk.Domain.Lark;
+    return sdk.Domain.Lark;
   }
   if (domain === "feishu" || !domain) {
-    return feishuClientSdk.Domain.Feishu;
+    return sdk.Domain.Feishu;
   }
   return domain.replace(/\/+$/, ""); // Custom URL for private deployment
 }
@@ -70,11 +112,11 @@ function resolveDomain(domain: FeishuDomain | undefined): Lark.Domain | string {
  * but injects a default request timeout to prevent indefinite hangs
  * (e.g. when the Feishu API is slow, causing per-chat queue deadlocks).
  */
-function createTimeoutHttpInstance(defaultTimeoutMs: number): Lark.HttpInstance {
-  const base: FeishuHttpInstanceLike = feishuClientSdk.defaultHttpInstance;
+function createTimeoutHttpInstance(defaultTimeoutMs: number): LarkHttpInstance {
+  const base: FeishuHttpInstanceLike = resolveFeishuClientSdk().defaultHttpInstance;
 
-  function injectTimeout<D>(opts?: Lark.HttpRequestOptions<D>): Lark.HttpRequestOptions<D> {
-    return { timeout: defaultTimeoutMs, ...opts } as Lark.HttpRequestOptions<D>;
+  function injectTimeout<D>(opts?: LarkHttpRequestOptions<D>): LarkHttpRequestOptions<D> {
+    return { timeout: defaultTimeoutMs, ...opts } as LarkHttpRequestOptions<D>;
   }
 
   return {
@@ -137,9 +179,10 @@ function resolveConfiguredHttpTimeoutMs(creds: FeishuClientCredentials): number 
  * Create or get a cached Feishu client for an account.
  * Accepts any object with appId, appSecret, and optional domain/accountId.
  */
-export function createFeishuClient(creds: FeishuClientCredentials): Lark.Client {
+export function createFeishuClient(creds: FeishuClientCredentials): FeishuClientInstance {
   const { accountId = "default", appId, appSecret, domain } = creds;
   const defaultHttpTimeoutMs = resolveConfiguredHttpTimeoutMs(creds);
+  const sdk = resolveFeishuClientSdk();
 
   if (!appId || !appSecret) {
     throw new Error(`Feishu credentials not configured for account "${accountId}"`);
@@ -158,10 +201,10 @@ export function createFeishuClient(creds: FeishuClientCredentials): Lark.Client 
   }
 
   // Create new client with timeout-aware HTTP instance
-  const client = new feishuClientSdk.Client({
+  const client = new sdk.Client({
     appId,
     appSecret,
-    appType: feishuClientSdk.AppType.SelfBuild,
+    appType: sdk.AppType.SelfBuild,
     domain: resolveDomain(domain),
     httpInstance: createTimeoutHttpInstance(defaultHttpTimeoutMs),
   });
@@ -179,19 +222,20 @@ export function createFeishuClient(creds: FeishuClientCredentials): Lark.Client 
  * Create a Feishu WebSocket client for an account.
  * Note: WSClient is not cached since each call creates a new connection.
  */
-export function createFeishuWSClient(account: ResolvedFeishuAccount): Lark.WSClient {
+export function createFeishuWSClient(account: ResolvedFeishuAccount): FeishuWSClientInstance {
   const { accountId, appId, appSecret, domain } = account;
+  const sdk = resolveFeishuClientSdk();
 
   if (!appId || !appSecret) {
     throw new Error(`Feishu credentials not configured for account "${accountId}"`);
   }
 
   const agent = getWsProxyAgent();
-  return new feishuClientSdk.WSClient({
+  return new sdk.WSClient({
     appId,
     appSecret,
     domain: resolveDomain(domain),
-    loggerLevel: feishuClientSdk.LoggerLevel.info,
+    loggerLevel: sdk.LoggerLevel.info,
     ...(agent ? { agent } : {}),
   });
 }
@@ -199,8 +243,10 @@ export function createFeishuWSClient(account: ResolvedFeishuAccount): Lark.WSCli
 /**
  * Create an event dispatcher for an account.
  */
-export function createEventDispatcher(account: ResolvedFeishuAccount): Lark.EventDispatcher {
-  return new feishuClientSdk.EventDispatcher({
+export function createEventDispatcher(
+  account: ResolvedFeishuAccount,
+): FeishuEventDispatcherInstance {
+  return new (resolveFeishuClientSdk()).EventDispatcher({
     encryptKey: account.encryptKey,
     verificationToken: account.verificationToken,
   });
@@ -209,7 +255,7 @@ export function createEventDispatcher(account: ResolvedFeishuAccount): Lark.Even
 /**
  * Get a cached client for an account (if exists).
  */
-export function getFeishuClient(accountId: string): Lark.Client | null {
+export function getFeishuClient(accountId: string): FeishuClientInstance | null {
   return clientCache.get(accountId)?.client ?? null;
 }
 
@@ -226,10 +272,10 @@ export function clearClientCache(accountId?: string): void {
 
 export function setFeishuClientRuntimeForTest(overrides?: {
   sdk?: Partial<FeishuClientSdk>;
-  HttpsProxyAgent?: typeof HttpsProxyAgent;
+  HttpsProxyAgent?: HttpsProxyAgentCtor;
 }): void {
   feishuClientSdk = overrides?.sdk
-    ? { ...defaultFeishuClientSdk, ...overrides.sdk }
-    : defaultFeishuClientSdk;
-  httpsProxyAgentCtor = overrides?.HttpsProxyAgent ?? HttpsProxyAgent;
+    ? { ...loadDefaultFeishuClientSdk(), ...overrides.sdk }
+    : null;
+  httpsProxyAgentCtor = overrides?.HttpsProxyAgent ?? null;
 }

@@ -192,6 +192,7 @@ export class FbxController implements IAvatarController {
     this.mixer = new this.three.AnimationMixer(fbx);
     this.clips = fbx.animations ?? [];
     this.resolveLipMeshes(fbx);
+    this.playDefaultMotion();
   }
 
   /** Load FBX from an ArrayBuffer — works reliably without URL/XHR restrictions. */
@@ -220,6 +221,7 @@ export class FbxController implements IAvatarController {
     this.mixer = new this.three.AnimationMixer(fbx);
     this.clips = fbx.animations ?? [];
     this.resolveLipMeshes(fbx);
+    this.playDefaultMotion();
   }
 
   playMotion(group: string, index = 0, loop = false): void {
@@ -312,6 +314,21 @@ export class FbxController implements IAvatarController {
         mesh.morphTargetInfluences[idx] = value;
       }
     });
+  }
+
+  private playDefaultMotion(): void {
+    if (!this.mixer || !this.three || this.clips.length === 0) {
+      return;
+    }
+    const preferredClip =
+      this.clips.find((clip) => /idle|stand|breath/i.test(clip.name)) ?? this.clips[0];
+    if (!preferredClip) {
+      return;
+    }
+    this.mixer.stopAllAction();
+    const action = this.mixer.clipAction(preferredClip);
+    action.setLoop(this.three.LoopRepeat, Infinity);
+    action.reset().play();
   }
 
   private startRenderLoop(): void {

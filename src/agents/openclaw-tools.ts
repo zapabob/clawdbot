@@ -7,7 +7,7 @@ import {
 } from "../secrets/runtime.js";
 import { normalizeDeliveryContext } from "../utils/delivery-context.js";
 import type { GatewayMessageChannel } from "../utils/message-channel.js";
-import { resolveAgentWorkspaceDir, resolveSessionAgentId } from "./agent-scope.js";
+import { resolveAgentConfig, resolveAgentWorkspaceDir, resolveSessionAgentId } from "./agent-scope.js";
 import { resolveOpenClawPluginToolInputs } from "./openclaw-tools.plugin-context.js";
 import { applyPluginToolDeliveryDefaults } from "./plugin-tool-delivery-defaults.js";
 import type { SandboxFsBridge } from "./sandbox/fs-bridge.js";
@@ -33,6 +33,7 @@ import { createSessionsSendTool } from "./tools/sessions-send-tool.js";
 import { createSessionsSpawnTool } from "./tools/sessions-spawn-tool.js";
 import { createSessionsYieldTool } from "./tools/sessions-yield-tool.js";
 import { createSubagentsTool } from "./tools/subagents-tool.js";
+import { createSubmoduleRunTool } from "./tools/submodule-run-tool.js";
 import { createTtsTool } from "./tools/tts-tool.js";
 import { createUpdatePlanTool } from "./tools/update-plan-tool.js";
 import { createVideoGenerateTool } from "./tools/video-generate-tool.js";
@@ -58,6 +59,35 @@ function isOpenAIProvider(provider?: string): boolean {
 
 function isExperimentalPlanToolEnabled(config?: OpenClawConfig): boolean {
   return config?.tools?.experimental?.planTool === true;
+}
+
+function resolveConfiguredExecDefaults(params: {
+  config?: OpenClawConfig;
+  agentId?: string;
+}): import("./bash-tools.js").ExecToolDefaults {
+  const globalExec = params.config?.tools?.exec;
+  const agentExec =
+    params.config && params.agentId
+      ? resolveAgentConfig(params.config, params.agentId)?.tools?.exec
+      : undefined;
+  return {
+    host: agentExec?.host ?? globalExec?.host,
+    security: agentExec?.security ?? globalExec?.security,
+    ask: agentExec?.ask ?? globalExec?.ask,
+    node: agentExec?.node ?? globalExec?.node,
+    pathPrepend: agentExec?.pathPrepend ?? globalExec?.pathPrepend,
+    safeBins: agentExec?.safeBins ?? globalExec?.safeBins,
+    strictInlineEval: agentExec?.strictInlineEval ?? globalExec?.strictInlineEval,
+    safeBinTrustedDirs: agentExec?.safeBinTrustedDirs ?? globalExec?.safeBinTrustedDirs,
+    safeBinProfiles: agentExec?.safeBinProfiles ?? globalExec?.safeBinProfiles,
+    backgroundMs: agentExec?.backgroundMs ?? globalExec?.backgroundMs,
+    timeoutSec: agentExec?.timeoutSec ?? globalExec?.timeoutSec,
+    approvalRunningNoticeMs:
+      agentExec?.approvalRunningNoticeMs ?? globalExec?.approvalRunningNoticeMs,
+    notifyOnExit: agentExec?.notifyOnExit ?? globalExec?.notifyOnExit,
+    notifyOnExitEmptySuccess:
+      agentExec?.notifyOnExitEmptySuccess ?? globalExec?.notifyOnExitEmptySuccess,
+  };
 }
 
 export function createOpenClawTools(
@@ -96,6 +126,7 @@ export function createOpenClawTools(
     allowMediaInvokeCommands?: boolean;
     /** Explicit agent ID override for cron/hook sessions. */
     requesterAgentIdOverride?: string;
+    execDefaults?: import("./bash-tools.js").ExecToolDefaults;
     /** Require explicit message targets (no implicit last-route sends). */
     requireExplicitMessageTarget?: boolean;
     /** If true, omit the message tool from the tool list. */
@@ -126,6 +157,7 @@ export function createOpenClawTools(
     sessionKey: options?.agentSessionKey,
     config: resolvedConfig,
   });
+  const execAgentId = options?.requesterAgentIdOverride ?? sessionAgentId;
   // Fall back to the session agent workspace so plugin loading stays workspace-stable
   // even when a caller forgets to thread workspaceDir explicitly.
   const inferredWorkspaceDir =
@@ -136,6 +168,13 @@ export function createOpenClawTools(
   const spawnWorkspaceDir = resolveWorkspaceRoot(
     options?.spawnWorkspaceDir ?? options?.workspaceDir ?? inferredWorkspaceDir,
   );
+  const resolvedSubmoduleExecDefaults = {
+    ...resolveConfiguredExecDefaults({
+      config: resolvedConfig,
+      agentId: execAgentId,
+    }),
+    ...options?.execDefaults,
+  };
   const deliveryContext = normalizeDeliveryContext({
     channel: options?.agentChannel,
     to: options?.agentTo,
@@ -305,6 +344,10 @@ export function createOpenClawTools(
     }),
     createCompanionControlTool({
       workspaceDir,
+    }),
+    createSubmoduleRunTool({
+      workspaceDir: options?.sandboxRoot ? resolveWorkspaceRoot(options.sandboxRoot) : workspaceDir,
+      execDefaults: resolvedSubmoduleExecDefaults,
     }),
     ...(webSearchTool ? [webSearchTool] : []),
     ...(webFetchTool ? [webFetchTool] : []),

@@ -35,6 +35,7 @@ const OWNER_ONLY_TOOL_APPROVAL_CLASS_FALLBACKS = new Map<string, OwnerOnlyToolAp
   ["cron", "control_plane"],
   ["gateway", "control_plane"],
   ["nodes", "exec_capable"],
+  ["submodule_run", "exec_capable"],
 ]);
 
 export function resolveOwnerOnlyToolApprovalClass(

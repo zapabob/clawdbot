@@ -2,6 +2,12 @@
 
 OpenClaw bundled plugin **`hypura-harness`**: HTTP proxy tools (`hypura_harness_*`) to the Hypura Python harness (VRChat OSC, VOICEVOX, code run, skills, Shinka evolve, LoRA).
 
+## Repo layout notes
+
+- The daemon entry path stays fixed at `extensions/hypura-harness/scripts/harness_daemon.py`.
+- External repositories are resolved through `vendor/submodules/registry.json`.
+- The `hypura_harness_submodule` tool proxies the core `submodule_run` surface instead of exposing raw subprocess execution over HTTP.
+
 ## Canonical paths
 
 | Item              | Path                                                   |

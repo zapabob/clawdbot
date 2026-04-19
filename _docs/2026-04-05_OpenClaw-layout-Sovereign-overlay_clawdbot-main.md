@@ -35,7 +35,7 @@
 | `scripts/hypura/`                   | 追加         | **レガシー pytest ツリー**（`tests/`、`generated/`）。デーモン本体は置かない |
 | `memory/` / `MEMORY.md` / `USER.md` | 追加         | ワークスペース用メモリ・ユーザー文脈                                         |
 | `vendor/`                           | 追加         | ベンダー同梱（ATLAS 等）                                                     |
-| `Swabble/`、`vrchat-mcp-osc/` 等    | 追加         | プロジェクト固有モジュール                                                   |
+| `Swabble/`、`vendor/submodules/vrchat-mcp-osc/` 等 | 追加         | プロジェクト固有モジュール                                                   |
 
 ## Hypura ハーネス（正規導線）
 

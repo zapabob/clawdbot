@@ -1,5 +1,12 @@
 # launchers/
 
+## Canonical layout contracts
+
+- The desktop stack root is `scripts/launchers/openclaw-desktop/`.
+- The canonical desktop config path is `.openclaw-desktop/openclaw.json`.
+- `.openclaw-desktop/` is a tracked scaffold only; runtime payloads are intentionally untracked or captured under `_artifacts/runtime-captured/`.
+- External helper repos belong under `vendor/submodules/`, not at repository root.
+
 Sovereign 用 Windows 起動スクリプト。
 
 ## デスクトップ

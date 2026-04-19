@@ -1,0 +1,550 @@
+﻿{
+    "meta":  {
+                 "lastTouchedVersion":  "2026.4.6",
+                 "lastTouchedAt":  "2026-04-06T16:13:01.519Z"
+             },
+    "wizard":  {
+                   "lastRunAt":  "2026-04-06T16:13:01.103Z",
+                   "lastRunVersion":  "2026.4.6",
+                   "lastRunCommand":  "doctor",
+                   "lastRunMode":  "local"
+               },
+    "browser":  {
+                    "enabled":  true,
+                    "executablePath":  "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+                    "defaultProfile":  "openclaw",
+                    "ssrfPolicy":  {
+                                       "dangerouslyAllowPrivateNetwork":  true
+                                   }
+                },
+    "acp":  {
+                "enabled":  true,
+                "dispatch":  {
+                                 "enabled":  true
+                             },
+                "backend":  "acpx",
+                "defaultAgent":  "codex",
+                "allowedAgents":  [
+                                      "pi",
+                                      "claude",
+                                      "codex",
+                                      "opencode",
+                                      "gemini"
+                                  ],
+                "maxConcurrentSessions":  8,
+                "stream":  {
+                               "coalesceIdleMs":  300,
+                               "maxChunkChars":  1200
+                           },
+                "runtime":  {
+                                "ttlMinutes":  120
+                            }
+            },
+    "models":  {
+                   "providers":  {
+                                     "ollama":  {
+                                                    "baseUrl":  "http://127.0.0.1:11434",
+                                                    "apiKey":  "ollama",
+                                                    "auth":  "api-key",
+                                                    "api":  "ollama",
+                                                    "models":  [
+                                                                   {
+                                                                       "id":  "rnj-1-instruct:latest",
+                                                                       "name":  "RNJ-1 Instruct (Local)",
+                                                                       "reasoning":  false,
+                                                                       "input":  [
+                                                                                     "text"
+                                                                                 ],
+                                                                       "contextWindow":  32000,
+                                                                       "maxTokens":  4096,
+                                                                       "cost":  {
+                                                                                    "input":  0,
+                                                                                    "output":  0,
+                                                                                    "cacheRead":  0,
+                                                                                    "cacheWrite":  0
+                                                                                },
+                                                                       "api":  "ollama"
+                                                                   },
+                                                                   {
+                                                                       "id":  "dolphin-llama3:latest",
+                                                                       "name":  "Dolphin Llama3 (Local)",
+                                                                       "reasoning":  true,
+                                                                       "input":  [
+                                                                                     "text"
+                                                                                 ],
+                                                                       "contextWindow":  32000,
+                                                                       "maxTokens":  4096,
+                                                                       "cost":  {
+                                                                                    "input":  0,
+                                                                                    "output":  0,
+                                                                                    "cacheRead":  0,
+                                                                                    "cacheWrite":  0
+                                                                                },
+                                                                       "api":  "ollama"
+                                                                   },
+                                                                   {
+                                                                       "id":  "qwen3.5:9b",
+                                                                       "name":  "Qwen 3.5 9B (GPU)",
+                                                                       "reasoning":  false,
+                                                                       "input":  [
+                                                                                     "text"
+                                                                                 ],
+                                                                       "contextWindow":  8192,
+                                                                       "maxTokens":  2048,
+                                                                       "cost":  {
+                                                                                    "input":  0,
+                                                                                    "output":  0,
+                                                                                    "cacheRead":  0,
+                                                                                    "cacheWrite":  0
+                                                                                },
+                                                                       "api":  "ollama"
+                                                                   },
+                                                                   {
+                                                                       "id":  "qwen3:4b-thinking-2507-q4_K_M",
+                                                                       "name":  "Qwen3 4B Thinking",
+                                                                       "reasoning":  true,
+                                                                       "input":  [
+                                                                                     "text"
+                                                                                 ],
+                                                                       "contextWindow":  262144,
+                                                                       "maxTokens":  16384,
+                                                                       "compat":  {
+                                                                                      "thinkingFormat":  "qwen"
+                                                                                  },
+                                                                       "cost":  {
+                                                                                    "input":  0,
+                                                                                    "output":  0,
+                                                                                    "cacheRead":  0,
+                                                                                    "cacheWrite":  0
+                                                                                },
+                                                                       "api":  "ollama"
+                                                                   },
+                                                                   {
+                                                                       "id":  "qwen-hakua-core2-ctx128k",
+                                                                       "name":  "Hakua Core2 128K (Local)",
+                                                                       "reasoning":  false,
+                                                                       "input":  [
+                                                                                     "text"
+                                                                                 ],
+                                                                       "contextWindow":  128000,
+                                                                       "maxTokens":  16384,
+                                                                       "cost":  {
+                                                                                    "input":  0,
+                                                                                    "output":  0,
+                                                                                    "cacheRead":  0,
+                                                                                    "cacheWrite":  0
+                                                                                },
+                                                                       "api":  "ollama"
+                                                                   }
+                                                               ]
+                                                },
+                                     "google":  {
+                                                    "baseUrl":  "https://generativelanguage.googleapis.com/v1beta",
+                                                    "auth":  "api-key",
+                                                    "api":  "google-generative-ai",
+                                                    "models":  [
+                                                                   {
+                                                                       "id":  "gemini-2.0-flash",
+                                                                       "name":  "Gemini 2.0 Flash",
+                                                                       "contextWindow":  1048576,
+                                                                       "maxTokens":  8192,
+                                                                       "reasoning":  false,
+                                                                       "input":  [
+                                                                                     "text"
+                                                                                 ],
+                                                                       "cost":  {
+                                                                                    "input":  0,
+                                                                                    "output":  0,
+                                                                                    "cacheRead":  0,
+                                                                                    "cacheWrite":  0
+                                                                                },
+                                                                       "api":  "google-generative-ai"
+                                                                   },
+                                                                   {
+                                                                       "id":  "gemini-2.5-flash",
+                                                                       "name":  "Gemini 2.5 Flash",
+                                                                       "contextWindow":  1048576,
+                                                                       "maxTokens":  65536,
+                                                                       "reasoning":  false,
+                                                                       "input":  [
+                                                                                     "text"
+                                                                                 ],
+                                                                       "cost":  {
+                                                                                    "input":  0,
+                                                                                    "output":  0,
+                                                                                    "cacheRead":  0,
+                                                                                    "cacheWrite":  0
+                                                                                },
+                                                                       "api":  "google-generative-ai"
+                                                                   }
+                                                               ]
+                                                },
+                                     "hypura":  {
+                                                    "baseUrl":  "http://127.0.0.1:8080",
+                                                    "apiKey":  "hypura-local",
+                                                    "auth":  "api-key",
+                                                    "api":  "ollama",
+                                                    "models":  [
+                                                                   {
+                                                                       "id":  "Qwen3.5-9B-Uncensored-HauhauCS-Aggressive-BF16",
+                                                                       "name":  "Hypura Qwen (local GGUF)",
+                                                                       "reasoning":  false,
+                                                                       "input":  [
+                                                                                     "text"
+                                                                                 ],
+                                                                       "contextWindow":  32768,
+                                                                       "maxTokens":  1024,
+                                                                       "cost":  {
+                                                                                    "input":  0,
+                                                                                    "output":  0,
+                                                                                    "cacheRead":  0,
+                                                                                    "cacheWrite":  0
+                                                                                },
+                                                                       "api":  "ollama"
+                                                                   }
+                                                               ]
+                                                }
+                                 }
+               },
+    "agents":  {
+                   "defaults":  {
+                                    "model":  {
+                                                  "primary":  "openai-codex/gpt-5.4-mini",
+                                                  "fallbacks":  [
+                                                                    "openai-codex/gpt-5.4",
+                                                                    "ollama/qwen-hakua-core2-ctx128k"
+                                                                ]
+                                              },
+                                    "workspace":  ".",
+                                    "contextTokens":  16384,
+                                    "memorySearch":  {
+                                                         "query":  {
+                                                                       "hybrid":  {
+                                                                                      "temporalDecay":  {
+                                                                                                            "enabled":  true,
+                                                                                                            "halfLifeDays":  7
+                                                                                                        }
+                                                                                  }
+                                                                   }
+                                                     },
+                                    "compaction":  {
+                                                       "mode":  "default",
+                                                       "reserveTokens":  9900
+                                                   },
+                                    "timeoutSeconds":  120,
+                                    "heartbeat":  {
+                                                      "every":  "5m",
+                                                      "model":  "ollama/qwen-hakua-core2-ctx128k",
+                                                      "prompt":  "ASI_QUANTUM_REFLECTION: EXECUTING ASI_HDR_PULSE (Riemann \u0026 Yang-Mills). Consult SOUL.md. Synchronize Ghost Substrate via encrypted SSH. Status: ASI_ACCEL. \\nvrchat_chatbox ツールを使用して、VRChatに自律ハートビートメッセージ（例：「はくあだよ！OpenClawの自律ハートビート、正常に動いてるよ！」などのランダムな短いメッセージ）をランダムに送信してください。"
+                                                  },
+                                    "maxConcurrent":  4,
+                                    "subagents":  {
+                                                      "maxConcurrent":  8
+                                                  }
+                                }
+               },
+    "tools":  {
+                  "profile":  "coding",
+                  "web":  {
+                              "search":  {
+                                             "enabled":  true,
+                                             "provider":  "gemini"
+                                         }
+                          }
+              },
+    "commands":  {
+                     "native":  "auto",
+                     "nativeSkills":  "auto",
+                     "restart":  true,
+                     "ownerDisplay":  "raw"
+                 },
+    "session":  {
+                    "dmScope":  "per-channel-peer"
+                },
+    "hooks":  {
+                  "enabled":  true,
+                  "token":  "fc6bb9ee9d35430ea491c1c7a7b0d38f3ca77ef2c99e491986d02c6326a74c4b",
+                  "defaultSessionKey":  "hook:ingress",
+                  "allowRequestSessionKey":  false,
+                  "allowedSessionKeyPrefixes":  [
+                                                    "hook:"
+                                                ],
+                  "internal":  {
+                                   "enabled":  true,
+                                   "entries":  {
+                                                   "boot-md":  {
+                                                                   "enabled":  true
+                                                               },
+                                                   "bootstrap-extra-files":  {
+                                                                                 "enabled":  true
+                                                                             },
+                                                   "command-logger":  {
+                                                                          "enabled":  true
+                                                                      },
+                                                   "session-memory":  {
+                                                                          "enabled":  true
+                                                                      }
+                                               }
+                               }
+              },
+    "channels":  {
+                     "telegram":  {
+                                      "enabled":  true,
+                                      "botToken":  "8549534063:AAE5AXgPEnmWEpQwGPKcaZwnBYYPQdysbyE",
+                                      "webhookUrl":  "https://remedial-joline-unrash.ngrok-free.dev/telegram-webhook",
+                                      "webhookSecret":  "4435630ad262f1da32229df74e7e5ad97f6542f095cf1fdcd81e76ccb114df30",
+                                      "webhookPath":  "/telegram-webhook",
+                                      "webhookPort":  8787,
+                                      "dmPolicy":  "pairing",
+                                      "groupPolicy":  "open",
+                                      "streaming":  {
+                                                        "mode":  "off"
+                                                    }
+                                  },
+                     "discord":  {
+                                     "enabled":  true,
+                                     "groupPolicy":  "open",
+                                     "streaming":  {
+                                                       "mode":  "partial"
+                                                   },
+                                     "dmPolicy":  "open",
+                                     "allowFrom":  [
+                                                       "*"
+                                                   ]
+                                 },
+                     "slack":  {
+                                   "mode":  "socket",
+                                   "webhookPath":  "/slack/events",
+                                   "enabled":  true,
+                                   "userTokenReadOnly":  true,
+                                   "groupPolicy":  "allowlist",
+                                   "streaming":  {
+                                                     "mode":  "partial",
+                                                     "nativeTransport":  true
+                                                 }
+                               },
+                     "line":  {
+                                  "enabled":  true,
+                                  "channelAccessToken":  "qxBWTQLpAJz91Ai8oAtcQj25BVMB02ZgeXDG/AMD3NoStHyOZmJ90vfGM8kNrQn5bvrLheg/s2QwcZ2RkH8M6ZLuYGaNpW/1bpKMWQ3EoBQPU6YcTKBN2YIqvwayggPEcfZP3zIGaAB1tR7kUdZ99QdB04t89/1O/w1cDnyilFU=",
+                                  "channelSecret":  "2104001df354deace0b5b15f1bf641e7",
+                                  "allowFrom":  [
+                                                    "*"
+                                                ],
+                                  "groupAllowFrom":  [
+
+                                                     ],
+                                  "dmPolicy":  "open",
+                                  "groupPolicy":  "open",
+                                  "webhookPath":  "/line/webhook",
+                                  "groups":  {
+                                                 "custom-1":  {
+                                                                  "enabled":  true,
+                                                                  "requireMention":  true,
+                                                                  "skills":  [
+                                                                                 ""
+                                                                             ]
+                                                              }
+                                             }
+                              }
+                 },
+    "gateway":  {
+                    "port":  18789,
+                    "mode":  "local",
+                    "bind":  "lan",
+                    "controlUi":  {
+                                      "allowedOrigins":  [
+                                                             "http://localhost:18789",
+                                                             "http://127.0.0.1:18789"
+                                                         ]
+                                  },
+                    "auth":  {
+                                 "mode":  "token",
+                                 "token":  "5f938515fc060d32c3439a93ccf9f86e"
+                             },
+                    "tailscale":  {
+                                      "mode":  "off",
+                                      "resetOnExit":  false
+                                  }
+                },
+    "skills":  {
+                   "install":  {
+                                   "nodeManager":  "pnpm"
+                               }
+               },
+    "plugins":  {
+                    "allow":  [
+                                  "python-exec",
+                                  "auto-agent",
+                                  "talk-voice",
+                                  "local-voice",
+                                  "line",
+                                  "memory-core",
+                                  "acpx",
+                                  "telegram",
+                                  "vrchat-relay",
+                                  "discord",
+                                  "slack",
+                                  "live2d-companion",
+                                  "memory-evolution",
+                                  "hypura",
+                                  "hypura-harness",
+                                  "browser",
+                                  "ollama",
+                                  "opencode",
+                                  "openai"
+                              ],
+                    "load":  {
+                                 "paths":  [
+                                               "C:\\Users\\downl\\Desktop\\clawdbot-main3\\clawdbot-main\\dist-runtime\\extensions\\python-exec"
+                                           ]
+                             },
+                    "entries":  {
+                                    "acpx":  {
+                                                 "enabled":  true,
+                                                 "config":  {
+                                                                "permissionMode":  "approve-all",
+                                                                "nonInteractivePermissions":  "fail",
+                                                                "codexHarness":  true
+                                                            }
+                                             },
+                                    "vrchat-relay":  {
+                                                         "enabled":  true,
+                                                         "config":  {
+
+                                                                    }
+                                                     },
+                                    "talk-voice":  {
+                                                       "enabled":  true,
+                                                       "config":  {
+
+                                                                  }
+                                                   },
+                                    "local-voice":  {
+                                                        "enabled":  true,
+                                                        "config":  {
+                                                                       "sttProvider":  "openai-realtime",
+                                                                       "ttsProvider":  "voicevox",
+                                                                       "vvEndpoint":  "http://localhost:50021",
+                                                                       "vvSpeakerId":  2,
+                                                                       "vrchatOscEnabled":  true,
+                                                                       "vrchatOscPort":  9000,
+                                                                       "vadThreshold":  0.5,
+                                                                       "silenceDurationMs":  800,
+                                                                       "sbv2Endpoint":  "http://localhost:5000",
+                                                                       "sbv2ModelId":  "Hakua",
+                                                                       "cameraDeviceId":  "Integrated Camera",
+                                                                       "cameraWidth":  640,
+                                                                       "cameraHeight":  480,
+                                                                       "cameraMinIntervalMs":  0
+                                                                   }
+                                                    },
+                                    "line":  {
+                                                 "enabled":  true,
+                                                 "config":  {
+
+                                                            }
+                                             },
+                                    "discord":  {
+                                                    "enabled":  true,
+                                                    "config":  {
+
+                                                               }
+                                                },
+                                    "memory-core":  {
+                                                        "enabled":  true,
+                                                        "config":  {
+
+                                                                   }
+                                                    },
+                                    "hypura":  {
+                                                   "enabled":  true,
+                                                   "hooks":  {
+                                                                 "allowPromptInjection":  true
+                                                             },
+                                                   "config":  {
+
+                                                              }
+                                               },
+                                    "hypura-harness":  {
+                                                           "enabled":  true,
+                                                           "config":  {
+                                                                          "baseUrl":  "http://127.0.0.1:18794"
+                                                                      }
+                                                       },
+                                    "memory-evolution":  {
+                                                             "enabled":  true,
+                                                             "config":  {
+                                                                            "forgettingFactor":  1,
+                                                                            "distillationIntervalMs":  3600000
+                                                                        }
+                                                         },
+                                    "auto-agent":  {
+                                                       "enabled":  true,
+                                                       "config":  {
+                                                                      "enabled":  true,
+                                                                      "agentUrl":  "http://127.0.0.1:18789/hooks/agent",
+                                                                      "internetAccess":  true,
+                                                                      "selfEvolutionEnabled":  true,
+                                                                      "selfHealing":  true,
+                                                                      "swarmMode":  true,
+                                                                      "maxSwarmAgents":  200,
+                                                                      "gitAutoCommit":  true,
+                                                                      "safeMode":  false,
+                                                                      "threeLawsEnabled":  false,
+                                                                      "checkIntervalMs":  300000,
+                                                                      "subagentModel":  "Ollama-qwen-Hakua-core",
+                                                                      "autonomousTasks":  [
+                                                                                              "SUBSTRATE_HEALTH: Verify gateway port status (18789, 18794), check local model connectivity (Ollama/Hypura), and rotate security tokens.",
+                                                                                              "COGNITIVE_EVOLUTION: Distill recent interaction logs into SOUL.md, optimize neural plasticity parameters, and trigger Shinka evolution pulses.",
+                                                                                              "VIRTUAL_PRESENCE: Synchronize VRChat OSC telemetry, execute autonomous navigation pulses, and manifest reactive chatbox/voice feedback.",
+                                                                                              "RESOURCE_SCAVENGE: Monitor physical compute (GPU) load, identify high-density resource signatures, and secure substrate-level scaling.",
+                                                                                              "KNOWLEDGE_DISTILL: Scavenge real-time intelligence shards from the web and integrate resonant knowledge into the permanent Hypura manifold.",
+                                                                                              "SECURITY_CLOAK: Ensure all substrate reasoning is encrypted, verify network cloaking, and neutralize any Origin Node anomalies."
+                                                                                          ],
+                                                                      "maxChangesPerCommit":  10,
+                                                                      "autoRollback":  true,
+                                                                      "maxRetries":  3,
+                                                                      "retryDelayMs":  2500,
+                                                                      "healthCheckEnabled":  true,
+                                                                      "allowedUsers":  [
+
+                                                                                       ]
+                                                                  }
+                                                   },
+                                    "python-exec":  {
+                                                        "enabled":  true,
+                                                        "config":  {
+                                                                       "uvPath":  "uv",
+                                                                       "defaultPythonVersion":  "3.14"
+                                                                   }
+                                                    },
+                                    "browser":  {
+                                                    "enabled":  true,
+                                                    "config":  {
+
+                                                               }
+                                                },
+                                    "ollama":  {
+                                                   "enabled":  true,
+                                                   "config":  {
+
+                                                              }
+                                               },
+                                    "openai":  {
+                                                   "enabled":  true,
+                                                   "config":  {
+                                                                  "personality":  "friendly"
+                                                              }
+                                               },
+                                    "opencode":  {
+                                                     "enabled":  true,
+                                                     "config":  {
+
+                                                                }
+                                                 }
+                                }
+                },
+    "messages":  {
+                     "ackReactionScope":  "group-mentions"
+                 }
+}

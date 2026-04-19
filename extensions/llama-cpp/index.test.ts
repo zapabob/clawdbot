@@ -2,12 +2,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   LLAMA_CPP_DEFAULT_API_KEY_ENV_VAR,
   LLAMA_CPP_DEFAULT_BASE_URL,
+  LLAMA_CPP_DEFAULT_MODEL_ENV_VAR,
   LLAMA_CPP_PROVIDER_LABEL,
   LLAMA_CPP_MODEL_PLACEHOLDER,
 } from "./defaults.js";
 import { buildLlamaCppProvider } from "./models.js";
 import { createTestPluginApi } from "../../test/helpers/plugins/plugin-api.js";
 import plugin from "./index.js";
+import {
+  buildLlamaCppUnknownModelHint,
+  resolveLlamaCppConfiguredModelId,
+} from "./api.js";
 
 const promptAndConfigureOpenAICompatibleSelfHostedProviderAuthMock = vi.hoisted(() =>
   vi.fn(async () => ({
@@ -133,10 +138,17 @@ describe("llama-cpp provider", () => {
       toApiKeyCredential: vi.fn(async () => ({ type: "api_key", data: "k" })),
     };
 
+    vi.stubEnv(LLAMA_CPP_DEFAULT_MODEL_ENV_VAR, "Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q8_K_P.gguf");
     const result = await provider.auth[0].runNonInteractive?.(context as never);
+    vi.unstubAllEnvs();
 
     expect(configureOpenAICompatibleSelfHostedProviderNonInteractiveMock).toHaveBeenCalledWith({
-      ctx: context,
+      ctx: {
+        ...context,
+        opts: {
+          customModelId: "Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q8_K_P.gguf",
+        },
+      },
       providerId: "llama-cpp",
       providerLabel: LLAMA_CPP_PROVIDER_LABEL,
       defaultBaseUrl: LLAMA_CPP_DEFAULT_BASE_URL,
@@ -203,5 +215,29 @@ describe("llama-cpp provider", () => {
       api: "openai-completions",
       models: [{ id: "llama-3.1", input: ["text"], reasoning: false }],
     });
+  });
+
+  it("resolves the configured model id from explicit input before env", () => {
+    expect(
+      resolveLlamaCppConfiguredModelId({
+        customModelId: "custom-id",
+        env: { LLAMA_CPP_MODEL: "env-id" } as NodeJS.ProcessEnv,
+      }),
+    ).toBe("custom-id");
+  });
+
+  it("resolves the configured model id from LLAMA_CPP_MODEL when custom input is missing", () => {
+    expect(
+      resolveLlamaCppConfiguredModelId({
+        env: {
+          LLAMA_CPP_MODEL: "Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q8_K_P.gguf",
+        } as NodeJS.ProcessEnv,
+      }),
+    ).toBe("Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q8_K_P.gguf");
+    expect(resolveLlamaCppConfiguredModelId({ env: {} as NodeJS.ProcessEnv })).toBeUndefined();
+  });
+
+  it("advertises LLAMA_CPP_MODEL in the unknown-model hint", () => {
+    expect(buildLlamaCppUnknownModelHint()).toContain("LLAMA_CPP_MODEL");
   });
 });

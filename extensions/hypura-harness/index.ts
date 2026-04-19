@@ -7,6 +7,14 @@ import { stringEnum } from "openclaw/plugin-sdk/core";
 import { definePluginEntry, type OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
 
 const DEFAULT_BASE_URL = "http://127.0.0.1:18794";
+const COMPANION_CONTROL_ACTIONS = [
+  "speak",
+  "emotion",
+  "motion",
+  "expression",
+  "look_at",
+  "load_model",
+] as const;
 
 type HarnessPluginConfig = {
   baseUrl?: string;
@@ -70,6 +78,78 @@ export default definePluginEntry({
   description:
     "Call the Hypura Python harness HTTP API (OSC, VOICEVOX, code run, skills, evolve, LoRA jobs).",
   register(api: OpenClawPluginApi) {
+    api.registerTool({
+      name: "hypura_harness_companion",
+      label: "Hypura Harness Companion",
+      description:
+        "POST /companion/control - drive the Desktop Companion avatar through the Hypura harness bridge.",
+      parameters: Type.Object({
+        action: stringEnum(COMPANION_CONTROL_ACTIONS, {
+          description: "Companion action to perform.",
+        }),
+        value: Type.Optional(Type.String({ description: "Text, emotion, motion, or expression value." })),
+        motion_index: Type.Optional(Type.Number({ description: "Motion index (default 0)." })),
+        x: Type.Optional(Type.Number({ description: "Normalized look-at x coordinate." })),
+        y: Type.Optional(Type.Number({ description: "Normalized look-at y coordinate." })),
+        model_path: Type.Optional(
+          Type.String({ description: "Absolute or workspace-relative avatar model path." }),
+        ),
+      }),
+      async execute(_id: string, params: Record<string, unknown>) {
+        const body: Record<string, unknown> = {
+          action: params.action,
+        };
+        if (typeof params.value === "string") {
+          body.value = params.value;
+        }
+        if (typeof params.motion_index === "number" && Number.isFinite(params.motion_index)) {
+          body.motion_index = params.motion_index;
+        }
+        if (typeof params.x === "number" && Number.isFinite(params.x)) {
+          body.x = params.x;
+        }
+        if (typeof params.y === "number" && Number.isFinite(params.y)) {
+          body.y = params.y;
+        }
+        if (typeof params.model_path === "string") {
+          body.model_path = params.model_path;
+        }
+        const data = (await harnessJson(api, "/companion/control", {
+          method: "POST",
+          body: JSON.stringify(body),
+        })) as Record<string, unknown>;
+        return okText(JSON.stringify(data, null, 2), data);
+      },
+    });
+
+    api.registerTool({
+      name: "hypura_harness_submodule",
+      label: "Hypura Harness Submodule",
+      description:
+        "POST /submodule/run - run a registry-backed vendor submodule preset through the gateway tool surface.",
+      parameters: Type.Object({
+        repoId: Type.String({ description: "Registered repo id from vendor/submodules/registry.json." }),
+        preset: Type.String({ description: "Registered preset name for the target repo." }),
+        extraArgs: Type.Optional(
+          Type.Array(Type.String({ description: "Additional arguments appended after the preset template." })),
+        ),
+      }),
+      async execute(_id: string, params: Record<string, unknown>) {
+        const body: Record<string, unknown> = {
+          repoId: typeof params.repoId === "string" ? params.repoId : "",
+          preset: typeof params.preset === "string" ? params.preset : "",
+        };
+        if (Array.isArray(params.extraArgs)) {
+          body.extraArgs = params.extraArgs.filter((value) => typeof value === "string");
+        }
+        const data = (await harnessJson(api, "/submodule/run", {
+          method: "POST",
+          body: JSON.stringify(body),
+        })) as Record<string, unknown>;
+        return okText(JSON.stringify(data, null, 2), data);
+      },
+    });
+
     api.registerTool({
       name: "hypura_harness_status",
       label: "Hypura Harness Status",
@@ -489,6 +569,7 @@ export default definePluginEntry({
         "",
         "- Prefer **`hypura_harness_status`** before other harness tools.",
         "- VRChat / VOICEVOX: **`hypura_harness_osc`**, **`hypura_harness_speak`**.",
+        "- Sanctioned external repos: **`hypura_harness_submodule`** for registry-backed vendor submodule presets.",
         "- Code execution: **`hypura_harness_run`** (→ 成功時に training:examples へ保存、失敗時に ShinkaEvolve → atlas:failures へ記録).",
         "- Skills / evolution / LoRA: **`hypura_harness_skill`**, **`hypura_harness_evolve`**, `hypura_harness_lora_*`.",
         "- Loop monitoring: **`hypura_loop_status`** で training:examples / failures / TinyLoRA adapter 状況を確認.",

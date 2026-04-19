@@ -7,6 +7,7 @@ import { app, BrowserWindow, desktopCapturer, dialog, ipcMain, screen, } from "e
 import { IPC_CHANNELS } from "../bridge/event-types.js";
 import { activateCompanionAsset, importCompanionAsset, readCompanionAssets, } from "../companion-asset-manifest.js";
 import { resolveLive2dCompanionConfig } from "../companion-config.js";
+import { buildCompanionDiscoveryEntries, isSupportedCompanionModelPath, selectStartupCompanionAssetId, sortCompanionModelCandidates, } from "../companion-startup.js";
 import { startCompanionIpcServer, } from "../companion-ipc.js";
 import { createCompanionPermissionState, isCompanionPermissionGranted, setCompanionPermission, } from "../companion-permissions.js";
 const require = createRequire(import.meta.url);
@@ -26,9 +27,10 @@ const localVoiceDefaults = localVoiceFacade?.resolveLocalVoiceCompanionDefaults(
     ttsBackend: "voicevox",
 };
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(path.join(__dirname, "../../.."));
 const stateDir = process.env.OPENCLAW_STATE_DIR
     ? path.resolve(process.env.OPENCLAW_STATE_DIR)
-    : path.resolve(path.join(__dirname, "../../..", String(rawCompanionConfig.stateDir ?? ".openclaw-desktop")));
+    : path.resolve(path.join(repoRoot, String(rawCompanionConfig.stateDir ?? ".openclaw-desktop")));
 const STATE_CACHE_FILE = "companion_state.json";
 const LEGACY_CAMERA_FILE = "companion_camera.jpg";
 const LEGACY_CAMERA_META_FILE = "companion_camera_meta.json";
@@ -97,6 +99,33 @@ async function writeStateCache() {
     catch {
         // Best-effort cache only.
     }
+}
+async function readStateCache() {
+    try {
+        const raw = await fs.readFile(path.join(stateDir, STATE_CACHE_FILE), "utf-8");
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === "object" ? parsed : null;
+    }
+    catch {
+        return null;
+    }
+}
+function applyRuntimeStateCache(cache) {
+    if (!cache) {
+        return null;
+    }
+    if (typeof cache.visible === "boolean") {
+        runtimeState.visible = cache.visible;
+    }
+    if (typeof cache.agentId === "string" && cache.agentId.trim()) {
+        runtimeState.agentId = cache.agentId.trim();
+    }
+    if (cache.ttsProvider === "voicevox" || cache.ttsProvider === "web-speech") {
+        runtimeState.ttsProvider = cache.ttsProvider;
+    }
+    return typeof cache.activeAssetId === "string" && cache.activeAssetId.trim()
+        ? cache.activeAssetId
+        : null;
 }
 async function writeLegacyBinaryCapture(params) {
     if (!companionPolicy.security.allowLegacyHttpControl) {
@@ -522,16 +551,17 @@ function startLegacyHttpControlServer() {
 async function scanModels(dir) {
     const results = [];
     try {
+        const stat = await fs.stat(dir);
+        if (stat.isFile()) {
+            return isSupportedCompanionModelPath(dir) ? [path.resolve(dir)] : [];
+        }
         const entries = await fs.readdir(dir, { withFileTypes: true });
         for (const entry of entries) {
             const fullPath = path.join(dir, entry.name);
             if (entry.isDirectory()) {
                 results.push(...(await scanModels(fullPath)));
             }
-            else if (entry.name.endsWith(".model3.json") ||
-                entry.name.endsWith(".model.json") ||
-                entry.name.endsWith(".vrm") ||
-                entry.name.endsWith(".fbx")) {
+            else if (isSupportedCompanionModelPath(entry.name)) {
                 results.push(fullPath);
             }
         }
@@ -595,9 +625,13 @@ ipcMain.handle("open-file-dialog", async (_event, opts = {}) => {
     }
 });
 ipcMain.handle("discover-model", async () => {
-    const modelsDir = path.join(__dirname, "../../models");
-    const found = await scanModels(modelsDir);
-    return found[0] ?? null;
+    const discoveryEntries = buildCompanionDiscoveryEntries({
+        repoRoot,
+        configuredModelPath: rawCompanionConfig.modelPath,
+        configuredAvatarPath: rawCompanionConfig.avatarPath,
+    });
+    const found = (await Promise.all(discoveryEntries.map(async (entry) => await scanModels(entry)))).flat();
+    return sortCompanionModelCandidates(found)[0] ?? null;
 });
 ipcMain.on(IPC_CHANNELS.CAMERA_FRAME, (_event, base64) => {
     latestCameraCapture = {
@@ -636,6 +670,26 @@ if (process.platform === "win32") {
 }
 app.whenReady().then(async () => {
     await fs.mkdir(stateDir, { recursive: true });
+    const cachedActiveAssetId = applyRuntimeStateCache(await readStateCache());
+    const manifestAssets = await readCompanionAssets(stateDir);
+    const startupAssetId = selectStartupCompanionAssetId({
+        assets: manifestAssets,
+        cachedActiveAssetId,
+    });
+    if (startupAssetId) {
+        try {
+            activeAsset = await activateCompanionAsset({
+                stateDir,
+                assetId: startupAssetId,
+            });
+            runtimeState.activeAssetId = activeAsset.id;
+            runtimeState.activeAsset = activeAsset;
+        }
+        catch {
+            runtimeState.activeAssetId = null;
+            runtimeState.activeAsset = null;
+        }
+    }
     createWindow();
     publishRuntimeState();
     companionIpcServer = await startCompanionIpcServer({

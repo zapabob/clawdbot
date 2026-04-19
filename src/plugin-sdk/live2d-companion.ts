@@ -118,10 +118,15 @@ export type CompanionInputSnapshotPayload = {
 
 export type CompanionSetAvatarCommandPayload = {
   avatarCommand: {
+    loadModel?: string;
     expression?: string;
     motion?: string;
     motionIndex?: number;
-    emotion?: string;
+    speakText?: string;
+    lookAt?: {
+      x: number;
+      y: number;
+    };
   };
 };
 

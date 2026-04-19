@@ -94,6 +94,14 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     profiles: ["coding"],
   },
   {
+    id: "submodule_run",
+    label: "submodule_run",
+    description: "Run sanctioned submodule presets",
+    sectionId: "runtime",
+    profiles: ["coding"],
+    includeInOpenClawGroup: true,
+  },
+  {
     id: "code_execution",
     label: "code_execution",
     description: "Run sandboxed remote analysis",

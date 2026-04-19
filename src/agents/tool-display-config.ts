@@ -689,7 +689,12 @@ export const TOOL_DISPLAY_CONFIG: ToolDisplayConfig = {
     control_companion: {
       emoji: "🎭",
       title: "Companion Control",
-      detailKeys: ["action", "value", "motion_index"],
+      detailKeys: ["action", "value", "motion_index", "x", "y", "model_path"],
+    },
+    submodule_run: {
+      emoji: "🧱",
+      title: "Submodule Run",
+      detailKeys: ["repoId", "preset", "extraArgs.0"],
     },
     trigger_hakua_defense: {
       emoji: "🛡️",
