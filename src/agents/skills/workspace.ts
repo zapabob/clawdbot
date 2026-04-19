@@ -154,17 +154,30 @@ function warnEscapedSkillPath(params: {
   });
 }
 
+function resolveExtraAllowedSkillRoots(source: string, rootDir: string): string[] {
+  if (source !== "openclaw-managed") {
+    return [];
+  }
+  const candidateRoots = [
+    path.resolve(rootDir, "..", "..", ".agents", "skills"),
+    path.resolve(os.homedir(), ".agents", "skills"),
+  ];
+  return [...new Set(candidateRoots.map((candidateRoot) => tryRealpath(candidateRoot) ?? candidateRoot))];
+}
+
 function resolveContainedSkillPath(params: {
   source: string;
   rootDir: string;
   rootRealPath: string;
   candidatePath: string;
+  extraAllowedRealRoots?: string[];
 }): string | null {
   const candidateRealPath = tryRealpath(params.candidatePath);
   if (!candidateRealPath) {
     return null;
   }
-  if (isPathInside(params.rootRealPath, candidateRealPath)) {
+  const allowedRoots = [params.rootRealPath, ...(params.extraAllowedRealRoots ?? [])];
+  if (allowedRoots.some((rootRealPath) => isPathInside(rootRealPath, candidateRealPath))) {
     return candidateRealPath;
   }
   warnEscapedSkillPath({
@@ -181,6 +194,7 @@ function filterLoadedSkillsInsideRoot(params: {
   source: string;
   rootDir: string;
   rootRealPath: string;
+  extraAllowedRealRoots?: string[];
 }): Skill[] {
   return params.skills.filter((skill) => {
     const baseDirRealPath = resolveContainedSkillPath({
@@ -188,6 +202,7 @@ function filterLoadedSkillsInsideRoot(params: {
       rootDir: params.rootDir,
       rootRealPath: params.rootRealPath,
       candidatePath: skill.baseDir,
+      extraAllowedRealRoots: params.extraAllowedRealRoots,
     });
     if (!baseDirRealPath) {
       return false;
@@ -197,6 +212,7 @@ function filterLoadedSkillsInsideRoot(params: {
       rootDir: params.rootDir,
       rootRealPath: params.rootRealPath,
       candidatePath: skill.filePath,
+      extraAllowedRealRoots: params.extraAllowedRealRoots,
     });
     return Boolean(skillFileRealPath);
   });
@@ -258,6 +274,7 @@ function loadSkillEntries(
   const loadSkills = (params: { dir: string; source: string }): Skill[] => {
     const rootDir = path.resolve(params.dir);
     const rootRealPath = tryRealpath(rootDir) ?? rootDir;
+    const extraAllowedRealRoots = resolveExtraAllowedSkillRoots(params.source, rootDir);
     const resolved = resolveNestedSkillsRoot(params.dir, {
       maxEntriesToScan: limits.maxCandidatesPerRoot,
     });
@@ -267,6 +284,7 @@ function loadSkillEntries(
       rootDir,
       rootRealPath,
       candidatePath: baseDir,
+      extraAllowedRealRoots,
     });
     if (!baseDirRealPath) {
       return [];
@@ -280,6 +298,7 @@ function loadSkillEntries(
         rootDir,
         rootRealPath: baseDirRealPath,
         candidatePath: rootSkillMd,
+        extraAllowedRealRoots,
       });
       if (!rootSkillRealPath) {
         return [];
@@ -309,6 +328,7 @@ function loadSkillEntries(
         source: params.source,
         rootDir,
         rootRealPath: baseDirRealPath,
+        extraAllowedRealRoots,
       });
     }
 
@@ -345,6 +365,7 @@ function loadSkillEntries(
         rootDir,
         rootRealPath: baseDirRealPath,
         candidatePath: skillDir,
+        extraAllowedRealRoots,
       });
       if (!skillDirRealPath) {
         continue;
@@ -358,6 +379,7 @@ function loadSkillEntries(
         rootDir,
         rootRealPath: baseDirRealPath,
         candidatePath: skillMd,
+        extraAllowedRealRoots,
       });
       if (!skillMdRealPath) {
         continue;
@@ -388,6 +410,7 @@ function loadSkillEntries(
           source: params.source,
           rootDir,
           rootRealPath: baseDirRealPath,
+          extraAllowedRealRoots,
         }),
       );
 

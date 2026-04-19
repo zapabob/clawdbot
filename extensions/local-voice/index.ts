@@ -71,12 +71,17 @@ export default function register(api: OpenClawPluginApi): void {
 
   api.registerCommand({
     name: "tts",
+    nativeNames: {
+      telegram: "voice_tts",
+    },
     description: "Text-to-speech with VRChat avatar animation",
     acceptsArgs: true,
     handler: async (ctx) => {
       const text = ctx.args?.trim();
       if (!text) {
-        return { text: "Usage: /tts <text>" };
+        return {
+          text: "Usage: /tts <text>\nTelegram native command: /voice_tts <text>",
+        };
       }
       return handleSpeak(text);
     },
@@ -213,6 +218,7 @@ export default function register(api: OpenClawPluginApi): void {
         `- /voice-assistant stop - Stop listening\n` +
         `- /voice-assistant speak <text> - Speak text\n\n` +
         `- /tts <text> - Text-to-speech\n` +
+        `- /voice_tts <text> - Telegram native alias for text-to-speech\n` +
         `- /camera capture - Camera + Vision\n\n` +
         `Status: ${sessionState}\n` +
         `STT: ${cfg.sttProvider}\n` +
