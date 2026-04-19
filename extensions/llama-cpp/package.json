@@ -1,0 +1,13 @@
+{
+  "name": "@openclaw/llama-cpp-provider",
+  "version": "2026.4.5",
+  "private": true,
+  "description": "OpenClaw llama.cpp provider plugin",
+  "type": "module",
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}
+

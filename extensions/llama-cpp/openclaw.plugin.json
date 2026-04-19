@@ -1,0 +1,26 @@
+{
+  "id": "llama-cpp",
+  "enabledByDefault": true,
+  "providers": ["llama-cpp"],
+  "providerAuthEnvVars": {
+    "llama-cpp": ["LLAMA_CPP_API_KEY"]
+  },
+  "providerAuthChoices": [
+    {
+      "provider": "llama-cpp",
+      "method": "custom",
+      "choiceId": "llama-cpp",
+      "choiceLabel": "llama.cpp",
+      "choiceHint": "Local/self-hosted OpenAI-compatible server",
+      "groupId": "llama-cpp",
+      "groupLabel": "llama.cpp",
+      "groupHint": "Local/self-hosted OpenAI-compatible"
+    }
+  ],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}
+
