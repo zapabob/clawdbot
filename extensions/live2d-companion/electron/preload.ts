@@ -90,6 +90,9 @@ contextBridge.exposeInMainWorld("companionBridge", {
     error?: string;
   }> => ipcRenderer.invoke("open-file-dialog", opts ?? {}),
   notifyMouseActive: (active: boolean) => ipcRenderer.send("mouse-active", active),
+  notifyInteractiveRegions: (
+    regions: Array<{ x: number; y: number; width: number; height: number }>,
+  ) => ipcRenderer.send("companion:interactive-regions", regions),
   sendCameraFrame: (base64: string) => {
     ipcRenderer.send(IPC_CHANNELS.CAMERA_FRAME, base64);
   },
@@ -149,6 +152,9 @@ declare global {
         error?: string;
       }>;
       notifyMouseActive: (active: boolean) => void;
+      notifyInteractiveRegions: (
+        regions: Array<{ x: number; y: number; width: number; height: number }>,
+      ) => void;
       sendCameraFrame: (base64: string) => void;
       onCameraCaptureRequest: (cb: () => void) => void;
     };

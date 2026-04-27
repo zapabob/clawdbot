@@ -1,3 +1,5 @@
+import { migrateAcpxLegacyConfig } from "./config-api.js";
+
 export const legacyConfigRules = [
   {
     path: ["plugins", "entries", "acpx", "config", "codexHarness"],
@@ -6,3 +8,7 @@ export const legacyConfigRules = [
     requireSourceLiteral: true,
   },
 ];
+
+export function normalizeCompatibilityConfig(params: { cfg: Parameters<typeof migrateAcpxLegacyConfig>[0] }) {
+  return migrateAcpxLegacyConfig(params.cfg) ?? { config: params.cfg, changes: [] };
+}

@@ -1,6 +1,14 @@
 import { withProgress } from "../cli/progress.js";
-import { type RuntimeEnv, writeRuntimeJson } from "../runtime.js";
-import { resolveStatusJsonOutput } from "./status-json-runtime.ts";
+import {
+  normalizePairingConnectRequestId,
+  readConnectPairingRequiredMessage,
+  readPairingConnectErrorDetails,
+  type ConnectPairingRequiredReason,
+} from "../gateway/protocol/connect-error-details.js";
+import { type RuntimeEnv } from "../runtime.js";
+import { sanitizeTerminalText } from "../terminal/safe-text.js";
+import { runStatusJsonCommand } from "./status-json-command.ts";
+import { buildStatusOverviewSurfaceFromScan } from "./status-overview-surface.ts";
 import {
   loadStatusProviderUsageModule,
   resolveStatusGatewayHealth,
@@ -55,31 +63,37 @@ function loadStatusNodeModeModule() {
   return statusNodeModeModulePromise;
 }
 
-function resolvePairingRecoveryContext(params: {
+export function resolvePairingRecoveryContext(params: {
   error?: string | null;
   closeReason?: string | null;
-}): { requestId: string | null } | null {
-  const sanitizeRequestId = (value: string): string | null => {
-    const trimmed = value.trim();
-    if (!trimmed) {
-      return null;
-    }
-    // Keep CLI guidance injection-safe: allow only compact id characters.
-    if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(trimmed)) {
-      return null;
-    }
-    return trimmed;
-  };
+  details?: unknown;
+}): {
+  requestId: string | null;
+  reason: ConnectPairingRequiredReason | null;
+  remediationHint: string | null;
+} | null {
+  const structured = readPairingConnectErrorDetails(params.details);
+  if (structured) {
+    return {
+      requestId: normalizePairingConnectRequestId(structured.requestId) ?? null,
+      reason: structured.reason ?? null,
+      remediationHint: structured.remediationHint
+        ? sanitizeTerminalText(structured.remediationHint)
+        : null,
+    };
+  }
   const source = [params.error, params.closeReason]
     .filter((part) => typeof part === "string" && part.trim().length > 0)
     .join(" ");
-  if (!source || !/pairing required/i.test(source)) {
+  const pairing = readConnectPairingRequiredMessage(source);
+  if (!pairing) {
     return null;
   }
-  const requestIdMatch = source.match(/requestId:\s*([^\s)]+)/i);
-  const requestId =
-    requestIdMatch && requestIdMatch[1] ? sanitizeRequestId(requestIdMatch[1]) : null;
-  return { requestId: requestId || null };
+  return {
+    requestId: normalizePairingConnectRequestId(pairing.requestId) ?? null,
+    reason: pairing.reason ?? null,
+    remediationHint: null,
+  };
 }
 
 export async function statusCommand(
@@ -100,25 +114,24 @@ export async function statusCommand(
     return;
   }
 
-  const scan = opts.json
-    ? await loadStatusScanFastJsonModule().then(({ scanStatusJsonFast }) =>
-        scanStatusJsonFast({ timeoutMs: opts.timeoutMs, all: opts.all }, runtime),
-      )
-    : await loadStatusScanModule().then(({ scanStatus }) =>
-        scanStatus({ json: false, timeoutMs: opts.timeoutMs, all: opts.all }, runtime),
-      );
   if (opts.json) {
-    writeRuntimeJson(
+    await runStatusJsonCommand({
+      opts,
       runtime,
-      await resolveStatusJsonOutput({
-        scan,
-        opts,
-        includeSecurityAudit: true,
-        includePluginCompatibility: true,
-      }),
-    );
+      includeSecurityAudit: opts.all === true,
+      includePluginCompatibility: true,
+      suppressHealthErrors: true,
+      scanStatusJsonFast: async (scanOpts, runtimeForScan) =>
+        await loadStatusScanFastJsonModule().then(({ scanStatusJsonFast }) =>
+          scanStatusJsonFast(scanOpts, runtimeForScan),
+        ),
+    });
     return;
   }
+
+  const scan = await loadStatusScanModule().then(({ scanStatus }) =>
+    scanStatus({ json: false, timeoutMs: opts.timeoutMs, all: opts.all }, runtime),
+  );
 
   const {
     cfg,
@@ -193,11 +206,11 @@ export async function statusCommand(
   const {
     buildStatusUpdateSurface,
     formatCliCommand,
+    formatHealthChannelLines,
     formatKTokens,
     formatPromptCacheCompact,
     formatPluginCompatibilityNotice,
     formatTimeAgo,
-    formatHealthChannelLines,
     formatTokensCompact,
     formatUpdateAvailableHint,
     getTerminalTableWidth,
@@ -247,6 +260,7 @@ export async function statusCommand(
   const pairingRecovery = resolvePairingRecoveryContext({
     error: gatewayProbe?.error ?? null,
     closeReason: gatewayProbe?.close?.reason ?? null,
+    details: gatewayProbe?.connectErrorDetails,
   });
 
   const usageLines = usage
@@ -254,12 +268,10 @@ export async function statusCommand(
         formatUsageReportLines(usage),
       )
     : undefined;
-  const lines = await buildStatusCommandReportLines(
-    await buildStatusCommandReportData({
-      opts,
+  const overviewSurface = buildStatusOverviewSurfaceFromScan({
+    scan: {
       cfg,
       update,
-      osSummary,
       tailscaleMode,
       tailscaleDns,
       tailscaleHttpsUrl,
@@ -271,9 +283,16 @@ export async function statusCommand(
       gatewayProbeAuth,
       gatewayProbeAuthWarning,
       gatewaySelf,
-      gatewayService: daemon,
-      nodeService: nodeDaemon,
-      nodeOnlyGateway,
+    },
+    gatewayService: daemon,
+    nodeService: nodeDaemon,
+    nodeOnlyGateway,
+  });
+  const lines = await buildStatusCommandReportLines(
+    await buildStatusCommandReportData({
+      opts,
+      surface: overviewSurface,
+      osSummary,
       summary,
       securityAudit,
       health,

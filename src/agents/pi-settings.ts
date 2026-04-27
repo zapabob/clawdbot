@@ -1,5 +1,6 @@
-import type { OpenClawConfig } from "../config/config.js";
+import type { OpenClawConfig } from "../config/types.openclaw.js";
 import type { ContextEngineInfo } from "../context-engine/types.js";
+import { MIN_PROMPT_BUDGET_RATIO, MIN_PROMPT_BUDGET_TOKENS } from "./pi-compaction-constants.js";
 
 export const DEFAULT_PI_COMPACTION_RESERVE_TOKENS_FLOOR = 20_000;
 
@@ -15,17 +16,12 @@ type PiSettingsManagerLike = {
   setCompactionEnabled?: (enabled: boolean) => void;
 };
 
-function resolveEffectiveContextTokenBudget(params: {
-  contextTokenBudget?: number;
-  contextWindowTokens?: number;
-}): number | undefined {
-  const candidate = params.contextTokenBudget ?? params.contextWindowTokens;
-  if (typeof candidate !== "number" || !Number.isFinite(candidate)) {
-    return undefined;
-  }
-  return candidate;
-}
-
+/**
+ * Ensures the compaction reserve tokens are at least the specified minimum.
+ * Note: This function is not context-aware and uses an uncapped floor.
+ * If called for small-context models without threading `contextTokenBudget`,
+ * it may re-introduce context overflow issues.
+ */
 export function ensurePiCompactionReserveTokens(params: {
   settingsManager: PiSettingsManagerLike;
   minReserveTokens?: number;
@@ -52,35 +48,6 @@ export function resolveCompactionReserveTokensFloor(cfg?: OpenClawConfig): numbe
   return DEFAULT_PI_COMPACTION_RESERVE_TOKENS_FLOOR;
 }
 
-/**
- * Default 20k reserve floor breaks Pi auto-compaction on small context windows (e.g. 16k local models).
- * When the effective context size is known, clamp the floor so compaction can still trigger.
- */
-export function clampCompactionReserveTokensFloorForContext(params: {
-  floor: number;
-  contextWindowTokens?: number;
-}): number {
-  const ctx = params.contextWindowTokens;
-  if (typeof ctx !== "number" || !Number.isFinite(ctx) || ctx <= 512) {
-    return params.floor;
-  }
-  const maxFloor = Math.max(256, Math.floor(ctx * 0.28));
-  return Math.min(params.floor, maxFloor);
-}
-
-export function clampCompactionReserveTokensToContextWindow(params: {
-  reserveTokens: number;
-  contextWindowTokens?: number;
-}): number {
-  const ctx = params.contextWindowTokens;
-  let out = params.reserveTokens;
-  if (typeof ctx !== "number" || !Number.isFinite(ctx) || ctx <= 512) {
-    return out;
-  }
-  const maxReserve = Math.max(256, Math.floor(ctx * 0.46));
-  return Math.min(out, maxReserve);
-}
-
 function toNonNegativeInt(value: unknown): number | undefined {
   if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
     return undefined;
@@ -98,10 +65,8 @@ function toPositiveInt(value: unknown): number | undefined {
 export function applyPiCompactionSettingsFromConfig(params: {
   settingsManager: PiSettingsManagerLike;
   cfg?: OpenClawConfig;
-  /** Official upstream name for the effective model context budget. */
+  /** When known, the resolved context window budget for the current model. */
   contextTokenBudget?: number;
-  /** Backward-compatible fork alias. */
-  contextWindowTokens?: number;
 }): {
   didOverride: boolean;
   compaction: { reserveTokens: number; keepRecentTokens: number };
@@ -112,23 +77,27 @@ export function applyPiCompactionSettingsFromConfig(params: {
 
   const configuredReserveTokens = toNonNegativeInt(compactionCfg?.reserveTokens);
   const configuredKeepRecentTokens = toPositiveInt(compactionCfg?.keepRecentTokens);
-  const contextTokenBudget = resolveEffectiveContextTokenBudget({
-    contextTokenBudget: params.contextTokenBudget,
-    contextWindowTokens: params.contextWindowTokens,
-  });
-  const reserveTokensFloor = clampCompactionReserveTokensFloorForContext({
-    floor: resolveCompactionReserveTokensFloor(params.cfg),
-    contextWindowTokens: contextTokenBudget,
-  });
+  let reserveTokensFloor = resolveCompactionReserveTokensFloor(params.cfg);
 
-  let targetReserveTokens = Math.max(
+  // Cap the floor to a safe fraction of the context window so that
+  // small-context models (e.g. Ollama with 16 K tokens) are not starved of
+  // prompt budget.  Without this cap the default floor of 20 000 can exceed
+  // the entire context window, causing every prompt to be classified as an
+  // overflow and triggering an infinite compaction loop.
+  const ctxBudget = params.contextTokenBudget;
+  if (typeof ctxBudget === "number" && Number.isFinite(ctxBudget) && ctxBudget > 0) {
+    const minPromptBudget = Math.min(
+      MIN_PROMPT_BUDGET_TOKENS,
+      Math.max(1, Math.floor(ctxBudget * MIN_PROMPT_BUDGET_RATIO)),
+    );
+    const maxReserve = Math.max(0, ctxBudget - minPromptBudget);
+    reserveTokensFloor = Math.min(reserveTokensFloor, maxReserve);
+  }
+
+  const targetReserveTokens = Math.max(
     configuredReserveTokens ?? currentReserveTokens,
     reserveTokensFloor,
   );
-  targetReserveTokens = clampCompactionReserveTokensToContextWindow({
-    reserveTokens: targetReserveTokens,
-    contextWindowTokens: contextTokenBudget,
-  });
   const targetKeepRecentTokens = configuredKeepRecentTokens ?? currentKeepRecentTokens;
 
   const overrides: { reserveTokens?: number; keepRecentTokens?: number } = {};

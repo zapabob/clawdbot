@@ -1,13 +1,13 @@
-import { Type } from "@sinclair/typebox";
 import {
   listMemoryCorpusSupplements,
   resolveMemorySearchConfig,
   resolveSessionAgentId,
-  type MemoryCorpusGetResult,
   type MemoryCorpusSearchResult,
   type AnyAgentTool,
   type OpenClawConfig,
 } from "openclaw/plugin-sdk/memory-core-host-runtime-core";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/text-runtime";
+import { Type } from "typebox";
 
 type MemoryToolRuntime = typeof import("./tools.runtime.js");
 type MemorySearchManagerResult = Awaited<
@@ -26,7 +26,12 @@ export const MemorySearchSchema = Type.Object({
   maxResults: Type.Optional(Type.Number()),
   minScore: Type.Optional(Type.Number()),
   corpus: Type.Optional(
-    Type.Union([Type.Literal("memory"), Type.Literal("wiki"), Type.Literal("all")]),
+    Type.Union([
+      Type.Literal("memory"),
+      Type.Literal("wiki"),
+      Type.Literal("all"),
+      Type.Literal("sessions"),
+    ]),
   ),
 });
 
@@ -118,7 +123,7 @@ export function createMemoryTool(params: {
 
 export function buildMemorySearchUnavailableResult(error: string | undefined) {
   const reason = (error ?? "memory search unavailable").trim() || "memory search unavailable";
-  const isQuotaError = /insufficient_quota|quota|429/.test(reason.toLowerCase());
+  const isQuotaError = /insufficient_quota|quota|429/.test(normalizeLowercaseStringOrEmpty(reason));
   const warning = isQuotaError
     ? "Memory search is unavailable because the embedding provider quota is exhausted."
     : "Memory search is unavailable due to an embedding/provider error.";
@@ -132,6 +137,11 @@ export function buildMemorySearchUnavailableResult(error: string | undefined) {
     error: reason,
     warning,
     action,
+    debug: {
+      warning,
+      action,
+      error: reason,
+    },
   };
 }
 
@@ -139,9 +149,9 @@ export async function searchMemoryCorpusSupplements(params: {
   query: string;
   maxResults?: number;
   agentSessionKey?: string;
-  corpus?: "memory" | "wiki" | "all";
+  corpus?: "memory" | "wiki" | "all" | "sessions";
 }): Promise<MemoryCorpusSearchResult[]> {
-  if (params.corpus === "memory") {
+  if (params.corpus === "memory" || params.corpus === "sessions") {
     return [];
   }
   const supplements = listMemoryCorpusSupplements();
@@ -168,9 +178,9 @@ export async function getMemoryCorpusSupplementResult(params: {
   fromLine?: number;
   lineCount?: number;
   agentSessionKey?: string;
-  corpus?: "memory" | "wiki" | "all";
-}): Promise<MemoryCorpusGetResult | null> {
-  if (params.corpus === "memory") {
+  corpus?: "memory" | "wiki" | "all" | "sessions";
+}) {
+  if (params.corpus === "memory" || params.corpus === "sessions") {
     return null;
   }
   for (const registration of listMemoryCorpusSupplements()) {

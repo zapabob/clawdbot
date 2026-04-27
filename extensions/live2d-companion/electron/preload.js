@@ -46,6 +46,7 @@ contextBridge.exposeInMainWorld("companionBridge", {
     captureScreen: () => ipcRenderer.invoke("capture-screen"),
     openFileDialog: (opts) => ipcRenderer.invoke("open-file-dialog", opts ?? {}),
     notifyMouseActive: (active) => ipcRenderer.send("mouse-active", active),
+    notifyInteractiveRegions: (regions) => ipcRenderer.send("companion:interactive-regions", regions),
     sendCameraFrame: (base64) => {
         ipcRenderer.send(IPC_CHANNELS.CAMERA_FRAME, base64);
     },

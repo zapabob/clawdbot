@@ -1,46 +1,89 @@
-import { iterateBootstrapChannelPlugins } from "../channels/plugins/bootstrap-registry.js";
-import { loadBundledPluginPublicSurfaceModuleSync } from "../plugin-sdk/facade-runtime.js";
-import { listBundledPluginMetadata } from "../plugins/bundled-plugin-metadata.js";
+import type { PluginManifestRecord } from "../plugins/manifest-registry.js";
+import { loadPluginManifestRegistryForPluginRegistry } from "../plugins/plugin-registry.js";
+import { loadBundledChannelSecretContractApi } from "./channel-contract-api.js";
 import type { SecretTargetRegistryEntry } from "./target-registry-types.js";
 
 const SECRET_INPUT_SHAPE = "secret_input"; // pragma: allowlist secret
 const SIBLING_REF_SHAPE = "sibling_ref"; // pragma: allowlist secret
 
+const WEB_PROVIDER_SECRET_CONFIGS = [
+  { contract: "webSearchProviders", configPath: "webSearch.apiKey" },
+  { contract: "webFetchProviders", configPath: "webFetch.apiKey" },
+] as const;
+
+type WebProviderSecretConfig = (typeof WEB_PROVIDER_SECRET_CONFIGS)[number];
+
+function createPluginOpenClawConfigSecretTargetEntry(
+  pluginId: string,
+  configPath: string,
+): SecretTargetRegistryEntry {
+  const pathPattern = ["plugins", "entries", pluginId, "config", ...configPath.split(".")].join(
+    ".",
+  );
+  return {
+    id: pathPattern,
+    targetType: pathPattern,
+    configFile: "openclaw.json",
+    pathPattern,
+    secretShape: SECRET_INPUT_SHAPE,
+    expectedResolvedValue: "string",
+    includeInPlan: true,
+    includeInConfigure: true,
+    includeInAudit: true,
+  };
+}
+
+function hasSensitiveConfigHint(
+  plugin: PluginManifestRecord,
+  configPath: WebProviderSecretConfig["configPath"],
+): boolean {
+  return plugin.configUiHints?.[configPath]?.sensitive === true;
+}
+
+function hasWebProviderContract(
+  plugin: PluginManifestRecord,
+  contract: WebProviderSecretConfig["contract"],
+): boolean {
+  return (plugin.contracts?.[contract]?.length ?? 0) > 0;
+}
+
+function listBundledWebProviderSecretTargetRegistryEntries(): SecretTargetRegistryEntry[] {
+  const entries: SecretTargetRegistryEntry[] = [];
+  for (const record of loadPluginManifestRegistryForPluginRegistry({ includeDisabled: true })
+    .plugins) {
+    if (record.origin !== "bundled") {
+      continue;
+    }
+    for (const config of WEB_PROVIDER_SECRET_CONFIGS) {
+      if (
+        hasWebProviderContract(record, config.contract) &&
+        hasSensitiveConfigHint(record, config.configPath)
+      ) {
+        entries.push(createPluginOpenClawConfigSecretTargetEntry(record.id, config.configPath));
+      }
+    }
+  }
+  return entries.toSorted((left, right) => left.id.localeCompare(right.id));
+}
+
 function listChannelSecretTargetRegistryEntries(): SecretTargetRegistryEntry[] {
   const entries: SecretTargetRegistryEntry[] = [];
-  const handledChannelIds = new Set<string>();
 
-  for (const metadata of listBundledPluginMetadata({
-    includeChannelConfigs: false,
-    includeSyntheticChannelConfigs: false,
-  })) {
-    const channelIds = metadata.manifest.channels ?? [];
+  for (const record of loadPluginManifestRegistryForPluginRegistry({ includeDisabled: true })
+    .plugins) {
+    if (record.origin !== "bundled") {
+      continue;
+    }
+    const channelIds = record.channels;
     if (channelIds.length === 0) {
       continue;
     }
-    if (!metadata.publicSurfaceArtifacts?.includes("contract-api.js")) {
-      continue;
-    }
     try {
-      const contractApi = loadBundledPluginPublicSurfaceModuleSync<{
-        secretTargetRegistryEntries?: readonly SecretTargetRegistryEntry[];
-      }>({
-        dirName: metadata.dirName,
-        artifactBasename: "contract-api.js",
-      });
-      entries.push(...(contractApi.secretTargetRegistryEntries ?? []));
-      channelIds.forEach((channelId) => handledChannelIds.add(channelId));
+      const contractApi = loadBundledChannelSecretContractApi(record.id);
+      entries.push(...(contractApi?.secretTargetRegistryEntries ?? []));
     } catch {
-      // Fall back to the full bootstrap plugin surface for channels that do not
-      // expose a usable secret contract artifact.
+      // Ignore bundled channels that do not expose a usable secret contract artifact.
     }
-  }
-
-  for (const plugin of iterateBootstrapChannelPlugins()) {
-    if (handledChannelIds.has(plugin.id)) {
-      continue;
-    }
-    entries.push(...(plugin.secrets?.secretTargetRegistryEntries ?? []));
   }
   return entries;
 }
@@ -160,6 +203,18 @@ const CORE_SECRET_TARGET_REGISTRY: SecretTargetRegistryEntry[] = [
     includeInConfigure: true,
     includeInAudit: true,
     providerIdPathSegmentIndex: 3,
+  },
+  {
+    id: "agents.list[].tts.providers.*.apiKey",
+    targetType: "agents.list[].tts.providers.*.apiKey",
+    configFile: "openclaw.json",
+    pathPattern: "agents.list[].tts.providers.*.apiKey",
+    secretShape: SECRET_INPUT_SHAPE,
+    expectedResolvedValue: "string",
+    includeInPlan: true,
+    includeInConfigure: false,
+    includeInAudit: true,
+    providerIdPathSegmentIndex: 4,
   },
   {
     id: "models.providers.*.apiKey",
@@ -366,113 +421,21 @@ const CORE_SECRET_TARGET_REGISTRY: SecretTargetRegistryEntry[] = [
     includeInConfigure: true,
     includeInAudit: true,
   },
-  {
-    id: "plugins.entries.brave.config.webSearch.apiKey",
-    targetType: "plugins.entries.brave.config.webSearch.apiKey",
-    configFile: "openclaw.json",
-    pathPattern: "plugins.entries.brave.config.webSearch.apiKey",
-    secretShape: SECRET_INPUT_SHAPE,
-    expectedResolvedValue: "string",
-    includeInPlan: true,
-    includeInConfigure: true,
-    includeInAudit: true,
-  },
-  {
-    id: "plugins.entries.google.config.webSearch.apiKey",
-    targetType: "plugins.entries.google.config.webSearch.apiKey",
-    configFile: "openclaw.json",
-    pathPattern: "plugins.entries.google.config.webSearch.apiKey",
-    secretShape: SECRET_INPUT_SHAPE,
-    expectedResolvedValue: "string",
-    includeInPlan: true,
-    includeInConfigure: true,
-    includeInAudit: true,
-  },
-  {
-    id: "plugins.entries.xai.config.webSearch.apiKey",
-    targetType: "plugins.entries.xai.config.webSearch.apiKey",
-    configFile: "openclaw.json",
-    pathPattern: "plugins.entries.xai.config.webSearch.apiKey",
-    secretShape: SECRET_INPUT_SHAPE,
-    expectedResolvedValue: "string",
-    includeInPlan: true,
-    includeInConfigure: true,
-    includeInAudit: true,
-  },
-  {
-    id: "plugins.entries.moonshot.config.webSearch.apiKey",
-    targetType: "plugins.entries.moonshot.config.webSearch.apiKey",
-    configFile: "openclaw.json",
-    pathPattern: "plugins.entries.moonshot.config.webSearch.apiKey",
-    secretShape: SECRET_INPUT_SHAPE,
-    expectedResolvedValue: "string",
-    includeInPlan: true,
-    includeInConfigure: true,
-    includeInAudit: true,
-  },
-  {
-    id: "plugins.entries.perplexity.config.webSearch.apiKey",
-    targetType: "plugins.entries.perplexity.config.webSearch.apiKey",
-    configFile: "openclaw.json",
-    pathPattern: "plugins.entries.perplexity.config.webSearch.apiKey",
-    secretShape: SECRET_INPUT_SHAPE,
-    expectedResolvedValue: "string",
-    includeInPlan: true,
-    includeInConfigure: true,
-    includeInAudit: true,
-  },
-  {
-    id: "plugins.entries.firecrawl.config.webSearch.apiKey",
-    targetType: "plugins.entries.firecrawl.config.webSearch.apiKey",
-    configFile: "openclaw.json",
-    pathPattern: "plugins.entries.firecrawl.config.webSearch.apiKey",
-    secretShape: SECRET_INPUT_SHAPE,
-    expectedResolvedValue: "string",
-    includeInPlan: true,
-    includeInConfigure: true,
-    includeInAudit: true,
-  },
-  {
-    id: "plugins.entries.firecrawl.config.webFetch.apiKey",
-    targetType: "plugins.entries.firecrawl.config.webFetch.apiKey",
-    configFile: "openclaw.json",
-    pathPattern: "plugins.entries.firecrawl.config.webFetch.apiKey",
-    secretShape: SECRET_INPUT_SHAPE,
-    expectedResolvedValue: "string",
-    includeInPlan: true,
-    includeInConfigure: true,
-    includeInAudit: true,
-  },
-  {
-    id: "plugins.entries.tavily.config.webSearch.apiKey",
-    targetType: "plugins.entries.tavily.config.webSearch.apiKey",
-    configFile: "openclaw.json",
-    pathPattern: "plugins.entries.tavily.config.webSearch.apiKey",
-    secretShape: SECRET_INPUT_SHAPE,
-    expectedResolvedValue: "string",
-    includeInPlan: true,
-    includeInConfigure: true,
-    includeInAudit: true,
-  },
-  {
-    id: "plugins.entries.minimax.config.webSearch.apiKey",
-    targetType: "plugins.entries.minimax.config.webSearch.apiKey",
-    configFile: "openclaw.json",
-    pathPattern: "plugins.entries.minimax.config.webSearch.apiKey",
-    secretShape: SECRET_INPUT_SHAPE,
-    expectedResolvedValue: "string",
-    includeInPlan: true,
-    includeInConfigure: true,
-    includeInAudit: true,
-  },
 ];
 
 let cachedSecretTargetRegistry: SecretTargetRegistryEntry[] | null = null;
 
-/** Lazily built so bundled channel plugins can initialize via `ensureBundledChannelPluginsLoaded` first. */
+export function getCoreSecretTargetRegistry(): SecretTargetRegistryEntry[] {
+  return CORE_SECRET_TARGET_REGISTRY;
+}
+
 export function getSecretTargetRegistry(): SecretTargetRegistryEntry[] {
-  cachedSecretTargetRegistry ??= [
+  if (cachedSecretTargetRegistry) {
+    return cachedSecretTargetRegistry;
+  }
+  cachedSecretTargetRegistry = [
     ...CORE_SECRET_TARGET_REGISTRY,
+    ...listBundledWebProviderSecretTargetRegistryEntries(),
     ...listChannelSecretTargetRegistryEntries(),
   ];
   return cachedSecretTargetRegistry;

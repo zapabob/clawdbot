@@ -1,4 +1,4 @@
-import type { ChannelId } from "../channels/plugins/types.js";
+import type { ChannelId } from "../channels/plugins/types.public.js";
 import type { SecretInputMode } from "../plugins/provider-auth-types.js";
 import type { GatewayDaemonRuntime } from "./daemon-runtime.js";
 
@@ -7,8 +7,13 @@ export type OnboardMode = "local" | "remote";
  * Auth choices are plugin-owned contract ids plus a few legacy aliases that
  * are normalized elsewhere (for example `oauth` -> `setup-token`).
  */
-export type AuthChoice = string & {};
-export type AuthChoiceGroupId = string & {};
+export type BuiltInAuthChoice =
+  // Legacy alias for `setup-token` (kept for backwards CLI compatibility).
+  "oauth" | "setup-token" | "token" | "apiKey" | "custom-api-key" | "skip";
+export type AuthChoice = BuiltInAuthChoice | (string & {});
+
+/** Auth choice groups are plugin-owned ids plus the core `custom` bucket. */
+export type AuthChoiceGroupId = "custom" | (string & {});
 export type GatewayAuthChoice = "token" | "password";
 export type ResetScope = "config" | "config+creds+sessions" | "full";
 export type GatewayBind = "loopback" | "lan" | "auto" | "custom" | "tailnet";
@@ -48,10 +53,12 @@ export type OnboardOptions = OnboardDynamicProviderOptions & {
   tokenExpiresIn?: string;
   /** API key persistence mode for setup flows (default: plaintext). */
   secretInputMode?: SecretInputMode;
+  arceeaiApiKey?: string;
   cloudflareAiGatewayAccountId?: string;
   cloudflareAiGatewayGatewayId?: string;
   customBaseUrl?: string;
   customApiKey?: string;
+  lmstudioApiKey?: string;
   customModelId?: string;
   customProviderId?: string;
   customCompatibility?: "openai" | "anthropic";
@@ -69,6 +76,7 @@ export type OnboardOptions = OnboardDynamicProviderOptions & {
   /** @deprecated Legacy alias for `skipChannels`. */
   skipProviders?: boolean;
   skipSkills?: boolean;
+  skipBootstrap?: boolean;
   skipSearch?: boolean;
   skipHealth?: boolean;
   skipUi?: boolean;

@@ -1,4 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { executeStatusScanFromOverview } from "./status.scan-execute.ts";
+import type { StatusScanOverviewResult } from "./status.scan-overview.ts";
+import type { MemoryStatusSnapshot } from "./status.scan.shared.js";
 
 const { resolveStatusSummaryFromOverview, resolveMemoryPluginStatus } = vi.hoisted(() => ({
   resolveStatusSummaryFromOverview: vi.fn(async () => ({ sessions: { count: 1 } })),
@@ -9,21 +12,20 @@ const { resolveStatusSummaryFromOverview, resolveMemoryPluginStatus } = vi.hoist
   })),
 }));
 
+vi.mock("./status.scan-overview.ts", () => ({
+  resolveStatusSummaryFromOverview,
+}));
+
+vi.mock("./status.scan.shared.js", () => ({
+  resolveMemoryPluginStatus,
+}));
+
 describe("executeStatusScanFromOverview", () => {
   beforeEach(() => {
-    vi.resetModules();
     vi.clearAllMocks();
-    vi.doMock("./status.scan-overview.ts", () => ({
-      resolveStatusSummaryFromOverview,
-    }));
-    vi.doMock("./status.scan.shared.js", () => ({
-      resolveMemoryPluginStatus,
-    }));
   });
 
   it("resolves memory and summary, then builds the final scan result", async () => {
-    const { executeStatusScanFromOverview } = await import("./status.scan-execute.ts");
-
     const overview = {
       cfg: { channels: {} },
       sourceConfig: { channels: {} },
@@ -45,18 +47,22 @@ describe("executeStatusScanFromOverview", () => {
       },
       agentStatus: { agents: [{ id: "main" }], defaultId: "main" },
       skipColdStartNetworkChecks: false,
-    };
-    const resolveMemory = vi.fn(
-      async () =>
-        ({
-          agentId: "main",
-          backend: "builtin",
-          provider: "memory-core",
-        }) as never,
-    );
+    } as unknown as StatusScanOverviewResult;
+    const resolveMemory = vi.fn<
+      (args: {
+        cfg: unknown;
+        agentStatus: unknown;
+        memoryPlugin: unknown;
+        runtime?: unknown;
+      }) => Promise<MemoryStatusSnapshot>
+    >(async () => ({
+      agentId: "main",
+      backend: "builtin",
+      provider: "memory-core",
+    }));
 
     const result = await executeStatusScanFromOverview({
-      overview: overview as never,
+      overview,
       runtime: {} as never,
       resolveMemory,
       channelIssues: [],
@@ -65,8 +71,16 @@ describe("executeStatusScanFromOverview", () => {
     });
 
     expect(resolveMemoryPluginStatus).toHaveBeenCalledWith(overview.cfg);
-    expect(resolveStatusSummaryFromOverview).toHaveBeenCalledWith({ overview });
-    expect(resolveMemory).toHaveBeenCalledTimes(1);
+    expect(resolveStatusSummaryFromOverview).toHaveBeenCalledWith({
+      overview,
+      includeChannelSummary: undefined,
+    });
+    expect(resolveMemory).toHaveBeenCalledWith({
+      cfg: overview.cfg,
+      agentStatus: overview.agentStatus,
+      memoryPlugin: { enabled: false, slot: null, reason: "memorySearch not configured" },
+      runtime: {},
+    });
     expect(result).toEqual(
       expect.objectContaining({
         cfg: overview.cfg,

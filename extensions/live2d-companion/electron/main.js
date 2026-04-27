@@ -46,6 +46,7 @@ let activeAsset = null;
 let latestCameraCapture = null;
 let latestScreenCapture = null;
 let cameraCaptureWaiters = [];
+let interactiveRegions = [];
 const runtimeState = {
     visible: true,
     agentId: String(rawCompanionConfig.agentId ?? "main"),
@@ -147,27 +148,21 @@ function publishRuntimeState() {
     void writeStateCache();
 }
 function startIgnoreMouseTimer() {
-    const pollBufferPx = 60;
+    const pollBufferPx = 8;
     return setInterval(() => {
         if (!mainWindow || mainWindow.isDestroyed()) {
             return;
         }
         const pos = screen.getCursorScreenPoint();
         const bounds = mainWindow.getBounds();
-        const scaleFactor = screen.getDisplayNearestPoint({
-            x: bounds.x + bounds.width / 2,
-            y: bounds.y + bounds.height / 2,
-        }).scaleFactor;
-        const inLogicalBounds = pos.x >= bounds.x - pollBufferPx &&
-            pos.x <= bounds.x + bounds.width + pollBufferPx &&
-            pos.y >= bounds.y - pollBufferPx &&
-            pos.y <= bounds.y + bounds.height + pollBufferPx;
-        const inPhysicalBounds = pos.x >= bounds.x * scaleFactor - pollBufferPx &&
-            pos.x <= (bounds.x + bounds.width) * scaleFactor + pollBufferPx &&
-            pos.y >= bounds.y * scaleFactor - pollBufferPx &&
-            pos.y <= (bounds.y + bounds.height) * scaleFactor + pollBufferPx;
-        mainWindow.setIgnoreMouseEvents(!(inLogicalBounds || inPhysicalBounds), { forward: true });
-    }, 8);
+        const localX = pos.x - bounds.x;
+        const localY = pos.y - bounds.y;
+        const inInteractiveRegion = interactiveRegions.some((region) => localX >= region.x - pollBufferPx &&
+            localX <= region.x + region.width + pollBufferPx &&
+            localY >= region.y - pollBufferPx &&
+            localY <= region.y + region.height + pollBufferPx);
+        mainWindow.setIgnoreMouseEvents(!inInteractiveRegion, { forward: true });
+    }, 33);
 }
 function createWindow() {
     const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize;
@@ -583,6 +578,18 @@ ipcMain.handle("companion:import-asset", async (_event, payload) => await import
     importMode: payload.importMode,
 }));
 ipcMain.handle("companion:activate-asset", async (_event, assetId) => await handleCompanionAction("activate-asset", { assetId }));
+ipcMain.on("companion:interactive-regions", (_event, regions) => {
+    interactiveRegions = Array.isArray(regions)
+        ? regions
+            .filter((region) => Number.isFinite(region.x) &&
+            Number.isFinite(region.y) &&
+            Number.isFinite(region.width) &&
+            Number.isFinite(region.height) &&
+            region.width > 0 &&
+            region.height > 0)
+            .slice(0, 12)
+        : [];
+});
 ipcMain.handle("capture-screen", async () => {
     const capture = await captureScreenToMemory();
     return capture ? { ok: true, ...capture } : { ok: false, error: "screen capture unavailable" };

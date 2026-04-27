@@ -1,11 +1,7 @@
-import type { TableColumn } from "../../terminal/table.js";
+import type { RenderTableOptions, TableColumn } from "../../terminal/table.js";
 
 type HeadingFn = (text: string) => string;
-type TableRenderer = (input: {
-  width: number;
-  columns: TableColumn[];
-  rows: Array<Record<string, string>>;
-}) => string;
+type TableRenderer = (input: RenderTableOptions) => string;
 
 export type StatusReportSection =
   | {

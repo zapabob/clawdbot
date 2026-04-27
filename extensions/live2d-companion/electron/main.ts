@@ -135,6 +135,7 @@ let activeAsset: CompanionAssetManifestEntry | null = null;
 let latestCameraCapture: CompanionBinaryCapture | null = null;
 let latestScreenCapture: CompanionBinaryCapture | null = null;
 let cameraCaptureWaiters: Array<(capture: CompanionBinaryCapture | null) => void> = [];
+let interactiveRegions: Array<{ x: number; y: number; width: number; height: number }> = [];
 
 const runtimeState: CompanionRuntimeState = {
   visible: true,
@@ -261,29 +262,24 @@ function publishRuntimeState(): void {
 }
 
 function startIgnoreMouseTimer(): ReturnType<typeof setInterval> {
-  const pollBufferPx = 60;
+  const pollBufferPx = 8;
   return setInterval(() => {
     if (!mainWindow || mainWindow.isDestroyed()) {
       return;
     }
     const pos = screen.getCursorScreenPoint();
     const bounds = mainWindow.getBounds();
-    const scaleFactor = screen.getDisplayNearestPoint({
-      x: bounds.x + bounds.width / 2,
-      y: bounds.y + bounds.height / 2,
-    }).scaleFactor;
-    const inLogicalBounds =
-      pos.x >= bounds.x - pollBufferPx &&
-      pos.x <= bounds.x + bounds.width + pollBufferPx &&
-      pos.y >= bounds.y - pollBufferPx &&
-      pos.y <= bounds.y + bounds.height + pollBufferPx;
-    const inPhysicalBounds =
-      pos.x >= bounds.x * scaleFactor - pollBufferPx &&
-      pos.x <= (bounds.x + bounds.width) * scaleFactor + pollBufferPx &&
-      pos.y >= bounds.y * scaleFactor - pollBufferPx &&
-      pos.y <= (bounds.y + bounds.height) * scaleFactor + pollBufferPx;
-    mainWindow.setIgnoreMouseEvents(!(inLogicalBounds || inPhysicalBounds), { forward: true });
-  }, 8);
+    const localX = pos.x - bounds.x;
+    const localY = pos.y - bounds.y;
+    const inInteractiveRegion = interactiveRegions.some(
+      (region) =>
+        localX >= region.x - pollBufferPx &&
+        localX <= region.x + region.width + pollBufferPx &&
+        localY >= region.y - pollBufferPx &&
+        localY <= region.y + region.height + pollBufferPx,
+    );
+    mainWindow.setIgnoreMouseEvents(!inInteractiveRegion, { forward: true });
+  }, 33);
 }
 
 function createWindow(): void {
@@ -781,6 +777,24 @@ ipcMain.handle(
   "companion:activate-asset",
   async (_event, assetId: string) =>
     await handleCompanionAction("activate-asset", { assetId }),
+);
+ipcMain.on(
+  "companion:interactive-regions",
+  (_event, regions: Array<{ x: number; y: number; width: number; height: number }>) => {
+    interactiveRegions = Array.isArray(regions)
+      ? regions
+          .filter(
+            (region) =>
+              Number.isFinite(region.x) &&
+              Number.isFinite(region.y) &&
+              Number.isFinite(region.width) &&
+              Number.isFinite(region.height) &&
+              region.width > 0 &&
+              region.height > 0,
+          )
+          .slice(0, 12)
+      : [];
+  },
 );
 ipcMain.handle("capture-screen", async () => {
   const capture = await captureScreenToMemory();

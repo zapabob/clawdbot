@@ -1,4 +1,4 @@
-import { Type } from "@sinclair/typebox";
+import { Type } from "typebox";
 import { createExecTool, type ExecToolDefaults } from "../bash-tools.js";
 import { formatExecCommand } from "../../infra/system-run-command.js";
 import {

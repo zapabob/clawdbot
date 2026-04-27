@@ -79,7 +79,7 @@ function parsePresetMap(value: unknown, label: string): Record<string, Submodule
 
 export function parseSubmoduleRegistry(raw: unknown): SubmoduleRegistry {
   const root = assertPlainObject(raw, "Submodule registry");
-  const version = root.version;
+  const version = typeof root.version === "number" ? root.version : Number.NaN;
   if (!Number.isInteger(version) || Number(version) < 1) {
     throw new Error("Submodule registry version must be a positive integer.");
   }

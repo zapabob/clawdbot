@@ -87,6 +87,7 @@ describe("dashboardCommand bind selection", () => {
       bind: "loopback",
       customBindHost: undefined,
       basePath: undefined,
+      tlsEnabled: false,
     });
   });
 
@@ -100,6 +101,7 @@ describe("dashboardCommand bind selection", () => {
       bind: "custom",
       customBindHost: "10.0.0.5",
       basePath: undefined,
+      tlsEnabled: false,
     });
   });
 
@@ -113,6 +115,7 @@ describe("dashboardCommand bind selection", () => {
       bind: "tailnet",
       customBindHost: undefined,
       basePath: undefined,
+      tlsEnabled: false,
     });
   });
 });

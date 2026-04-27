@@ -1,17 +1,15 @@
 node_modules
 **/node_modules/
 .env
-.env.*
-!.env.example
-!.env.atlas.example
-.env.local
-.env.secrets
+docker-compose.override.yml
 docker-compose.extra.yml
 dist
+dist-runtime/
 pnpm-lock.yaml
 bun.lock
 bun.lockb
 coverage
+__openclaw_vitest__/
 __pycache__/
 *.pyc
 .tsbuildinfo
@@ -33,10 +31,12 @@ apps/android/.gradle/
 apps/android/app/build/
 apps/android/.cxx/
 apps/android/.kotlin/
+apps/android/benchmark/results/
 
 # Bun build artifacts
 *.bun-build
 apps/macos/.build/
+apps/macos-mlx-tts/.build/
 apps/shared/MoltbotKit/.build/
 apps/shared/OpenClawKit/.build/
 apps/shared/OpenClawKit/Package.resolved
@@ -55,18 +55,10 @@ apps/ios/.swiftpm/
 apps/ios/.derivedData/
 apps/ios/.local-signing.xcconfig
 vendor/
-!vendor/
-vendor/*
-!vendor/README.md
-!vendor/submodules/
-vendor/submodules/*
-!vendor/submodules/README.md
-!vendor/submodules/registry.json
-!vendor/submodules/vrchat-mcp-osc
-!vendor/submodules/vrchat-mcp-osc/
 apps/ios/Clawdbot.xcodeproj/
 apps/ios/Clawdbot.xcodeproj/**
 apps/macos/.build/**
+apps/macos-mlx-tts/.build/**
 **/*.bun-build
 apps/ios/*.xcfilelist
 
@@ -76,50 +68,6 @@ src/canvas-host/a2ui/*.bundle.js
 src/canvas-host/a2ui/*.map
 .bundle.hash
 
-# Live2D Cubism Web SDK (requires separate license agreement)
-extensions/live2d-companion/renderer/lib/live2dcubismcore.min.js
-
-# Live2D model files (user-supplied, not tracked in repo)
-extensions/live2d-companion/models/
-
-# Runtime state (credentials, logs, sessions - never commit)
-.openclaw-desktop/*
-.openclaw-desktop/logs/
-.openclaw-desktop/tasks/
-.openclaw-desktop/identity/
-.openclaw-desktop/agents/main/sessions/
-.openclaw-desktop/agents/main/agent/auth-profiles.json
-.openclaw-desktop/agents/main/agent/*.tmp
-.openclaw-desktop/delivery-queue/
-.openclaw-desktop/devices/paired.json
-.openclaw-desktop/update-check.json
-.openclaw-desktop/cron/jobs.json
-.openclaw-desktop/cron/jobs.json.*.tmp
-.openclaw-desktop/cron/jobs.json.bak
-.specstory/
-vrchat-mcp-osc/
-.openclaw-desktop/cron/runs/
-.openclaw-desktop/openclaw.json.bak
-.openclaw-desktop/openclaw.json.bak.*
-.openclaw-desktop/companion_state.json
-
-# Repo-root log directory (local dev / gateway test runs)
-logs/
-!logs/
-logs/*
-!logs/README.md
-
-# Build/runtime generated artifacts
-dist-runtime/
-
-# Debug / temp outputs
-build_debug.log
-install_debug.log
-test-shortcut.log
-test_response.txt
-final_soul.txt
-soul_verify.txt
-
 # fastlane (iOS)
 apps/ios/fastlane/README.md
 apps/ios/fastlane/report.xml
@@ -128,7 +76,6 @@ apps/ios/fastlane/screenshots/
 apps/ios/fastlane/test_output/
 apps/ios/fastlane/logs/
 apps/ios/fastlane/.env
-!apps/ios/fastlane/.env.example
 
 # fastlane build artifacts (local)
 apps/ios/*.ipa
@@ -141,10 +88,7 @@ apps/ios/*.mobileprovision
 .local/
 docs/.local/
 docs/internal/
-/tmp/
-!/tmp/
-/tmp/*
-!/tmp/README.md
+tmp/
 IDENTITY.md
 USER.md
 .tgz
@@ -153,18 +97,43 @@ USER.md
 # local tooling
 .serena/
 
+# Local project-agent skill installs. Only repo-owned skills are visible by
+# default; promoting a new repo skill should require an intentional `git add -f`.
+.agents/skills/*
+!.agents/skills/blacksmith-testbox/
+!.agents/skills/blacksmith-testbox/**
+!.agents/skills/openclaw-ghsa-maintainer/
+!.agents/skills/openclaw-ghsa-maintainer/**
+!.agents/skills/openclaw-parallels-smoke/
+!.agents/skills/openclaw-parallels-smoke/**
+!.agents/skills/openclaw-pr-maintainer/
+!.agents/skills/openclaw-pr-maintainer/**
+!.agents/skills/openclaw-qa-testing/
+!.agents/skills/openclaw-qa-testing/**
+!.agents/skills/openclaw-release-maintainer/
+!.agents/skills/openclaw-release-maintainer/**
+!.agents/skills/openclaw-secret-scanning-maintainer/
+!.agents/skills/openclaw-secret-scanning-maintainer/**
+!.agents/skills/openclaw-test-heap-leaks/
+!.agents/skills/openclaw-test-heap-leaks/**
+!.agents/skills/openclaw-test-performance/
+!.agents/skills/openclaw-test-performance/**
+!.agents/skills/optimizetests/
+!.agents/skills/optimizetests/**
+!.agents/skills/parallels-discord-roundtrip/
+!.agents/skills/parallels-discord-roundtrip/**
+!.agents/skills/security-triage/
+!.agents/skills/security-triage/**
+!.agents/skills/tag-duplicate-prs-issues/
+!.agents/skills/tag-duplicate-prs-issues/**
+
 # Agent credentials and memory (NEVER COMMIT)
 /memory/
-!/memory/
-/memory/*
-!/memory/README.md
 .agent/*.json
 !.agent/workflows/
 /local/
 package-lock.json
 .claude/
-.agents/
-.agents
 .agent/
 skills-lock.json
 
@@ -188,117 +157,32 @@ dist/protocol.schema.json
 
 # Synthing
 **/.stfolder/
+.dev-state
+docs/superpowers
+.superpowers/
+.gitignore
+test/config-form.analyze.telegram.test.ts
+ui/src/ui/theme-variants.browser.test.ts
+ui/src/ui/__screenshots__
+ui/src/ui/views/__screenshots__
+ui/.vitest-attachments
 
-# Local voice virtualenv
-extensions/local-voice/moonshine-venv/
-
-# IDE and Agent patterns
-.vscode/
-.antigravity/
-.gemini/
-.agents/
-.agent/
-.openclaw/
-
-# Hypura harness generated scripts (keep dirs tracked via .gitkeep)
-scripts/hypura/generated/*.py
-scripts/hypura/evolved/*.py
-
-# Additional local runtime state (tracked history cleanup)
-.openclaw-desktop/agents/codex/sessions/
-.openclaw-desktop/agents/main/agent/models.json
-.openclaw-desktop/canvas/index.html
-.openclaw-desktop/devices/pending.json
-.openclaw-desktop/openclaw.json
-.openclaw-desktop/telegram/update-offset-default.json
-!.openclaw-desktop/README.md
-!.openclaw-desktop/openclaw.json
-!.openclaw-desktop/skills/
-.openclaw-desktop/skills/*
-!.openclaw-desktop/skills/README.md
-
-# Local assistant/tooling workspaces (machine-specific)
-.codebuddy/
-.commandcode/
-.continue/
-.crush/
-.factory/
-.goose/
-.junie/
-.kilocode/
-.kiro/
-.kode/
-.mcpjam/
-.mux/
-.neovate/
-.openhands/
-.pi/
-.pochi/
-.qoder/
-.qwen/
-.roo/
-.trae/
-.windsurf/
-.zencoder/
-
-# Local Cursor planning scratch
-.cursor/plans/*.plan.md
-
-# Clobbered desktop config snapshots (may contain secrets)
-.openclaw-desktop/openclaw.json.clobbered.*
-
-# ASI_ACCEL: Local Substrate & Evolution Logs (IGNORE FOR PEER SYNC)
-.python/
-.venv/
-*.log
-!scripts/hypura/
-!extensions/hypura-harness/
-nul
-
-# Local temporary and conflict-related files
-temp_violations_detailed.csv
-temp_git_status.txt
-temp_modified_files.log
-temp_file_list.json
-temp_modified_files.json
-conflicted.json
-ollama_conflict.json
-pkg_conflict.json
-debug_bundled.ts
-test.mjs
-test2.mjs
-test3.mjs
-test4.mjs
-_docs/resonance/
-
-# Generated publish-locale docs live in the separate openclaw/docs repo.
-docs/zh-CN/
-
-# ASI Sovereignty: Identity & Soul (NEVER COMMIT/PUBLISH)
-/identity/
-!/identity/
-/identity/*
-!/identity/README.md
-/SOUL.md
-/IDENTITY.md
-/USER.md
-/MEMORY.md
-/AGENT.md
-
-# Temporary and Workspace artifacts
-tmp/
-.temp/
-.cache/
-logs/
-*.log
-nul
+# Generated docs baseline artifacts (locally generated, only hashes tracked)
+docs/.generated/*.json
+docs/.generated/*.jsonl
 
 # Deprecated changelog fragment workflow
 changelog/fragments/
+
 # Local scratch workspace
 .tmp/
+.vmux*
 .artifacts/
 test/fixtures/openclaw-vitest-unit-report.json
 analysis/
 .artifacts/qa-e2e/
 extensions/qa-lab/web/dist/
+
+# Generated bundled plugin runtime dependency manifests
+extensions/**/.openclaw-runtime-deps.json
+extensions/**/.openclaw-runtime-deps-stamp.json

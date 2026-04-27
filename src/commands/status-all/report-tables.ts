@@ -1,4 +1,4 @@
-import type { TableColumn } from "../../terminal/table.js";
+import type { RenderTableOptions } from "../../terminal/table.js";
 import { formatTimeAgo } from "./format.js";
 import type { StatusReportSection } from "./text-report.js";
 
@@ -54,11 +54,7 @@ export function buildStatusAgentTableRows(params: {
 export function buildStatusChannelDetailSections(params: {
   details: ChannelDetailLike[];
   width: number;
-  renderTable: (input: {
-    width: number;
-    columns: TableColumn[];
-    rows: Array<Record<string, string>>;
-  }) => string;
+  renderTable: (input: RenderTableOptions) => string;
   ok: (text: string) => string;
   warn: (text: string) => string;
 }): StatusReportSection[] {
@@ -67,14 +63,12 @@ export function buildStatusChannelDetailSections(params: {
     title: detail.title,
     width: params.width,
     renderTable: params.renderTable,
-    columns: detail.columns.map(
-      (column): TableColumn => ({
-        key: column,
-        header: column,
-        flex: column === "Notes",
-        minWidth: column === "Notes" ? 28 : 10,
-      }),
-    ),
+    columns: detail.columns.map((column) => ({
+      key: column,
+      header: column,
+      flex: column === "Notes",
+      minWidth: column === "Notes" ? 28 : 10,
+    })),
     rows: detail.rows.map((row) => ({
       ...row,
       ...(row.Status === "OK"

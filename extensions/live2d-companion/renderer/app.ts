@@ -300,6 +300,7 @@ async function main(): Promise<void> {
     companionConfig.assetPolicy?.importMode === "local-copy" ? "local-copy" : "local-reference";
 
   const container = requireElement<HTMLDivElement>("canvas-container");
+  const companionDock = requireElement<HTMLElement>("companion-dock");
   const dockAvatarName = requireElement<HTMLDivElement>("dock-avatar-name");
   const dockVoiceStatus = requireElement<HTMLSpanElement>("dock-voice-status");
   const dockMicToggle = requireElement<HTMLButtonElement>("dock-mic-toggle");
@@ -753,6 +754,45 @@ async function main(): Promise<void> {
     renderAssets();
     renderCameraCard();
     renderDialog();
+    queueInteractiveRegionPublish();
+  }
+
+  function collectInteractiveRegions(): Array<{ x: number; y: number; width: number; height: number }> {
+    const candidates = [
+      companionDock,
+      uiState.panelExpanded ? panel : null,
+      uiState.activeDialog ? dialogBackdrop : null,
+    ];
+
+    return candidates.flatMap((element) => {
+      if (!element || element.hidden) {
+        return [];
+      }
+      const rect = element.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) {
+        return [];
+      }
+      return [
+        {
+          x: Math.round(rect.x),
+          y: Math.round(rect.y),
+          width: Math.round(rect.width),
+          height: Math.round(rect.height),
+        },
+      ];
+    });
+  }
+
+  let interactiveRegionPublishQueued = false;
+  function queueInteractiveRegionPublish(): void {
+    if (interactiveRegionPublishQueued) {
+      return;
+    }
+    interactiveRegionPublishQueued = true;
+    requestAnimationFrame(() => {
+      interactiveRegionPublishQueued = false;
+      window.companionBridge.notifyInteractiveRegions(collectInteractiveRegions());
+    });
   }
 
   function closeDialogWithResult(kind: "cancel" | "confirm"): void {
@@ -1173,11 +1213,8 @@ async function main(): Promise<void> {
     void importAssetFromPath(filePath);
   });
 
-  document.addEventListener("mouseenter", () => {
-    window.companionBridge.notifyMouseActive(true);
-  });
-  document.addEventListener("mouseleave", () => {
-    window.companionBridge.notifyMouseActive(false);
+  window.addEventListener("resize", () => {
+    queueInteractiveRegionPublish();
   });
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") {

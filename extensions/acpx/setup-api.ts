@@ -1,15 +1,13 @@
 import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
-import { migrateAcpxLegacyConfig } from "./config-api.js";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/text-runtime";
 
 export default definePluginEntry({
   id: "acpx",
   name: "ACPX Setup",
   description: "Lightweight ACPX setup hooks",
   register(api) {
-    api.registerConfigMigration((config) => migrateAcpxLegacyConfig(config));
     api.registerAutoEnableProbe(({ config }) => {
-      const backendRaw =
-        typeof config.acp?.backend === "string" ? config.acp.backend.trim().toLowerCase() : "";
+      const backendRaw = normalizeLowercaseStringOrEmpty(config.acp?.backend);
       const configured =
         config.acp?.enabled === true ||
         config.acp?.dispatch?.enabled === true ||
