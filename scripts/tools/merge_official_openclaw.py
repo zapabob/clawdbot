@@ -53,8 +53,12 @@ def sha256_file(relative_path: str) -> dict[str, object]:
 
 
 def ensure_clean() -> None:
-    status = run_git(["status", "--porcelain"], check=True).stdout.strip()
-    if status:
+    lines = [
+        line
+        for line in run_git(["status", "--porcelain"], check=True).stdout.splitlines()
+        if not line.endswith("official-openclaw-merge-report.json")
+    ]
+    if lines:
         raise RuntimeError("Working tree must be clean before merge helper runs.")
 
 
