@@ -18,6 +18,11 @@ on:
         required: false
         default: ""
         type: string
+      harness_ref:
+        description: Source ref for the private QA harness; defaults to the dispatched workflow ref
+        required: false
+        default: ""
+        type: string
       provider_mode:
         description: QA provider mode
         required: true
@@ -46,6 +51,11 @@ on:
         required: false
         default: ""
         type: string
+      harness_ref:
+        description: Source ref for the private QA harness; defaults to the called workflow ref
+        required: false
+        default: ""
+        type: string
       provider_mode:
         description: QA provider mode
         required: false
@@ -65,7 +75,6 @@ on:
         required: false
 
 permissions:
-  actions: read
   contents: read
 
 concurrency:
@@ -84,7 +93,6 @@ jobs:
     timeout-minutes: 60
     environment: qa-live-shared
     permissions:
-      actions: read
       contents: read
     env:
       DOCKER_BUILD_SUMMARY: "false"
@@ -93,16 +101,16 @@ jobs:
       - name: Checkout dispatch ref
         uses: actions/checkout@v6
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ inputs.harness_ref || github.sha }}
           fetch-depth: 1
 
       - name: Set up Blacksmith Docker Builder
-        uses: useblacksmith/setup-docker-builder@ac083cc84672d01c60d5e8561d0a939b697de542 # v1
+        uses: useblacksmith/setup-docker-builder@722e97d12b1d06a961800dd6c05d79d951ad3c80 # v1
         with:
           max-cache-size-mb: 800000
 
       - name: Build Docker E2E image
-        uses: useblacksmith/build-push-action@cbd1f60d194a98cb3be5523b15134501eaf0fbf3 # v2
+        uses: useblacksmith/build-push-action@fb9e3e6a9299c78462bfadd0d93352c316adc9b8 # v2
         with:
           context: .
           file: ./scripts/e2e/Dockerfile
@@ -217,6 +225,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: npm-telegram-beta-e2e-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ steps.run_lane.outputs.output_dir }}
+          path: .artifacts/qa-e2e/
           retention-days: 14
           if-no-files-found: warn

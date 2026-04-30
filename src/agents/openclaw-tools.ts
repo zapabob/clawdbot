@@ -127,6 +127,8 @@ export function createOpenClawTools(
     /** Explicit agent ID override for cron/hook sessions. */
     requesterAgentIdOverride?: string;
     execDefaults?: import("./bash-tools.js").ExecToolDefaults;
+    /** Restrict the cron tool to self-removing this active cron job. */
+    cronSelfRemoveOnlyJobId?: string;
     /** Require explicit message targets (no implicit last-route sends). */
     requireExplicitMessageTarget?: boolean;
     /** If true, omit the message tool from the tool list. */
@@ -292,6 +294,9 @@ export function createOpenClawTools(
               accountId: options?.agentAccountId,
               threadId: options?.currentThreadTs ?? options?.agentThreadId,
             },
+            ...(options?.cronSelfRemoveOnlyJobId
+              ? { selfRemoveOnlyJobId: options.cronSelfRemoveOnlyJobId }
+              : {}),
           }),
         ]),
     ...(!embedded && messageTool ? [messageTool] : []),

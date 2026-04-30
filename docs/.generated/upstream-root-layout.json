@@ -1,6 +1,6 @@
 {
-  "source": "git ls-tree --name-only v2026.4.25",
-  "generatedAt": "2026-04-27T20:58:57.467Z",
+  "source": "git ls-tree --name-only v2026.4.29-beta.3",
+  "generatedAt": "2026-05-01T04:12:00.000Z",
   "roots": [
     ".agents",
     ".codex",
@@ -21,6 +21,7 @@
     ".pre-commit-config.yaml",
     ".prettierignore",
     ".secrets.baseline",
+    ".semgrepignore",
     ".shellcheckrc",
     ".swiftformat",
     ".swiftlint.yml",
@@ -63,6 +64,7 @@
     "README.md",
     "render.yaml",
     "scripts",
+    "security",
     "SECURITY.md",
     "setup-podman.sh",
     "skills",

@@ -89,7 +89,6 @@ if [ -z "$PACKAGE_LABEL" ]; then
 fi
 
 docker_e2e_build_or_reuse "$IMAGE_NAME" npm-telegram-live "$ROOT_DIR/scripts/e2e/Dockerfile" "$ROOT_DIR" "$DOCKER_TARGET"
-docker_e2e_harness_mount_args
 
 mkdir -p "$ROOT_DIR/.artifacts/qa-e2e"
 run_log="$(mktemp "${TMPDIR:-/tmp}/openclaw-npm-telegram-live.XXXXXX")"
@@ -189,10 +188,9 @@ openclaw --version
 EOF
 
 # Mount only test harness/plugin QA sources; the SUT itself is the installed package candidate.
-run_logged docker run --rm \
+run_logged docker_e2e_run_with_harness \
   "${docker_env[@]}" \
   -v "$ROOT_DIR/.artifacts:/app/.artifacts" \
-  "${DOCKER_E2E_HARNESS_ARGS[@]}" \
   -v "$ROOT_DIR/extensions:/app/extensions:ro" \
   -v "$npm_prefix_host:/npm-global" \
   -i "$IMAGE_NAME" bash -s <<'EOF'
@@ -227,6 +225,17 @@ openclaw_package_dir="/npm-global/lib/node_modules/openclaw"
 # point those imports at the installed package without copying source into the test image.
 rm -rf /app/node_modules/openclaw
 ln -sfnT "$openclaw_package_dir" /app/node_modules/openclaw
+rm -rf /app/dist
+ln -sfnT "$openclaw_package_dir/dist" /app/dist
+cp "$openclaw_package_dir/package.json" /app/package.json
+rm -rf "$openclaw_package_dir/extensions"
+ln -sfnT /app/extensions "$openclaw_package_dir/extensions"
+mkdir -p /app/node_modules/@openclaw
+rm -rf /app/node_modules/@openclaw/qa-channel
+ln -sfnT /app/extensions/qa-channel /app/node_modules/@openclaw/qa-channel
+node scripts/e2e/lib/npm-telegram-live/prepare-package.mjs \
+  /app/package.json \
+  /app/node_modules/openclaw/package.json
 for deps_dir in "$openclaw_package_dir/node_modules" /npm-global/lib/node_modules; do
   [ -d "$deps_dir" ] || continue
   for dependency_dir in "$deps_dir"/*; do
@@ -254,6 +263,27 @@ for deps_dir in "$openclaw_package_dir/node_modules" /npm-global/lib/node_module
   done
 done
 
+link_installed_package_dependency() {
+  local name="$1"
+  local source="/npm-global/lib/node_modules/openclaw/node_modules/$name"
+  local target="/app/node_modules/$name"
+  if [ ! -e "$source" ]; then
+    echo "Installed package dependency is missing: $name" >&2
+    return 1
+  fi
+  mkdir -p "$(dirname "$target")"
+  ln -sfn "$source" "$target"
+}
+
+# QA Lab is intentionally mounted as harness source, so its package-local
+# runtime imports must resolve from the installed package dependency tree.
+for dependency in \
+  @modelcontextprotocol/sdk \
+  yaml \
+  zod; do
+  link_installed_package_dependency "$dependency"
+done
+
 echo "Running installed-package onboarding recovery hot path..."
 OPENAI_API_KEY="${OPENAI_API_KEY:-sk-openclaw-npm-telegram-hotpath}" openclaw onboard --non-interactive --accept-risk \
   --mode local \
@@ -279,7 +309,7 @@ fi
 
 export OPENCLAW_NPM_TELEGRAM_SUT_COMMAND="$(command -v openclaw)"
 trap - ERR
-node --import tsx scripts/e2e/npm-telegram-live-runner.ts
+tsx scripts/e2e/npm-telegram-live-runner.ts
 EOF
 
 echo "package Telegram live Docker E2E passed ($PACKAGE_LABEL)"

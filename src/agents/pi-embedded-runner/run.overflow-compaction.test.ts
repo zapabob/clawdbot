@@ -43,6 +43,7 @@ function makeForwardingCase(internalEvents: AgentInternalEvent[]) {
     runId: "forward-attempt-params",
     params: {
       toolsAllow: ["exec", "read"],
+      ownerOnlyToolAllowlist: ["cron"],
       bootstrapContextMode: "lightweight",
       bootstrapContextRunKind: "cron",
       disableMessageTool: true,
@@ -52,6 +53,7 @@ function makeForwardingCase(internalEvents: AgentInternalEvent[]) {
     },
     expected: {
       toolsAllow: ["exec", "read"],
+      ownerOnlyToolAllowlist: ["cron"],
       bootstrapContextMode: "lightweight",
       bootstrapContextRunKind: "cron",
       disableMessageTool: true,
@@ -384,6 +386,8 @@ describe("runEmbeddedPiAgent overflow compaction trigger routing", () => {
       shouldBlock: true,
       tokens: 800,
       source: "model",
+      hardMinTokens: 1000,
+      warnBelowTokens: 5000,
     });
 
     await expect(
@@ -448,7 +452,7 @@ describe("runEmbeddedPiAgent overflow compaction trigger routing", () => {
       }),
     );
 
-    await runEmbeddedPiAgent(overflowBaseRunParams);
+    const result = await runEmbeddedPiAgent(overflowBaseRunParams);
 
     expect(mockedCompactDirect).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -469,6 +473,7 @@ describe("runEmbeddedPiAgent overflow compaction trigger routing", () => {
         }),
       }),
     );
+    expect(result.meta.agentMeta?.compactionTokensAfter).toBe(80_000);
   });
 
   it("passes observed overflow token counts into compaction when providers report them", async () => {
@@ -607,6 +612,42 @@ describe("runEmbeddedPiAgent overflow compaction trigger routing", () => {
           trigger: "overflow",
           authProfileId: "test-profile",
         }),
+      }),
+    );
+  });
+
+  it("retries overflow recovery against the rotated compacted transcript", async () => {
+    mockedRunEmbeddedAttempt
+      .mockResolvedValueOnce(makeAttemptResult({ promptError: makeOverflowError() }))
+      .mockResolvedValueOnce(
+        makeAttemptResult({
+          promptError: null,
+          sessionIdUsed: "rotated-session",
+          sessionFileUsed: "/tmp/rotated-session.json",
+        }),
+      );
+    mockedCompactDirect.mockResolvedValueOnce(
+      makeCompactionSuccess({
+        summary: "rotated overflow compaction",
+        tokensAfter: 50,
+        sessionId: "rotated-session",
+        sessionFile: "/tmp/rotated-session.json",
+      }),
+    );
+
+    await runEmbeddedPiAgent(overflowBaseRunParams);
+
+    expect(mockedRunEmbeddedAttempt).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        sessionId: "rotated-session",
+        sessionFile: "/tmp/rotated-session.json",
+      }),
+    );
+    expect(mockedRunContextEngineMaintenance).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: "rotated-session",
+        sessionFile: "/tmp/rotated-session.json",
       }),
     );
   });
