@@ -16,6 +16,7 @@
     # When false (default), ngrok gets -ForceRestart so a fresh public URL is issued each stack launch.
     [switch]$NgrokReuse,
     [switch]$SpeakOnReady,
+    [switch]$UseDesktopLauncher,
     # Desktop shortcut: show Gateway + TUI in normal (visible) PowerShell windows instead of Minimized/Hidden.
     [switch]$ForceVisibleGatewayAndTui
 )
@@ -70,13 +71,18 @@ function Write-Step {
 }
 
 function Resolve-LaunchCommand {
+    $nodeCmd = Get-Command "node.exe" -ErrorAction SilentlyContinue
+    $repoCli = Join-Path $ProjectDir "openclaw.mjs"
+    if ($nodeCmd -and (Test-Path -LiteralPath $repoCli)) {
+        return @{ FilePath = $nodeCmd.Source; Prefix = @($repoCli); Label = "node openclaw.mjs" }
+    }
     $pnpmCmd = Get-Command "pnpm.cmd" -ErrorAction SilentlyContinue
     if ($pnpmCmd) {
-        return @{ FilePath = $pnpmCmd.Source; Prefix = @(); Label = "pnpm" }
+        return @{ FilePath = $pnpmCmd.Source; Prefix = @("openclaw"); Label = "pnpm openclaw" }
     }
     $corepackCmd = Get-Command "corepack.cmd" -ErrorAction SilentlyContinue
     if ($corepackCmd) {
-        return @{ FilePath = $corepackCmd.Source; Prefix = @("pnpm"); Label = "corepack pnpm" }
+        return @{ FilePath = $corepackCmd.Source; Prefix = @("pnpm", "openclaw"); Label = "corepack pnpm openclaw" }
     }
     throw 'Neither pnpm.cmd nor corepack.cmd was found in PATH. Install Node.js, run corepack enable, ensure pnpm is on PATH, or open PowerShell from a login shell where pnpm works, then retry the shortcut.'
 }
@@ -108,14 +114,8 @@ function Start-StackProcess {
         [string]$LogFile = "",
         [bool]$NoExit = $true
     )
-    $quotedCommandParts = $CommandParts | ForEach-Object { '"' + ($_ -replace '"', '\"') + '"' }
+    $quotedCommandParts = $CommandParts | ForEach-Object { "'" + ($_ -replace "'", "''") + "'" }
     $commandLine = "& " + ($quotedCommandParts -join " ")
-
-    $envAssignments = @()
-    foreach ($key in ($EnvironmentOverrides.Keys | Sort-Object)) {
-        $escapedValue = ([string]$EnvironmentOverrides[$key]).Replace("'", "''")
-        $envAssignments += "`$env:$key='$escapedValue'"
-    }
 
     $scriptLines = @(
         "`$host.UI.RawUI.WindowTitle = '$($Title.Replace("'","''"))'",
@@ -124,7 +124,7 @@ function Start-StackProcess {
     if ($LogFile -ne "") {
         $scriptLines += "Start-Transcript -Path '$($LogFile.Replace("'","''"))' -Append | Out-Null"
     }
-    if ($envAssignments.Count -gt 0) { $scriptLines += ($envAssignments -join "; ") }
+    # Child PowerShell inherits the launcher environment; avoid embedding secrets in command lines/transcripts.
     $scriptLines += $commandLine
 
     $joined = ($scriptLines -join "; ")
@@ -210,6 +210,40 @@ function Wait-HypuraHarnessReady {
     return $false
 }
 
+function Test-GatewayHttpReady {
+    param(
+        [string]$HealthUrl,
+        [string]$RootUrl
+    )
+    foreach ($url in @($HealthUrl, $RootUrl)) {
+        try {
+            $res = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 2
+            if ($res.StatusCode -ge 200 -and $res.StatusCode -lt 500) {
+                return $true
+            }
+        } catch {
+            # Gateway can bind before the event loop is responsive. Keep polling.
+        }
+    }
+    return $false
+}
+
+function Wait-GatewayHttpReady {
+    param(
+        [string]$BaseUrl,
+        [int]$TimeoutSec = 180
+    )
+    $healthUrl = "$BaseUrl/healthz"
+    $deadline = [DateTime]::Now.AddSeconds($TimeoutSec)
+    while ([DateTime]::Now -lt $deadline) {
+        if (Test-GatewayHttpReady -HealthUrl $healthUrl -RootUrl $BaseUrl) {
+            return $true
+        }
+        Start-Sleep -Milliseconds 750
+    }
+    return $false
+}
+
 function Build-DesktopStackProcessEnvTable {
     param(
         [Parameter(Mandatory = $true)][string]$ProjectDir,
@@ -230,18 +264,19 @@ function Build-DesktopStackProcessEnvTable {
             $pe[$key] = [string]$mergedEnv[$key]
         }
     }
+    foreach ($legacyKey in @($pe.Keys | Where-Object { $_ -like "CLAWDBOT_*" -or $_ -like "MOLTBOT_*" })) {
+        $pe.Remove($legacyKey)
+    }
     $pe["OPENCLAW_GATEWAY_PORT"]   = [string]$GatewayPort
-    $pe["CLAWDBOT_GATEWAY_PORT"]   = [string]$GatewayPort
     $pe["OPENCLAW_GATEWAY_BIND"]   = $GatewayBind
-    $pe["CLAWDBOT_GATEWAY_BIND"]   = $GatewayBind
     $pe["OPENCLAW_GATEWAY_MODE"]   = $GatewayMode
-    $pe["CLAWDBOT_GATEWAY_MODE"]   = $GatewayMode
     $pe["OPENCLAW_GATEWAY_TOKEN"]  = $Token
     $pe["OPENCLAW_PROFILE"]        = $StackProfile
     $pe["OPENCLAW_STATE_DIR"]      = $DesktopStateDir
     $pe["OPENCLAW_CONFIG_PATH"]    = $DesktopConfigPath
     $pe["OPENCLAW_LOCAL_URL"]      = $LocalGatewayUrl
     $pe["OPENCLAW_BROWSER_URL"]    = $LocalGatewayUrl
+    $pe["OPENCLAW_GATEWAY_URL"]    = $WsGatewayUrl
     $pe["OPENCLAW_GATEWAY_WS_URL"] = $WsGatewayUrl
     $pe["OPENCLAW_DESKTOP_LAUNCHER"] = "scripts/launchers/launch-desktop-stack.ps1"
     $pe["Path"]                    = $env:Path
@@ -250,6 +285,11 @@ function Build-DesktopStackProcessEnvTable {
 
 function Apply-DesktopStackProcessEnvToCurrentSession {
     param([Parameter(Mandatory = $true)][hashtable]$ProcessEnv)
+    foreach ($entry in Get-ChildItem Env:) {
+        if ($entry.Name -like "CLAWDBOT_*" -or $entry.Name -like "MOLTBOT_*") {
+            Remove-Item -Path ("Env:" + $entry.Name) -ErrorAction SilentlyContinue
+        }
+    }
     foreach ($entry in $ProcessEnv.GetEnumerator()) {
         try {
             Set-Item -Path ("Env:" + $entry.Key) -Value ([string]$entry.Value)
@@ -267,17 +307,16 @@ $wsGatewayUrl    = "ws://127.0.0.1:$GatewayPort"
 
 Set-EnvValues -EnvFile $envFile -Values @{
     OPENCLAW_GATEWAY_PORT      = $GatewayPort
-    CLAWDBOT_GATEWAY_PORT      = $GatewayPort
     OPENCLAW_GATEWAY_BIND      = $GatewayBind
-    CLAWDBOT_GATEWAY_BIND      = $GatewayBind
     OPENCLAW_GATEWAY_MODE      = $GatewayMode
-    CLAWDBOT_GATEWAY_MODE      = $GatewayMode
     OPENCLAW_GATEWAY_TOKEN     = $token
     OPENCLAW_PROFILE           = $StackProfile
     OPENCLAW_STATE_DIR         = $desktopStateDir
     OPENCLAW_CONFIG_PATH       = $desktopConfigPath
     OPENCLAW_LOCAL_URL         = $localGatewayUrl
     OPENCLAW_BROWSER_URL       = $localGatewayUrl
+    OPENCLAW_GATEWAY_URL       = $wsGatewayUrl
+    OPENCLAW_GATEWAY_WS_URL    = $wsGatewayUrl
     OPENCLAW_DESKTOP_LAUNCHER  = "scripts/launchers/launch-desktop-stack.ps1"
 }
 
@@ -295,6 +334,13 @@ $processEnv = Build-DesktopStackProcessEnvTable `
     -Token $token `
     -LocalGatewayUrl $localGatewayUrl `
     -WsGatewayUrl $wsGatewayUrl
+if ($UseDesktopLauncher) {
+    # Keep local desktop boot responsive even when external chat APIs are unreachable.
+    # The desktop shortcut is for local Gateway + Control UI + Companion startup;
+    # channel daemons can still be started from a normal gateway run.
+    $processEnv["OPENCLAW_SKIP_CHANNELS"] = "1"
+    $processEnv["OPENCLAW_TELEGRAM_DEFER_WEBHOOK_STARTUP"] = "1"
+}
 Apply-DesktopStackProcessEnvToCurrentSession -ProcessEnv $processEnv
 
 # --- Banner ---
@@ -310,11 +356,22 @@ Write-Host ""
 
 # --- Cleanup existing processes ---
 Write-Step "  Cleaning up existing OpenClaw processes..." -Color "Yellow"
-$processesToKill = @("node", "electron")
-foreach ($procName in $processesToKill) {
-    Get-Process -Name $procName -ErrorAction SilentlyContinue | Where-Object { 
-        $_.CommandLine -like "*openclaw*" -or $_.CommandLine -like "*live2d-companion*"
-    } | Stop-Process -Force -ErrorAction SilentlyContinue
+$escapedProjectDir = [regex]::Escape($ProjectDir)
+$launcherProcessId = $PID
+$staleProcesses = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
+    $cmd = [string]$_.CommandLine
+    if ([string]::IsNullOrWhiteSpace($cmd)) { return $false }
+    if ([int]$_.ProcessId -eq $launcherProcessId) { return $false }
+    if ($cmd -notmatch $escapedProjectDir) { return $false }
+    return (
+        $cmd -match 'openclaw\.mjs' -or
+        $cmd -match 'extensions[\\/]live2d-companion' -or
+        $cmd -match 'electron[\\/]main\.js' -or
+        $cmd -match 'node_modules[\\/]electron'
+    )
+})
+foreach ($proc in $staleProcesses) {
+    Stop-Process -Id ([int]$proc.ProcessId) -Force -ErrorAction SilentlyContinue
 }
 # Also kill processes listening on GatewayPort (best-effort; may fail without rights or on older hosts)
 try {
@@ -381,11 +438,16 @@ if (-not $SkipHypura) {
                     -EnvironmentOverrides $processEnv `
                     -CommandParts $hypuraParts
 
-                Write-Host "  [Hypura  ] Waiting for /api/tags readiness (timeout: $HypuraWaitSeconds sec)..." -ForegroundColor Gray
-                if (Wait-HypuraReady -TimeoutSec $HypuraWaitSeconds) {
-                    Write-Host "  [Hypura  ] Ready. Proceeding with stack launch." -ForegroundColor Green
+                $hypuraStatusUrl = "http://127.0.0.1:$hypPort/api/tags"
+                if ($UseDesktopLauncher) {
+                    Write-Host "  [Hypura  ] Background start requested; Gateway launch will not wait for readiness." -ForegroundColor DarkGray
                 } else {
-                    Write-Host "  [Hypura  ] WARNING: Hypura did not become ready within $HypuraWaitSeconds seconds. Continuing anyway." -ForegroundColor Yellow
+                    Write-Host "  [Hypura  ] Waiting for /api/tags readiness on port $hypPort (timeout: $HypuraWaitSeconds sec)..." -ForegroundColor Gray
+                    if (Wait-HypuraReady -Url $hypuraStatusUrl -TimeoutSec $HypuraWaitSeconds) {
+                        Write-Host "  [Hypura  ] Ready. Proceeding with stack launch." -ForegroundColor Green
+                    } else {
+                        Write-Host "  [Hypura  ] WARNING: Hypura did not become ready within $HypuraWaitSeconds seconds. Continuing anyway." -ForegroundColor Yellow
+                    }
                 }
             }
         } else {
@@ -415,11 +477,15 @@ if (-not $SkipHypuraHarness) {
             -EnvironmentOverrides $processEnv `
             -CommandParts @($pythonExe, $harnessEntry)
         
-        Write-Host "  [HypuraHX] Waiting for /status readiness (timeout: $HypuraHarnessWaitSeconds sec)..." -ForegroundColor Gray
-        if (Wait-HypuraHarnessReady -Url $harnessStatusUrl -TimeoutSec $HypuraHarnessWaitSeconds) {
-            Write-Host "  [HypuraHX] Ready. Proceeding with stack launch." -ForegroundColor Green
+        if ($UseDesktopLauncher) {
+            Write-Host "  [HypuraHX] Background start requested; Gateway launch will not wait for harness readiness." -ForegroundColor DarkGray
         } else {
-            Write-Host "  [HypuraHX] WARNING: harness did not become ready within $HypuraHarnessWaitSeconds seconds. Continuing anyway." -ForegroundColor Yellow
+            Write-Host "  [HypuraHX] Waiting for /status readiness (timeout: $HypuraHarnessWaitSeconds sec)..." -ForegroundColor Gray
+            if (Wait-HypuraHarnessReady -Url $harnessStatusUrl -TimeoutSec $HypuraHarnessWaitSeconds) {
+                Write-Host "  [HypuraHX] Ready. Proceeding with stack launch." -ForegroundColor Green
+            } else {
+                Write-Host "  [HypuraHX] WARNING: harness did not become ready within $HypuraHarnessWaitSeconds seconds. Continuing anyway." -ForegroundColor Yellow
+            }
         }
     } else {
         Write-Host "  [HypuraHX] Substrate .venv or official harness script missing; skipping auto-start." -ForegroundColor Yellow
@@ -460,9 +526,9 @@ if ($ForceVisibleGatewayAndTui) {
 if (-not $SkipGateway) {
     $gatewayLogFile = Join-Path $logsDir ("gateway-" + (Get-Date -Format "yyyyMMdd-HHmmss") + ".log")
     $gatewayCmd = @($launcher.FilePath) + $launcher.Prefix + @(
-        "openclaw","--profile",$StackProfile,"gateway","run",
+        "--profile",$StackProfile,"gateway","run",
         "--allow-unconfigured","--force","--bind",$GatewayBind,
-        "--port",[string]$GatewayPort,"--token",$token
+        "--port",[string]$GatewayPort
     )
     Start-StackProcess -Title "OpenClaw Gateway [$GatewayPort]" `
         -WorkingDirectory $ProjectDir `
@@ -474,40 +540,44 @@ if (-not $SkipGateway) {
 
     # --- Ngrok: MUST run after Gateway is listening (ERR_NGROK_8012 / undefined upstream if too early) ---
     if (-not $SkipNgrok) {
-        Write-Host "  [Ngrok   ] Waiting for Gateway TCP listen on $GatewayPort (up to 120s; reduces ERR_NGROK_8012)..." -ForegroundColor DarkCyan
-        $gwDeadline = [DateTime]::Now.AddSeconds(120)
-        $gwListen = $false
-        while ([DateTime]::Now -lt $gwDeadline) {
-            $listen = @(Get-NetTCPConnection -LocalPort $GatewayPort -State Listen -ErrorAction SilentlyContinue)
-            if ($listen.Count -gt 0) {
-                $gwListen = $true
-                break
-            }
-            Start-Sleep -Milliseconds 500
-        }
-        if (-not $gwListen) {
-            Write-Host "  [Ngrok   ] WARNING: Gateway not listening on $GatewayPort within 120s; starting ngrok anyway (may show ERR_NGROK_8012 until gateway binds)." -ForegroundColor Yellow
+        if ($UseDesktopLauncher) {
+            Write-Host "  [Ngrok   ] Desktop launcher mode: starting tunnel in background without blocking TUI/browser." -ForegroundColor DarkGray
         } else {
-            Write-Host "  [Ngrok   ] Gateway port is listening; starting tunnel (env injected)..." -ForegroundColor DarkCyan
-        }
-        Merge-OpenClawEnvToProcess -ProjectDir $ProjectDir
-        $ngrokTunnelPort = Get-NgrokUpstreamTunnelMatchPort -GatewayPort $GatewayPort -ProjectDir $ProjectDir
-        if ($ngrokTunnelPort -ne $GatewayPort) {
-            Write-Host "  [Ngrok   ] Upstream targets port $ngrokTunnelPort (not Gateway $GatewayPort); waiting for TCP listen (up to 120s; Telegram webhook / custom listener)..." -ForegroundColor DarkCyan
-            $upDeadline = [DateTime]::Now.AddSeconds(120)
-            $upListen = $false
-            while ([DateTime]::Now -lt $upDeadline) {
-                $listenUp = @(Get-NetTCPConnection -LocalPort $ngrokTunnelPort -State Listen -ErrorAction SilentlyContinue)
-                if ($listenUp.Count -gt 0) {
-                    $upListen = $true
+            Write-Host "  [Ngrok   ] Waiting for Gateway TCP listen on $GatewayPort (up to 120s; reduces ERR_NGROK_8012)..." -ForegroundColor DarkCyan
+            $gwDeadline = [DateTime]::Now.AddSeconds(120)
+            $gwListen = $false
+            while ([DateTime]::Now -lt $gwDeadline) {
+                $listen = @(Get-NetTCPConnection -LocalPort $GatewayPort -State Listen -ErrorAction SilentlyContinue)
+                if ($listen.Count -gt 0) {
+                    $gwListen = $true
                     break
                 }
                 Start-Sleep -Milliseconds 500
             }
-            if (-not $upListen) {
-                Write-Host "  [Ngrok   ] WARNING: Port $ngrokTunnelPort not listening within 120s; ngrok may show ERR_NGROK_8012 until the listener binds." -ForegroundColor Yellow
+            if (-not $gwListen) {
+                Write-Host "  [Ngrok   ] WARNING: Gateway not listening on $GatewayPort within 120s; starting ngrok anyway (may show ERR_NGROK_8012 until gateway binds)." -ForegroundColor Yellow
             } else {
-                Write-Host "  [Ngrok   ] Upstream port $ngrokTunnelPort is listening." -ForegroundColor DarkCyan
+                Write-Host "  [Ngrok   ] Gateway port is listening; starting tunnel (env injected)..." -ForegroundColor DarkCyan
+            }
+            Merge-OpenClawEnvToProcess -ProjectDir $ProjectDir
+            $ngrokTunnelPort = Get-NgrokUpstreamTunnelMatchPort -GatewayPort $GatewayPort -ProjectDir $ProjectDir
+            if ($ngrokTunnelPort -ne $GatewayPort) {
+                Write-Host "  [Ngrok   ] Upstream targets port $ngrokTunnelPort (not Gateway $GatewayPort); waiting for TCP listen (up to 120s; Telegram webhook / custom listener)..." -ForegroundColor DarkCyan
+                $upDeadline = [DateTime]::Now.AddSeconds(120)
+                $upListen = $false
+                while ([DateTime]::Now -lt $upDeadline) {
+                    $listenUp = @(Get-NetTCPConnection -LocalPort $ngrokTunnelPort -State Listen -ErrorAction SilentlyContinue)
+                    if ($listenUp.Count -gt 0) {
+                        $upListen = $true
+                        break
+                    }
+                    Start-Sleep -Milliseconds 500
+                }
+                if (-not $upListen) {
+                    Write-Host "  [Ngrok   ] WARNING: Port $ngrokTunnelPort not listening within 120s; ngrok may show ERR_NGROK_8012 until the listener binds." -ForegroundColor Yellow
+                } else {
+                    Write-Host "  [Ngrok   ] Upstream port $ngrokTunnelPort is listening." -ForegroundColor DarkCyan
+                }
             }
         }
         $ngrokScript = Join-Path $PSScriptRoot "..\start_ngrok.ps1"
@@ -526,42 +596,58 @@ if (-not $SkipGateway) {
             -EnvironmentOverrides $processEnv `
             -CommandParts $ngrokParts
 
-        Write-Host "  [Ngrok   ] Waiting for public URL (localhost:4040) and syncing OPENCLAW_PUBLIC_URL / webhooks to .env (up to 90s)..." -ForegroundColor DarkCyan
-        $syncedNgrokUrl = Sync-NgrokPublicUrlToEnv -ProjectDir $ProjectDir -MaxWaitSeconds 90 -PollMs 750 -GatewayPort $GatewayPort
-        Merge-OpenClawEnvToProcess -ProjectDir $ProjectDir
-        Add-SovereignDevToolsToPath
-        $processEnv = Build-DesktopStackProcessEnvTable `
-            -ProjectDir $ProjectDir `
-            -GatewayPort $GatewayPort `
-            -GatewayBind $GatewayBind `
-            -GatewayMode $GatewayMode `
-            -StackProfile $StackProfile `
-            -DesktopStateDir $desktopStateDir `
-            -DesktopConfigPath $desktopConfigPath `
-            -Token $token `
-            -LocalGatewayUrl $localGatewayUrl `
-            -WsGatewayUrl $wsGatewayUrl
-        Apply-DesktopStackProcessEnvToCurrentSession -ProcessEnv $processEnv
-        if ($syncedNgrokUrl) {
-            Write-Host "  [Ngrok   ] Public URL synced; TUI/Companion/Browser inherit: $syncedNgrokUrl" -ForegroundColor Green
+        if ($UseDesktopLauncher) {
+            Write-Host "  [Ngrok   ] Public URL sync skipped during desktop boot; run launcher again or sync manually after tunnel is ready." -ForegroundColor DarkGray
         } else {
-            Write-Host "  [Ngrok   ] WARNING: Public URL not ready within 90s (check ngrok window / auth). Child processes may lack OPENCLAW_PUBLIC_URL." -ForegroundColor Yellow
+            Write-Host "  [Ngrok   ] Waiting for public URL (localhost:4040) and syncing OPENCLAW_PUBLIC_URL / webhooks to .env (up to 90s)..." -ForegroundColor DarkCyan
+            $syncedNgrokUrl = Sync-NgrokPublicUrlToEnv -ProjectDir $ProjectDir -MaxWaitSeconds 90 -PollMs 750 -GatewayPort $GatewayPort
+            Merge-OpenClawEnvToProcess -ProjectDir $ProjectDir
+            Add-SovereignDevToolsToPath
+            $processEnv = Build-DesktopStackProcessEnvTable `
+                -ProjectDir $ProjectDir `
+                -GatewayPort $GatewayPort `
+                -GatewayBind $GatewayBind `
+                -GatewayMode $GatewayMode `
+                -StackProfile $StackProfile `
+                -DesktopStateDir $desktopStateDir `
+                -DesktopConfigPath $desktopConfigPath `
+                -Token $token `
+                -LocalGatewayUrl $localGatewayUrl `
+                -WsGatewayUrl $wsGatewayUrl
+            Apply-DesktopStackProcessEnvToCurrentSession -ProcessEnv $processEnv
+            if ($syncedNgrokUrl) {
+                Write-Host "  [Ngrok   ] Public URL synced; TUI/Companion/Browser inherit: $syncedNgrokUrl" -ForegroundColor Green
+            } else {
+                Write-Host "  [Ngrok   ] WARNING: Public URL not ready within 90s (check ngrok window / auth). Child processes may lack OPENCLAW_PUBLIC_URL." -ForegroundColor Yellow
+            }
         }
     }
 }
 
+$gatewayReadyTimeoutSec = if ($UseDesktopLauncher) { 480 } else { 180 }
+
 if ($ForceVisibleGatewayAndTui -and -not $SkipGateway -and -not $SkipTui) {
-    Write-Host "  [TUI     ] Brief pause so Gateway console can bind before TUI (force-visible mode)..." -ForegroundColor DarkGray
-    Start-Sleep -Seconds 2
+    Write-Host "  [TUI     ] Waiting for Gateway HTTP readiness before TUI connect (avoids startup handshake timeout)..." -ForegroundColor DarkGray
+    if (Wait-GatewayHttpReady -BaseUrl $localGatewayUrl -TimeoutSec $gatewayReadyTimeoutSec) {
+        Write-Host "  [TUI     ] Gateway HTTP is responsive; starting TUI." -ForegroundColor Green
+    } else {
+        Write-Host "  [TUI     ] WARNING: Gateway HTTP did not become responsive within ${gatewayReadyTimeoutSec}s; starting TUI anyway." -ForegroundColor Yellow
+    }
+} elseif (-not $SkipGateway -and -not $SkipTui) {
+    Write-Host "  [TUI     ] Waiting for Gateway HTTP readiness before TUI connect..." -ForegroundColor DarkGray
+    if (Wait-GatewayHttpReady -BaseUrl $localGatewayUrl -TimeoutSec $gatewayReadyTimeoutSec) {
+        Write-Host "  [TUI     ] Gateway HTTP is responsive; starting TUI." -ForegroundColor Green
+    } else {
+        Write-Host "  [TUI     ] WARNING: Gateway HTTP did not become responsive within ${gatewayReadyTimeoutSec}s; starting TUI anyway." -ForegroundColor Yellow
+    }
 }
 
 # --- BURST: TUI ---
 if (-not $SkipTui) {
     # Desktop stack: cap initial history below CLI default (200) to reduce first-connect load; for near-full history run `openclaw tui` manually or raise the value.
     $tuiCmd = @($launcher.FilePath) + $launcher.Prefix + @(
-        "openclaw","--profile",$StackProfile,"tui",
-        "--history-limit","120",
-        "--url",$wsGatewayUrl,"--token",$token
+        "--profile",$StackProfile,"tui",
+        "--history-limit","120"
     )
     Start-StackProcess -Title "OpenClaw TUI" `
         -WorkingDirectory $ProjectDir `
@@ -600,7 +686,7 @@ if (-not $SkipCompanion) {
 
 # --- Browser: launch asynchronously (poll in background) with same env as Gateway/TUI/ngrok ---
 if (-not $SkipBrowser) {
-    $browserUrl = "$localGatewayUrl/#token=$token"
+    $browserUrl = $localGatewayUrl
     $browserScript = Join-Path $PSScriptRoot "..\browser-wait-and-open.ps1"
     Start-StackProcess -Title "OpenClaw Browser" `
         -WorkingDirectory $ProjectDir `
@@ -618,6 +704,6 @@ if (-not $SkipBrowser) {
 Write-Host ""
 Write-Step "  All subsystems launched." "Green"
 Write-Host "  Gateway : $localGatewayUrl"
-Write-Host "  Token   : $token"
+Write-Host "  Token   : <redacted; OPENCLAW_GATEWAY_TOKEN is set in the launcher environment>"
 Write-Host "  Env     : $envFile"
 Write-Host ""

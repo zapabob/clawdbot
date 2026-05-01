@@ -9,12 +9,10 @@ import type {
   CompanionPermissionCapability,
   CompanionRuntimeState,
 } from "../runtime-api.js";
-import companionConfig from "../companion.config.json" with { type: "json" };
-import { shouldAutoExpandCompanionPanel } from "../companion-startup.js";
 import type { IAvatarController } from "./avatar-controller.js";
 import { createAvatarController, inferAvatarType, type AvatarType } from "./avatar-factory.js";
 import { applyEmotion, detectEmotion } from "./emotion-mapper.js";
-import { LipSyncController } from "./lip-sync.js";
+import { LipSyncController, type LipSyncConfig } from "./lip-sync.js";
 import {
   buildAssetLibraryView,
   buildSetupChecklist,
@@ -34,6 +32,20 @@ const PERMISSION_CAPABILITIES: CompanionPermissionCapability[] = [
 
 type ToastTone = "info" | "success" | "warning" | "danger";
 type ConcreteAvatarType = Exclude<AvatarType, "auto">;
+type CompanionRendererConfig = {
+  avatarType?: AvatarType;
+  voicevoxUrl?: unknown;
+  voicevoxSpeaker?: unknown;
+  webSpeechLang?: unknown;
+  webSpeechRate?: unknown;
+  webSpeechPitch?: unknown;
+  assetPolicy?: {
+    importMode?: string;
+  };
+  browserHelper?: {
+    enabled?: boolean;
+  };
+};
 
 type PermissionDialogConfig = {
   capability: CompanionPermissionCapability;
@@ -113,9 +125,7 @@ function basename(filePath: string): string {
   return filePath.split(/[/\\]/).pop() ?? filePath;
 }
 
-function inferAssetTypeFromPath(
-  filePath: string,
-): CompanionAssetManifestEntry["assetType"] {
+function inferAssetTypeFromPath(filePath: string): CompanionAssetManifestEntry["assetType"] {
   const normalized = filePath.toLowerCase();
   if (normalized.endsWith(".vrm")) {
     return "vrm";
@@ -204,6 +214,17 @@ function toConcreteAvatarType(type: AvatarType): ConcreteAvatarType {
   return type === "auto" ? "vrm" : type;
 }
 
+function shouldAutoExpandPanel(params: {
+  onboardingSeen: boolean;
+  activeAssetId: string | null;
+  assetCount: number;
+}): boolean {
+  if (!params.onboardingSeen) {
+    return true;
+  }
+  return params.activeAssetId === null || params.assetCount === 0;
+}
+
 function toAvatarTypeFromAsset(
   assetType: CompanionAssetManifestEntry["assetType"],
   filePath?: string,
@@ -253,7 +274,9 @@ function createInfoRow(label: string, value: string): HTMLDivElement {
   return row;
 }
 
-function resolvePermissionDialog(capability: CompanionPermissionCapability): PermissionDialogConfig {
+function resolvePermissionDialog(
+  capability: CompanionPermissionCapability,
+): PermissionDialogConfig {
   switch (capability) {
     case "mic":
       return {
@@ -293,9 +316,8 @@ function resolvePermissionDialog(capability: CompanionPermissionCapability): Per
 }
 
 async function main(): Promise<void> {
-  const configuredAvatarType =
-    ((companionConfig as { avatarType?: AvatarType }).avatarType as AvatarType | undefined) ??
-    "auto";
+  const companionConfig = (await window.companionBridge.getConfig()) as CompanionRendererConfig;
+  const configuredAvatarType = (companionConfig.avatarType as AvatarType | undefined) ?? "auto";
   const importMode =
     companionConfig.assetPolicy?.importMode === "local-copy" ? "local-copy" : "local-reference";
 
@@ -351,7 +373,7 @@ async function main(): Promise<void> {
     runtimeState.activeAsset?.resolvedPath ?? (await window.companionBridge.discoverModel());
   let uiState = createCompanionUiState({
     onboardingSeen: readOnboardingSeen(),
-    autoExpanded: shouldAutoExpandCompanionPanel({
+    autoExpanded: shouldAutoExpandPanel({
       onboardingSeen: readOnboardingSeen(),
       activeAssetId: runtimeState.activeAssetId,
       assetCount: assets.length,
@@ -369,13 +391,22 @@ async function main(): Promise<void> {
   );
 
   let avatar = await initializeAvatar(initialAvatarType);
-  let lipSync = new LipSyncController(avatar);
+  const lipSyncConfig: LipSyncConfig = {
+    voicevoxUrl: companionConfig.voicevoxUrl,
+    voicevoxSpeaker: companionConfig.voicevoxSpeaker,
+    webSpeechLang: companionConfig.webSpeechLang,
+    webSpeechRate: companionConfig.webSpeechRate,
+    webSpeechPitch: companionConfig.webSpeechPitch,
+    ttsProvider: runtimeState.ttsProvider,
+  };
+  let lipSync = new LipSyncController(avatar, lipSyncConfig);
   lipSync.ttsProvider = runtimeState.ttsProvider;
 
   let currentModelName =
     runtimeState.activeAsset?.fileName ??
     (discoveredModel ? basename(discoveredModel) : "No avatar selected");
-  let loadedAssetPath = discoveredModel;
+  let loadedAssetPath: string | null = null;
+  let interactiveRegionPublishQueued = false;
 
   if (!uiState.onboardingSeen && uiState.panelExpanded) {
     uiState = reduceCompanionUiState(uiState, { type: "onboarding/mark-seen" });
@@ -384,6 +415,8 @@ async function main(): Promise<void> {
 
   if (runtimeState.activeAsset?.resolvedPath) {
     await syncActiveAsset();
+  } else if (discoveredModel) {
+    await syncDiscoveredModel(discoveredModel);
   }
 
   function updateUiState(action: Parameters<typeof reduceCompanionUiState>[1]): void {
@@ -412,7 +445,7 @@ async function main(): Promise<void> {
     if (avatar.avatarType !== nextAvatarType) {
       avatar.destroy();
       avatar = await initializeAvatar(nextAvatarType);
-      lipSync = new LipSyncController(avatar);
+      lipSync = new LipSyncController(avatar, lipSyncConfig);
       lipSync.ttsProvider = runtimeState.ttsProvider;
     }
 
@@ -442,6 +475,24 @@ async function main(): Promise<void> {
     } catch (error) {
       console.error("[Companion] failed to activate asset", error);
       showToast(toastRegion, `Failed to load ${activeAsset.fileName}.`, "danger");
+    }
+  }
+
+  async function syncDiscoveredModel(modelPath: string): Promise<void> {
+    if (loadedAssetPath === modelPath) {
+      currentModelName = basename(modelPath);
+      render();
+      return;
+    }
+    try {
+      await switchAvatar({
+        filePath: modelPath,
+        assetType: inferAssetTypeFromPath(modelPath),
+        label: basename(modelPath),
+      });
+    } catch (error) {
+      console.error("[Companion] failed to load discovered avatar", error);
+      showToast(toastRegion, `Failed to load ${basename(modelPath)}.`, "danger");
     }
   }
 
@@ -757,7 +808,12 @@ async function main(): Promise<void> {
     queueInteractiveRegionPublish();
   }
 
-  function collectInteractiveRegions(): Array<{ x: number; y: number; width: number; height: number }> {
+  function collectInteractiveRegions(): Array<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }> {
     const candidates = [
       companionDock,
       uiState.panelExpanded ? panel : null,
@@ -783,7 +839,6 @@ async function main(): Promise<void> {
     });
   }
 
-  let interactiveRegionPublishQueued = false;
   function queueInteractiveRegionPublish(): void {
     if (interactiveRegionPublishQueued) {
       return;
@@ -876,7 +931,9 @@ async function main(): Promise<void> {
     return true;
   }
 
-  async function togglePermissionFromChip(capability: CompanionPermissionCapability): Promise<void> {
+  async function togglePermissionFromChip(
+    capability: CompanionPermissionCapability,
+  ): Promise<void> {
     const state = runtimeState.permissions[capability];
     if (state.decision === "granted") {
       runtimeState = await window.companionBridge.setPermission(capability, "denied");
@@ -1066,6 +1123,14 @@ async function main(): Promise<void> {
 
     if (cmd.motion) {
       avatar.playMotion(cmd.motion, cmd.motionIndex);
+    }
+
+    if (cmd.gesture) {
+      avatar.playMotion(cmd.gesture, cmd.motionIndex);
+    }
+
+    if (cmd.pose) {
+      avatar.applyPose?.(cmd.pose);
     }
 
     if (cmd.lookAt) {

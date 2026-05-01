@@ -32,6 +32,39 @@ export interface CompanionControlCommand {
   timestamp: number;
 }
 
+export type AvatarRigBone =
+  | "head"
+  | "neck"
+  | "chest"
+  | "spine"
+  | "hips"
+  | "leftUpperArm"
+  | "leftLowerArm"
+  | "leftHand"
+  | "rightUpperArm"
+  | "rightLowerArm"
+  | "rightHand"
+  | "leftUpperLeg"
+  | "leftLowerLeg"
+  | "rightUpperLeg"
+  | "rightLowerLeg";
+
+export type AvatarPoseRotation = {
+  /** Rotation around the local X axis. Degrees by default; set radians=true for radians. */
+  x?: number;
+  /** Rotation around the local Y axis. Degrees by default; set radians=true for radians. */
+  y?: number;
+  /** Rotation around the local Z axis. Degrees by default; set radians=true for radians. */
+  z?: number;
+};
+
+export type AvatarPoseCommand = Partial<Record<AvatarRigBone, AvatarPoseRotation>> & {
+  /** Clear all procedural bone targets before applying new values. */
+  reset?: boolean;
+  /** Interpret x/y/z as radians instead of degrees. */
+  radians?: boolean;
+};
+
 /**
  * Commands the AI agent can issue to control the desktop avatar.
  * Dispatched via the HTTP control API (/control) or IPC.
@@ -43,8 +76,12 @@ export interface AvatarCommand {
   expression?: string;
   /** Play a named motion group */
   motion?: string;
+  /** Trigger a procedural gesture when the loaded FBX has no matching animation clip. */
+  gesture?: string;
   /** Optional motion index within the named motion group */
   motionIndex?: number;
+  /** Direct procedural pose control for humanoid FBX/VRM controllers. */
+  pose?: AvatarPoseCommand;
   /** Speak text via TTS (triggers lip sync) */
   speakText?: string;
   /** Eye gaze direction: normalised [-1,1] per axis */

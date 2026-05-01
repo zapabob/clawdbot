@@ -1,4 +1,6 @@
+import { createTestPluginApi } from "openclaw/plugin-sdk/plugin-test-api";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { buildLlamaCppUnknownModelHint, resolveLlamaCppConfiguredModelId } from "./api.js";
 import {
   LLAMA_CPP_DEFAULT_API_KEY_ENV_VAR,
   LLAMA_CPP_DEFAULT_BASE_URL,
@@ -6,13 +8,8 @@ import {
   LLAMA_CPP_PROVIDER_LABEL,
   LLAMA_CPP_MODEL_PLACEHOLDER,
 } from "./defaults.js";
-import { buildLlamaCppProvider } from "./models.js";
-import { createTestPluginApi } from "../../test/helpers/plugins/plugin-api.js";
 import plugin from "./index.js";
-import {
-  buildLlamaCppUnknownModelHint,
-  resolveLlamaCppConfiguredModelId,
-} from "./api.js";
+import { buildLlamaCppProvider } from "./models.js";
 
 const promptAndConfigureOpenAICompatibleSelfHostedProviderAuthMock = vi.hoisted(() =>
   vi.fn(async () => ({
@@ -48,6 +45,9 @@ const discoverOpenAICompatibleLocalModelsMock = vi.hoisted(() => vi.fn());
 const discoverOpenAICompatibleSelfHostedProviderMock = vi.hoisted(() => vi.fn());
 
 vi.mock("openclaw/plugin-sdk/provider-setup", () => ({
+  SELF_HOSTED_DEFAULT_CONTEXT_WINDOW: 128000,
+  SELF_HOSTED_DEFAULT_COST: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+  SELF_HOSTED_DEFAULT_MAX_TOKENS: 8192,
   discoverOpenAICompatibleLocalModels: discoverOpenAICompatibleLocalModelsMock,
   promptAndConfigureOpenAICompatibleSelfHostedProviderAuth:
     promptAndConfigureOpenAICompatibleSelfHostedProviderAuthMock,
@@ -134,11 +134,18 @@ describe("llama-cpp provider", () => {
       baseConfig: {},
       opts: {},
       runtime: {} as never,
-      resolveApiKey: vi.fn(async () => ({ key: "k", source: "env", envVarName: "LLAMA_CPP_API_KEY" })),
+      resolveApiKey: vi.fn(async () => ({
+        key: "k",
+        source: "env",
+        envVarName: "LLAMA_CPP_API_KEY",
+      })),
       toApiKeyCredential: vi.fn(async () => ({ type: "api_key", data: "k" })),
     };
 
-    vi.stubEnv(LLAMA_CPP_DEFAULT_MODEL_ENV_VAR, "Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q8_K_P.gguf");
+    vi.stubEnv(
+      LLAMA_CPP_DEFAULT_MODEL_ENV_VAR,
+      "Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q8_K_P.gguf",
+    );
     const result = await provider.auth[0].runNonInteractive?.(context as never);
     vi.unstubAllEnvs();
 
@@ -214,6 +221,26 @@ describe("llama-cpp provider", () => {
       baseUrl: "http://127.0.0.1:8080/v1",
       api: "openai-completions",
       models: [{ id: "llama-3.1", input: ["text"], reasoning: false }],
+    });
+  });
+
+  it("uses LLAMA_CPP_MODEL directly instead of probing /v1/models when provided", async () => {
+    const result = await buildLlamaCppProvider({
+      baseUrl: "http://127.0.0.1:8080/v1/",
+      apiKey: "abc",
+      modelId: "Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q8_K_P.gguf",
+    });
+
+    expect(discoverOpenAICompatibleLocalModelsMock).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      baseUrl: "http://127.0.0.1:8080/v1",
+      api: "openai-completions",
+      models: [
+        {
+          id: "Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q8_K_P.gguf",
+          name: "Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q8_K_P.gguf",
+        },
+      ],
     });
   });
 

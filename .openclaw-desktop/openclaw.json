@@ -41,6 +41,9 @@
                             }
             },
     "models":  {
+                   "pricing":  {
+                                    "enabled":  false
+                                },
                    "providers":  {
                                      "ollama":  {
                                                     "baseUrl":  "http://127.0.0.1:11434",
@@ -108,9 +111,6 @@
                                                                                  ],
                                                                        "contextWindow":  262144,
                                                                        "maxTokens":  16384,
-                                                                       "compat":  {
-                                                                                      "thinkingFormat":  "qwen"
-                                                                                  },
                                                                        "cost":  {
                                                                                     "input":  0,
                                                                                     "output":  0,
@@ -290,7 +290,7 @@
     "channels":  {
                      "telegram":  {
                                       "enabled":  true,
-                                      "botToken":  "8549534063:AAE5AXgPEnmWEpQwGPKcaZwnBYYPQdysbyE",
+                                      "botToken":  "${TELEGRAM_BOT_TOKEN}",
                                       "webhookUrl":  "https://remedial-joline-unrash.ngrok-free.dev/telegram-webhook",
                                       "webhookSecret":  "4435630ad262f1da32229df74e7e5ad97f6542f095cf1fdcd81e76ccb114df30",
                                       "webhookPath":  "/telegram-webhook",
@@ -374,7 +374,6 @@
     "plugins":  {
                     "allow":  [
                                   "python-exec",
-                                  "auto-agent",
                                   "talk-voice",
                                   "local-voice",
                                   "line",
@@ -393,11 +392,6 @@
                                   "opencode",
                                   "openai"
                               ],
-                    "load":  {
-                                 "paths":  [
-                                               "C:\\Users\\downl\\Desktop\\clawdbot-main3\\clawdbot-main\\dist-runtime\\extensions\\python-exec"
-                                           ]
-                             },
                     "entries":  {
                                     "acpx":  {
                                                  "enabled":  true,
@@ -479,16 +473,16 @@
                                                                         }
                                                          },
                                     "auto-agent":  {
-                                                       "enabled":  true,
+                                                       "enabled":  false,
                                                        "config":  {
-                                                                      "enabled":  true,
+                                                                      "enabled":  false,
                                                                       "agentUrl":  "http://127.0.0.1:18789/hooks/agent",
                                                                       "internetAccess":  true,
-                                                                      "selfEvolutionEnabled":  true,
-                                                                      "selfHealing":  true,
-                                                                      "swarmMode":  true,
+                                                                      "selfEvolutionEnabled":  false,
+                                                                      "selfHealing":  false,
+                                                                      "swarmMode":  false,
                                                                       "maxSwarmAgents":  200,
-                                                                      "gitAutoCommit":  true,
+                                                                      "gitAutoCommit":  false,
                                                                       "safeMode":  false,
                                                                       "threeLawsEnabled":  false,
                                                                       "checkIntervalMs":  300000,

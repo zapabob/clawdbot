@@ -45,6 +45,7 @@ Full desktop stack (Gateway, TUI, harness, etc.): `scripts/launchers/openclaw-de
 ## Operator docs
 
 - Workspace skill: [skills/hypura-harness/SKILL.md](../../skills/hypura-harness/SKILL.md)
+- Plugin skills: [extensions/hypura-harness/skills](./skills) are registered through `openclaw.plugin.json` so enabled installations expose the harness operating guides like other bundled plugins.
 - LoRA pipeline: [extensions/hypura-harness/scripts/LORA_PIPELINE.md](./scripts/LORA_PIPELINE.md)
 - Layout vs `scripts/hypura/`: [\_docs/2026-04-05_OpenClaw-layout-Sovereign-overlay_clawdbot-main.md](../../_docs/2026-04-05_OpenClaw-layout-Sovereign-overlay_clawdbot-main.md)
 

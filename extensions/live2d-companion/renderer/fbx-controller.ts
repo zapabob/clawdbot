@@ -3,9 +3,25 @@
  * Keeps model loading local while making repo-scale FBX files visible and animated.
  */
 
+import type {
+  AvatarPoseCommand,
+  AvatarPoseRotation,
+  AvatarRigBone,
+} from "../bridge/event-types.js";
 import type { IAvatarController } from "./avatar-controller.js";
 
 type ThreeModule = typeof import("three");
+type PoseTarget = { x: number; y: number; z: number };
+type RigBinding = {
+  object: import("three").Object3D;
+  baseRotation: import("three").Euler;
+};
+type ProceduralGesture = {
+  name: string;
+  startedAt: number;
+  loop: boolean;
+  duration: number;
+};
 
 const MOUTH_OPEN_KEYS = [
   "MouthOpen",
@@ -15,6 +31,93 @@ const MOUTH_OPEN_KEYS = [
   "jawOpen",
   "JawOpen",
 ];
+
+const AVATAR_RIG_BONES: AvatarRigBone[] = [
+  "head",
+  "neck",
+  "chest",
+  "spine",
+  "hips",
+  "leftUpperArm",
+  "leftLowerArm",
+  "leftHand",
+  "rightUpperArm",
+  "rightLowerArm",
+  "rightHand",
+  "leftUpperLeg",
+  "leftLowerLeg",
+  "rightUpperLeg",
+  "rightLowerLeg",
+];
+
+const RIG_BONE_MATCHERS: Record<AvatarRigBone, RegExp[]> = {
+  head: [/j[_-]?bip[_-]?c[_-]?head/i, /(^|[_\-.])head($|[_\-.])/i, /頭|atama/i],
+  neck: [/j[_-]?bip[_-]?c[_-]?neck/i, /neck/i, /首|kubi/i],
+  chest: [/upper.?chest/i, /j[_-]?bip[_-]?c[_-]?chest/i, /chest|bust/i, /胸/i],
+  spine: [/j[_-]?bip[_-]?c[_-]?spine/i, /spine/i, /上半身|body/i],
+  hips: [/j[_-]?bip[_-]?c[_-]?hips/i, /hips|pelvis/i, /腰/i],
+  leftUpperArm: [
+    /j[_-]?bip[_-]?l[_-]?upper.?arm/i,
+    /mixamorigleftarm/i,
+    /left.*upper.*arm/i,
+    /left.*arm/i,
+    /(^|[_\-.])l[_\-.].*upper.?arm/i,
+  ],
+  leftLowerArm: [
+    /j[_-]?bip[_-]?l[_-]?lower.?arm/i,
+    /mixamorigleftforearm/i,
+    /left.*(?:lower|fore).*arm/i,
+    /(^|[_\-.])l[_\-.].*(?:lower|fore).*arm/i,
+  ],
+  leftHand: [
+    /j[_-]?bip[_-]?l[_-]?hand/i,
+    /mixamoriglefthand/i,
+    /left.*hand/i,
+    /(^|[_\-.])l[_\-.].*hand/i,
+  ],
+  rightUpperArm: [
+    /j[_-]?bip[_-]?r[_-]?upper.?arm/i,
+    /mixamorigrightarm/i,
+    /right.*upper.*arm/i,
+    /right.*arm/i,
+    /(^|[_\-.])r[_\-.].*upper.?arm/i,
+  ],
+  rightLowerArm: [
+    /j[_-]?bip[_-]?r[_-]?lower.?arm/i,
+    /mixamorigrightforearm/i,
+    /right.*(?:lower|fore).*arm/i,
+    /(^|[_\-.])r[_\-.].*(?:lower|fore).*arm/i,
+  ],
+  rightHand: [
+    /j[_-]?bip[_-]?r[_-]?hand/i,
+    /mixamorigthand/i,
+    /mixamorigrighthand/i,
+    /right.*hand/i,
+    /(^|[_\-.])r[_\-.].*hand/i,
+  ],
+  leftUpperLeg: [
+    /j[_-]?bip[_-]?l[_-]?upper.?leg/i,
+    /mixamorigleftupleg/i,
+    /left.*upper.*leg/i,
+    /left.*thigh/i,
+  ],
+  leftLowerLeg: [
+    /j[_-]?bip[_-]?l[_-]?lower.?leg/i,
+    /mixamorigleftleg/i,
+    /left.*(?:lower.*leg|calf|shin)/i,
+  ],
+  rightUpperLeg: [
+    /j[_-]?bip[_-]?r[_-]?upper.?leg/i,
+    /mixamorigrightupleg/i,
+    /right.*upper.*leg/i,
+    /right.*thigh/i,
+  ],
+  rightLowerLeg: [
+    /j[_-]?bip[_-]?r[_-]?lower.?leg/i,
+    /mixamorigrightleg/i,
+    /right.*(?:lower.*leg|calf|shin)/i,
+  ],
+};
 
 function toFileUrl(pathOrUrl: string): string {
   if (pathOrUrl.startsWith("file://")) {
@@ -27,6 +130,70 @@ function toFileUrl(pathOrUrl: string): string {
 
 function resourceDirFromFileUrl(url: string): string {
   return url.replace(/\/[^/]*$/, "/");
+}
+
+function ensureTrailingSlash(value: string): string {
+  return value.endsWith("/") ? value : `${value}/`;
+}
+
+function buildTextureResourceDirs(resourceDir: string): string[] {
+  const normalized = ensureTrailingSlash(resourceDir.replace(/\\/g, "/"));
+  const dirs = [normalized, `${normalized}Textures/`];
+  if (/\/FBX\/FBX\/$/i.test(normalized)) {
+    const parentFbxDir = normalized.replace(/\/FBX\/FBX\/$/i, "/FBX/");
+    dirs.push(parentFbxDir, `${parentFbxDir}Textures/`);
+  }
+  return Array.from(new Set(dirs));
+}
+
+function rewriteTextureUrl(assetUrl: string, resourceDirs: string[]): string {
+  const normalized = assetUrl.replace(/\\/g, "/");
+  if (!/\.(?:png|jpe?g|webp|bmp|gif|tga)(?:[?#].*)?$/i.test(normalized)) {
+    return assetUrl;
+  }
+  if (!resourceDirs.length || !/\/FBX\/FBX\//i.test(resourceDirs[0])) {
+    return assetUrl;
+  }
+  const fileName = normalized.split("/").pop()?.split("?")[0]?.split("#")[0];
+  if (!fileName) {
+    return assetUrl;
+  }
+  return `${resourceDirs[2] ?? resourceDirs[0]}${fileName}`;
+}
+
+function normalizeMotionName(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, "-");
+}
+
+function degreesToRadians(value: number): number {
+  return (value * Math.PI) / 180;
+}
+
+function clampRadians(value: number): number {
+  return Math.max(-Math.PI, Math.min(Math.PI, value));
+}
+
+function toPoseRadians(value: number | undefined, radians: boolean): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return undefined;
+  }
+  return clampRadians(radians ? value : degreesToRadians(value));
+}
+
+function addTarget(
+  targets: Map<AvatarRigBone, PoseTarget>,
+  bone: AvatarRigBone,
+  patch: Partial<PoseTarget>,
+): void {
+  const current = targets.get(bone) ?? { x: 0, y: 0, z: 0 };
+  targets.set(bone, {
+    x: current.x + (patch.x ?? 0),
+    y: current.y + (patch.y ?? 0),
+    z: current.z + (patch.z ?? 0),
+  });
 }
 
 export class FbxController implements IAvatarController {
@@ -51,6 +218,9 @@ export class FbxController implements IAvatarController {
   private idleTime = 0;
   private expressionPulse = 0;
   private gaze = { x: 0, y: 0 };
+  private rigBones = new Map<AvatarRigBone, RigBinding>();
+  private poseTargets = new Map<AvatarRigBone, PoseTarget>();
+  private proceduralGesture: ProceduralGesture | null = null;
 
   async init(container: HTMLElement): Promise<void> {
     this.three = await import("three");
@@ -107,12 +277,16 @@ export class FbxController implements IAvatarController {
       await this.loadFromBuffer(await res.arrayBuffer(), resourceDirFromFileUrl(url));
       return;
     } catch (fetchError) {
-      console.warn("[FbxController] fetch load failed; falling back to FBXLoader URL mode:", fetchError);
+      console.warn(
+        "[FbxController] fetch load failed; falling back to FBXLoader URL mode:",
+        fetchError,
+      );
     }
 
     const { FBXLoader } = await import("three/examples/jsm/loaders/FBXLoader.js");
+    const manager = this.createTextureLoadingManager(resourceDirFromFileUrl(url));
     const fbx = await new Promise<import("three").Group>((resolve, reject) => {
-      new FBXLoader().load(url, resolve, undefined, reject);
+      new FBXLoader(manager).load(url, resolve, undefined, reject);
     });
     this.prepareLoadedModel(fbx);
   }
@@ -123,16 +297,21 @@ export class FbxController implements IAvatarController {
   }
 
   playMotion(group: string, index = 0, loop = false): void {
+    const requestedMotion = group.trim() || "idle";
     if (!this.mixer || !this.clips.length || !this.three) {
-      this.expressionPulse = 1;
+      this.startProceduralGesture(requestedMotion, loop);
       return;
     }
-    const groupLower = group.toLowerCase();
+    const groupLower = requestedMotion.toLowerCase();
+    const matchedClip = this.clips.find((candidate) =>
+      candidate.name.toLowerCase().includes(groupLower),
+    );
+    const indexedClip = this.clips[index];
     const clip =
-      this.clips.find((candidate) => candidate.name.toLowerCase().includes(groupLower)) ??
-      this.clips[index] ??
-      this.clips[0];
+      matchedClip ??
+      (/idle|stand|breath/i.test(requestedMotion) ? (indexedClip ?? this.clips[0]) : indexedClip);
     if (!clip) {
+      this.startProceduralGesture(requestedMotion, loop);
       return;
     }
     this.mixer.stopAllAction();
@@ -145,7 +324,25 @@ export class FbxController implements IAvatarController {
   playExpression(expressionId: string): void {
     this.setMorphTarget(expressionId, 1);
     this.expressionPulse = 1;
+    this.startProceduralGesture(expressionId, false);
     window.setTimeout(() => this.setMorphTarget(expressionId, 0), 800);
+  }
+
+  applyPose(pose: AvatarPoseCommand): void {
+    if (pose.reset) {
+      this.poseTargets.clear();
+    }
+    const radians = pose.radians === true;
+    for (const bone of AVATAR_RIG_BONES) {
+      const rotation = pose[bone];
+      if (!rotation) {
+        continue;
+      }
+      this.poseTargets.set(
+        bone,
+        this.mergePoseTarget(this.poseTargets.get(bone), rotation, radians),
+      );
+    }
   }
 
   setLipSyncValue(value: number): void {
@@ -192,6 +389,9 @@ export class FbxController implements IAvatarController {
     this.clock = null;
     this.lipMeshes = [];
     this.lipMorphIdx = null;
+    this.rigBones.clear();
+    this.poseTargets.clear();
+    this.proceduralGesture = null;
   }
 
   private renderFallbackAvatar(): void {
@@ -248,8 +448,208 @@ export class FbxController implements IAvatarController {
       return;
     }
     const { FBXLoader } = await import("three/examples/jsm/loaders/FBXLoader.js");
-    const fbx = new FBXLoader().parse(buffer, resourceDir) as import("three").Group;
+    const manager = this.createTextureLoadingManager(resourceDir);
+    const fbx = new FBXLoader(manager).parse(buffer, resourceDir) as import("three").Group;
     this.prepareLoadedModel(fbx);
+  }
+
+  private createTextureLoadingManager(
+    resourceDir: string,
+  ): import("three").LoadingManager | undefined {
+    if (!this.three) {
+      return undefined;
+    }
+    const manager = new this.three.LoadingManager();
+    const resourceDirs = buildTextureResourceDirs(resourceDir);
+    manager.setURLModifier((assetUrl) => rewriteTextureUrl(assetUrl, resourceDirs));
+    return manager;
+  }
+
+  private mergePoseTarget(
+    current: PoseTarget | undefined,
+    rotation: AvatarPoseRotation,
+    radians: boolean,
+  ): PoseTarget {
+    const next = current ?? { x: 0, y: 0, z: 0 };
+    return {
+      x: toPoseRadians(rotation.x, radians) ?? next.x,
+      y: toPoseRadians(rotation.y, radians) ?? next.y,
+      z: toPoseRadians(rotation.z, radians) ?? next.z,
+    };
+  }
+
+  private startProceduralGesture(name: string, loop: boolean): void {
+    const normalized = normalizeMotionName(name);
+    if (normalized === "idle" || normalized === "stand" || normalized === "reset") {
+      this.proceduralGesture = null;
+      if (normalized === "reset") {
+        this.poseTargets.clear();
+      }
+      return;
+    }
+
+    this.proceduralGesture = {
+      name: normalized,
+      startedAt: this.idleTime,
+      loop,
+      duration: loop ? 2.4 : 1.6,
+    };
+    this.expressionPulse = Math.max(this.expressionPulse, 0.8);
+  }
+
+  private resolveRigBones(root: import("three").Group): void {
+    this.rigBones.clear();
+    const objects: import("three").Object3D[] = [];
+    root.traverse((child) => {
+      const candidate = child as import("three").Object3D & { isBone?: boolean };
+      if (candidate.isBone || candidate.type === "Bone") {
+        objects.push(candidate);
+      }
+    });
+
+    for (const bone of AVATAR_RIG_BONES) {
+      const object = objects.find((candidate) =>
+        RIG_BONE_MATCHERS[bone].some((matcher) => matcher.test(candidate.name)),
+      );
+      if (!object) {
+        continue;
+      }
+      this.rigBones.set(bone, {
+        object,
+        baseRotation: object.rotation.clone(),
+      });
+    }
+
+    if (this.rigBones.size > 0) {
+      console.info(
+        `[FbxController] Procedural rig enabled: ${Array.from(this.rigBones.keys()).join(", ")}`,
+      );
+    }
+  }
+
+  private buildProceduralTargets(): Map<AvatarRigBone, PoseTarget> {
+    const targets = new Map<AvatarRigBone, PoseTarget>();
+    const idleSway = Math.sin(this.idleTime * 1.35);
+    const idleBreath = Math.sin(this.idleTime * 2.0);
+
+    addTarget(targets, "spine", { x: degreesToRadians(idleBreath * 1.1) });
+    addTarget(targets, "chest", { z: degreesToRadians(idleSway * 1.2) });
+    addTarget(targets, "head", {
+      x: degreesToRadians(this.gaze.y * 6 + idleBreath * 1.2),
+      y: degreesToRadians(this.gaze.x * 11 + idleSway * 1.8),
+    });
+    addTarget(targets, "neck", {
+      x: degreesToRadians(this.gaze.y * 3),
+      y: degreesToRadians(this.gaze.x * 5),
+    });
+
+    this.applyGestureTargets(targets);
+
+    for (const [bone, target] of this.poseTargets) {
+      addTarget(targets, bone, target);
+    }
+    return targets;
+  }
+
+  private applyGestureTargets(targets: Map<AvatarRigBone, PoseTarget>): void {
+    const gesture = this.proceduralGesture;
+    if (!gesture) {
+      return;
+    }
+
+    const elapsed = Math.max(0, this.idleTime - gesture.startedAt);
+    const progress = gesture.loop
+      ? (elapsed % gesture.duration) / gesture.duration
+      : Math.min(1, elapsed / gesture.duration);
+    const fade = gesture.loop ? 1 : Math.sin(Math.PI * progress);
+    const wave = Math.sin(progress * Math.PI * 2);
+    const snap = Math.sin(progress * Math.PI);
+
+    if (!gesture.loop && elapsed > gesture.duration) {
+      this.proceduralGesture = null;
+      return;
+    }
+
+    switch (gesture.name) {
+      case "wave":
+      case "hello":
+      case "greet":
+        addTarget(targets, "rightUpperArm", {
+          x: degreesToRadians(-24 * fade),
+          z: degreesToRadians(-34 * fade),
+        });
+        addTarget(targets, "rightLowerArm", {
+          y: degreesToRadians(28 * wave * fade),
+          z: degreesToRadians(-54 * fade),
+        });
+        addTarget(targets, "rightHand", { y: degreesToRadians(35 * wave * fade) });
+        break;
+      case "happy":
+      case "cheer":
+        addTarget(targets, "head", { z: degreesToRadians(6 * wave * fade) });
+        addTarget(targets, "leftUpperArm", {
+          x: degreesToRadians(-10 * fade),
+          z: degreesToRadians(26 * fade),
+        });
+        addTarget(targets, "rightUpperArm", {
+          x: degreesToRadians(-10 * fade),
+          z: degreesToRadians(-26 * fade),
+        });
+        addTarget(targets, "leftLowerArm", { z: degreesToRadians(22 * snap) });
+        addTarget(targets, "rightLowerArm", { z: degreesToRadians(-22 * snap) });
+        break;
+      case "surprised":
+      case "surprise":
+        addTarget(targets, "head", { x: degreesToRadians(-8 * fade) });
+        addTarget(targets, "spine", { x: degreesToRadians(-5 * fade) });
+        addTarget(targets, "leftUpperArm", { z: degreesToRadians(34 * fade) });
+        addTarget(targets, "rightUpperArm", { z: degreesToRadians(-34 * fade) });
+        break;
+      case "bow":
+        addTarget(targets, "spine", { x: degreesToRadians(24 * fade) });
+        addTarget(targets, "chest", { x: degreesToRadians(14 * fade) });
+        addTarget(targets, "head", { x: degreesToRadians(10 * fade) });
+        break;
+      case "nod":
+        addTarget(targets, "head", { x: degreesToRadians(14 * wave * fade) });
+        break;
+      case "shake":
+      case "no":
+        addTarget(targets, "head", { y: degreesToRadians(18 * wave * fade) });
+        break;
+      case "point-left":
+      case "left":
+        addTarget(targets, "leftUpperArm", {
+          y: degreesToRadians(-24 * fade),
+          z: degreesToRadians(36 * fade),
+        });
+        addTarget(targets, "leftLowerArm", { z: degreesToRadians(14 * fade) });
+        addTarget(targets, "head", { y: degreesToRadians(-8 * fade) });
+        break;
+      case "point-right":
+      case "right":
+        addTarget(targets, "rightUpperArm", {
+          y: degreesToRadians(24 * fade),
+          z: degreesToRadians(-36 * fade),
+        });
+        addTarget(targets, "rightLowerArm", { z: degreesToRadians(-14 * fade) });
+        addTarget(targets, "head", { y: degreesToRadians(8 * fade) });
+        break;
+      case "dance":
+      case "sway":
+        addTarget(targets, "hips", {
+          y: degreesToRadians(5 * snap),
+          z: degreesToRadians(7 * wave),
+        });
+        addTarget(targets, "spine", { z: degreesToRadians(-5 * wave) });
+        addTarget(targets, "leftUpperArm", { z: degreesToRadians(18 * wave) });
+        addTarget(targets, "rightUpperArm", { z: degreesToRadians(18 * wave) });
+        break;
+      default:
+        addTarget(targets, "head", { z: degreesToRadians(5 * wave * fade) });
+        addTarget(targets, "chest", { z: degreesToRadians(4 * wave * fade) });
+        break;
+    }
   }
 
   private prepareLoadedModel(fbx: import("three").Group): void {
@@ -274,6 +674,7 @@ export class FbxController implements IAvatarController {
     this.lipMorphIdx = null;
     this.frameLoadedModel(fbx);
     this.resolveLipMeshes(fbx);
+    this.resolveRigBones(fbx);
     this.playDefaultMotion();
   }
 
@@ -360,6 +761,23 @@ export class FbxController implements IAvatarController {
     action.reset().play();
   }
 
+  private applyProceduralRig(delta: number): void {
+    if (this.rigBones.size === 0) {
+      return;
+    }
+    const targets = this.buildProceduralTargets();
+    const alpha = Math.min(1, Math.max(0.08, delta * 10));
+    for (const [bone, binding] of this.rigBones) {
+      const target = targets.get(bone) ?? { x: 0, y: 0, z: 0 };
+      binding.object.rotation.x +=
+        (binding.baseRotation.x + target.x - binding.object.rotation.x) * alpha;
+      binding.object.rotation.y +=
+        (binding.baseRotation.y + target.y - binding.object.rotation.y) * alpha;
+      binding.object.rotation.z +=
+        (binding.baseRotation.z + target.z - binding.object.rotation.z) * alpha;
+    }
+  }
+
   private applyFallbackMotion(delta: number): void {
     if (!this.model) {
       this.animateFallbackFace(delta);
@@ -371,9 +789,11 @@ export class FbxController implements IAvatarController {
       this.model.rotation.x = this.gaze.y * 0.035;
       this.model.position.y = this.baseModelY + Math.sin(this.idleTime * 1.8) * 1.4;
     }
+    this.applyProceduralRig(delta);
     if (this.expressionPulse > 0) {
       this.expressionPulse = Math.max(0, this.expressionPulse - delta * 2.4);
-      const pulseScale = this.baseModelScale * (1 + Math.sin(this.expressionPulse * Math.PI) * 0.025);
+      const pulseScale =
+        this.baseModelScale * (1 + Math.sin(this.expressionPulse * Math.PI) * 0.025);
       this.model.scale.setScalar(pulseScale);
     } else if (this.model.scale.x !== this.baseModelScale) {
       this.model.scale.setScalar(this.baseModelScale);

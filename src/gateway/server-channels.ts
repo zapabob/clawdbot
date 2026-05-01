@@ -481,7 +481,7 @@ export function createChannelManager(opts: ChannelManagerOptions): ChannelManage
                 }),
             );
           } catch (error) {
-            log.error?.(`[${id}] native approval bootstrap failed: ${formatErrorMessage(error)}`);
+            log?.error?.(`[${id}] native approval bootstrap failed: ${formatErrorMessage(error)}`);
           }
           setRuntime(channelId, id, {
             accountId: id,
@@ -515,12 +515,12 @@ export function createChannelManager(opts: ChannelManagerOptions): ChannelManage
               }
               const message = "channel exited without an error";
               setRuntime(channelId, id, { accountId: id, lastError: message });
-              log.error?.(`[${id}] ${message}`);
+              log?.error?.(`[${id}] ${message}`);
             })
             .catch((err) => {
               const message = formatErrorMessage(err);
               setRuntime(channelId, id, { accountId: id, lastError: message });
-              log.error?.(`[${id}] channel exited: ${message}`);
+              log?.error?.(`[${id}] channel exited: ${message}`);
             })
             .finally(async () => {
               await cleanupTaskScopedApprovalRuntime("channel cleanup failed");

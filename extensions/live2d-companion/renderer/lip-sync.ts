@@ -1,5 +1,4 @@
 import type { TtsProvider } from "../bridge/event-types.js";
-import companionConfig from "../companion.config.json" with { type: "json" };
 import type { IAvatarController } from "./avatar-controller.js";
 import type { EmotionProfile } from "./emotion-mapper.js";
 
@@ -11,17 +10,50 @@ type AudioQueryResponse = {
   pitchScale?: number;
 };
 
-const VOICEVOX_BASE = companionConfig.voicevoxUrl;
-const SPEAKER = companionConfig.voicevoxSpeaker;
+export type LipSyncConfig = {
+  voicevoxUrl?: unknown;
+  voicevoxSpeaker?: unknown;
+  ttsProvider?: TtsProvider;
+  webSpeechLang?: unknown;
+  webSpeechRate?: unknown;
+  webSpeechPitch?: unknown;
+};
+
+function stringConfig(value: unknown, fallback: string): string {
+  return typeof value === "string" && value.trim() ? value.trim() : fallback;
+}
+
+function speakerConfig(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function numberConfig(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
 
 export class LipSyncController {
   private audioCtx: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
   private dataArray: Float32Array<ArrayBuffer> | null = null;
   private lipAnimFrame: number | null = null;
-  ttsProvider: TtsProvider = (companionConfig.ttsProvider as TtsProvider) ?? "voicevox";
+  private readonly voicevoxBase: string;
+  private readonly speaker: number;
+  private readonly webSpeechLang: string;
+  private readonly webSpeechRate: number;
+  private readonly webSpeechPitch: number;
+  ttsProvider: TtsProvider;
 
-  constructor(private readonly live2d: IAvatarController) {}
+  constructor(
+    private readonly live2d: IAvatarController,
+    config: LipSyncConfig = {},
+  ) {
+    this.voicevoxBase = stringConfig(config.voicevoxUrl, "http://127.0.0.1:50021");
+    this.speaker = speakerConfig(config.voicevoxSpeaker, 8);
+    this.webSpeechLang = stringConfig(config.webSpeechLang, "ja-JP");
+    this.webSpeechRate = numberConfig(config.webSpeechRate, 1.0);
+    this.webSpeechPitch = numberConfig(config.webSpeechPitch, 1.1);
+    this.ttsProvider = config.ttsProvider ?? "voicevox";
+  }
 
   async speak(
     text: string,
@@ -46,7 +78,7 @@ export class LipSyncController {
   ): Promise<void> {
     // 1. Audio query
     const queryRes = await fetch(
-      `${VOICEVOX_BASE}/audio_query?text=${encodeURIComponent(text)}&speaker=${SPEAKER}`,
+      `${this.voicevoxBase}/audio_query?text=${encodeURIComponent(text)}&speaker=${this.speaker}`,
       { method: "POST" },
     );
     if (!queryRes.ok) throw new Error(`audio_query failed: ${queryRes.status}`);
@@ -61,7 +93,7 @@ export class LipSyncController {
     }
 
     // 2. Synthesis → WAV buffer
-    const synthRes = await fetch(`${VOICEVOX_BASE}/synthesis?speaker=${SPEAKER}`, {
+    const synthRes = await fetch(`${this.voicevoxBase}/synthesis?speaker=${this.speaker}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(query),
@@ -87,9 +119,9 @@ export class LipSyncController {
 
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = companionConfig.webSpeechLang ?? "ja-JP";
-      utterance.rate = companionConfig.webSpeechRate ?? 1.0;
-      utterance.pitch = companionConfig.webSpeechPitch ?? 1.1;
+      utterance.lang = this.webSpeechLang;
+      utterance.rate = this.webSpeechRate;
+      utterance.pitch = this.webSpeechPitch;
 
       // Pick Japanese voice if available
       const voices = window.speechSynthesis.getVoices();

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   assertSafeWindowsShellArgs,
   prepareSpawnCommand,
+  resolvePackageBin,
   shouldUseShellForCommand,
 } from "../../scripts/ui.js";
 
@@ -45,5 +46,14 @@ describe("scripts/ui windows spawn behavior", () => {
 
   it("does not reject args on non-windows platforms", () => {
     expect(() => assertSafeWindowsShellArgs(["contains&metacharacters"], "linux")).not.toThrow();
+  });
+
+  it("resolves hoisted UI package bins without relying on ui-local .bin shims", () => {
+    expect(resolvePackageBin("vite", "vite").replaceAll("\\", "/")).toMatch(
+      /node_modules\/vite\/bin\/vite\.js$/,
+    );
+    expect(resolvePackageBin("vitest", "vitest").replaceAll("\\", "/")).toMatch(
+      /node_modules\/vitest\/vitest\.mjs$/,
+    );
   });
 });

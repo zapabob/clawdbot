@@ -473,7 +473,13 @@ function Get-OrCreateGatewayToken {
 
     $envMap = Get-EnvMap -EnvFile $EnvFile
     $existing = [string]$envMap["OPENCLAW_GATEWAY_TOKEN"]
-    if ($existing) {
+    $unsafePlaceholders = @(
+        "change-me-to-a-long-random-token",
+        "replace-me",
+        "replace-with-a-long-random-token",
+        "your-token-here"
+    )
+    if ($existing -and -not ($unsafePlaceholders -contains $existing.Trim())) {
         return $existing
     }
 

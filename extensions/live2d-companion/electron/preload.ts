@@ -25,8 +25,10 @@ contextBridge.exposeInMainWorld("companionBridge", {
       callback(data);
     });
   },
+  getConfig: (): Promise<Record<string, unknown>> => ipcRenderer.invoke("companion:get-config"),
   getStateSnapshot: (): Promise<CompanionRuntimeState> => ipcRenderer.invoke("companion:get-state"),
-  listAssets: (): Promise<CompanionAssetManifestEntry[]> => ipcRenderer.invoke("companion:list-assets"),
+  listAssets: (): Promise<CompanionAssetManifestEntry[]> =>
+    ipcRenderer.invoke("companion:list-assets"),
   onRuntimeState: (callback: (state: CompanionRuntimeState) => void) => {
     ipcRenderer.on(IPC_CHANNELS.RUNTIME_STATE, (_ipcEvent, state: CompanionRuntimeState) => {
       callback(state);
@@ -106,6 +108,7 @@ declare global {
     companionBridge: {
       onLineEvent: (cb: (event: CompanionLineEvent) => void) => void;
       onEmotionEvent: (cb: (event: CompanionEmotionEvent) => void) => void;
+      getConfig: () => Promise<Record<string, unknown>>;
       getStateSnapshot: () => Promise<CompanionRuntimeState>;
       listAssets: () => Promise<CompanionAssetManifestEntry[]>;
       onRuntimeState: (cb: (state: CompanionRuntimeState) => void) => void;

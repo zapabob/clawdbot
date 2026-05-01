@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import type { IncomingMessage } from "node:http";
 import net from "node:net";
+import process from "node:process";
 import * as grammy from "grammy";
 import type { ChannelAccountSnapshot } from "openclaw/plugin-sdk/channel-contract";
 import type { OpenClawConfig } from "openclaw/plugin-sdk/config-types";
@@ -10,6 +11,7 @@ import {
   computeBackoff,
   defaultRuntime,
   formatDurationPrecise,
+  isTruthyEnvValue,
   sleepWithAbort,
 } from "openclaw/plugin-sdk/runtime-env";
 import { safeEqualSecret } from "openclaw/plugin-sdk/security-runtime";
@@ -46,6 +48,7 @@ const TELEGRAM_WEBHOOK_REGISTRATION_RETRY_POLICY: BackoffPolicy = {
   factor: 2,
   jitter: 0.2,
 };
+const TELEGRAM_DEFER_WEBHOOK_STARTUP_ENV = "OPENCLAW_TELEGRAM_DEFER_WEBHOOK_STARTUP";
 const InputFileCtor: typeof grammy.InputFile =
   typeof grammy.InputFile === "function"
     ? grammy.InputFile
@@ -104,6 +107,10 @@ async function initializeTelegramWebhookBot(params: {
     runtime: params.runtime,
     fn: () => params.bot.init(initSignal),
   });
+}
+
+function shouldDeferTelegramWebhookStartup(): boolean {
+  return isTruthyEnvValue(process.env[TELEGRAM_DEFER_WEBHOOK_STARTUP_ENV]);
 }
 
 function resolveSingleHeaderValue(header: string | string[] | undefined): string | undefined {
@@ -290,11 +297,22 @@ export async function startTelegramWebhook(opts: {
     config: opts.config,
     accountId: opts.accountId,
   });
-  await initializeTelegramWebhookBot({
-    bot,
-    runtime,
-    abortSignal: opts.abortSignal,
-  });
+  const deferStartupNetwork = shouldDeferTelegramWebhookStartup();
+  let botInitialized = false;
+  const initializeBot = async () => {
+    if (botInitialized) {
+      return;
+    }
+    await initializeTelegramWebhookBot({
+      bot,
+      runtime,
+      abortSignal: opts.abortSignal,
+    });
+    botInitialized = true;
+  };
+  if (!deferStartupNetwork) {
+    await initializeBot();
+  }
   const telegramWebhookRateLimiter = createFixedWindowRateLimiter({
     windowMs: WEBHOOK_RATE_LIMIT_DEFAULTS.windowMs,
     maxRequests: WEBHOOK_RATE_LIMIT_DEFAULTS.maxRequests,
@@ -373,6 +391,7 @@ export async function startTelegramWebhook(opts: {
       status.noteWebhookUpdateReceived();
 
       void (async () => {
+        await initializeBot();
         await bot.handleUpdate(body.value as Parameters<typeof bot.handleUpdate>[0]);
 
         if (diagnosticsEnabled) {
@@ -455,6 +474,7 @@ export async function startTelegramWebhook(opts: {
       return;
     }
     try {
+      await initializeBot();
       await withTelegramApiErrorLogging({
         operation: "setWebhook",
         runtime,
@@ -525,14 +545,33 @@ export async function startTelegramWebhook(opts: {
   runtime.log?.(`webhook local listener on http://${host}:${boundPort}${path}`);
 
   if (!shutDown) {
-    try {
-      await advertiseWebhook();
-    } catch (err) {
-      if (!shouldRetryWebhookRegistration(err)) {
-        closeAfterStartupFailure();
-        throw err;
+    if (deferStartupNetwork) {
+      runtime.log?.(
+        `telegram webhook startup network deferred by ${TELEGRAM_DEFER_WEBHOOK_STARTUP_ENV}`,
+      );
+      void (async () => {
+        try {
+          await advertiseWebhook();
+        } catch (err) {
+          if (!shouldRetryWebhookRegistration(err)) {
+            runtime.error?.(
+              `telegram setWebhook deferred startup stopped after non-recoverable error: ${formatErrorMessage(err)}`,
+            );
+            return;
+          }
+          void retryWebhookRegistration(1);
+        }
+      })();
+    } else {
+      try {
+        await advertiseWebhook();
+      } catch (err) {
+        if (!shouldRetryWebhookRegistration(err)) {
+          closeAfterStartupFailure();
+          throw err;
+        }
+        void retryWebhookRegistration(1);
       }
-      void retryWebhookRegistration(1);
     }
   }
 

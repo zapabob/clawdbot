@@ -3,6 +3,8 @@
  * Concrete controllers implement this so lip-sync, emotion-mapper,
  * and app.ts can work with any avatar type.
  */
+import type { AvatarPoseCommand } from "../bridge/event-types.js";
+
 export interface IAvatarController {
   /** Identifies the backend type — used instead of constructor.name to be minification-safe. */
   readonly avatarType: "live2d" | "vrm" | "fbx";
@@ -37,6 +39,12 @@ export interface IAvatarController {
    * (-1,-1) = top-left, (0,0) = centre, (1,1) = bottom-right
    */
   lookAt(x: number, y: number): void;
+
+  /**
+   * Optional direct pose driver for humanoid controllers.
+   * Values are interpreted by the backend; FBX uses degrees by default.
+   */
+  applyPose?(pose: AvatarPoseCommand): void;
 
   /** Clean up all GPU / audio resources and remove the canvas. */
   destroy(): void;

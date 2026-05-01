@@ -77,10 +77,17 @@ export default definePluginEntry({
         order: "late",
         run: async (ctx) => {
           const providerSetup = await loadProviderSetup();
+          const modelId = resolveLlamaCppConfiguredModelId({
+            env: process.env,
+          });
           return await providerSetup.discoverOpenAICompatibleSelfHostedProvider({
             ctx,
             providerId: PROVIDER_ID,
-            buildProvider: buildLlamaCppProvider,
+            buildProvider: (params) =>
+              buildLlamaCppProvider({
+                ...params,
+                ...(modelId ? { modelId } : {}),
+              }),
           });
         },
       },

@@ -2,6 +2,7 @@
   "id": "hypura-harness",
   "name": "Hypura Harness",
   "description": "HTTP tools for the Hypura Python harness daemon (VRChat OSC, VOICEVOX, code execution, skill generation, Shinka evolve, LoRA jobs).",
+  "skills": ["./skills"],
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

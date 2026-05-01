@@ -53,6 +53,23 @@ function resolveRunner() {
   return null;
 }
 
+export function resolvePackageBin(packageName, binName = packageName) {
+  const require = createRequire(path.join(uiDir, "package.json"));
+  const packageJsonPath = require.resolve(`${packageName}/package.json`);
+  const metadata = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
+  const bin = metadata.bin;
+  const relativeBin =
+    typeof bin === "string"
+      ? bin
+      : bin && typeof bin === "object"
+        ? (bin[binName] ?? bin[packageName])
+        : null;
+  if (!relativeBin || typeof relativeBin !== "string") {
+    throw new Error(`Package ${packageName} does not expose a ${binName} binary`);
+  }
+  return path.resolve(path.dirname(packageJsonPath), relativeBin);
+}
+
 export function shouldUseShellForCommand(cmd, platform = process.platform) {
   if (platform !== "win32") {
     return false;
@@ -131,6 +148,18 @@ function runSync(cmd, args, envOverride) {
   }
 }
 
+function runDirectPackageBin(packageName, binName, args) {
+  let binPath;
+  try {
+    binPath = resolvePackageBin(packageName, binName);
+  } catch (err) {
+    console.error(`Failed to resolve ${packageName} binary:`, err);
+    process.exit(1);
+    return;
+  }
+  run(process.execPath, [binPath, ...args]);
+}
+
 function depsInstalled(kind) {
   try {
     const require = createRequire(path.join(uiDir, "package.json"));
@@ -191,6 +220,19 @@ export function main(argv = process.argv.slice(2)) {
     const installEnv = process.env;
     const installArgs = ["install"];
     runSync(runner.cmd, installArgs, installEnv);
+  }
+
+  if (action === "dev") {
+    runDirectPackageBin("vite", "vite", rest);
+    return;
+  }
+  if (action === "build") {
+    runDirectPackageBin("vite", "vite", ["build", ...rest]);
+    return;
+  }
+  if (action === "test") {
+    runDirectPackageBin("vitest", "vitest", ["run", "--config", "vitest.config.ts", ...rest]);
+    return;
   }
 
   run(runner.cmd, ["run", script, ...rest]);

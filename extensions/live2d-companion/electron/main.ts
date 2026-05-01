@@ -3,20 +3,9 @@ import http from "node:http";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  app,
-  BrowserWindow,
-  desktopCapturer,
-  dialog,
-  ipcMain,
-  screen,
-} from "electron";
+import { app, BrowserWindow, desktopCapturer, dialog, ipcMain, screen } from "electron";
 import { IPC_CHANNELS } from "../bridge/event-types.js";
-import type {
-  AvatarCommand,
-  CompanionStateUpdate,
-  TtsProvider,
-} from "../bridge/event-types.js";
+import type { AvatarCommand, CompanionStateUpdate, TtsProvider } from "../bridge/event-types.js";
 import {
   activateCompanionAsset,
   importCompanionAsset,
@@ -24,21 +13,12 @@ import {
   type CompanionAssetManifestEntry,
 } from "../companion-asset-manifest.js";
 import { resolveLive2dCompanionConfig } from "../companion-config.js";
-import {
-  buildCompanionDiscoveryEntries,
-  isSupportedCompanionModelPath,
-  selectStartupCompanionAssetId,
-  sortCompanionModelCandidates,
-} from "../companion-startup.js";
-import {
-  startCompanionIpcServer,
-  type CompanionIpcServerHandle,
-} from "../companion-ipc.js";
 import type {
   CompanionBinaryCapture,
   CompanionIpcAction,
   CompanionRuntimeState,
 } from "../companion-ipc-protocol.js";
+import { startCompanionIpcServer, type CompanionIpcServerHandle } from "../companion-ipc.js";
 import {
   createCompanionPermissionState,
   isCompanionPermissionGranted,
@@ -47,6 +27,12 @@ import {
   type CompanionPermissionDecision,
   type CompanionPermissionState,
 } from "../companion-permissions.js";
+import {
+  buildCompanionDiscoveryEntries,
+  isSupportedCompanionModelPath,
+  selectStartupCompanionAssetId,
+  sortCompanionModelCandidates,
+} from "../companion-startup.js";
 
 const require = createRequire(import.meta.url);
 const rawCompanionConfig = require("../companion.config.json") as Record<string, unknown>;
@@ -88,20 +74,26 @@ function loadLocalVoiceFacade(): LocalVoiceFacade | null {
   }
 }
 
+function hasErrorCode(error: unknown, code: string): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === code
+  );
+}
+
 const localVoiceFacade = loadLocalVoiceFacade();
-const localVoiceDefaults =
-  localVoiceFacade?.resolveLocalVoiceCompanionDefaults() ?? {
-    sttBackend: "local-voice-whisper",
-    ttsBackend: "voicevox",
-  };
+const localVoiceDefaults = localVoiceFacade?.resolveLocalVoiceCompanionDefaults() ?? {
+  sttBackend: "local-voice-whisper",
+  ttsBackend: "voicevox",
+};
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(path.join(__dirname, "../../.."));
 const stateDir = process.env.OPENCLAW_STATE_DIR
   ? path.resolve(process.env.OPENCLAW_STATE_DIR)
-  : path.resolve(
-      path.join(repoRoot, String(rawCompanionConfig.stateDir ?? ".openclaw-desktop")),
-    );
+  : path.resolve(path.join(repoRoot, String(rawCompanionConfig.stateDir ?? ".openclaw-desktop")));
 
 const STATE_CACHE_FILE = "companion_state.json";
 const LEGACY_CAMERA_FILE = "companion_camera.jpg";
@@ -301,7 +293,7 @@ function createWindow(): void {
     skipTaskbar: true,
     type: "toolbar",
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
+      preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
@@ -328,7 +320,20 @@ function createWindow(): void {
   });
 }
 
-function updateBrowserAttachment(next: Partial<CompanionRuntimeState["browser"]> & { attached: boolean }): void {
+function focusCompanionWindow(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return;
+  }
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  }
+  mainWindow.show();
+  mainWindow.focus();
+}
+
+function updateBrowserAttachment(
+  next: Partial<CompanionRuntimeState["browser"]> & { attached: boolean },
+): void {
   runtimeState.browser = {
     ...runtimeState.browser,
     ...next,
@@ -406,22 +411,22 @@ function ensureMicSession(): LocalWhisperMicSession | null {
   }
   micSession =
     localVoiceFacade?.createLocalWhisperMicSession({
-    handlers: {
-      onTranscript: (text: string) => {
-        runtimeState.voice.lastTranscript = text;
-        runtimeState.voice.lastTranscriptAt = Date.now();
-        publishRuntimeState();
+      handlers: {
+        onTranscript: (text: string) => {
+          runtimeState.voice.lastTranscript = text;
+          runtimeState.voice.lastTranscriptAt = Date.now();
+          publishRuntimeState();
+        },
+        onError: () => {
+          runtimeState.voice.micActive = false;
+          runtimeState.voice.sttAvailable = false;
+          publishRuntimeState();
+        },
+        onStateChange: (state: LocalWhisperMicSessionState) => {
+          runtimeState.voice.micActive = state === "listening" || state === "processing";
+          publishRuntimeState();
+        },
       },
-      onError: () => {
-        runtimeState.voice.micActive = false;
-        runtimeState.voice.sttAvailable = false;
-        publishRuntimeState();
-      },
-      onStateChange: (state: LocalWhisperMicSessionState) => {
-        runtimeState.voice.micActive = state === "listening" || state === "processing";
-        publishRuntimeState();
-      },
-    },
     }) ?? null;
   if (!micSession) {
     runtimeState.voice.sttAvailable = false;
@@ -563,7 +568,9 @@ async function handleCompanionAction(
       updateBrowserAttachment({
         attached: true,
         tabId: request.tabId,
-        ...(request.url === undefined ? {} : { url: request.url, origin: inferOrigin(request.url) }),
+        ...(request.url === undefined
+          ? {}
+          : { url: request.url, origin: inferOrigin(request.url) }),
         ...(request.title === undefined ? {} : { title: request.title }),
         ...(request.textSnapshot === undefined ? {} : { textSnapshot: request.textSnapshot }),
         ...(request.screenshotBase64 === undefined
@@ -746,14 +753,20 @@ async function scanModels(dir: string): Promise<string[]> {
   return results;
 }
 
+ipcMain.handle("companion:get-config", async () => rawCompanionConfig);
 ipcMain.handle("companion:get-state", async () => runtimeState);
 ipcMain.handle("companion:list-assets", async () => await readCompanionAssets(stateDir));
 ipcMain.handle(
   "companion:set-permission",
-  async (_event, capability: CompanionPermissionCapability, decision: CompanionPermissionDecision) =>
-    setPermissionDecision(capability, decision),
+  async (
+    _event,
+    capability: CompanionPermissionCapability,
+    decision: CompanionPermissionDecision,
+  ) => setPermissionDecision(capability, decision),
 );
-ipcMain.handle("companion:set-mic-enabled", async (_event, enabled: boolean) => setMicEnabled(enabled));
+ipcMain.handle("companion:set-mic-enabled", async (_event, enabled: boolean) =>
+  setMicEnabled(enabled),
+);
 ipcMain.handle(
   "companion:import-asset",
   async (
@@ -775,8 +788,7 @@ ipcMain.handle(
 );
 ipcMain.handle(
   "companion:activate-asset",
-  async (_event, assetId: string) =>
-    await handleCompanionAction("activate-asset", { assetId }),
+  async (_event, assetId: string) => await handleCompanionAction("activate-asset", { assetId }),
 );
 ipcMain.on(
   "companion:interactive-regions",
@@ -901,41 +913,69 @@ if (process.platform === "win32") {
   app.commandLine.appendSwitch("disable-gpu-shader-disk-cache");
 }
 
-app.whenReady().then(async () => {
-  await fs.mkdir(stateDir, { recursive: true });
-  const cachedActiveAssetId = applyRuntimeStateCache(await readStateCache());
-  const manifestAssets = await readCompanionAssets(stateDir);
-  const startupAssetId = selectStartupCompanionAssetId({
-    assets: manifestAssets,
-    cachedActiveAssetId,
+const hasCompanionInstanceLock = app.requestSingleInstanceLock();
+if (!hasCompanionInstanceLock) {
+  console.warn("[Companion] another desktop companion instance is already running; exiting.");
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    focusCompanionWindow();
   });
-  if (startupAssetId) {
-    try {
-      activeAsset = await activateCompanionAsset({
-        stateDir,
-        assetId: startupAssetId,
-      });
-      runtimeState.activeAssetId = activeAsset.id;
-      runtimeState.activeAsset = activeAsset;
-    } catch {
-      runtimeState.activeAssetId = null;
-      runtimeState.activeAsset = null;
-    }
-  }
-  createWindow();
-  publishRuntimeState();
-  companionIpcServer = await startCompanionIpcServer({
-    stateDir,
-    handleRequest: handleCompanionAction,
-  });
-  startLegacyHttpControlServer();
 
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
+  void app
+    .whenReady()
+    .then(async () => {
+      await fs.mkdir(stateDir, { recursive: true });
+      const cachedActiveAssetId = applyRuntimeStateCache(await readStateCache());
+      const manifestAssets = await readCompanionAssets(stateDir);
+      const startupAssetId = selectStartupCompanionAssetId({
+        assets: manifestAssets,
+        cachedActiveAssetId,
+      });
+      if (startupAssetId) {
+        try {
+          activeAsset = await activateCompanionAsset({
+            stateDir,
+            assetId: startupAssetId,
+          });
+          runtimeState.activeAssetId = activeAsset.id;
+          runtimeState.activeAsset = activeAsset;
+        } catch {
+          runtimeState.activeAssetId = null;
+          runtimeState.activeAsset = null;
+        }
+      }
       createWindow();
-    }
-  });
-});
+      publishRuntimeState();
+      try {
+        companionIpcServer = await startCompanionIpcServer({
+          stateDir,
+          handleRequest: handleCompanionAction,
+        });
+      } catch (error) {
+        if (hasErrorCode(error, "EADDRINUSE")) {
+          console.warn(
+            "[Companion] IPC endpoint is already in use; keeping the existing companion instance.",
+          );
+          focusCompanionWindow();
+          app.quit();
+          return;
+        }
+        throw error;
+      }
+      startLegacyHttpControlServer();
+
+      app.on("activate", () => {
+        if (BrowserWindow.getAllWindows().length === 0) {
+          createWindow();
+        }
+      });
+    })
+    .catch((error: unknown) => {
+      console.error("[Companion] startup failed:", error);
+      app.quit();
+    });
+}
 
 app.on("before-quit", async () => {
   micSession?.stop();

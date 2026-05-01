@@ -505,6 +505,38 @@ describe("startTelegramWebhook", () => {
     );
   });
 
+  it("can defer Telegram API startup so the local listener becomes ready first", async () => {
+    const previous = process.env.OPENCLAW_TELEGRAM_DEFER_WEBHOOK_STARTUP;
+    process.env.OPENCLAW_TELEGRAM_DEFER_WEBHOOK_STARTUP = "1";
+    const runtimeLog = vi.fn();
+    setWebhookSpy.mockImplementationOnce(() => new Promise(() => undefined));
+
+    try {
+      await withStartedWebhook(
+        {
+          secret: TELEGRAM_SECRET,
+          path: TELEGRAM_WEBHOOK_PATH,
+          runtime: { log: runtimeLog, error: vi.fn(), exit: vi.fn() },
+        },
+        async ({ port }) => {
+          const health = await fetch(`http://127.0.0.1:${port}/healthz`);
+          expect(health.status).toBe(200);
+          expect(runtimeLog).toHaveBeenCalledWith(
+            "telegram webhook startup network deferred by OPENCLAW_TELEGRAM_DEFER_WEBHOOK_STARTUP",
+          );
+          await vi.waitFor(() => expect(initSpy).toHaveBeenCalledTimes(1));
+          await vi.waitFor(() => expect(setWebhookSpy).toHaveBeenCalledTimes(1));
+        },
+      );
+    } finally {
+      if (previous === undefined) {
+        delete process.env.OPENCLAW_TELEGRAM_DEFER_WEBHOOK_STARTUP;
+      } else {
+        process.env.OPENCLAW_TELEGRAM_DEFER_WEBHOOK_STARTUP = previous;
+      }
+    }
+  });
+
   it("fails startup when setWebhook has a non-recoverable rejection", async () => {
     const runtimeError = vi.fn();
     const error = Object.assign(new Error("unauthorized"), { error_code: 401 });
