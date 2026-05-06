@@ -26,18 +26,18 @@ if str(SCRIPT_DIR) not in sys.path:
 
 import api_delta_audit
 import upstream_diff_inventory
-from upstream_merge_policy import DEFAULT_PINNED_UPSTREAM_SHA, load_strategy
+from upstream_merge_policy import load_strategy
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 REPORT_DIR = REPO_ROOT / "_docs" / "merge-reports"
 DEFAULT_REMOTE = "upstream"
 DEFAULT_UPSTREAM_REF = "upstream/main"
 DEFAULT_STRATEGY_FILE = REPO_ROOT / "scripts" / "tools" / "merge-conflict-strategies.custom-first.json"
-RELEASE_PACKAGE_EXPECTATIONS = (
+LEGACY_RELEASE_PACKAGE_EXPECTATIONS = (
     ('"hono": "4.12.10"', "package.json must carry hono 4.12.10"),
     ('"@hono/node-server": "1.19.10"', "package.json must carry @hono/node-server 1.19.10"),
 )
-RELEASE_LOCK_EXPECTATIONS = (
+LEGACY_RELEASE_LOCK_EXPECTATIONS = (
     ("basic-ftp@5.2.1:", "pnpm-lock.yaml must include basic-ftp 5.2.1"),
     ("@hono/node-server@1.19.10", "pnpm-lock.yaml must include @hono/node-server 1.19.10"),
 )
@@ -68,7 +68,7 @@ def run_git(args: List[str], check: bool = True) -> RunResult:
 
 def run_python(args: List[str], check: bool = True) -> RunResult:
     proc = subprocess.run(
-        ["py", "-3", *args],
+        [sys.executable, *args],
         cwd=REPO_ROOT,
         text=True,
         capture_output=True,
@@ -113,15 +113,15 @@ def collect_followup_blockers(
     )
 
 
-def validate_release_security_versions() -> list[str]:
+def validate_legacy_release_security_versions() -> list[str]:
     issues: list[str] = []
     package_text = (REPO_ROOT / "package.json").read_text(encoding="utf-8")
     lock_text = (REPO_ROOT / "pnpm-lock.yaml").read_text(encoding="utf-8")
 
-    for needle, message in RELEASE_PACKAGE_EXPECTATIONS:
+    for needle, message in LEGACY_RELEASE_PACKAGE_EXPECTATIONS:
         if needle not in package_text:
             issues.append(message)
-    for needle, message in RELEASE_LOCK_EXPECTATIONS:
+    for needle, message in LEGACY_RELEASE_LOCK_EXPECTATIONS:
         if needle not in lock_text:
             issues.append(message)
 
@@ -137,6 +137,10 @@ def build_api_followup_blockers(audit_report: dict[str, object]) -> list[str]:
     return blockers
 
 
+def preflight_blockers_from_followups(followups: list[str], *, block_preflight_followups: bool) -> list[str]:
+    return followups if block_preflight_followups else []
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Sync with upstream/main automatically.")
     parser.add_argument("--target", required=True, help="Target branch to merge into.")
@@ -148,8 +152,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--pinned-upstream-sha",
-        default=DEFAULT_PINNED_UPSTREAM_SHA,
-        help="Expected upstream commit SHA. The sync stops if the fetched ref differs.",
+        default="auto",
+        help="Expected upstream commit SHA. Use auto/latest to accept the fetched latest ref.",
     )
     parser.add_argument(
         "--commit-message",
@@ -183,6 +187,16 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Skip fetching the remote when the upstream ref was already refreshed externally.",
     )
+    parser.add_argument(
+        "--check-legacy-security-pins",
+        action="store_true",
+        help="Also require the legacy release dependency pins used by older sync runs.",
+    )
+    parser.add_argument(
+        "--block-preflight-followups",
+        action="store_true",
+        help="Fail during inventory preflight when paths need manual follow-up, even before a real merge conflict exists.",
+    )
     parser.add_argument("--dry-run", action="store_true", help="Run only inventory + dry-run classification.")
     return parser.parse_args()
 
@@ -205,6 +219,8 @@ def main() -> int:
         "strategy_file": args.strategy_file,
         "dry_run": args.dry_run,
         "skip_fetch": args.skip_fetch,
+        "check_legacy_security_pins": args.check_legacy_security_pins,
+        "block_preflight_followups": args.block_preflight_followups,
         "pipeline": [],
         "steps": [],
     }
@@ -220,12 +236,14 @@ def main() -> int:
         if args.skip_fetch:
             report["steps"].append(f"skipped fetch for {args.remote}")
         else:
-            run_git(["fetch", args.remote, "--prune"])
-            report["steps"].append(f"fetched {args.remote} --prune")
+            run_git(["fetch", args.remote, "--prune", "--no-tags"])
+            report["steps"].append(f"fetched {args.remote} --prune --no-tags")
 
         resolved_upstream_sha = resolve_ref_sha(args.upstream_ref)
         report["resolved_upstream_sha"] = resolved_upstream_sha
-        if resolved_upstream_sha != args.pinned_upstream_sha:
+        if args.pinned_upstream_sha.lower() in {"auto", "latest", ""}:
+            report["effective_pinned_upstream_sha"] = resolved_upstream_sha
+        elif resolved_upstream_sha != args.pinned_upstream_sha:
             raise RuntimeError(
                 f"{args.upstream_ref} resolved to {resolved_upstream_sha}, expected {args.pinned_upstream_sha}",
             )
@@ -270,9 +288,13 @@ def main() -> int:
             check=False,
         )
         resolver_report = load_json(resolver_json)
-        preflight_blockers = collect_followup_blockers(
+        preflight_followups = collect_followup_blockers(
             resolver_report["classifications"],
             strategy.blocker_actions,
+        )
+        preflight_blockers = preflight_blockers_from_followups(
+            preflight_followups,
+            block_preflight_followups=args.block_preflight_followups,
         )
         report["pipeline"].append(
             {
@@ -281,6 +303,7 @@ def main() -> int:
                 "markdown": str(resolver_log),
                 "stdout": resolver_result.stdout,
                 "stderr": resolver_result.stderr,
+                "followup_paths": preflight_followups,
                 "blocked_paths": preflight_blockers,
             },
         )
@@ -313,6 +336,9 @@ def main() -> int:
                     args.upstream_ref,
                     "--strategy-file",
                     args.strategy_file,
+                    "--paths-file",
+                    str(inventory_json),
+                    "--only-unresolved",
                     "--log-file",
                     str(conflict_log),
                     "--report-json",
@@ -354,7 +380,9 @@ def main() -> int:
         audit_md = REPO_ROOT / "_docs" / "upstream-api-delta-audit.md"
         api_delta_audit.write_report(audit_report, audit_json, audit_md)
         api_blockers = build_api_followup_blockers(audit_report)
-        security_issues = validate_release_security_versions()
+        security_issues = (
+            validate_legacy_release_security_versions() if args.check_legacy_security_pins else []
+        )
         report["pipeline"].append(
             {
                 "stage": "post_merge_audit",

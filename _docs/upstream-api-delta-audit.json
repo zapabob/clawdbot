@@ -1,30 +1,28 @@
 {
-  "added_exports_vs_upstream": [
-    "./plugin-sdk/imessage",
-    "./plugin-sdk/imessage-core",
-    "./plugin-sdk/imessage-policy",
-    "./plugin-sdk/imessage-runtime",
-    "./plugin-sdk/imessage-targets",
-    "./plugin-sdk/provider-catalog",
-    "./plugin-sdk/provider-google",
-    "./plugin-sdk/provider-models",
-    "./plugin-sdk/telegram",
-    "./plugin-sdk/telegram-runtime",
-    "./plugin-sdk/telegram-runtime-surface"
-  ],
-  "removed_exports_vs_upstream": [],
-  "shared_exports_count": 230,
-  "usage_counts_in_repo": {
-    "./plugin-sdk/imessage": 0,
-    "./plugin-sdk/imessage-core": 0,
-    "./plugin-sdk/imessage-policy": 0,
-    "./plugin-sdk/imessage-runtime": 0,
-    "./plugin-sdk/imessage-targets": 0,
-    "./plugin-sdk/provider-catalog": 0,
-    "./plugin-sdk/provider-google": 0,
-    "./plugin-sdk/provider-models": 0,
-    "./plugin-sdk/telegram": 0,
-    "./plugin-sdk/telegram-runtime": 0,
-    "./plugin-sdk/telegram-runtime-surface": 0
+  "refs": {
+    "current": "WORKTREE",
+    "upstream": "upstream/main"
+  },
+  "package_exports": {
+    "added_exports_vs_upstream": [
+      "./plugin-sdk/live2d-companion",
+      "./plugin-sdk/local-voice",
+      "./plugin-sdk/ollama"
+    ],
+    "removed_exports_vs_upstream": [],
+    "shared_exports_count": 301,
+    "usage_counts_in_repo": {
+      "./plugin-sdk/live2d-companion": 0,
+      "./plugin-sdk/local-voice": 0,
+      "./plugin-sdk/ollama": 0
+    }
+  },
+  "module_named_exports": {
+    "src/plugin-sdk/core.ts": {
+      "added_exports_vs_upstream": [],
+      "removed_exports_vs_upstream": [],
+      "shared_exports_count": 185,
+      "usage_counts_in_repo": {}
+    }
   }
 }

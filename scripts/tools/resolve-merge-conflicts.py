@@ -51,11 +51,11 @@ class Resolver:
             },
         )
 
-    def git_checkout_upstream(self, path: str) -> None:
-        self.run(["git", "checkout", self.upstream_ref, "--", path], check=False)
+    def git_checkout_upstream(self, path: str) -> subprocess.CompletedProcess[str]:
+        return self.run(["git", "checkout", self.upstream_ref, "--", path], check=False)
 
-    def git_checkout_head(self, path: str) -> None:
-        self.run(["git", "checkout", "HEAD", "--", path], check=False)
+    def git_checkout_head(self, path: str) -> subprocess.CompletedProcess[str]:
+        return self.run(["git", "checkout", "HEAD", "--", path], check=False)
 
     def git_add(self, path: str) -> None:
         self.run(["git", "add", "--", path], check=False)
@@ -64,7 +64,10 @@ class Resolver:
         self.run(["git", "rm", "-f", "--", path], check=False)
 
     def resolve_upstream(self, path: str) -> None:
-        self.git_checkout_upstream(path)
+        result = self.git_checkout_upstream(path)
+        if result.returncode != 0:
+            self.git_rm(path)
+            return
         self.git_add(path)
 
     def resolve_preserve_custom(self, path: str) -> None:
@@ -146,6 +149,23 @@ def read_paths_file(path: Path) -> list[str]:
         line.strip().replace("\\", "/")
         for line in path.read_text(encoding="utf-8").splitlines()
         if line.strip()
+    ]
+
+
+def select_classifications_for_unresolved(
+    classifications: list[Classification],
+    unresolved: list[str],
+    strategy: Strategy,
+) -> list[Classification]:
+    by_path = {classification.path: classification for classification in classifications}
+    missing_paths = [path for path in unresolved if path not in by_path]
+    fallback_classifications = {
+        classification.path: classification
+        for classification in classify_paths(missing_paths, strategy)
+    }
+    return [
+        by_path.get(path) or fallback_classifications[path]
+        for path in unresolved
     ]
 
 
@@ -258,6 +278,11 @@ def parse_args() -> argparse.Namespace:
         help="Print actions without mutating files or index.",
     )
     parser.add_argument(
+        "--only-unresolved",
+        action="store_true",
+        help="When using --paths-file, apply only entries that are currently unresolved.",
+    )
+    parser.add_argument(
         "--log-file",
         default="",
         help="Markdown output path for action log.",
@@ -294,6 +319,12 @@ def main() -> int:
             classifications = classify_paths(paths, strategy)
     else:
         classifications = classify_paths(unresolved_files(), strategy)
+    if args.only_unresolved:
+        classifications = select_classifications_for_unresolved(
+            classifications,
+            unresolved_files(),
+            strategy,
+        )
     resolver = Resolver(upstream_ref=args.upstream_ref, dry_run=args.dry_run)
     print(f"Detected paths: {len(classifications)}")
 

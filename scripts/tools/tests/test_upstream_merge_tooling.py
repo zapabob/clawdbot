@@ -1,4 +1,5 @@
 import importlib.util
+import subprocess
 import sys
 import unittest
 from pathlib import Path
@@ -21,6 +22,10 @@ policy = load_module("upstream_merge_policy", "scripts/tools/upstream_merge_poli
 resolver_module = load_module("resolve_merge_conflicts", "scripts/tools/resolve-merge-conflicts.py")
 audit_module = load_module("api_delta_audit", "scripts/tools/api_delta_audit.py")
 merge_module = load_module("upstream_merge", "scripts/tools/upstream_merge.py")
+official_merge_module = load_module(
+    "merge_official_openclaw",
+    "scripts/tools/merge_official_openclaw.py",
+)
 
 
 class UpstreamMergePolicyTests(unittest.TestCase):
@@ -30,12 +35,22 @@ class UpstreamMergePolicyTests(unittest.TestCase):
         )
         cases = (
             (".pre-commit-config.yaml", "preserve_custom", True, True),
+            (".prettierignore", "preserve_custom", True, True),
             ("package.json", "upstream", True, False),
             ("extensions/acpx/openclaw.plugin.json", "preserve_custom", True, True),
             ("extensions/auto-agent/index.ts", "preserve_custom", False, True),
             ("apps/android/app/build.gradle.kts", "preserve_custom", True, True),
             ("apps/ios/Config/Version.xcconfig", "preserve_custom", True, True),
             ("apps/macos/Sources/OpenClaw/Resources/Info.plist", "preserve_custom", True, True),
+            ("apps/macos/Packaging/clawdbot.ico", "preserve_custom", False, False),
+            (
+                "apps/macos/Packaging/NFD/Hakua/FBX/Animations/Expression/Icons/Facial/Jito2.png",
+                "preserve_custom",
+                False,
+                False,
+            ),
+            ("docker-setup.sh", "preserve_custom", True, True),
+            ("setup-podman.sh", "preserve_custom", True, True),
             ("extensions/discord/src/doctor-contract.ts", "preserve_custom", True, True),
             ("extensions/discord/src/monitor/exec-approvals.test.ts", "preserve_custom", True, True),
             ("extensions/discord/src/proxy-request-client.ts", "preserve_custom", True, True),
@@ -97,6 +112,11 @@ class UpstreamMergePolicyTests(unittest.TestCase):
                 True,
                 True,
             ),
+            ("src/commands/doctor/shared/runtime-compat-api.ts", "upstream", True, True),
+            ("src/config/schema.base.generated.ts", "upstream", True, True),
+            ("src/plugins/bundled-runtime-deps-install.ts", "upstream", True, True),
+            ("src/plugins/bundled-runtime-mirror.ts", "upstream", True, True),
+            ("src/plugins/test-helpers/bundled-runtime-deps-fixtures.ts", "upstream", True, True),
             ("src/gateway/http-auth-helpers.test.ts", "preserve_custom", True, True),
             ("src/gateway/server-methods.ts", "preserve_custom", True, True),
             ("src/gateway/server-methods/chat.ts", "preserve_custom", True, True),
@@ -173,6 +193,8 @@ class UpstreamMergePolicyTests(unittest.TestCase):
                 ".openclaw-desktop/flows/registry.sqlite",
                 ".openclaw-desktop/subagents/runs.json",
                 ".openclaw-desktop/skills/hypura-harness/scripts/whisper_stt_loop.py",
+                ".specstory/history/session.json",
+                "_artifacts/root-captured/example.txt",
                 "scripts/tools/upstream_merge.py",
                 "extensions/hypura-harness/scripts/harness_daemon.py",
             ],
@@ -195,6 +217,8 @@ class UpstreamMergePolicyTests(unittest.TestCase):
                 ".openclaw-desktop/flows/registry.sqlite",
                 ".openclaw-desktop/subagents/runs.json",
                 ".openclaw-desktop/skills/hypura-harness/scripts/whisper_stt_loop.py",
+                ".specstory/history/session.json",
+                "_artifacts/root-captured/example.txt",
             ],
         )
 
@@ -282,6 +306,74 @@ class ResolverBehaviorTests(unittest.TestCase):
         self.assertIsNotNone(preclassified)
         self.assertEqual([item.action for item in preclassified], ["upstream", "preserve_custom"])
 
+    def test_resolver_filters_preclassified_entries_to_unresolved_paths(self):
+        strategy = policy.load_strategy(
+            REPO_ROOT / "scripts" / "tools" / "merge-conflict-strategies.custom-first.json",
+        )
+        preclassified = [
+            policy.Classification(
+                path="package.json",
+                action="upstream",
+                note="official metadata",
+                pattern="package.json",
+                touched_upstream=True,
+                touched_custom=False,
+            ),
+            policy.Classification(
+                path="extensions/live2d-companion/index.ts",
+                action="preserve_custom",
+                note="custom plugin",
+                pattern="extensions/live2d-companion/*",
+                touched_upstream=False,
+                touched_custom=True,
+            ),
+        ]
+
+        selected = resolver_module.select_classifications_for_unresolved(
+            preclassified,
+            [
+                "extensions/live2d-companion/index.ts",
+                "docs/providers/openai.md",
+            ],
+            strategy,
+        )
+
+        self.assertEqual(
+            [(item.path, item.action) for item in selected],
+            [
+                ("extensions/live2d-companion/index.ts", "preserve_custom"),
+                ("docs/providers/openai.md", "manual_api_followup"),
+            ],
+        )
+
+    def test_upstream_action_removes_paths_deleted_upstream(self):
+        class RecordingResolver(resolver_module.Resolver):
+            def __init__(self):
+                super().__init__(upstream_ref="upstream/main", dry_run=False)
+                self.calls = []
+
+            def git_checkout_upstream(self, path: str):
+                self.calls.append(("checkout-upstream", path))
+                return subprocess.CompletedProcess([], 1, "", "")
+
+            def git_rm(self, path: str):
+                self.calls.append(("rm", path))
+
+            def git_add(self, path: str):
+                self.calls.append(("add", path))
+
+        resolver = RecordingResolver()
+
+        resolver.resolve_upstream("src/plugins/bundled-runtime-deps-install.ts")
+
+        self.assertEqual(
+            resolver.calls,
+            [
+                ("checkout-upstream", "src/plugins/bundled-runtime-deps-install.ts"),
+                ("rm", "src/plugins/bundled-runtime-deps-install.ts"),
+            ],
+        )
+
 
 class ApiDeltaAuditTests(unittest.TestCase):
     def test_extract_named_exports_from_module_source(self):
@@ -316,6 +408,85 @@ class UpstreamMergeTests(unittest.TestCase):
                 "extensions/line/src/push-command.ts",
                 "src/plugin-sdk/core.ts",
             ],
+        )
+
+    def test_preflight_followups_do_not_have_to_be_blockers(self):
+        followups = merge_module.collect_followup_blockers(
+            [
+                {"path": "src/plugin-sdk/core.ts", "action": "manual_api_followup"},
+                {"path": "package.json", "action": "upstream"},
+            ],
+            {"manual_api_followup"},
+        )
+
+        self.assertEqual(followups, ["src/plugin-sdk/core.ts"])
+        self.assertEqual(
+            merge_module.preflight_blockers_from_followups(
+                followups,
+                block_preflight_followups=False,
+            ),
+            [],
+        )
+        self.assertEqual(
+            merge_module.preflight_blockers_from_followups(
+                followups,
+                block_preflight_followups=True,
+            ),
+            ["src/plugin-sdk/core.ts"],
+        )
+
+
+class OfficialOpenClawMergeHelperTests(unittest.TestCase):
+    def test_latest_stable_tag_selection_ignores_beta_tags(self):
+        tags = [
+            official_merge_module.RemoteTag("v2026.5.4", "a" * 40),
+            official_merge_module.RemoteTag("v2026.5.5-beta.2", "b" * 40),
+            official_merge_module.RemoteTag("v2026.5.5", "c" * 40),
+            official_merge_module.RemoteTag("v2026.5.3-1", "d" * 40),
+        ]
+
+        latest = official_merge_module.select_latest_official_tag(tags)
+
+        self.assertIsNotNone(latest)
+        self.assertEqual(latest.name, "v2026.5.5")
+
+    def test_untracked_directory_overlap_blocks_only_existing_children(self):
+        self.assertTrue(
+            official_merge_module.path_overlaps(
+                "extensions/live2d-companion/",
+                "extensions/live2d-companion/package.json",
+            ),
+        )
+        self.assertEqual(
+            official_merge_module.overlapping_untracked_paths(
+                ["extensions/live2d-companion/", "logs/build.log"],
+                ["extensions/live2d-companion/package.json", "src/index.ts"],
+                path_exists=lambda path: False,
+            ),
+            [],
+        )
+        self.assertEqual(
+            official_merge_module.overlapping_untracked_paths(
+                ["extensions/live2d-companion/"],
+                ["extensions/live2d-companion/package.json"],
+                path_exists=lambda path: path == "extensions/live2d-companion/package.json",
+            ),
+            ["extensions/live2d-companion/package.json"],
+        )
+
+    def test_tracked_status_paths_preserves_dirty_baseline(self):
+        self.assertEqual(
+            official_merge_module.tracked_status_paths(
+                [
+                    " M scripts/tools/merge_official_openclaw.py",
+                    "R  old/path.ts -> src/new/path.ts",
+                    "?? .openclaw-desktop/logs/",
+                ],
+            ),
+            {
+                "scripts/tools/merge_official_openclaw.py",
+                "src/new/path.ts",
+            },
         )
 
 

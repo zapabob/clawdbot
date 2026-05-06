@@ -6,18 +6,26 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import subprocess
 import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 IMMUTABLE_FILES = ("SOUL.md", "identity/SOUL.md")
 REPORT_DIR = "_docs"
 REPORT_SUFFIX = "_official-openclaw-merge-report.json"
+DEFAULT_TARGET = "latest-main"
+LATEST_MAIN_ALIASES = {"latest", "latest-main", "latest-official", "official-main", "upstream-main"}
+LATEST_STABLE_ALIASES = {"latest-stable", "latest-release", "official-release"}
+OFFICIAL_TAG_NAMESPACE = "refs/openclaw-official/tags"
+OFFICIAL_VERSION_TAG_RE = re.compile(
+    r"^v(?P<year>\d{4})\.(?P<month>\d+)\.(?P<day>\d+)(?:-(?P<suffix>[0-9A-Za-z.-]+))?$"
+)
 KNOWN_UNTRACKED_LOCAL_PREFIXES = (
     ".openclaw-desktop/",
     ".openclaw/",
@@ -76,6 +84,12 @@ class ResolvedRef:
     commit: str
 
 
+@dataclass(frozen=True)
+class RemoteTag:
+    name: str
+    object_id: str
+
+
 def run_git(args: list[str], *, check: bool = True) -> CommandResult:
     result = subprocess.run(
         ["git", *args],
@@ -112,6 +126,105 @@ def is_known_untracked_local_path(path: str) -> bool:
     return normalized in KNOWN_UNTRACKED_LOCAL_FILES or any(
         normalized.startswith(prefix) for prefix in KNOWN_UNTRACKED_LOCAL_PREFIXES
     )
+
+
+def path_overlaps(left: str, right: str) -> bool:
+    left_normalized = normalize_path(left).rstrip("/")
+    right_normalized = normalize_path(right).rstrip("/")
+    return (
+        left_normalized == right_normalized
+        or right_normalized.startswith(f"{left_normalized}/")
+        or left_normalized.startswith(f"{right_normalized}/")
+    )
+
+
+def overlapping_paths(left_paths: list[str], right_paths: list[str]) -> list[str]:
+    overlaps: set[str] = set()
+    for left in left_paths:
+        for right in right_paths:
+            if path_overlaps(left, right):
+                overlaps.add(left)
+    return sorted(overlaps)
+
+
+def overlapping_untracked_paths(
+    left_paths: list[str],
+    right_paths: list[str],
+    *,
+    path_exists: Callable[[str], bool] | None = None,
+) -> list[str]:
+    exists = path_exists or (lambda path: (REPO_ROOT / path).exists())
+    overlaps: set[str] = set()
+    for left in left_paths:
+        left_normalized = normalize_path(left)
+        left_directory = left_normalized.endswith("/") or (REPO_ROOT / left_normalized).is_dir()
+        left_prefix = left_normalized.rstrip("/")
+        for right in right_paths:
+            right_normalized = normalize_path(right)
+            if left_directory:
+                if right_normalized.startswith(f"{left_prefix}/") and exists(right_normalized):
+                    overlaps.add(right_normalized)
+                continue
+            if path_overlaps(left_normalized, right_normalized):
+                overlaps.add(left_normalized)
+    return sorted(overlaps)
+
+
+def parse_official_version_tag(tag: str) -> tuple[int, int, int, int, int] | None:
+    match = OFFICIAL_VERSION_TAG_RE.match(tag)
+    if not match:
+        return None
+    suffix = match.group("suffix") or ""
+    suffix_lower = suffix.lower()
+    if any(marker in suffix_lower for marker in ("alpha", "beta", "rc", "pre")):
+        return None
+
+    suffix_rank = 0
+    if suffix:
+        numeric_parts = [int(part) for part in re.findall(r"\d+", suffix)]
+        suffix_rank = 1 + (numeric_parts[0] if numeric_parts else 0)
+
+    return (
+        int(match.group("year")),
+        int(match.group("month")),
+        int(match.group("day")),
+        suffix_rank,
+        len(suffix),
+    )
+
+
+def select_latest_official_tag(tags: list[RemoteTag]) -> RemoteTag | None:
+    candidates: list[tuple[tuple[int, int, int, int, int], RemoteTag]] = []
+    for tag in tags:
+        sort_key = parse_official_version_tag(tag.name)
+        if sort_key is not None:
+            candidates.append((sort_key, tag))
+    if not candidates:
+        return None
+    return max(candidates, key=lambda item: item[0])[1]
+
+
+def list_remote_official_tags() -> list[RemoteTag]:
+    result = run_git(["ls-remote", "--tags", "--refs", "upstream", "refs/tags/v[0-9]*"], check=True)
+    tags: list[RemoteTag] = []
+    for line in result.stdout.splitlines():
+        parts = line.split()
+        if len(parts) != 2:
+            continue
+        object_id, ref = parts
+        if not ref.startswith("refs/tags/"):
+            continue
+        tags.append(RemoteTag(name=ref.removeprefix("refs/tags/"), object_id=object_id))
+    return tags
+
+
+def fetch_official_tag_to_namespace(tag: str) -> ResolvedRef:
+    namespace_ref = f"{OFFICIAL_TAG_NAMESPACE}/{tag}"
+    run_git(["fetch", "upstream", "--no-tags", f"refs/tags/{tag}:{namespace_ref}"], check=True)
+    commit = try_resolve_revision(namespace_ref)
+    if commit is None:
+        raise RuntimeError(f"Could not resolve fetched official tag as a commit: {tag}")
+    return ResolvedRef(requested=tag, target_ref=namespace_ref, commit=commit)
 
 
 def sha256_file(relative_path: str) -> dict[str, Any]:
@@ -165,6 +278,58 @@ def clean_validation() -> dict[str, Any]:
         "blocked": blocked,
         "ignoredUntracked": sorted(ignored_untracked),
         "otherUntracked": sorted(other_untracked),
+        "untrackedPaths": sorted(ignored_untracked + other_untracked),
+    }
+
+
+def status_path(line: str) -> str | None:
+    if len(line) < 4:
+        return None
+    path = normalize_path(line[3:].strip())
+    if " -> " in path:
+        path = normalize_path(path.split(" -> ", 1)[1])
+    return path
+
+
+def tracked_status_paths(status_lines: list[str]) -> set[str]:
+    paths: set[str] = set()
+    for line in status_lines:
+        if len(line) < 4 or line[:2] == "??":
+            continue
+        path = status_path(line)
+        if path:
+            paths.add(path)
+    return paths
+
+
+def restore_pathspec(paths: list[str], *, filename: str) -> CommandResult | None:
+    if not paths:
+        return None
+    pathspec = REPO_ROOT / ".git" / filename
+    pathspec.write_text("\n".join(paths) + "\n", encoding="utf-8")
+    try:
+        return run_git(["restore", "--staged", "--worktree", f"--pathspec-from-file={pathspec}"], check=False)
+    finally:
+        pathspec.unlink(missing_ok=True)
+
+
+def restore_dry_run_side_effects(preexisting_tracked_dirty: set[str]) -> dict[str, Any]:
+    status_after = run_git(["status", "--porcelain"], check=True).stdout.splitlines()
+    changed_after = tracked_status_paths(status_after)
+    restore_paths = sorted(changed_after - preexisting_tracked_dirty)
+    restore_result = restore_pathspec(restore_paths, filename="openclaw-dry-run-restore-paths.txt")
+    status_restored = run_git(["status", "--porcelain"], check=True).stdout.splitlines()
+    remaining_unexpected = sorted(tracked_status_paths(status_restored) - preexisting_tracked_dirty)
+    return {
+        "paths": restore_paths,
+        "restoreCommand": None
+        if restore_result is None
+        else {
+            "args": ["git", *restore_result.args],
+            "returnCode": restore_result.returncode,
+            "stderr": restore_result.stderr.splitlines(),
+        },
+        "remainingUnexpectedTrackedPaths": remaining_unexpected,
     }
 
 
@@ -184,9 +349,22 @@ def try_resolve_revision(revision: str) -> str | None:
 
 
 def resolve_target_ref(target: str) -> ResolvedRef:
+    if target in LATEST_MAIN_ALIASES:
+        commit = try_resolve_revision("refs/remotes/upstream/main") or try_resolve_revision("upstream/main")
+        if commit:
+            return ResolvedRef(requested=target, target_ref="refs/remotes/upstream/main", commit=commit)
+        raise RuntimeError("Could not resolve latest official main. Run with --fetch-ref main or fetch upstream/main.")
+
+    if target in LATEST_STABLE_ALIASES:
+        latest_tag = select_latest_official_tag(list_remote_official_tags())
+        if latest_tag is None:
+            raise RuntimeError("Could not discover a latest stable official OpenClaw tag.")
+        return fetch_official_tag_to_namespace(latest_tag.name)
+
     candidates = [
         target,
         f"refs/tags/{target}",
+        f"{OFFICIAL_TAG_NAMESPACE}/{target}",
         f"refs/heads/{target}",
         f"refs/remotes/upstream/{target}",
         f"upstream/{target}",
@@ -241,16 +419,24 @@ def workspace_state_against_target(
     base = merge_base(target_commit)
     target_changed_paths = changed_paths_between(base, target_commit)
     dirty_paths = tracked_dirty_paths(validation)
-    overlap = sorted(set(dirty_paths).intersection(target_changed_paths))
+    tracked_overlap = overlapping_paths(dirty_paths, target_changed_paths)
+    untracked_paths = [
+        normalize_path(path)
+        for path in validation.get("untrackedPaths", [])
+        if isinstance(path, str)
+    ]
+    untracked_overlap = overlapping_untracked_paths(untracked_paths, target_changed_paths)
     immutable_target_paths = sorted(path for path in target_changed_paths if is_immutable_path(path))
     validation["dirtyOverlay"] = {
         "allowed": allow_dirty_overlay,
         "mergeBase": base,
         "dirtyTrackedPaths": dirty_paths,
+        "untrackedPaths": sorted(untracked_paths),
         "targetChangedPaths": target_changed_paths,
-        "overlap": overlap,
+        "overlap": tracked_overlap,
+        "untrackedOverlap": untracked_overlap,
         "immutableTargetPaths": immutable_target_paths,
-        "ok": validation["ok"] or (allow_dirty_overlay and not overlap),
+        "ok": validation["ok"] or (allow_dirty_overlay and not tracked_overlap and not untracked_overlap),
     }
     return validation
 
@@ -270,6 +456,11 @@ def ensure_merge_safe_workspace(
         raise RuntimeError(
             "Official target touches immutable SOUL files; aborting before merge: "
             + ", ".join(immutable_target_paths)
+        )
+    if dirty_overlay.get("untrackedOverlap"):
+        raise RuntimeError(
+            "Untracked local files overlap the official target; move/checkpoint first: "
+            + ", ".join(dirty_overlay["untrackedOverlap"])
         )
     if validation["ok"]:
         return validation
@@ -406,7 +597,7 @@ def build_report(
 def fetch_upstream(fetch_ref: str | None) -> CommandResult | None:
     if fetch_ref is None:
         return None
-    args = ["fetch", "upstream", "--prune"]
+    args = ["fetch", "upstream", "--prune", "--no-tags"]
     if fetch_ref:
         args.append(fetch_ref)
     fetch = run_git(args, check=False)
@@ -425,6 +616,8 @@ def dry_run(
 ) -> Path:
     head_before = current_head()
     before = soul_hashes()
+    status_before = run_git(["status", "--porcelain"], check=True).stdout.splitlines()
+    preexisting_tracked_dirty = tracked_status_paths(status_before)
     resolved = resolve_target_ref(target)
     clean = ensure_merge_safe_workspace(
         resolved.commit,
@@ -447,6 +640,10 @@ def dry_run(
         "args": ["git", *abort.args],
         "returnCode": abort.returncode,
     }
+    if abort.returncode != 0:
+        report["verificationResults"]["dryRunSideEffectRestore"] = restore_dry_run_side_effects(  # type: ignore[index]
+            preexisting_tracked_dirty,
+        )
     report["statusAfterAbort"] = run_git(["status", "--porcelain"], check=True).stdout.splitlines()
     write_report(report, report_path.name)
     enforce_immutable(before)
@@ -516,7 +713,11 @@ def report_only(target: str, *, fetch_result: CommandResult | None = None) -> Pa
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--target", default="v2026.4.29-beta.4", help="Official tag/branch/commit to merge.")
+    parser.add_argument(
+        "--target",
+        default=DEFAULT_TARGET,
+        help="Official tag/branch/commit to merge. Aliases: latest-main, latest-stable.",
+    )
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--dry-run", action="store_true", help="Run merge classification, then abort.")
     mode.add_argument("--report-only", action="store_true", help="Write a report for the current state without merging.")
@@ -528,15 +729,18 @@ def main() -> int:
     parser.add_argument(
         "--fetch-ref",
         nargs="?",
-        const="",
-        default=None,
+        const="main",
+        default="main",
         help="Fetch upstream before resolving the target; optionally pass one ref/refspec.",
     )
+    parser.add_argument("--no-fetch", action="store_true", help="Skip the default upstream fetch.")
     parser.add_argument("--fetch", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args()
 
     try:
-        fetch_ref = "" if args.fetch and args.fetch_ref is None else args.fetch_ref
+        fetch_ref = None if args.no_fetch else args.fetch_ref
+        if args.fetch and fetch_ref is None:
+            fetch_ref = "main"
         fetch_result = fetch_upstream(fetch_ref)
         if args.report_only:
             report_path = report_only(args.target, fetch_result=fetch_result)

@@ -12,14 +12,36 @@
     ".openclaw-desktop/skills/*",
     ".openclaw-desktop/telegram/*",
     ".openclaw-desktop/agents/*/agent/*.json",
+    ".openclaw/*",
+    ".openhands/*",
+    ".pi/*",
+    ".pochi/*",
+    ".python/*",
+    ".qoder/*",
+    ".qwen/*",
+    ".roo/*",
+    ".specstory/*",
+    ".trae/*",
+    ".windsurf/*",
+    ".zencoder/*",
+    "_artifacts/*",
+    "_docs/*official-openclaw-merge-report.json",
+    "debug-*",
     "logs/*",
-    "*.log"
+    "*.log",
+    "tmp-*"
   ],
   "rules": [
     {
       "pattern": ".pre-commit-config.yaml",
       "action": "preserve_custom",
       "note": "Preserve the local pre-commit hook tuning that keeps parallel skill tests and the fork's direct pnpm audit invocation.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": ".prettierignore",
+      "action": "preserve_custom",
+      "note": "Preserve the local compatibility ignore file even though upstream no longer ships Prettier configuration.",
       "context": "overlap_only"
     },
     {
@@ -132,6 +154,16 @@
       "action": "preserve_custom",
       "note": "Preserve fork-owned macOS bundle version metadata and release numbering.",
       "context": "overlap_only"
+    },
+    {
+      "pattern": "apps/macos/Packaging/clawdbot.ico",
+      "action": "preserve_custom",
+      "note": "Keep the fork launcher icon at the official macOS packaging location after the upstream assets cleanup."
+    },
+    {
+      "pattern": "apps/macos/Packaging/NFD/Hakua/*",
+      "action": "preserve_custom",
+      "note": "Move the fork Hakua packaging assets into the official macOS packaging root when upstream renames root assets."
     },
     {
       "pattern": "docs/web/tui.md",
@@ -295,6 +327,12 @@
       "context": "overlap_only"
     },
     {
+      "pattern": "docker-setup.sh",
+      "action": "preserve_custom",
+      "note": "Preserve the fork root wrapper for the maintained scripts/docker/setup.sh entrypoint.",
+      "context": "overlap_only"
+    },
+    {
       "pattern": "scripts/e2e/*.sh",
       "action": "preserve_custom",
       "note": "Preserve the fork-specific E2E shell harnesses for desktop and Docker workflows.",
@@ -322,6 +360,12 @@
       "pattern": "scripts/test-*-docker.sh",
       "action": "preserve_custom",
       "note": "Preserve the fork-specific Docker test harness wrappers.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "setup-podman.sh",
+      "action": "preserve_custom",
+      "note": "Preserve the fork root wrapper for the maintained scripts/podman/setup.sh entrypoint.",
       "context": "overlap_only"
     },
     {
@@ -988,6 +1032,30 @@
       "pattern": "src/channels/plugins/contracts/plugin.registry-backed.contract.test.ts",
       "action": "official_with_overlay",
       "note": "Keep the registry-backed contract test on the official seam with the local preload overlay.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/commands/doctor/shared/runtime-compat-api.ts",
+      "action": "upstream",
+      "note": "Follow upstream's removal of read-time legacy config auto-migration; legacy keys are reported through doctor issue surfaces now.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/config/schema.base.generated.ts",
+      "action": "upstream",
+      "note": "Follow upstream's runtime base-schema computation instead of keeping the generated release baseline.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/plugins/bundled-runtime-*",
+      "action": "upstream",
+      "note": "Follow upstream's simplified plugin dependency handling and prune superseded bundled runtime dependency roots.",
+      "context": "overlap_only"
+    },
+    {
+      "pattern": "src/plugins/test-helpers/bundled-runtime-deps-fixtures.ts",
+      "action": "upstream",
+      "note": "Drop the legacy bundled runtime dependency fixtures with the upstream runtime dependency root cleanup.",
       "context": "overlap_only"
     },
     {
