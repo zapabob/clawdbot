@@ -6,6 +6,7 @@ import { isDeepSeekV4ModelId } from "./models.js";
 import { applyDeepSeekConfig, DEEPSEEK_DEFAULT_MODEL_REF } from "./onboard.js";
 import { buildDeepSeekProvider } from "./provider-catalog.js";
 import { createDeepSeekV4ThinkingWrapper } from "./stream.js";
+import { resolveDeepSeekV4ThinkingProfile } from "./thinking.js";
 
 const PROVIDER_ID = "deepseek";
 const V4_THINKING_LEVEL_IDS = ["off", "minimal", "low", "medium", "high", "xhigh", "max"] as const;

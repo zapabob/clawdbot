@@ -132,6 +132,7 @@ const TELEGRAM_TIMEOUT_FALLBACK_METHODS = new Set([
   "deletemycommands",
   "deletewebhook",
   "getme",
+  "sendchataction",
   "setmycommands",
   "setwebhook",
 ]);
@@ -214,7 +215,7 @@ export function createTelegramBotCore(
     // causing "signals[0] must be an instance of AbortSignal" errors).
     finalFetch = async (input: TelegramFetchInput, init?: TelegramFetchInit) => {
       const method = extractTelegramApiMethod(input);
-      const requestTimeoutMs = resolveTelegramRequestTimeoutMs(method);
+      const requestTimeoutMs = resolveTelegramRequestTimeoutMs(method, telegramCfg?.timeoutSeconds);
       const shutdownSignal = isTelegramAbortSignalLike(opts.fetchAbortSignal)
         ? opts.fetchAbortSignal
         : undefined;
@@ -327,7 +328,11 @@ export function createTelegramBotCore(
         }
       : undefined;
 
-  const bot = new botRuntime.Bot(opts.token, client ? { client } : undefined);
+  const botConfig =
+    client || opts.botInfo
+      ? { ...(client ? { client } : {}), ...(opts.botInfo ? { botInfo: opts.botInfo } : {}) }
+      : undefined;
+  const bot = new botRuntime.Bot(opts.token, botConfig);
   bot.api.config.use(botRuntime.apiThrottler());
   // Catch all errors from bot middleware to prevent unhandled rejections
   bot.catch((err) => {
@@ -343,6 +348,7 @@ export function createTelegramBotCore(
   };
   const updateTracker = createTelegramUpdateTracker({
     initialUpdateId,
+    ackPolicy: "after_agent_dispatch",
     ...(typeof opts.updateOffset?.onUpdateId === "function"
       ? { onAcceptedUpdateId: opts.updateOffset.onUpdateId }
       : {}),

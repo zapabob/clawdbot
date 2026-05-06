@@ -62,8 +62,10 @@ describe("gateway config mutation guard coverage", () => {
       expect.arrayContaining([
         "agents.defaults.systemPromptOverride",
         "agents.defaults.model",
+        "agents.defaults.subagents.thinking",
         "agents.list[].id",
         "agents.list[].model",
+        "agents.list[].subagents.thinking",
         "channels.*.requireMention",
         "messages.visibleReplies",
         "messages.groupChat.visibleReplies",

@@ -12,8 +12,6 @@ import { formatErrorMessage } from "../dreaming-shared.js";
 import { filterUnregisteredMemoryEmbeddingProviderAdapters } from "./provider-adapter-registration.js";
 
 const NODE_LLAMA_CPP_RUNTIME_PACKAGE = "node-llama-cpp";
-const NODE_LLAMA_CPP_RUNTIME_VERSION = "3.18.1";
-const NODE_LLAMA_CPP_INSTALL_SPEC = `${NODE_LLAMA_CPP_RUNTIME_PACKAGE}@${NODE_LLAMA_CPP_RUNTIME_VERSION}`;
 
 export type BuiltinMemoryEmbeddingProviderDoctorMetadata = {
   providerId: string;
@@ -112,11 +110,11 @@ const localAdapter: MemoryEmbeddingProviderAdapter = {
   },
 };
 
-export const builtinMemoryEmbeddingProviderAdapters = [localAdapter] as const;
+const builtinMemoryEmbeddingProviderAdapters = [localAdapter] as const;
 
 export { DEFAULT_LOCAL_MODEL };
 
-export function getBuiltinMemoryEmbeddingProviderAdapter(
+function getBuiltinMemoryEmbeddingProviderAdapter(
   id: string,
 ): MemoryEmbeddingProviderAdapter | undefined {
   return listMemoryEmbeddingProviders().find((adapter) => adapter.id === id);
@@ -169,4 +167,4 @@ export function listBuiltinAutoSelectMemoryEmbeddingProviderDoctorMetadata(): Ar
     });
 }
 
-export { canAutoSelectLocal, formatLocalSetupError };
+export { canAutoSelectLocal };

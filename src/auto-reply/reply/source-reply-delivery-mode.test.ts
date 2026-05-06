@@ -86,6 +86,23 @@ describe("resolveSourceReplyDeliveryMode", () => {
     }
   });
 
+  it("allows harnesses to default direct chats to message-tool-only delivery", () => {
+    expect(
+      resolveSourceReplyDeliveryMode({
+        cfg: emptyConfig,
+        ctx: { ChatType: "direct" },
+        defaultVisibleReplies: "message_tool",
+      }),
+    ).toBe("message_tool_only");
+    expect(
+      resolveSourceReplyDeliveryMode({
+        cfg: { messages: { visibleReplies: "automatic" } },
+        ctx: { ChatType: "direct" },
+        defaultVisibleReplies: "message_tool",
+      }),
+    ).toBe("automatic");
+  });
+
   it("lets group/channel config override the global visible reply mode", () => {
     expect(
       resolveSourceReplyDeliveryMode({
@@ -100,11 +117,23 @@ describe("resolveSourceReplyDeliveryMode", () => {
     ).toBe("automatic");
   });
 
-  it("treats native commands as explicit replies in groups", () => {
+  it("treats native and text commands as explicit replies in groups", () => {
+    for (const CommandSource of ["native", "text"] as const) {
+      expect(
+        resolveSourceReplyDeliveryMode({
+          cfg: emptyConfig,
+          ctx: { ChatType: "group", CommandSource },
+        }),
+      ).toBe("automatic");
+    }
+  });
+
+  it("falls back to automatic when message tool is unavailable", () => {
     expect(
       resolveSourceReplyDeliveryMode({
         cfg: emptyConfig,
-        ctx: { ChatType: "group", CommandSource: "native" },
+        ctx: { ChatType: "group" },
+        messageToolAvailable: false,
       }),
     ).toBe("automatic");
     expect(loggerMocks.warn).not.toHaveBeenCalled();
@@ -193,20 +222,22 @@ describe("resolveSourceReplyVisibilityPolicy", () => {
     });
   });
 
-  it("keeps native command replies visible in groups", () => {
-    expect(
-      resolveSourceReplyVisibilityPolicy({
-        cfg: emptyConfig,
-        ctx: { ChatType: "group", CommandSource: "native" },
-        sendPolicy: "allow",
-      }),
-    ).toMatchObject({
-      sourceReplyDeliveryMode: "automatic",
-      suppressAutomaticSourceDelivery: false,
-      suppressDelivery: false,
-      suppressHookReplyLifecycle: false,
-      suppressTyping: false,
-    });
+  it("keeps native and text command replies visible in groups", () => {
+    for (const CommandSource of ["native", "text"] as const) {
+      expect(
+        resolveSourceReplyVisibilityPolicy({
+          cfg: emptyConfig,
+          ctx: { ChatType: "group", CommandSource },
+          sendPolicy: "allow",
+        }),
+      ).toMatchObject({
+        sourceReplyDeliveryMode: "automatic",
+        suppressAutomaticSourceDelivery: false,
+        suppressDelivery: false,
+        suppressHookReplyLifecycle: false,
+        suppressTyping: false,
+      });
+    }
   });
 
   it("keeps configured automatic group delivery visible", () => {

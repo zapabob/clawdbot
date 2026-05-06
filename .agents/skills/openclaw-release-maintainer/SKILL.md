@@ -378,8 +378,10 @@ node --import tsx scripts/openclaw-npm-postpublish-verify.ts <published-version>
 - Any fix after preflight means a new commit. Delete and recreate the tag and
   matching GitHub release from the fixed commit, then rerun preflight from
   scratch before publishing.
-  Exception: never delete or recreate a beta tag that has already been pushed or
-  published; increment to the next beta number instead.
+  Exception: never delete or recreate a beta tag whose matching npm package has
+  already been published; increment to the next beta number instead. If only the
+  pushed tag/prerelease exists and npm publish has not happened, recreate that
+  same beta tag at the fixed commit.
 - For stable mac releases, generate the signed `appcast.xml` before uploading
   public release assets so the updater feed cannot lag the published binaries.
 - Serialize stable appcast-producing runs across tags so two releases do not
@@ -572,6 +574,9 @@ node --import tsx scripts/openclaw-npm-postpublish-verify.ts <published-version>
     commit, and rerun all relevant preflights from scratch before continuing.
     Never reuse old preflight results after the commit changes. For pushed or
     published beta tags, do not delete/recreate; increment to the next beta tag.
+    For preflight-only failures where npm did not publish the beta version,
+    delete/recreate the same beta tag and prerelease at the fixed commit instead
+    of skipping a prerelease number.
 20. Start `.github/workflows/openclaw-npm-release.yml` from the same branch with
     the same tag for the real publish, choose `npm_dist_tag` (`beta` default,
     `latest` only when you intentionally want direct stable publish), keep it
@@ -584,9 +589,9 @@ node --import tsx scripts/openclaw-npm-postpublish-verify.ts <published-version>
     for critical fixes that landed after the release branch cut; backport only
     important low-risk fixes before starting expensive lanes, or increment to
     the next beta if the fix must change the already-published package. If any
-    lane fails after the beta tag/package is pushed or published, fix,
-    commit/push/pull, increment to the next beta tag, and rerun the affected
-    beta evidence. Once the beta is live, start remote/manual rosters where they
+    lane fails after the beta package is published, fix, commit/push/pull,
+    increment to the next beta tag, and rerun the affected beta evidence. Once
+    the beta is live, start remote/manual rosters where they
     can overlap safely, but keep local Docker and Parallels load controlled.
     Ensure the full expensive roster has passed at least once before
     stable/latest promotion. The roster includes the manual Actions >
