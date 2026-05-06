@@ -220,3 +220,59 @@ extensions/**/.openclaw-runtime-deps-stamp.json
 # Output dir for scripts/run-opengrep.sh (local opengrep scans)
 /.opengrep-out/
 /.crabbox-artifacts
+
+# Local OpenClaw desktop/runtime state and personal identity files
+/.openclaw-desktop/
+/.openclaw/
+/.openhands/
+/.pochi/
+/.python/
+/.qoder/
+/.qwen/
+/.roo/
+/.specstory/
+/.trae/
+/.windsurf/
+/.zencoder/
+/MEMORY.md
+/SOUL.md
+/identity/SOUL.md
+/nul
+/logs/
+
+# Local/generated upstream merge reports
+/_docs/*official-openclaw-merge-report.json
+/_docs/merge-conflict-resolution*.md
+/_docs/merge-conflict-resolution-dry-run*.md
+/_docs/merge-reports/
+/_docs/resonance/
+
+# Local captured/runtime artifacts
+/_artifacts/
+
+# Local docs and companion experiment outputs
+/docs/zh-CN/
+/extensions/live2d-companion/README.md
+/extensions/live2d-companion/electron/preload.cjs
+/extensions/live2d-companion/skills/
+/skills/desktop-companion/
+/scripts/tools/test*.mjs
+
+# Local avatar/model source assets
+*.fbx
+*.FBX
+*.vrm
+*.VRM
+*.glb
+*.gltf
+*.pmx
+*.pmd
+*.vroid
+*.blend
+
+# Local credential/auth residue
+**/*auth-profiles.json
+**/*device-auth.json
+**/*credentials*.json
+**/*credential*.json
+**/telegram-pairing*.json
