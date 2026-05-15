@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Assist release-to-fork OpenClaw merges without touching SOUL files."""
+"""Assist release-to-fork OpenClaw merges without touching identity SOUL files."""
 
 from __future__ import annotations
 
@@ -118,7 +118,7 @@ def is_merge_report_path(path: str) -> bool:
 
 def is_immutable_path(path: str) -> bool:
     normalized = normalize_path(path)
-    return normalized in IMMUTABLE_FILES or Path(normalized).name == "SOUL.md"
+    return normalized in IMMUTABLE_FILES
 
 
 def is_known_untracked_local_path(path: str) -> bool:

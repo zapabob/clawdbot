@@ -437,6 +437,15 @@ class UpstreamMergeTests(unittest.TestCase):
 
 
 class OfficialOpenClawMergeHelperTests(unittest.TestCase):
+    def test_immutable_guard_only_protects_identity_soul_files(self):
+        self.assertTrue(official_merge_module.is_immutable_path("SOUL.md"))
+        self.assertTrue(official_merge_module.is_immutable_path("identity/SOUL.md"))
+        self.assertFalse(
+            official_merge_module.is_immutable_path(
+                "extensions/oc-path/src/oc-path/tests/fixtures/real/SOUL.md",
+            ),
+        )
+
     def test_latest_stable_tag_selection_ignores_beta_tags(self):
         tags = [
             official_merge_module.RemoteTag("v2026.5.4", "a" * 40),
