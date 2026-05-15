@@ -172,6 +172,11 @@
       "context": "overlap_only"
     },
     {
+      "pattern": "docs/channels/bluebubbles.md",
+      "action": "preserve_custom",
+      "note": "Keep fork BlueBubbles plugin docs while upstream documents migration to the official imsg path."
+    },
+    {
       "pattern": "dream-diary-preview-v*.html",
       "action": "preserve_custom",
       "note": "Preserve local preview artifacts.",
@@ -192,6 +197,11 @@
       "action": "preserve_custom",
       "note": "Preserve the fork-owned ACPX manifest contract and custom orchestration config surface.",
       "context": "overlap_only"
+    },
+    {
+      "pattern": "extensions/bluebubbles/*",
+      "action": "preserve_custom",
+      "note": "Preserve the fork-owned BlueBubbles REST/iMessage plugin after upstream removed the bundled package in favor of imsg."
     },
     {
       "pattern": "extensions/hypura-harness/*",

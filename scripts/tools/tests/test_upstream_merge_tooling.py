@@ -49,6 +49,8 @@ class UpstreamMergePolicyTests(unittest.TestCase):
                 False,
                 False,
             ),
+            ("docs/channels/bluebubbles.md", "preserve_custom", True, False),
+            ("extensions/bluebubbles/src/channel-shared.ts", "preserve_custom", True, True),
             ("docker-setup.sh", "preserve_custom", True, True),
             ("setup-podman.sh", "preserve_custom", True, True),
             ("extensions/discord/src/doctor-contract.ts", "preserve_custom", True, True),
