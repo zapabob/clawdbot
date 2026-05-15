@@ -396,6 +396,7 @@ export function isAllowedBlueBubblesSender(params: {
   chatId?: number | null;
   chatGuid?: string | null;
   chatIdentifier?: string | null;
+  allowConversationTargets?: boolean | null;
 }): boolean {
   return isAllowedParsedChatSender({
     allowFrom: params.allowFrom,
@@ -403,6 +404,7 @@ export function isAllowedBlueBubblesSender(params: {
     chatId: params.chatId,
     chatGuid: params.chatGuid,
     chatIdentifier: params.chatIdentifier,
+    allowConversationTargets: params.allowConversationTargets,
     normalizeSender: normalizeBlueBubblesHandle,
     parseAllowTarget: parseBlueBubblesAllowTarget,
   });

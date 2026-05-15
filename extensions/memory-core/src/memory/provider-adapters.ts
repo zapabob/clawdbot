@@ -55,7 +55,7 @@ function formatLocalSetupError(err: unknown): string {
         : undefined,
     missing && detail ? `Detail: ${detail}` : null,
     "To enable local embeddings:",
-    "1) Use Node 24 (recommended for installs/updates; Node 22 LTS, currently 22.14+, remains supported)",
+    "1) Use Node 24 (recommended for installs/updates; Node 22 LTS, currently 22.16+, remains supported)",
     missing
       ? `2) Run openclaw doctor --fix to repair managed plugin runtime deps for ${NODE_LLAMA_CPP_INSTALL_SPEC}`
       : null,

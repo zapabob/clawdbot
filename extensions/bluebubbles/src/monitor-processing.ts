@@ -950,6 +950,7 @@ async function processMessageAfterDedupe(
         chatId: message.chatId ?? undefined,
         chatGuid: message.chatGuid ?? undefined,
         chatIdentifier: message.chatIdentifier ?? undefined,
+        allowConversationTargets: isGroup,
       }),
   });
   const effectiveAllowFrom = accessDecision.effectiveAllowFrom;
@@ -1122,6 +1123,7 @@ async function processMessageAfterDedupe(
           chatId: message.chatId ?? undefined,
           chatGuid: message.chatGuid ?? undefined,
           chatIdentifier: message.chatIdentifier ?? undefined,
+          allowConversationTargets: isGroup,
         })
       : false;
   const commandGate = resolveControlCommandGate({
@@ -1346,6 +1348,7 @@ async function processMessageAfterDedupe(
             chatId: message.chatId ?? undefined,
             chatGuid: message.chatGuid ?? undefined,
             chatIdentifier: message.chatIdentifier ?? undefined,
+            allowConversationTargets: isGroup,
           })
         : false;
   const includeReplyContext =
@@ -2164,6 +2167,7 @@ export async function processReaction(
         chatId: reaction.chatId ?? undefined,
         chatGuid: reaction.chatGuid ?? undefined,
         chatIdentifier: reaction.chatIdentifier ?? undefined,
+        allowConversationTargets: reaction.isGroup,
       }),
   });
   if (accessDecision.decision !== "allow") {

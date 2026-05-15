@@ -10,7 +10,7 @@
       "./plugin-sdk/ollama"
     ],
     "removed_exports_vs_upstream": [],
-    "shared_exports_count": 301,
+    "shared_exports_count": 312,
     "usage_counts_in_repo": {
       "./plugin-sdk/live2d-companion": 0,
       "./plugin-sdk/local-voice": 0,
@@ -21,7 +21,7 @@
     "src/plugin-sdk/core.ts": {
       "added_exports_vs_upstream": [],
       "removed_exports_vs_upstream": [],
-      "shared_exports_count": 185,
+      "shared_exports_count": 201,
       "usage_counts_in_repo": {}
     }
   }

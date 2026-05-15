@@ -12,12 +12,56 @@ import { cleanupTempDirs, makeTempRepoRoot, writeJsonFile } from "./helpers/temp
 
 const tempDirs: string[] = [];
 
+type OfficialChannelCatalogEntry = ReturnType<
+  typeof buildOfficialChannelCatalog
+>["entries"][number];
+type OfficialChannelInstall = NonNullable<
+  NonNullable<OfficialChannelCatalogEntry["openclaw"]>["install"]
+>;
+
 function makeRepoRoot(prefix: string): string {
   return makeTempRepoRoot(tempDirs, prefix);
 }
 
 function writeJson(filePath: string, value: unknown): void {
   writeJsonFile(filePath, value);
+}
+
+function requireInstall(entry: OfficialChannelCatalogEntry | undefined): OfficialChannelInstall {
+  const install = entry?.openclaw?.install;
+  if (!install) {
+    throw new Error("expected official channel install config");
+  }
+  return install;
+}
+
+function requireNpmInstallSource(source: ReturnType<typeof describePluginInstallSource>) {
+  if (!source.npm) {
+    throw new Error("expected npm install source");
+  }
+  return source.npm;
+}
+
+function findCatalogEntry(
+  entries: OfficialChannelCatalogEntry[],
+  predicate: (entry: OfficialChannelCatalogEntry) => boolean,
+): OfficialChannelCatalogEntry {
+  const entry = entries.find(predicate);
+  if (!entry) {
+    throw new Error("expected official channel catalog entry");
+  }
+  return entry;
+}
+
+function summarizeCatalogEntry(entry: OfficialChannelCatalogEntry) {
+  return {
+    name: entry.name,
+    description: entry.description,
+    source: entry.source,
+    plugin: entry.openclaw?.plugin,
+    channel: entry.openclaw?.channel,
+    install: entry.openclaw?.install,
+  };
 }
 
 afterEach(() => {
@@ -41,9 +85,10 @@ describe("buildOfficialChannelCatalog", () => {
           blurb: "works with your own number; recommend a separate phone + eSIM.",
         },
         install: {
+          clawhubSpec: "clawhub:@openclaw/whatsapp",
           npmSpec: "@openclaw/whatsapp",
           localPath: bundledPluginRoot("whatsapp"),
-          defaultChoice: "npm",
+          defaultChoice: "clawhub",
         },
         release: {
           publishToNpm: true,
@@ -139,9 +184,9 @@ describe("buildOfficialChannelCatalog", () => {
 
     expect(entries.length).toBeGreaterThan(0);
     for (const entry of entries) {
-      const installSource = describePluginInstallSource(entry.openclaw?.install ?? {});
-      expect(installSource.warnings).toEqual([]);
-      expect(installSource.npm?.pinState).toBe("exact-with-integrity");
+      const installSource = describePluginInstallSource(requireInstall(entry));
+      expect(installSource.warnings).toStrictEqual([]);
+      expect(requireNpmInstallSource(installSource).pinState).toBe("exact-with-integrity");
     }
   });
 
@@ -151,20 +196,19 @@ describe("buildOfficialChannelCatalog", () => {
       (entry) => entry.openclaw?.channel?.id === "twitch",
     );
 
-    expect(twitch).toEqual(
-      expect.objectContaining({
-        name: "@openclaw/twitch",
-        openclaw: expect.objectContaining({
-          install: {
-            npmSpec: "@openclaw/twitch",
-            defaultChoice: "npm",
-            minHostVersion: ">=2026.4.10",
-          },
-        }),
-      }),
-    );
-    const installSource = describePluginInstallSource(twitch?.openclaw?.install ?? {});
-    expect(installSource.npm?.pinState).toBe("floating-without-integrity");
+    expect({
+      name: twitch?.name,
+      install: twitch?.openclaw?.install,
+    }).toEqual({
+      name: "@openclaw/twitch",
+      install: {
+        npmSpec: "@openclaw/twitch",
+        defaultChoice: "npm",
+        minHostVersion: ">=2026.4.10",
+      },
+    });
+    const installSource = describePluginInstallSource(requireInstall(twitch));
+    expect(requireNpmInstallSource(installSource).pinState).toBe("floating-without-integrity");
     expect(installSource.warnings).toEqual(["npm-spec-floating", "npm-spec-missing-integrity"]);
   });
 
@@ -195,7 +239,7 @@ describe("buildOfficialChannelCatalog", () => {
       (candidate) => candidate.openclaw?.channel?.id === "storepack-chat",
     );
 
-    expect(entry?.openclaw?.install).toEqual({
+    expect(requireInstall(entry)).toEqual({
       clawhubSpec: "clawhub:@openclaw/storepack-chat",
       npmSpec: "@openclaw/storepack-chat",
       defaultChoice: "clawhub",
@@ -227,33 +271,41 @@ describe("buildOfficialChannelCatalog", () => {
 
     const outputPath = path.join(repoRoot, OFFICIAL_CHANNEL_CATALOG_RELATIVE_PATH);
     expect(fs.existsSync(outputPath)).toBe(true);
-    expect(JSON.parse(fs.readFileSync(outputPath, "utf8")).entries).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          name: "@wecom/wecom-openclaw-plugin",
-        }),
-        expect.objectContaining({
-          name: "openclaw-plugin-yuanbao",
-        }),
-        expect.objectContaining({
-          name: "@openclaw/whatsapp",
-          source: "official",
-          openclaw: expect.objectContaining({
-            channel: expect.objectContaining({
-              id: "whatsapp",
-              label: "WhatsApp",
-              selectionLabel: "WhatsApp (QR link)",
-              docsPath: "/channels/whatsapp",
-            }),
-            install: expect.objectContaining({
-              npmSpec: "@openclaw/whatsapp",
-              defaultChoice: "npm",
-            }),
-          }),
-        }),
-      ]),
+    const entries = JSON.parse(fs.readFileSync(outputPath, "utf8")).entries;
+    expect(entries.map((entry: { name?: string }) => entry.name)).toContain(
+      "@wecom/wecom-openclaw-plugin",
     );
-    const whatsappEntries = JSON.parse(fs.readFileSync(outputPath, "utf8")).entries.filter(
+    expect(entries.map((entry: { name?: string }) => entry.name)).toContain(
+      "openclaw-plugin-yuanbao",
+    );
+    const whatsappEntry = findCatalogEntry(
+      entries,
+      (entry: { openclaw?: { channel?: { id?: string } } }) =>
+        entry.openclaw?.channel?.id === "whatsapp",
+    );
+    expect(summarizeCatalogEntry(whatsappEntry)).toEqual({
+      name: "@openclaw/whatsapp",
+      description: "OpenClaw WhatsApp channel plugin",
+      source: "official",
+      plugin: undefined,
+      channel: {
+        id: "whatsapp",
+        label: "WhatsApp",
+        selectionLabel: "WhatsApp (QR link)",
+        detailLabel: "WhatsApp Web",
+        docsLabel: "whatsapp",
+        docsPath: "/channels/whatsapp",
+        blurb: "works with your own number; recommend a separate phone + eSIM.",
+        systemImage: "message",
+      },
+      install: {
+        clawhubSpec: "clawhub:@openclaw/whatsapp",
+        npmSpec: "@openclaw/whatsapp",
+        defaultChoice: "clawhub",
+        minHostVersion: ">=2026.4.25",
+      },
+    });
+    const whatsappEntries = entries.filter(
       (entry: { openclaw?: { channel?: { id?: string } } }) =>
         entry.openclaw?.channel?.id === "whatsapp",
     );

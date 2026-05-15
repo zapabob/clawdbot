@@ -11,6 +11,7 @@ let visibleRepliesPrivateDefaultWarned = false;
 export type SourceReplyDeliveryModeContext = {
   ChatType?: string;
   CommandAuthorized?: boolean;
+  CommandBody?: string;
   CommandSource?: "text" | "native";
 };
 

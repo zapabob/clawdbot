@@ -33,7 +33,6 @@ describe("provider public artifacts", () => {
     vi.doMock("./public-surface-loader.js", () => ({
       loadBundledPluginPublicArtifactModuleSync,
     }));
-    vi.resetModules();
 
     const { resolveBundledProviderPolicySurface: resolvePolicySurface } = await importFreshModule<
       typeof import("./provider-public-artifacts.js")

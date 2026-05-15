@@ -230,12 +230,14 @@ public final class GatewayTLSPinningSession: NSObject, WebSocketSessioning, URLS
                 return
             }
             if self.params.allowTOFU {
-                if let storeKey = params.storeKey {
-                    GatewayTLSStore.saveFingerprint(fingerprint, stableID: storeKey)
+                if GatewayTLSFirstUsePolicy.allowsFirstUsePin(systemTrustOk: systemTrustOk) {
+                    if let storeKey = params.storeKey {
+                        GatewayTLSStore.saveFingerprint(fingerprint, stableID: storeKey)
+                    }
+                    self.clearTLSFailure()
+                    completionHandler(.useCredential, URLCredential(trust: trust))
+                    return
                 }
-                self.clearTLSFailure()
-                completionHandler(.useCredential, URLCredential(trust: trust))
-                return
             }
         }
 
