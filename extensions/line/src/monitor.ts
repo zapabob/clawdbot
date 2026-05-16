@@ -2,12 +2,7 @@ import type { webhook } from "@line/bot-sdk";
 import { hasFinalChannelTurnDispatch } from "openclaw/plugin-sdk/channel-message";
 import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { chunkMarkdownText } from "openclaw/plugin-sdk/reply-runtime";
-import {
-  danger,
-  logVerbose,
-  waitForAbortSignal,
-  type RuntimeEnv,
-} from "openclaw/plugin-sdk/runtime-env";
+import { danger, logVerbose, type RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
 import {
   isRequestBodyLimitError,
   normalizePluginHttpPath,
@@ -488,7 +483,6 @@ export async function monitorLineProvider(
     stopHandler();
   } else if (abortSignal) {
     abortSignal.addEventListener("abort", stopHandler, { once: true });
-    await waitForAbortSignal(abortSignal);
   }
 
   return {

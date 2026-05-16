@@ -216,27 +216,24 @@ describe("monitorLineProvider lifecycle", () => {
     return resObj as unknown as ServerResponse & { end: ReturnType<typeof vi.fn> };
   };
 
-  it("waits for abort before resolving", async () => {
+  it("returns after registering and stops on abort", async () => {
     const abort = new AbortController();
-    let resolved = false;
 
-    const task = monitorLineProvider({
+    const monitor = await monitorLineProvider({
       channelAccessToken: "token",
       channelSecret: "secret", // pragma: allowlist secret
       config: {} as OpenClawConfig,
       runtime: {} as RuntimeEnv,
       abortSignal: abort.signal,
-    }).then((monitor) => {
-      resolved = true;
-      return monitor;
     });
 
     expect(registerWebhookTargetWithPluginRouteMock).toHaveBeenCalledTimes(1);
     expect(requireWebhookRegistration().route.auth).toBe("plugin");
-    expect(resolved).toBe(false);
+    expect(unregisterHttpMock).not.toHaveBeenCalled();
 
     abort.abort();
-    await task;
+    expect(unregisterHttpMock).toHaveBeenCalledTimes(1);
+    monitor.stop();
     expect(unregisterHttpMock).toHaveBeenCalledTimes(1);
   });
 
