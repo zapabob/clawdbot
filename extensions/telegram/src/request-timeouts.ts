@@ -1,4 +1,5 @@
 export const TELEGRAM_GET_UPDATES_REQUEST_TIMEOUT_MS = 45_000;
+const TELEGRAM_OUTBOUND_TEXT_REQUEST_TIMEOUT_MS = 60_000;
 
 const TELEGRAM_REQUEST_TIMEOUTS_MS = {
   // Bound startup/control-plane calls so the gateway cannot report Telegram as

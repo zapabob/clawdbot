@@ -8,7 +8,7 @@
   "scripts": {
     "build": "tsc --project tsconfig.json",
     "dev": "tsc --watch",
-    "start": "electron electron/main.js"
+    "start": "node scripts/start-electron.mjs"
   },
   "dependencies": {
     "@pixiv/three-vrm": "^2.1.0",

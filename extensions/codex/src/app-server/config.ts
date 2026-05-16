@@ -192,6 +192,7 @@ const codexAppServerApprovalPolicySchema = z.enum([
 ]);
 const codexAppServerSandboxSchema = z.enum(["read-only", "workspace-write", "danger-full-access"]);
 const codexAppServerApprovalsReviewerSchema = z.enum(["user", "auto_review", "guardian_subagent"]);
+const codexDynamicToolsLoadingSchema = z.enum(["searchable", "direct"]);
 const codexAppServerServiceTierSchema = z
   .preprocess(
     (value) => (value === null ? null : normalizeCodexServiceTier(value)),

@@ -114,7 +114,6 @@ const OPENAI_CODEX_MODERN_MODEL_IDS = [
   OPENAI_CODEX_GPT_54_MINI_MODEL_ID,
   "gpt-5.2",
   "gpt-5.2-codex",
-  OPENAI_CODEX_GPT_53_MODEL_ID,
 ] as const;
 
 function isLegacyCodexCompatBaseUrl(baseUrl?: string): boolean {
@@ -243,8 +242,6 @@ function resolveCodexForwardCompatModel(ctx: ProviderResolveDynamicModelContext)
       maxTokens: OPENAI_CODEX_GPT_54_MAX_TOKENS,
       cost: OPENAI_CODEX_GPT_54_MINI_COST,
     };
-  } else if (lower === OPENAI_CODEX_GPT_53_MODEL_ID) {
-    templateIds = OPENAI_CODEX_TEMPLATE_MODEL_IDS;
   } else {
     return undefined;
   }

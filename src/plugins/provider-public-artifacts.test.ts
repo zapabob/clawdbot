@@ -43,7 +43,6 @@ describe("provider public artifacts", () => {
     expect(loadBundledPluginPublicArtifactModuleSync).toHaveBeenCalledWith({
       dirName: "openai",
       artifactBasename: "provider-policy-api.js",
-      installRuntimeDeps: false,
     });
   });
 });

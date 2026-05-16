@@ -6,10 +6,22 @@ import { formatErrorMessage } from "../../infra/errors.js";
 import { emitSessionTranscriptUpdate } from "../../sessions/transcript-events.js";
 import { normalizeLowercaseStringOrEmpty } from "../../shared/string-coerce.js";
 import { resolveAgentContextLimits } from "../agent-scope.js";
-import { acquireSessionWriteLock } from "../session-write-lock.js";
+import {
+  acquireSessionWriteLock,
+  type SessionWriteLockAcquireTimeoutConfig,
+  resolveSessionWriteLockAcquireTimeoutMs,
+} from "../session-write-lock.js";
 import { formatContextLimitTruncationNotice } from "./context-truncation-notice.js";
 import { log } from "./logger.js";
-import { rewriteTranscriptEntriesInSessionManager } from "./transcript-rewrite.js";
+import {
+  persistTranscriptStateMutation,
+  readTranscriptFileState,
+  type TranscriptFileState,
+} from "./transcript-file-state.js";
+import {
+  rewriteTranscriptEntriesInSessionManager,
+  rewriteTranscriptEntriesInState,
+} from "./transcript-rewrite.js";
 
 /**
  * Maximum share of the context window a single tool result should occupy.

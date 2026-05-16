@@ -88,7 +88,7 @@ export function resolveSpawnCall(cmd, args, envOverride, params = {}) {
     shell: false,
   };
 
-  if (shouldUseCmdExeForCommand(cmd, platform)) {
+  if (shouldUseShellForCommand(cmd, platform)) {
     return {
       command: comSpec,
       args: ["/d", "/s", "/c", buildCmdExeCommandLine(cmd, args)],

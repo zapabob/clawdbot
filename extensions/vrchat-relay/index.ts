@@ -1,4 +1,4 @@
-import type { AgentToolResult } from "@mariozechner/pi-agent-core";
+import type { AgentToolResult } from "@earendil-works/pi-agent-core";
 import { Type } from "@sinclair/typebox";
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk/core";
 import {
@@ -23,8 +23,22 @@ import {
   getGuardianPulseStatus,
 } from "./src/guardian-pulse.js";
 import { getOSCClient } from "./src/osc/client.js";
-import { DEFAULT_OSC_CONFIG } from "./src/osc/types.js";
-import { getAuditSummary, getRecentLogs } from "./src/tools/audit.js";
+import {
+  resolveOwnAvatarConfig,
+  type OwnAvatarEmotion,
+  type OwnAvatarState,
+} from "./src/own-avatar/config.js";
+import { VRChatOwnAvatarController } from "./src/own-avatar/controller.js";
+import { VRChatOscReceiver, VRChatOscSender } from "./src/own-avatar/osc.js";
+import { VRChatAvatarRegistry } from "./src/own-avatar/registry.js";
+import {
+  getAuditSummary,
+  getRecentLogs,
+  logError,
+  logInfo,
+  logSkip,
+  logWarn,
+} from "./src/tools/audit.js";
 import { setAvatarParameter, sendOSCMessage, changeAvatar } from "./src/tools/avatar.js";
 import {
   setCameraParameter,
@@ -90,6 +104,58 @@ const plugin: any = {
         host: Type.Optional(Type.String({ default: "127.0.0.1" })),
       }),
     ),
+    vrchatOsc: Type.Optional(
+      Type.Object({
+        enabled: Type.Optional(Type.Boolean({ default: true })),
+        host: Type.Optional(Type.String({ default: "127.0.0.1" })),
+        sendPort: Type.Optional(Type.Number({ default: 9000 })),
+        receivePort: Type.Optional(Type.Number({ default: 9001 })),
+        allowRemoteOsc: Type.Optional(Type.Boolean({ default: false })),
+        autoDiscoverAvatarConfig: Type.Optional(Type.Boolean({ default: true })),
+        oscJsonRoot: Type.Optional(Type.String()),
+      }),
+    ),
+    avatarControl: Type.Optional(
+      Type.Object({
+        requiredPrefix: Type.Optional(Type.String({ default: "OC_" })),
+        manualLockParam: Type.Optional(Type.String({ default: "OC_ManualLock" })),
+        autoEnabledParam: Type.Optional(Type.String({ default: "OC_AutoEnabled" })),
+        stateParam: Type.Optional(Type.String({ default: "OC_State" })),
+        emotionParam: Type.Optional(Type.String({ default: "OC_Emotion" })),
+        actionParam: Type.Optional(Type.String({ default: "OC_Action" })),
+        actionPulseParam: Type.Optional(Type.String({ default: "OC_ActionPulse" })),
+        lookXParam: Type.Optional(Type.String({ default: "OC_LookX" })),
+        lookYParam: Type.Optional(Type.String({ default: "OC_LookY" })),
+        resetParam: Type.Optional(Type.String({ default: "OC_Reset" })),
+        autoEnabledOnStart: Type.Optional(Type.Boolean({ default: false })),
+      }),
+    ),
+    behavior: Type.Optional(
+      Type.Object({
+        mode: Type.Optional(Type.String({ default: "subtle" })),
+        idleMinIntervalMs: Type.Optional(Type.Number({ default: 30000 })),
+        idleMaxIntervalMs: Type.Optional(Type.Number({ default: 90000 })),
+        actionCooldownMs: Type.Optional(Type.Number({ default: 15000 })),
+        emotionCooldownMs: Type.Optional(Type.Number({ default: 3000 })),
+        maxCommandsPerSecond: Type.Optional(Type.Number({ default: 6 })),
+        speakingHoldMs: Type.Optional(Type.Number({ default: 2500 })),
+      }),
+    ),
+    movement: Type.Optional(
+      Type.Object({
+        enabled: Type.Optional(Type.Boolean({ default: false })),
+        allowInPublicInstances: Type.Optional(Type.Boolean({ default: false })),
+        maxInputDurationMs: Type.Optional(Type.Number({ default: 1000 })),
+        alwaysResetToZero: Type.Optional(Type.Boolean({ default: true })),
+      }),
+    ),
+    safety: Type.Optional(
+      Type.Object({
+        requireOscJsonParameterPresence: Type.Optional(Type.Boolean({ default: true })),
+        disableChatBoxByDefault: Type.Optional(Type.Boolean({ default: true })),
+        emergencyStopHotkey: Type.Optional(Type.String({ default: "Ctrl+Alt+O" })),
+      }),
+    ),
     security: Type.Optional(
       Type.Object({
         allowInputCommands: Type.Optional(Type.Boolean({ default: false })),
@@ -98,7 +164,7 @@ const plugin: any = {
     ),
     mirror: Type.Optional(
       Type.Object({
-        syncAiResponseToChatbox: Type.Optional(Type.Boolean({ default: true })),
+        syncAiResponseToChatbox: Type.Optional(Type.Boolean({ default: false })),
         maxCharacters: Type.Optional(Type.Number({ default: 144 })),
       }),
     ),
@@ -116,25 +182,30 @@ const plugin: any = {
     console.log("[vrchat-relay] Registering VRChat Relay plugin (Pro Edition)...");
     registerVrchatRelayGatewayMethods(api);
 
-    const oscCfg = (api.pluginConfig as { osc?: Record<string, unknown> } | undefined)?.osc ?? {};
+    const ownAvatarConfig = resolveOwnAvatarConfig(api.pluginConfig);
     getOSCClient({
-      host:
-        typeof oscCfg.host === "string" && oscCfg.host.trim()
-          ? oscCfg.host
-          : DEFAULT_OSC_CONFIG.host,
-      outgoingPort:
-        typeof oscCfg.outgoingPort === "number" && Number.isFinite(oscCfg.outgoingPort)
-          ? oscCfg.outgoingPort
-          : DEFAULT_OSC_CONFIG.outgoingPort,
-      incomingPort:
-        typeof oscCfg.incomingPort === "number" && Number.isFinite(oscCfg.incomingPort)
-          ? oscCfg.incomingPort
-          : DEFAULT_OSC_CONFIG.incomingPort,
+      host: ownAvatarConfig.vrchatOsc.host,
+      outgoingPort: ownAvatarConfig.vrchatOsc.sendPort,
+      incomingPort: ownAvatarConfig.vrchatOsc.receivePort,
     });
     const activeOscCfg = getOSCClient().getConfig();
     console.log(
       `[vrchat-relay] OSC ports configured: sendPort=${activeOscCfg.outgoingPort} -> VRChat(usually 9000), listenPort=${activeOscCfg.incomingPort} <- VRChat(usually 9001)`,
     );
+    const ownAvatarController = new VRChatOwnAvatarController({
+      config: ownAvatarConfig,
+      sender: new VRChatOscSender(getOSCClient()),
+      registry: new VRChatAvatarRegistry({
+        oscJsonRoot: ownAvatarConfig.vrchatOsc.oscJsonRoot,
+      }),
+      log: {
+        info: logInfo,
+        warn: logWarn,
+        error: logError,
+        skip: logSkip,
+      },
+    });
+    const ownAvatarReceiver = new VRChatOscReceiver(getOSCClient());
 
     // /chatbox command - Direct access for the Parent (via Python OSC bridge)
     api.registerCommand({
@@ -205,13 +276,43 @@ const plugin: any = {
       );
     }
 
+    if (ownAvatarConfig.vrchatOsc.enabled) {
+      ownAvatarReceiver.attach((message) => ownAvatarController.handleOscMessage(message));
+      if (ownAvatarConfig.avatarControl.autoEnabledOnStart) {
+        ownAvatarController.setAutoEnabled(true);
+      }
+    }
+
+    api.on("llm_input", () => {
+      ownAvatarController.handleLlmInput();
+    });
+
+    api.on("before_tool_call", () => {
+      ownAvatarController.handleToolStart();
+    });
+
+    api.on("after_tool_call", () => {
+      ownAvatarController.handleToolEnd();
+    });
+
     // --- Metaverse Voice Sync (SOUL.md) ---
     api.on("llm_output", (event: any) => {
-      const cfg = (api.pluginConfig as any)?.mirror;
-      if (cfg?.syncAiResponseToChatbox === false) return;
-
       const fullText = event.assistantTexts.join("\n").trim();
-      if (!fullText) return;
+      if (fullText) {
+        ownAvatarController.handleLlmOutput(fullText);
+      }
+      const cfg = (api.pluginConfig as any)?.mirror;
+      if (ownAvatarConfig.safety.disableChatBoxByDefault) {
+        if (cfg?.syncAiResponseToChatbox !== true) {
+          return;
+        }
+      } else if (cfg?.syncAiResponseToChatbox === false) {
+        return;
+      }
+
+      if (!fullText) {
+        return;
+      }
 
       const maxChars = cfg?.maxCharacters || 144;
       let syncText = fullText;
@@ -570,6 +671,190 @@ ${status.allowedOperations.map((op) => `  - ${op}`).join("\n")}`,
 Parameters:
 ${paramList}`,
           result as unknown as Record<string, unknown>,
+        );
+      },
+    });
+
+    // vrchat_own_avatar_status - Own avatar OSC controller readiness
+    api.registerTool({
+      name: "vrchat_own_avatar_status",
+      description:
+        "Get OpenClaw own-avatar OSC controller status, current avatar support, and missing OC_* parameters.",
+      parameters: Type.Object({}),
+      execute() {
+        const status = ownAvatarController.getStatus();
+        const missing =
+          status.missingRequiredParameters.length > 0
+            ? status.missingRequiredParameters.join(", ")
+            : "none";
+        return ok(
+          `Own Avatar Controller:
+- Enabled: ${status.enabled}
+- Avatar: ${status.currentAvatarId ?? "unknown"}
+- Supported: ${status.supported}
+- Manual Lock: ${status.manualLock}
+- State: ${status.currentState}
+- Emotion: ${status.currentEmotion}
+- Missing OC_* Parameters: ${missing}`,
+          status as unknown as Record<string, unknown>,
+        );
+      },
+    });
+
+    // vrchat_own_avatar_enable - Toggle autonomous own-avatar control
+    api.registerTool({
+      name: "vrchat_own_avatar_enable",
+      description:
+        "Enable or disable OpenClaw autonomous control of the currently worn VRChat avatar through OC_* OSC parameters.",
+      parameters: Type.Object({
+        enabled: Type.Boolean({ description: "Whether autonomous own-avatar control is enabled" }),
+      }),
+      execute(_id: string, params: { enabled: boolean }) {
+        const sent = ownAvatarController.setAutoEnabled(params.enabled);
+        const status = ownAvatarController.getStatus();
+        return ok(
+          `Own avatar control ${params.enabled ? "enabled" : "disabled"}${sent ? "" : " (parameter send was blocked or avatar is not ready)"}`,
+          { ...status, sent },
+        );
+      },
+    });
+
+    // vrchat_own_avatar_set_state - Set state/emotion/action for testing or operator control
+    api.registerTool({
+      name: "vrchat_own_avatar_set_state",
+      description:
+        "Set OC_State and optionally OC_Emotion or OC_Action on the currently worn OpenClaw-ready avatar.",
+      parameters: Type.Object({
+        state: Type.String({
+          description:
+            "State: idle, listening, thinking, speaking, tool_running, reacting, sleeping, or error",
+        }),
+        emotion: Type.Optional(
+          Type.String({
+            description: "Emotion: neutral, happy, sad, angry, surprised, confused, or relaxed",
+          }),
+        ),
+        actionId: Type.Optional(Type.Number({ description: "Optional OC_Action id from 0 to 9" })),
+      }),
+      execute(_id: string, params: { state: string; emotion?: string; actionId?: number }) {
+        const states = new Set([
+          "idle",
+          "listening",
+          "thinking",
+          "speaking",
+          "tool_running",
+          "reacting",
+          "sleeping",
+          "error",
+        ]);
+        const emotions = new Set([
+          "neutral",
+          "happy",
+          "sad",
+          "angry",
+          "surprised",
+          "confused",
+          "relaxed",
+        ]);
+        if (!states.has(params.state)) {
+          return fail(`Invalid state: ${params.state}`, { state: params.state });
+        }
+        ownAvatarController.applyState(params.state as OwnAvatarState);
+        if (params.emotion) {
+          if (!emotions.has(params.emotion)) {
+            return fail(`Invalid emotion: ${params.emotion}`, { emotion: params.emotion });
+          }
+          ownAvatarController.applyEmotion(params.emotion as OwnAvatarEmotion);
+        }
+        if (typeof params.actionId === "number") {
+          ownAvatarController.triggerAction(params.actionId);
+        }
+        return ok(
+          "Own avatar state command sent",
+          ownAvatarController.getStatus() as unknown as Record<string, unknown>,
+        );
+      },
+    });
+
+    // vrchat_own_avatar_test_command - Friendly smoke commands
+    api.registerTool({
+      name: "vrchat_own_avatar_test_command",
+      description:
+        "Send a friendly own-avatar smoke command: happy, think, wave, reset, listen, speak, tool, or error.",
+      parameters: Type.Object({
+        command: Type.String({
+          description: "happy, think, wave, reset, listen, speak, tool, or error",
+        }),
+      }),
+      execute(_id: string, params: { command: string }) {
+        const command = params.command.trim().toLowerCase();
+        if (command === "happy") {
+          ownAvatarController.applyState("reacting");
+          ownAvatarController.applyEmotion("happy");
+          ownAvatarController.triggerAction("laugh_small");
+        } else if (command === "think") {
+          ownAvatarController.applyState("thinking");
+          ownAvatarController.applyEmotion("confused");
+          ownAvatarController.triggerAction("think_pose");
+        } else if (command === "wave") {
+          ownAvatarController.applyState("reacting");
+          ownAvatarController.applyEmotion("happy");
+          ownAvatarController.triggerAction("wave");
+        } else if (command === "listen") {
+          ownAvatarController.applyState("listening");
+          ownAvatarController.triggerAction("small_nod");
+        } else if (command === "speak") {
+          ownAvatarController.handleLlmOutput("Hello from OpenClaw.");
+        } else if (command === "tool") {
+          ownAvatarController.applyState("tool_running");
+          ownAvatarController.triggerAction("working");
+        } else if (command === "error") {
+          ownAvatarController.applyState("error");
+          ownAvatarController.applyEmotion("confused");
+          ownAvatarController.triggerAction("reset_pose");
+        } else if (command === "reset") {
+          ownAvatarController.emergencyStop();
+        } else {
+          return fail(`Unknown own-avatar test command: ${params.command}`, { command });
+        }
+        return ok(
+          `Own avatar test command sent: ${command}`,
+          ownAvatarController.getStatus() as unknown as Record<string, unknown>,
+        );
+      },
+    });
+
+    // vrchat_own_avatar_look - Set local look/head nuance parameters
+    api.registerTool({
+      name: "vrchat_own_avatar_look",
+      description:
+        "Set OC_LookX and OC_LookY for local eye or head nuance on the currently worn OpenClaw-ready avatar.",
+      parameters: Type.Object({
+        x: Type.Number({ description: "Look X in the range -1 to 1; values are clamped" }),
+        y: Type.Number({ description: "Look Y in the range -1 to 1; values are clamped" }),
+      }),
+      execute(_id: string, params: { x: number; y: number }) {
+        const sent = ownAvatarController.setLook(params.x, params.y);
+        return ok(
+          sent
+            ? "Own avatar look parameters sent"
+            : "Own avatar look parameters were blocked or avatar is not ready",
+          { ...ownAvatarController.getStatus(), sent },
+        );
+      },
+    });
+
+    // vrchat_own_avatar_emergency_stop - Neutral reset and autonomy stop
+    api.registerTool({
+      name: "vrchat_own_avatar_emergency_stop",
+      description:
+        "Immediately stop own-avatar autonomy and send OC_Reset, OC_Action=0, OC_State=0, and OC_Emotion=0.",
+      parameters: Type.Object({}),
+      execute() {
+        ownAvatarController.emergencyStop();
+        return ok(
+          "Own avatar emergency stop sent",
+          ownAvatarController.getStatus() as unknown as Record<string, unknown>,
         );
       },
     });

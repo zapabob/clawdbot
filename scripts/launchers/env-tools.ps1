@@ -638,7 +638,16 @@ function Merge-OpenClawEnvToProcess {
 
     $merged = Get-MergedEnvMap -ProjectDir $ProjectDir
 
+    foreach ($entry in Get-ChildItem Env:) {
+        if ($entry.Name -like "CLAWDBOT_*" -or $entry.Name -like "MOLTBOT_*") {
+            Remove-Item -Path ("Env:" + $entry.Name) -ErrorAction SilentlyContinue
+        }
+    }
+
     foreach ($key in $merged.Keys) {
+        if ($key -like "CLAWDBOT_*" -or $key -like "MOLTBOT_*") {
+            continue
+        }
         Set-Item -Path "Env:$key" -Value $merged[$key]
     }
 

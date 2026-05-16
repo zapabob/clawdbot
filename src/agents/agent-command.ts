@@ -1052,6 +1052,12 @@ async function agentCommandInternal(
           run: async (providerOverride, modelOverride, runOptions) => {
             const isFallbackRetry = fallbackAttemptIndex > 0;
             fallbackAttemptIndex += 1;
+            const attemptThinkLevel = resolveSupportedThinkingLevel({
+              provider: providerOverride,
+              model: modelOverride,
+              level: resolvedThinkLevel,
+              catalog: thinkingCatalog,
+            });
             return attemptExecutionRuntime.runAgentAttempt({
               providerOverride,
               modelOverride,
@@ -1066,7 +1072,7 @@ async function agentCommandInternal(
               workspaceDir,
               body,
               isFallbackRetry,
-              resolvedThinkLevel,
+              resolvedThinkLevel: attemptThinkLevel,
               fastMode: resolveFastModeState({
                 cfg,
                 provider: providerOverride,

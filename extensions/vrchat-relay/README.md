@@ -54,6 +54,97 @@ Add to your OpenClaw configuration:
 }
 ```
 
+### Own Avatar Controller
+
+The own-avatar controller drives the avatar you are already wearing in the
+official VRChat client. It does not log in for you, read credentials, modify the
+VRChat client, or load FBX files at runtime. The FBX or avatar package must be
+prepared in Unity with VRChat SDK3 first; OpenClaw only sends OSC values to
+parameters that VRChat exposes for the currently worn avatar.
+
+Recommended OpenClaw config:
+
+```json
+{
+  "vrchat-relay": {
+    "vrchatOsc": {
+      "enabled": true,
+      "host": "127.0.0.1",
+      "sendPort": 9000,
+      "receivePort": 9001,
+      "allowRemoteOsc": false,
+      "autoDiscoverAvatarConfig": true
+    },
+    "avatarControl": {
+      "requiredPrefix": "OC_",
+      "autoEnabledOnStart": false
+    },
+    "behavior": {
+      "mode": "subtle",
+      "idleMinIntervalMs": 30000,
+      "idleMaxIntervalMs": 90000,
+      "actionCooldownMs": 15000,
+      "emotionCooldownMs": 3000,
+      "maxCommandsPerSecond": 6
+    },
+    "movement": {
+      "enabled": false,
+      "allowInPublicInstances": false,
+      "alwaysResetToZero": true
+    },
+    "safety": {
+      "requireOscJsonParameterPresence": true,
+      "disableChatBoxByDefault": true,
+      "emergencyStopHotkey": "Ctrl+Alt+O"
+    },
+    "mirror": {
+      "syncAiResponseToChatbox": false
+    }
+  }
+}
+```
+
+Unity setup:
+
+| Parameter        | Type  | Saved | Synced | Purpose                                                                              |
+| ---------------- | ----- | ----- | ------ | ------------------------------------------------------------------------------------ |
+| `OC_AutoEnabled` | Bool  | false | false  | OpenClaw autonomy on/off                                                             |
+| `OC_State`       | Int   | false | true   | 0 idle, 1 listening, 2 thinking, 3 speaking, 4 tool, 5 reacting, 6 sleeping, 7 error |
+| `OC_Emotion`     | Int   | false | true   | 0 neutral, 1 happy, 2 sad, 3 angry, 4 surprised, 5 confused, 6 relaxed               |
+| `OC_Action`      | Int   | false | true   | Action id, 0 none                                                                    |
+| `OC_ActionPulse` | Bool  | false | true   | Toggles to replay the same action                                                    |
+| `OC_LookX`       | Float | false | false  | Local eye or head X nuance                                                           |
+| `OC_LookY`       | Float | false | false  | Local eye or head Y nuance                                                           |
+| `OC_Reset`       | Bool  | false | false  | Emergency neutral reset                                                              |
+| `OC_ManualLock`  | Bool  | false | false  | Blocks autonomous sends while you operate manually                                   |
+
+Animator setup:
+
+1. Add the `OC_*` parameters to the avatar Expression Parameters asset.
+2. In the FX layer, route `OC_Emotion` and `OC_State == 3` to expression or
+   blendshape states. Make every state able to return to neutral.
+3. In the Action or additive layer, route `OC_Action` plus `OC_ActionPulse` to
+   small actions such as nod, wave, think pose, head tilt, small laugh, surprise,
+   working, stretch, and reset pose.
+4. Prefer upper-body or additive clips. Use Animator Tracking Control only when
+   a clip must take over body parts, especially for VR or full-body tracking.
+5. Use Build & Test for local iteration, then Build & Publish so VRChat writes
+   the avatar OSC JSON under `AppData/LocalLow/VRChat/VRChat/OSC/...`.
+
+Runtime flow:
+
+1. Log into the official VRChat client yourself.
+2. Wear the OpenClaw-ready avatar.
+3. Enable OSC in the VRChat Action Menu.
+4. Start OpenClaw and check `vrchat_own_avatar_status`.
+5. Enable control with `vrchat_own_avatar_enable`.
+6. Smoke test with `vrchat_own_avatar_test_command` using `happy`, `think`,
+   `wave`, and `reset`.
+
+Chatbox mirroring is opt-in when `disableChatBoxByDefault` is true. Set
+`mirror.syncAiResponseToChatbox=true` only when you explicitly want assistant
+responses written to the VRChat ChatBox.
+
 ### Topology Modes
 
 - `relay-primary`: existing `vrchat-relay` remains the main OSC writer/listener.
@@ -108,6 +199,15 @@ Add to your OpenClaw configuration:
 - `vrchat_autonomy_react` - Map conversation emotion to facial params + optional follow movement
 - `vrchat_discover` - Discover avatar parameters via OSCQuery
 - `vrchat_send_osc` - Send raw OSC message
+
+### Own Avatar Controller
+
+- `vrchat_own_avatar_status` - Show readiness, current avatar id, support status, and missing `OC_*` parameters
+- `vrchat_own_avatar_enable` - Enable or disable autonomous own-avatar control
+- `vrchat_own_avatar_set_state` - Send a state, optional emotion, and optional action id
+- `vrchat_own_avatar_test_command` - Run smoke commands such as `happy`, `think`, `wave`, and `reset`
+- `vrchat_own_avatar_look` - Set clamped `OC_LookX` and `OC_LookY` values
+- `vrchat_own_avatar_emergency_stop` - Stop autonomy and return the avatar to neutral parameters
 
 ### Input (PRO)
 

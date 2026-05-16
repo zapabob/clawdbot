@@ -134,8 +134,57 @@ function Start-StackProcess {
         $psArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", $joined)
     }
 
-    Start-Process -FilePath "powershell.exe" -ArgumentList $psArgs `
-        -WorkingDirectory $WorkingDirectory -WindowStyle $WindowStyle | Out-Null
+    $previousEnv = @{}
+    if ($null -ne $EnvironmentOverrides) {
+        foreach ($entry in $EnvironmentOverrides.GetEnumerator()) {
+            $key = [string]$entry.Key
+            if ([string]::IsNullOrWhiteSpace($key)) {
+                continue
+            }
+            $previousEnv[$key] = [Environment]::GetEnvironmentVariable($key, "Process")
+            if ($null -eq $entry.Value) {
+                [Environment]::SetEnvironmentVariable($key, $null, "Process")
+            } else {
+                [Environment]::SetEnvironmentVariable($key, [string]$entry.Value, "Process")
+            }
+        }
+    }
+
+    try {
+        Start-Process -FilePath "powershell.exe" -ArgumentList $psArgs `
+            -WorkingDirectory $WorkingDirectory -WindowStyle $WindowStyle | Out-Null
+    } finally {
+        foreach ($entry in $previousEnv.GetEnumerator()) {
+            [Environment]::SetEnvironmentVariable([string]$entry.Key, $entry.Value, "Process")
+        }
+    }
+}
+
+function Copy-EnvTable {
+    param([hashtable]$Source)
+    $copy = @{}
+    if ($null -eq $Source) {
+        return $copy
+    }
+    foreach ($entry in $Source.GetEnumerator()) {
+        $copy[$entry.Key] = $entry.Value
+    }
+    return $copy
+}
+
+function Add-NodeOption {
+    param(
+        [AllowNull()][string]$Existing,
+        [Parameter(Mandatory = $true)][string]$Option
+    )
+    $trimmed = if ($null -eq $Existing) { "" } else { $Existing.Trim() }
+    if ([string]::IsNullOrWhiteSpace($trimmed)) {
+        return $Option
+    }
+    if (($trimmed -split "\s+") -contains $Option) {
+        return $trimmed
+    }
+    return "$trimmed $Option"
 }
 
 function Test-HypuraRunning {
@@ -335,10 +384,11 @@ $processEnv = Build-DesktopStackProcessEnvTable `
     -LocalGatewayUrl $localGatewayUrl `
     -WsGatewayUrl $wsGatewayUrl
 if ($UseDesktopLauncher) {
-    # Keep local desktop boot responsive even when external chat APIs are unreachable.
-    # The desktop shortcut is for local Gateway + Control UI + Companion startup;
-    # channel daemons can still be started from a normal gateway run.
-    $processEnv["OPENCLAW_SKIP_CHANNELS"] = "1"
+    # Keep webhook network registration async during desktop boot while still
+    # allowing configured channel daemons such as Telegram to come online.
+    if ($processEnv.ContainsKey("OPENCLAW_SKIP_CHANNELS")) {
+        $processEnv.Remove("OPENCLAW_SKIP_CHANNELS")
+    }
     $processEnv["OPENCLAW_TELEGRAM_DEFER_WEBHOOK_STARTUP"] = "1"
 }
 Apply-DesktopStackProcessEnvToCurrentSession -ProcessEnv $processEnv
@@ -525,6 +575,8 @@ if ($ForceVisibleGatewayAndTui) {
 # --- BURST: Gateway ---
 if (-not $SkipGateway) {
     $gatewayLogFile = Join-Path $logsDir ("gateway-" + (Get-Date -Format "yyyyMMdd-HHmmss") + ".log")
+    $gatewayProcessEnv = Copy-EnvTable -Source $processEnv
+    $gatewayProcessEnv["NODE_OPTIONS"] = Add-NodeOption -Existing ([string]$gatewayProcessEnv["NODE_OPTIONS"]) -Option "--use-system-ca"
     $gatewayCmd = @($launcher.FilePath) + $launcher.Prefix + @(
         "--profile",$StackProfile,"gateway","run",
         "--allow-unconfigured","--force","--bind",$GatewayBind,
@@ -533,7 +585,7 @@ if (-not $SkipGateway) {
     Start-StackProcess -Title "OpenClaw Gateway [$GatewayPort]" `
         -WorkingDirectory $ProjectDir `
         -WindowStyle $gatewayWindowStyle `
-        -EnvironmentOverrides $processEnv `
+        -EnvironmentOverrides $gatewayProcessEnv `
         -LogFile $gatewayLogFile `
         -CommandParts $gatewayCmd
     Write-Host "  [Gateway ] process spawned  (port $GatewayPort)" -ForegroundColor Cyan
@@ -661,6 +713,9 @@ if (-not $SkipTui) {
 if (-not $SkipCompanion) {
     $companionDir = Join-Path $ProjectDir "extensions\live2d-companion"
     if (Test-Path $companionDir) {
+        $companionPreviousNodeOptions = $env:NODE_OPTIONS
+        $companionProcessEnv = Copy-EnvTable -Source $processEnv
+        $companionProcessEnv.Remove("NODE_OPTIONS")
         $electronBin = Join-Path $ProjectDir "node_modules\.bin\electron.cmd"
         if (-not (Test-Path $electronBin)) {
             $electronBin = Join-Path $companionDir "node_modules\.bin\electron.cmd"
@@ -673,11 +728,18 @@ if (-not $SkipCompanion) {
             @($electronBin, ".")
         }
 
-        Start-StackProcess -Title "Hakua Live2D Companion" `
-            -WorkingDirectory $companionDir `
-            -WindowStyle "Minimized" `
-            -EnvironmentOverrides $processEnv `
-            -CommandParts $companionCmd
+        try {
+            Remove-Item Env:NODE_OPTIONS -ErrorAction SilentlyContinue
+            Start-StackProcess -Title "Hakua Live2D Companion" `
+                -WorkingDirectory $companionDir `
+                -WindowStyle "Minimized" `
+                -EnvironmentOverrides $companionProcessEnv `
+                -CommandParts $companionCmd
+        } finally {
+            if ($null -ne $companionPreviousNodeOptions) {
+                $env:NODE_OPTIONS = $companionPreviousNodeOptions
+            }
+        }
         Write-Host "  [Companion] process spawned  (Live2D + DD support)" -ForegroundColor Cyan
     } else {
         Write-Host "  [Companion] directory not found, skipping" -ForegroundColor Yellow

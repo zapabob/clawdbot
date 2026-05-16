@@ -60,7 +60,12 @@ import { isInternalMessageChannel } from "../../utils/message-channel.js";
 import { stripHeartbeatToken } from "../heartbeat.js";
 import { markReplyPayloadForSourceSuppressionDelivery } from "../reply-payload.js";
 import type { TemplateContext } from "../templating.js";
-import type { VerboseLevel } from "../thinking.js";
+import {
+  resolveSupportedThinkingLevel,
+  type ThinkLevel,
+  type ThinkingCatalogEntry,
+  type VerboseLevel,
+} from "../thinking.js";
 import {
   HEARTBEAT_TOKEN,
   isSilentReplyPrefixText,
@@ -101,6 +106,60 @@ function shouldBridgeCliAssistantTextToReasoning(provider: string): boolean {
 
 function readApprovalScopeValue(value: unknown): "turn" | "session" | undefined {
   return value === "turn" || value === "session" ? value : undefined;
+}
+
+function resolveConfiguredThinkingCatalog(params: {
+  cfg: ReturnType<typeof resolveQueuedReplyRuntimeConfig>;
+  provider: string;
+  model: string;
+}): ThinkingCatalogEntry[] | undefined {
+  const entry = params.cfg.models?.providers?.[params.provider]?.models?.find(
+    (candidate) => candidate.id === params.model,
+  );
+  if (!entry) {
+    return undefined;
+  }
+  return [
+    {
+      provider: params.provider,
+      id: entry.id,
+      reasoning: entry.reasoning,
+      compat: entry.compat,
+    },
+  ];
+}
+
+function configuredCatalogEntrySupportsThinking(entry: ThinkingCatalogEntry): boolean {
+  if (entry.reasoning === true) {
+    return true;
+  }
+  const efforts = entry.compat?.supportedReasoningEfforts;
+  return Array.isArray(efforts) && efforts.length > 0;
+}
+
+function resolveConfiguredAttemptThinkingLevel(params: {
+  cfg: ReturnType<typeof resolveQueuedReplyRuntimeConfig>;
+  provider: string;
+  model: string;
+  level: ThinkLevel | undefined;
+}): ThinkLevel | undefined {
+  const catalog = resolveConfiguredThinkingCatalog(params);
+  if (
+    catalog?.length === 1 &&
+    !configuredCatalogEntrySupportsThinking(catalog[0]) &&
+    params.level === "off"
+  ) {
+    return undefined;
+  }
+  if (!params.level) {
+    return undefined;
+  }
+  return resolveSupportedThinkingLevel({
+    provider: params.provider,
+    model: params.model,
+    level: params.level,
+    catalog,
+  });
 }
 
 export type RuntimeFallbackAttempt = {
@@ -1450,12 +1509,18 @@ export async function runAgentTurnWithFallback(params: {
           return classification;
         },
         run: async (provider, model, runOptions) => {
+          const attemptThinkLevel = resolveConfiguredAttemptThinkingLevel({
+            cfg: runtimeConfig,
+            provider,
+            model,
+            level: params.followupRun.run.thinkLevel,
+          });
           // Notify that model selection is complete (including after fallback).
           // This allows responsePrefix template interpolation with the actual model.
           params.opts?.onModelSelected?.({
             provider,
             model,
-            thinkLevel: params.followupRun.run.thinkLevel,
+            thinkLevel: attemptThinkLevel,
           });
           let rollbackFallbackCandidateSelection: (() => Promise<void>) | undefined;
           try {
@@ -1574,7 +1639,7 @@ export async function runAgentTurnWithFallback(params: {
                   inputProvenance: params.followupRun.run.inputProvenance,
                   provider: cliExecutionProvider,
                   model,
-                  thinkLevel: params.followupRun.run.thinkLevel,
+                  thinkLevel: attemptThinkLevel,
                   timeoutMs: params.followupRun.run.timeoutMs,
                   runId,
                   lane: runLane,
@@ -1726,6 +1791,7 @@ export async function runAgentTurnWithFallback(params: {
                 groupSpace: normalizeOptionalString(params.sessionCtx.GroupSpace),
                 ...senderContext,
                 ...runBaseParams,
+                thinkLevel: attemptThinkLevel,
                 provider: embeddedRunProvider,
                 sandboxSessionKey: params.runtimePolicySessionKey,
                 prompt: params.commandBody,

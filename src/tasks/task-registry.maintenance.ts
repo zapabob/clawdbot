@@ -280,18 +280,6 @@ function findTaskSessionEntry(
   return findSessionEntryByKey(getSessionStoreLookup(storePath, context), childSessionKey);
 }
 
-function findTaskSessionEntry(task: TaskRecord): SessionEntry | undefined {
-  const childSessionKey = task.childSessionKey?.trim();
-  if (!childSessionKey) {
-    return undefined;
-  }
-  const agentId = taskRegistryMaintenanceRuntime.parseAgentSessionKey(childSessionKey)?.agentId;
-  const storePath = taskRegistryMaintenanceRuntime.resolveStorePath(undefined, { agentId });
-  const store = taskRegistryMaintenanceRuntime.loadSessionStore(storePath);
-  const entry = findSessionEntryByKey(store, childSessionKey);
-  return entry && typeof entry === "object" ? (entry as SessionEntry) : undefined;
-}
-
 function isActiveTask(task: TaskRecord): boolean {
   return task.status === "queued" || task.status === "running";
 }
@@ -492,7 +480,7 @@ function hasBackingSession(task: TaskRecord, context?: BackingSessionLookupConte
         return false;
       }
     }
-    const entry = findTaskSessionEntry(task);
+    const entry = findTaskSessionEntry(task, context);
     if (task.runtime === "subagent" && isSubagentRecoveryWedgedEntry(entry)) {
       return false;
     }
@@ -502,9 +490,9 @@ function hasBackingSession(task: TaskRecord, context?: BackingSessionLookupConte
   return true;
 }
 
-function resolveTaskLostError(task: TaskRecord): string {
+function resolveTaskLostError(task: TaskRecord, context?: BackingSessionLookupContext): string {
   if (task.runtime === "subagent") {
-    const entry = findTaskSessionEntry(task);
+    const entry = findTaskSessionEntry(task, context);
     if (entry && isSubagentRecoveryWedgedEntry(entry)) {
       return formatSubagentRecoveryWedgedReason(entry);
     }
@@ -512,7 +500,11 @@ function resolveTaskLostError(task: TaskRecord): string {
   return "backing session missing";
 }
 
-function shouldMarkLost(task: TaskRecord, now: number): boolean {
+function shouldMarkLost(
+  task: TaskRecord,
+  now: number,
+  context?: BackingSessionLookupContext,
+): boolean {
   if (!isActiveTask(task)) {
     return false;
   }
@@ -746,7 +738,7 @@ function markTaskLost(
       taskId: task.taskId,
       endedAt: task.endedAt ?? now,
       lastEventAt: now,
-      error: task.error ?? resolveTaskLostError(task),
+      error: task.error ?? resolveTaskLostError(task, context),
       cleanupAfter,
     }) ?? task;
   void taskRegistryMaintenanceRuntime.maybeDeliverTaskTerminalUpdate(updated.taskId);
@@ -798,7 +790,7 @@ function projectTaskLost(
     status: "lost",
     endedAt: task.endedAt ?? now,
     lastEventAt: now,
-    error: task.error ?? resolveTaskLostError(task),
+    error: task.error ?? resolveTaskLostError(task, context),
   };
   return {
     ...projected,

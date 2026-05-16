@@ -8,6 +8,8 @@ const log = createSubsystemLogger("auto-reply");
 
 let visibleRepliesPrivateDefaultWarned = false;
 
+type SourceReplyVisibleRepliesDefault = "automatic" | "message_tool";
+
 export type SourceReplyDeliveryModeContext = {
   ChatType?: string;
   CommandAuthorized?: boolean;
@@ -24,12 +26,13 @@ export function resolveSourceReplyDeliveryMode(params: {
   cfg: OpenClawConfig;
   ctx: SourceReplyDeliveryModeContext;
   requested?: SourceReplyDeliveryMode;
+  defaultVisibleReplies?: SourceReplyVisibleRepliesDefault;
   messageToolAvailable?: boolean;
 }): SourceReplyDeliveryMode {
   let mode: SourceReplyDeliveryMode;
   if (params.requested) {
     mode = params.requested;
-  } else if (params.ctx.CommandSource === "native") {
+  } else if (isExplicitSourceReplyCommand(params.ctx)) {
     mode = "automatic";
   } else {
     const chatType = normalizeChatType(params.ctx.ChatType);
@@ -52,14 +55,26 @@ export function resolveSourceReplyDeliveryMode(params: {
         );
       }
     } else {
-      mode =
-        params.cfg.messages?.visibleReplies === "message_tool" ? "message_tool_only" : "automatic";
+      const configuredMode = params.cfg.messages?.visibleReplies ?? params.defaultVisibleReplies;
+      mode = configuredMode === "message_tool" ? "message_tool_only" : "automatic";
     }
   }
   if (mode === "message_tool_only" && params.messageToolAvailable === false) {
     return "automatic";
   }
   return mode;
+}
+
+export function isExplicitSourceReplyCommand(ctx: SourceReplyDeliveryModeContext): boolean {
+  if (ctx.CommandSource === "native") {
+    return true;
+  }
+  return (
+    ctx.CommandSource === "text" &&
+    ctx.CommandAuthorized === true &&
+    typeof ctx.CommandBody === "string" &&
+    ctx.CommandBody.trim().length > 0
+  );
 }
 
 export type SourceReplyVisibilityPolicy = {
@@ -81,12 +96,14 @@ export function resolveSourceReplyVisibilityPolicy(params: {
   suppressAcpChildUserDelivery?: boolean;
   explicitSuppressTyping?: boolean;
   shouldSuppressTyping?: boolean;
+  defaultVisibleReplies?: SourceReplyVisibleRepliesDefault;
   messageToolAvailable?: boolean;
 }): SourceReplyVisibilityPolicy {
   const sourceReplyDeliveryMode = resolveSourceReplyDeliveryMode({
     cfg: params.cfg,
     ctx: params.ctx,
     requested: params.requested,
+    defaultVisibleReplies: params.defaultVisibleReplies,
     messageToolAvailable: params.messageToolAvailable,
   });
   const sendPolicyDenied = params.sendPolicy === "deny";

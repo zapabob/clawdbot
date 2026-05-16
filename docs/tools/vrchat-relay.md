@@ -1,11 +1,21 @@
 ---
 title: VRChat Relay
+summary: "VRChat integration via OSC protocol: chatbox, avatar control, camera, own-avatar control, and Guardian Pulse"
+read_when:
+  - Connecting OpenClaw to VRChat through OSC
+  - Configuring own-avatar OC_* parameter control
+  - Debugging VRChat relay tools, safety gates, or OSC ports
 description: VRChat integration via OSC protocol — chatbox, avatar control, camera, and Guardian Pulse
 ---
 
 # VRChat Relay
 
 The `vrchat-relay` extension provides comprehensive VRChat integration using the OSC protocol. It enables the agent to control avatars, send chatbox messages, manage camera settings, and run autonomous presence heartbeats.
+
+Own-avatar control uses the official VRChat OSC avatar-parameter API. It only
+drives the avatar you are already wearing in the official VRChat client, and it
+does not handle VRChat credentials, modify the client, or load FBX files at
+runtime.
 
 ## Permission Levels
 
@@ -43,6 +53,24 @@ vrchat_logout()
 | `vrchat_set_avatar_param` | Set avatar parameter (bool/int/float)   |
 | `vrchat_discover`         | Discover avatar parameters via OSCQuery |
 | `vrchat_change_avatar`    | Change avatar via OSC                   |
+
+### Own avatar controller
+
+| Tool                               | Description                                                  |
+| ---------------------------------- | ------------------------------------------------------------ |
+| `vrchat_own_avatar_status`         | Show current avatar readiness and missing `OC_*` parameters  |
+| `vrchat_own_avatar_enable`         | Enable or disable autonomous own-avatar OSC control          |
+| `vrchat_own_avatar_set_state`      | Send a state, optional emotion, and optional action id       |
+| `vrchat_own_avatar_test_command`   | Run smoke commands such as `happy`, `think`, `wave`, `reset` |
+| `vrchat_own_avatar_look`           | Set clamped `OC_LookX` and `OC_LookY` values                 |
+| `vrchat_own_avatar_emergency_stop` | Stop autonomy and return the avatar to neutral parameters    |
+
+Prepare the avatar in Unity with VRChat SDK3 before using these tools. Add
+Expression Parameters named `OC_AutoEnabled`, `OC_State`, `OC_Emotion`,
+`OC_Action`, `OC_ActionPulse`, `OC_LookX`, `OC_LookY`, `OC_Reset`, and
+`OC_ManualLock`, then route them in the FX, Action, or additive layers. Build
+and publish the avatar so VRChat can generate its OSC JSON config under the
+standard `OSC/<userId>/Avatars/<avatarId>.json` storage path.
 
 ### World & Friends
 
@@ -111,14 +139,49 @@ Guardian Pulse auto-starts when the plugin loads (5-minute interval).
     "vrchat-relay": {
       "enabled": true,
       "config": {
-        "oscPort": 9000,
-        "oscListenPort": 9001,
-        "mirror": { "enabled": true }
+        "osc": {
+          "outgoingPort": 9000,
+          "incomingPort": 9001,
+          "host": "127.0.0.1"
+        },
+        "vrchatOsc": {
+          "enabled": true,
+          "host": "127.0.0.1",
+          "sendPort": 9000,
+          "receivePort": 9001,
+          "allowRemoteOsc": false,
+          "autoDiscoverAvatarConfig": true
+        },
+        "avatarControl": {
+          "requiredPrefix": "OC_",
+          "autoEnabledOnStart": false
+        },
+        "behavior": {
+          "mode": "subtle",
+          "idleMinIntervalMs": 30000,
+          "idleMaxIntervalMs": 90000,
+          "actionCooldownMs": 15000,
+          "emotionCooldownMs": 3000,
+          "maxCommandsPerSecond": 6
+        },
+        "movement": {
+          "enabled": false,
+          "allowInPublicInstances": false
+        },
+        "safety": {
+          "requireOscJsonParameterPresence": true,
+          "disableChatBoxByDefault": true
+        },
+        "mirror": { "syncAiResponseToChatbox": false }
       }
     }
   }
 }
 ```
+
+With `disableChatBoxByDefault=true`, assistant replies are not mirrored into
+the VRChat ChatBox unless you explicitly set
+`mirror.syncAiResponseToChatbox=true`.
 
 ## Typical Workflow
 

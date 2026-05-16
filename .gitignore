@@ -104,6 +104,12 @@ USER.md
 *.tgz
 *.tar.gz
 *.zip
+
+# Local log captures
+*.log
+*.log.txt
+log.txt
+
 .idea
 .vscode/
 

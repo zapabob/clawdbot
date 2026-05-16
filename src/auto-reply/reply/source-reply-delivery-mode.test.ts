@@ -45,6 +45,15 @@ beforeEach(() => {
   resetVisibleRepliesPrivateDefaultWarningForTest();
 });
 
+type SourceReplyVisibilityPolicy = ReturnType<typeof resolveSourceReplyVisibilityPolicy>;
+
+function expectPolicyFields(
+  policy: SourceReplyVisibilityPolicy,
+  expected: Partial<SourceReplyVisibilityPolicy>,
+): void {
+  expect(policy).toEqual(expect.objectContaining(expected));
+}
+
 describe("resolveSourceReplyDeliveryMode", () => {
   it("defaults groups and channels to message-tool-only delivery", () => {
     expect(resolveSourceReplyDeliveryMode({ cfg: emptyConfig, ctx: { ChatType: "channel" } })).toBe(
