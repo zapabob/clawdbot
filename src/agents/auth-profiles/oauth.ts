@@ -99,6 +99,9 @@ async function buildOAuthApiKey(
   credentials: OAuthCredential,
   context: { cfg?: OpenClawConfig },
 ): Promise<string> {
+  if (provider === "openai-codex") {
+    return credentials.access;
+  }
   const formatted = await formatProviderAuthProfileApiKeyWithPlugin({
     provider,
     config: context.cfg,

@@ -29,7 +29,8 @@ export function resolveNodeStartupTlsEnvironment(
           accessSync: params.accessSync,
         }));
   const nodeUseSystemCa =
-    env.NODE_USE_SYSTEM_CA ?? (platform === "darwin" && includeDarwinDefaults ? "1" : undefined);
+    env.NODE_USE_SYSTEM_CA ??
+    ((platform === "darwin" && includeDarwinDefaults) || platform === "win32" ? "1" : undefined);
 
   return {
     NODE_EXTRA_CA_CERTS: nodeExtraCaCerts,

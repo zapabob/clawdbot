@@ -10,9 +10,10 @@
  */
 
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk/core";
-import { probeLineBot, pushMessageLine } from "openclaw/plugin-sdk/line-runtime";
 import { resolveLineAccount } from "./accounts.js";
+import { probeLineBot } from "./probe.js";
 import { getLineRuntime } from "./runtime.js";
+import { pushMessageLine } from "./send.js";
 
 export function registerLinePushCommand(api: OpenClawPluginApi): void {
   // /line_push <userId> <message...>
@@ -48,7 +49,8 @@ export function registerLinePushCommand(api: OpenClawPluginApi): void {
       }
 
       try {
-        const result = await pushMessageLine(to, message, { verbose: true });
+        const cfg = getLineRuntime().config.loadConfig();
+        const result = await pushMessageLine(to, message, { cfg, verbose: true });
         const preview = message.length > 50 ? `${message.substring(0, 50)}…` : message;
         return {
           text: `✓ LINEメッセージ送信完了 → ${result.chatId}: ${preview}`,

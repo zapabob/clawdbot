@@ -159,7 +159,7 @@ describe("auth external oauth helpers", () => {
     expect(shouldPersist).toBe(true);
   });
 
-  it("keeps Codex CLI OAuth from replacing stored inline token material", () => {
+  it("uses Codex CLI OAuth as a runtime overlay when stored inline token material is expired", () => {
     readCodexCliCredentialsCachedMock.mockReturnValue(
       createCredential({
         access: "fresh-cli-access-token",
@@ -181,9 +181,80 @@ describe("auth external oauth helpers", () => {
     );
 
     const profile = requireProfile(overlaid, "openai-codex:default");
-    expect(profile.access).toBe("stale-store-access-token");
-    expect(profile.refresh).toBe("stale-store-refresh-token");
+    expect(profile.access).toBe("fresh-cli-access-token");
+    expect(profile.refresh).toBe("fresh-cli-refresh-token");
     expect(profile.accountId).toBe("acct-cli");
+  });
+
+  it("uses managed Codex CLI OAuth at runtime when local inline token material is expired", () => {
+    const cliCredential = createCredential({
+      access: "fresh-cli-access-token",
+      refresh: "fresh-cli-refresh-token",
+      expires: createUsableOAuthExpiry(),
+      accountId: "acct-cli",
+    });
+    const expiredLocalCredential = createCredential({
+      access: "expired-local-access-token",
+      refresh: "expired-local-refresh-token",
+      expires: Date.now() - 60_000,
+      accountId: "acct-cli",
+    });
+    readCodexCliCredentialsCachedMock.mockReturnValue(cliCredential);
+
+    const overlaid = overlayExternalOAuthProfiles(
+      createStore({
+        "openai-codex:default": expiredLocalCredential,
+      }),
+    );
+    const profile = requireProfile(overlaid, "openai-codex:default");
+    expect(profile.access).toBe("fresh-cli-access-token");
+
+    const managedCredential = readManagedExternalCliCredential({
+      profileId: "openai-codex:default",
+      credential: expiredLocalCredential,
+    });
+    expect(managedCredential?.access).toBe("fresh-cli-access-token");
+    expect(managedCredential?.refresh).toBe("fresh-cli-refresh-token");
+    expect(managedCredential?.accountId).toBe("acct-cli");
+  });
+
+  it("uses managed Codex CLI OAuth for named Codex profiles with matching identity", () => {
+    const cliCredential = createCredential({
+      access: "fresh-cli-access-token",
+      refresh: "fresh-cli-refresh-token",
+      expires: createUsableOAuthExpiry(),
+      accountId: "acct-cli",
+    });
+    readCodexCliCredentialsCachedMock.mockReturnValue(cliCredential);
+
+    const managedCredential = readManagedExternalCliCredential({
+      profileId: "openai-codex:work",
+      credential: createCredential({
+        access: "expired-work-access-token",
+        refresh: "expired-work-refresh-token",
+        expires: Date.now() - 60_000,
+        accountId: "acct-cli",
+      }),
+    });
+
+    expect(managedCredential?.access).toBe("fresh-cli-access-token");
+    expect(managedCredential?.refresh).toBe("fresh-cli-refresh-token");
+    expect(managedCredential?.accountId).toBe("acct-cli");
+  });
+
+  it("does not read managed Codex CLI OAuth when local inline token material is usable", () => {
+    const managedCredential = readManagedExternalCliCredential({
+      profileId: "openai-codex:default",
+      credential: createCredential({
+        access: "healthy-local-access-token",
+        refresh: "healthy-local-refresh-token",
+        expires: createUsableOAuthExpiry(),
+        accountId: "acct-cli",
+      }),
+    });
+
+    expect(managedCredential).toBeNull();
+    expect(readCodexCliCredentialsCachedMock).not.toHaveBeenCalled();
   });
 
   it("uses Codex CLI OAuth when the stored Codex profile has no inline token material", () => {
@@ -196,7 +267,7 @@ describe("auth external oauth helpers", () => {
     const tokenlessCredential = {
       type: "oauth",
       provider: "openai-codex",
-      expires: Date.now() - 60_000,
+      expires: createUsableOAuthExpiry(),
       accountId: "acct-cli",
     } as OAuthCredential;
     readCodexCliCredentialsCachedMock.mockReturnValue(cliCredential);

@@ -46,7 +46,6 @@ export function getStreamBatchConfig(): StreamBatchConfig {
 // Add chunk to batch
 export function addToStreamBatch(streamId: string, data: string): StreamBatch | null {
   const size = Buffer.byteLength(data, "utf-8");
-  const _chunk: StreamChunk = { data, timestamp: Date.now(), size };
 
   let batch = batchCache.get(streamId);
 

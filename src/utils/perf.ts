@@ -66,7 +66,7 @@ export class LazyLoader<T> {
   private instance: T | null = null;
   private loading = false;
 
-  constructor(private loadFn: () => T) {
+  constructor(loadFn: () => T) {
     this.loader = loadFn;
   }
 

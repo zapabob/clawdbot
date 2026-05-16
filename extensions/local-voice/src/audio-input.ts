@@ -14,7 +14,7 @@ type NaudiodonRuntime = Pick<
   "AudioIO" | "SampleFormat16Bit" | "getDevices"
 >;
 
-const require = createRequire(import.meta.url);
+const require = createRequire(__filename);
 const TARGET_SAMPLE_RATE = 8_000;
 const MU_LAW_BIAS = 0x84;
 const MU_LAW_CLIP = 32_635;

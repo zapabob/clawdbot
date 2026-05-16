@@ -41,9 +41,13 @@ function parseSpeakerId(value: unknown): number | undefined {
   return undefined;
 }
 
-function normalizeVoiceVoxProviderConfig(rawConfig: Record<string, unknown>): VoiceVoxProviderConfig {
+function normalizeVoiceVoxProviderConfig(
+  rawConfig: Record<string, unknown>,
+): VoiceVoxProviderConfig {
   const providers =
-    typeof rawConfig.providers === "object" && rawConfig.providers !== null && !Array.isArray(rawConfig.providers)
+    typeof rawConfig.providers === "object" &&
+    rawConfig.providers !== null &&
+    !Array.isArray(rawConfig.providers)
       ? (rawConfig.providers as Record<string, unknown>)
       : undefined;
   const raw =
@@ -63,7 +67,7 @@ function normalizeVoiceVoxProviderConfig(rawConfig: Record<string, unknown>): Vo
   };
 }
 
-function readVoiceVoxProviderConfig(config: SpeechProviderConfig): VoiceVoxProviderConfig {
+function readVoiceVoxProviderConfig(config: SpeechProviderConfig = {}): VoiceVoxProviderConfig {
   const defaults = normalizeVoiceVoxProviderConfig({});
   return {
     baseUrl: normalizeBaseUrl(trimToUndefined(config.baseUrl) ?? defaults.baseUrl),
@@ -112,14 +116,17 @@ async function synthesizeVoiceVox(params: {
       query.speedScale = params.speed;
     }
 
-    const synthesisResponse = await fetch(`${params.baseUrl}/synthesis?speaker=${params.speakerId}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const synthesisResponse = await fetch(
+      `${params.baseUrl}/synthesis?speaker=${params.speakerId}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(query),
+        signal: controller.signal,
       },
-      body: JSON.stringify(query),
-      signal: controller.signal,
-    });
+    );
     if (!synthesisResponse.ok) {
       throw new Error(`VOICEVOX synthesis failed: ${synthesisResponse.status}`);
     }
@@ -144,7 +151,7 @@ async function listVoiceVoxVoices(baseUrl: string): Promise<SpeechVoiceOption[]>
       name:
         speaker.name && style.name
           ? `${speaker.name} / ${style.name}`
-          : speaker.name ?? style.name ?? String(style.id ?? ""),
+          : (speaker.name ?? style.name ?? String(style.id ?? "")),
       category: "VOICEVOX",
       locale: "ja-JP",
       description: speaker.speaker_uuid,
@@ -167,8 +174,12 @@ export function buildVoiceVoxSpeechProvider(): SpeechProviderPlugin {
           : { baseUrl: normalizeBaseUrl(trimToUndefined(talkProviderConfig.baseUrl)) }),
         ...(parseSpeakerId(talkProviderConfig.speakerId ?? talkProviderConfig.voiceId) == null
           ? {}
-          : { speakerId: parseSpeakerId(talkProviderConfig.speakerId ?? talkProviderConfig.voiceId) }),
-        ...(asNumber(talkProviderConfig.speed) == null ? {} : { speed: asNumber(talkProviderConfig.speed) }),
+          : {
+              speakerId: parseSpeakerId(talkProviderConfig.speakerId ?? talkProviderConfig.voiceId),
+            }),
+        ...(asNumber(talkProviderConfig.speed) == null
+          ? {}
+          : { speed: asNumber(talkProviderConfig.speed) }),
       };
     },
     resolveTalkOverrides: ({ params }) => ({
@@ -181,7 +192,8 @@ export function buildVoiceVoxSpeechProvider(): SpeechProviderPlugin {
       const config = readVoiceVoxProviderConfig(providerConfig);
       return await listVoiceVoxVoices(config.baseUrl);
     },
-    isConfigured: ({ providerConfig }) => Boolean(readVoiceVoxProviderConfig(providerConfig).baseUrl),
+    isConfigured: ({ providerConfig }) =>
+      Boolean(readVoiceVoxProviderConfig(providerConfig).baseUrl),
     synthesize: async (req) => {
       const config = readVoiceVoxProviderConfig(req.providerConfig);
       const overrides = readVoiceVoxOverrides(req.providerOverrides);

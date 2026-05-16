@@ -197,6 +197,35 @@ describe("resolveApiKeyForProfile openai-codex refresh fallback", () => {
     expect(refreshProviderOAuthCredentialWithPluginMock).toHaveBeenCalledTimes(1);
   });
 
+  it("returns fresh openai-codex bearer access without provider formatter round-trips", async () => {
+    const profileId = "openai-codex:default";
+    saveAuthProfileStore(
+      {
+        version: 1,
+        profiles: {
+          [profileId]: {
+            type: "oauth",
+            provider: "openai-codex",
+            access: "fresh-access-token",
+            refresh: "fresh-refresh-token",
+            expires: Date.now() + 86_400_000,
+          },
+        },
+      },
+      agentDir,
+    );
+
+    const result = await resolveOpenAICodexProfile({ profileId, agentDir });
+
+    expect(result).toEqual({
+      apiKey: "fresh-access-token",
+      provider: "openai-codex",
+      email: undefined,
+    });
+    expect(formatProviderAuthProfileApiKeyWithPluginMock).not.toHaveBeenCalled();
+    expect(refreshProviderOAuthCredentialWithPluginMock).not.toHaveBeenCalled();
+  });
+
   it("refreshes near-expiry openai-codex credentials before hard expiry", async () => {
     const profileId = "openai-codex:default";
     saveAuthProfileStore(

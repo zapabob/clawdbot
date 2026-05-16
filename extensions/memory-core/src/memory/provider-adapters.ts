@@ -12,6 +12,7 @@ import { formatErrorMessage } from "../dreaming-shared.js";
 import { filterUnregisteredMemoryEmbeddingProviderAdapters } from "./provider-adapter-registration.js";
 
 const NODE_LLAMA_CPP_RUNTIME_PACKAGE = "node-llama-cpp";
+const NODE_LLAMA_CPP_INSTALL_SPEC = "node-llama-cpp@3.18.1";
 
 export type BuiltinMemoryEmbeddingProviderDoctorMetadata = {
   providerId: string;

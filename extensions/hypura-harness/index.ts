@@ -2,9 +2,9 @@
  * Hypura Python harness — HTTP proxy tools for the FastAPI daemon (extensions/hypura-harness/scripts/harness_daemon.py).
  * Default base URL matches harness.config.json (port 18794; avoids OpenClaw Bridge on 18790).
  */
-import { Type } from "@sinclair/typebox";
 import { stringEnum } from "openclaw/plugin-sdk/core";
 import { definePluginEntry, type OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
+import { Type } from "typebox";
 
 const DEFAULT_BASE_URL = "http://127.0.0.1:18794";
 const COMPANION_CONTROL_ACTIONS = [

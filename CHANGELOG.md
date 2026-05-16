@@ -32,6 +32,9 @@ Docs: https://docs.openclaw.ai
 
 ### Fixes
 
+- Codex app-server: fall back to a still-valid cached ChatGPT token when forced OAuth refresh misses the app-server deadline, preventing channel replies from failing on slow auth refreshes.
+- OAuth profiles: reuse a still-valid cached access token when a forced refresh reports `refresh_token_reused`, avoiding failed turns when another process already exchanged the refresh token.
+- Windows services: start gateway and node services with Node's system CA store enabled so Telegram/LINE probes work on machines that trust their network CA through Windows.
 - Plugin skills: replace generated Windows plugin-skill directories before publishing the current skill link, avoiding repeated `EINVAL` warnings from stale non-symlink entries. Fixes #81432. (#81446) Thanks @hclsys and @vincentkoc.
 - Channels/config: treat channel entries with only `enabled: true` as configured state so plugin-backed channels can auto-enable from an explicit on switch. Fixes #81323. (#81331) Thanks @EvanYao826 and @vincentkoc.
 - CLI/update: add an update finalization path for externally swapped core runtimes, running update-time doctor repair and plugin convergence from post-doctor config and install-record state before reporting completion. Thanks @shakkernerd.

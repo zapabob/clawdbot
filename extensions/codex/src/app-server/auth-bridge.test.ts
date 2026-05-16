@@ -676,14 +676,8 @@ describe("bridgeCodexAppServerStartOptions", () => {
     ).toBe("openai-codex:default");
   });
 
-  it("answers refresh requests from a discovered oauthRef-backed Codex profile", async () => {
+  it("answers refresh requests from a fresh default oauthRef-backed Codex profile without forcing a refresh", async () => {
     const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-codex-app-server-"));
-    oauthMocks.refreshOpenAICodexToken.mockResolvedValueOnce({
-      access: "refreshed-ref-backed-access-token",
-      refresh: "refreshed-ref-backed-refresh-token",
-      expires: Date.now() + 60_000,
-      accountId: "account-ref-backed-refreshed",
-    });
     try {
       upsertAuthProfile({
         agentDir,
@@ -693,19 +687,63 @@ describe("bridgeCodexAppServerStartOptions", () => {
           provider: "openai-codex",
           access: "ref-backed-access-token",
           refresh: "ref-backed-refresh-token",
-          expires: Date.now() + 60_000,
+          expires: Date.now() + 24 * 60 * 60_000,
           accountId: "account-ref-backed",
           email: "codex@example.test",
         },
       });
 
       await expect(refreshCodexAppServerAuthTokens({ agentDir })).resolves.toEqual({
-        accessToken: "refreshed-ref-backed-access-token",
-        chatgptAccountId: "account-ref-backed-refreshed",
+        accessToken: "ref-backed-access-token",
+        chatgptAccountId: "account-ref-backed",
         chatgptPlanType: null,
       });
 
-      expect(oauthMocks.refreshOpenAICodexToken).toHaveBeenCalledWith("ref-backed-refresh-token");
+      expect(oauthMocks.refreshOpenAICodexToken).not.toHaveBeenCalled();
+    } finally {
+      await fs.rm(agentDir, { recursive: true, force: true });
+    }
+  });
+
+  it("uses an unexpired oauthRef-backed Codex OAuth token when forced refresh misses the app-server deadline", async () => {
+    const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-codex-app-server-"));
+    oauthMocks.refreshOpenAICodexToken.mockImplementationOnce(() => new Promise(() => undefined));
+    try {
+      upsertAuthProfile({
+        agentDir,
+        profileId: "openai-codex:work",
+        credential: {
+          type: "oauth",
+          provider: "openai-codex",
+          access: "cached-access-token",
+          refresh: "cached-refresh-token",
+          expires: Date.now() + 60_000,
+          accountId: "account-cached",
+          email: "codex@example.test",
+        },
+      });
+      const persisted = JSON.parse(
+        await fs.readFile(path.join(agentDir, "auth-profiles.json"), "utf8"),
+      ) as { profiles?: Record<string, { access?: string; oauthRef?: unknown }> };
+      expect(persisted.profiles?.["openai-codex:work"]?.access).toBeUndefined();
+      expect(persisted.profiles?.["openai-codex:work"]?.oauthRef).toMatchObject({
+        source: "openclaw-credentials",
+        provider: "openai-codex",
+      });
+
+      await expect(
+        refreshCodexAppServerAuthTokens({
+          agentDir,
+          authProfileId: "openai-codex:work",
+          softTimeoutMs: 1,
+        }),
+      ).resolves.toEqual({
+        accessToken: "cached-access-token",
+        chatgptAccountId: "account-cached",
+        chatgptPlanType: null,
+      });
+
+      expect(oauthMocks.refreshOpenAICodexToken).toHaveBeenCalledWith("cached-refresh-token");
     } finally {
       await fs.rm(agentDir, { recursive: true, force: true });
     }

@@ -482,7 +482,7 @@ export async function startTelegramWebhook(opts: {
           bot.api.setWebhook(publicUrl, {
             secret_token: secret,
             allowed_updates: resolveTelegramAllowedUpdates(),
-            certificate: opts.webhookCertPath ? new InputFile(opts.webhookCertPath) : undefined,
+            certificate: opts.webhookCertPath ? new InputFileCtor(opts.webhookCertPath) : undefined,
           }),
       });
     } catch (err) {

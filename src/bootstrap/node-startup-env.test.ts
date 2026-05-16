@@ -38,6 +38,18 @@ describe("resolveNodeStartupTlsEnvironment", () => {
     });
   });
 
+  it("defaults Windows to the system CA store", () => {
+    expect(
+      resolveNodeStartupTlsEnvironment({
+        env: {},
+        platform: "win32",
+      }),
+    ).toEqual({
+      NODE_EXTRA_CA_CERTS: undefined,
+      NODE_USE_SYSTEM_CA: "1",
+    });
+  });
+
   it("resolves Linux CA env for version-manager Node runtimes", () => {
     expect(
       resolveNodeStartupTlsEnvironment({

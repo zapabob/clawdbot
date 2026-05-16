@@ -1,10 +1,13 @@
 import {
   buildExecApprovalPendingReplyPayload,
   type ExecApprovalReplyDecision,
-  getExecApprovalApproverDmNoticeText,
   resolveExecApprovalAllowedDecisions,
   resolveExecApprovalCommandDisplay,
 } from "openclaw/plugin-sdk/approval-reply-runtime";
+import {
+  listMessageReceiptPlatformIds,
+  resolveMessageReceiptPrimaryId,
+} from "openclaw/plugin-sdk/channel-message";
 import type { OpenClawConfig } from "openclaw/plugin-sdk/config-runtime";
 import {
   createChannelNativeApprovalRuntime,
@@ -196,18 +199,6 @@ export class MatrixExecApprovalHandler {
           request,
           nowMs,
         }),
-      sendOriginNotice: async ({ originTarget }) => {
-        const preparedTarget = await this.prepareTarget(originTarget);
-        if (!preparedTarget) {
-          return;
-        }
-        await this.sendMessage(preparedTarget.to, getExecApprovalApproverDmNoticeText(), {
-          cfg: this.opts.cfg as CoreConfig,
-          accountId: this.opts.accountId,
-          client: this.opts.client,
-          threadId: preparedTarget.threadId,
-        });
-      },
       prepareTarget: async ({ plannedTarget }) => {
         const preparedTarget = await this.prepareTarget(plannedTarget.target);
         if (!preparedTarget) {
@@ -225,15 +216,15 @@ export class MatrixExecApprovalHandler {
           client: this.opts.client,
           threadId: preparedTarget.threadId,
         });
-        const messageIds = Array.from(
-          new Set(
-            (result.messageIds ?? [result.messageId])
-              .map((messageId) => messageId.trim())
-              .filter(Boolean),
-          ),
-        );
+        const receiptMessageIds = listMessageReceiptPlatformIds(result.receipt);
+        const messageIds = receiptMessageIds.length
+          ? receiptMessageIds
+          : [result.messageId.trim()].filter(Boolean);
         const reactionEventId =
-          result.primaryMessageId?.trim() || messageIds[0] || result.messageId.trim();
+          resolveMessageReceiptPrimaryId(result.receipt) ||
+          result.primaryMessageId?.trim() ||
+          messageIds[0] ||
+          result.messageId.trim();
         this.trackReactionTarget({
           roomId: result.roomId,
           eventId: reactionEventId,

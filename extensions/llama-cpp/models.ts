@@ -23,7 +23,7 @@ export async function buildLlamaCppProvider(params?: {
           id: configuredModelId,
           name: configuredModelId,
           reasoning: false,
-          input: ["text"],
+          input: ["text" as const],
           cost: SELF_HOSTED_DEFAULT_COST,
           contextWindow: SELF_HOSTED_DEFAULT_CONTEXT_WINDOW,
           maxTokens: SELF_HOSTED_DEFAULT_MAX_TOKENS,

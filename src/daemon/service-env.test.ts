@@ -875,7 +875,12 @@ describe("shared Node TLS env defaults matrix", () => {
     expect(env.NODE_USE_SYSTEM_CA).toBe("1");
   });
 
-  it.each(builders)("$name does not default NODE_USE_SYSTEM_CA on non-macOS", ({ build }) => {
+  it.each(builders)("$name defaults NODE_USE_SYSTEM_CA=1 on Windows", ({ build }) => {
+    const env = build({ HOME: "/home/user" }, "win32");
+    expect(env.NODE_USE_SYSTEM_CA).toBe("1");
+  });
+
+  it.each(builders)("$name does not default NODE_USE_SYSTEM_CA on Linux", ({ build }) => {
     const env = build({ HOME: "/home/user" }, "linux");
     expect(env.NODE_USE_SYSTEM_CA).toBeUndefined();
   });

@@ -406,8 +406,11 @@ function orderProfilesByMode(order: string[], store: AuthProfileStore): string[]
   const scored = available.map((profileId) => {
     const type = store.profiles[profileId]?.type;
     const typeScore = type === "oauth" ? 0 : type === "token" ? 1 : type === "api_key" ? 2 : 3;
-    const lastUsed = store.usageStats?.[profileId]?.lastUsed ?? 0;
-    return { profileId, typeScore, lastUsed };
+    const stats = store.usageStats?.[profileId] ?? {};
+    const lastUsed = stats.lastUsed ?? 0;
+    const lastFailureAt = stats.lastFailureAt ?? 0;
+    const unresolvedFailureScore = lastFailureAt > lastUsed ? 1 : 0;
+    return { profileId, typeScore, unresolvedFailureScore, lastUsed };
   });
 
   // Primary sort: type preference (oauth > token > api_key).
@@ -417,6 +420,9 @@ function orderProfilesByMode(order: string[], store: AuthProfileStore): string[]
       // First by type (oauth > token > api_key)
       if (a.typeScore !== b.typeScore) {
         return a.typeScore - b.typeScore;
+      }
+      if (a.unresolvedFailureScore !== b.unresolvedFailureScore) {
+        return a.unresolvedFailureScore - b.unresolvedFailureScore;
       }
       // Then by lastUsed (oldest first)
       return a.lastUsed - b.lastUsed;

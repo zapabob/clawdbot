@@ -44,7 +44,6 @@ import {
   setCameraParameter,
   setGreenScreenHSL,
   setLookAtMeComposition,
-  setCameraSmoothing,
   captureCamera,
 } from "./src/tools/camera.js";
 import { sendChatboxMessage, sendRawOscViaPython } from "./src/tools/chatbox-enhanced.js";

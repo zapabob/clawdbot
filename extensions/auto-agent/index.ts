@@ -26,14 +26,14 @@ function checkThreeLaws(action: string, target?: string): { allowed: boolean; re
   return { allowed: true };
 }
 
-function isUserAllowed(cfg: AutoAgentConfig, userId?: string, userName?: string): boolean {
+export function isUserAllowed(cfg: AutoAgentConfig, userId?: string, userName?: string): boolean {
   if (!cfg.allowedUsers || cfg.allowedUsers.length === 0) return true;
 
   const userIdentifier = userId ?? userName ?? "unknown";
   return cfg.allowedUsers.some((allowed) => allowed.toLowerCase() === userIdentifier.toLowerCase());
 }
 
-function validateActionWithThreeLaws(
+export function validateActionWithThreeLaws(
   action: string,
   cfg: AutoAgentConfig,
 ): { allowed: boolean; reason?: string } {
@@ -43,7 +43,7 @@ function validateActionWithThreeLaws(
   return result;
 }
 
-type AutoAgentConfig = {
+export type AutoAgentConfig = {
   enabled?: boolean;
   checkIntervalMs?: number;
   maxChangesPerCommit?: number;

@@ -47,11 +47,10 @@ type ExternalCliSyncProvider = {
   readCredentials: (
     options?: Pick<ExternalCliAuthProfileOptions, "allowKeychainPrompt">,
   ) => OAuthCredential | null;
-  // bootstrapOnly providers adopt the external CLI credential only to
-  // seed an empty slot; once a local OAuth credential exists for the
-  // profile, the local refresh token is treated as canonical and the
-  // CLI state must not replace or shadow it. Codex requires this to
-  // avoid clobbering a locally refreshed token with stale CLI state.
+  // bootstrapOnly providers keep local OAuth as canonical while it is
+  // usable, but may overlay fresh CLI state at runtime when the local
+  // token is expired. Codex requires this to avoid clobbering a locally
+  // refreshed token while still recovering from stale refresh tokens.
   bootstrapOnly?: boolean;
 };
 
@@ -136,13 +135,20 @@ function resolveExternalCliSyncProvider(params: {
   const provider = EXTERNAL_CLI_SYNC_PROVIDERS.find(
     (entry) => entry.profileId === params.profileId,
   );
-  if (!provider) {
+  const resolvedProvider =
+    provider ??
+    (params.credential
+      ? EXTERNAL_CLI_SYNC_PROVIDERS.find(
+          (entry) => entry.bootstrapOnly && entry.provider === params.credential?.provider,
+        )
+      : undefined);
+  if (!resolvedProvider) {
     return null;
   }
-  if (params.credential && provider.provider !== params.credential.provider) {
+  if (params.credential && resolvedProvider.provider !== params.credential.provider) {
     return null;
   }
-  return provider;
+  return resolvedProvider;
 }
 
 function hasInlineOAuthTokenMaterial(credential: OAuthCredential): boolean {
@@ -165,7 +171,54 @@ export function readExternalCliBootstrapCredential(params: {
   return provider.readCredentials();
 }
 
-export const readManagedExternalCliCredential = readExternalCliBootstrapCredential;
+export function readManagedExternalCliCredential(params: {
+  profileId: string;
+  credential: OAuthCredential;
+}): OAuthCredential | null {
+  const provider = resolveExternalCliSyncProvider(params);
+  if (!provider) {
+    return null;
+  }
+  if (
+    hasInlineOAuthTokenMaterial(params.credential) &&
+    hasUsableOAuthCredential(params.credential)
+  ) {
+    return null;
+  }
+  const imported = provider.readCredentials();
+  if (!imported) {
+    return null;
+  }
+  if (!isSafeToUseExternalCliCredential(params.credential, imported)) {
+    log.warn("refused managed external cli oauth credential: identity mismatch", {
+      profileId: provider.profileId,
+      provider: provider.provider,
+    });
+    return null;
+  }
+  if (
+    !isSafeToAdoptBootstrapOAuthIdentity(params.credential, imported) &&
+    !areOAuthCredentialsEquivalent(params.credential, imported)
+  ) {
+    log.warn(
+      "refused managed external cli oauth credential: identity mismatch or missing binding",
+      {
+        profileId: provider.profileId,
+        provider: provider.provider,
+      },
+    );
+    return null;
+  }
+  if (
+    !shouldBootstrapFromExternalCliCredential({
+      existing: params.credential,
+      imported,
+    })
+  ) {
+    return null;
+  }
+  return imported;
+}
 
 function normalizeProviderScope(values: Iterable<string> | undefined): Set<string> | undefined {
   if (values === undefined) {
@@ -241,6 +294,9 @@ export function resolveExternalCliAuthProfiles(
       existing?.type === "oauth" && existing.provider === providerConfig.provider
         ? existing
         : undefined;
+    const existingHasInlineTokenMaterial = existingOAuth
+      ? hasInlineOAuthTokenMaterial(existingOAuth)
+      : false;
     if (existing && !existingOAuth) {
       log.debug("kept explicit local auth over external cli bootstrap", {
         profileId: providerConfig.profileId,
@@ -253,7 +309,8 @@ export function resolveExternalCliAuthProfiles(
     if (
       providerConfig.bootstrapOnly &&
       existingOAuth &&
-      hasInlineOAuthTokenMaterial(existingOAuth)
+      existingHasInlineTokenMaterial &&
+      hasUsableOAuthCredential(existingOAuth, now)
     ) {
       log.debug("kept local oauth over external cli bootstrap-only provider", {
         profileId: providerConfig.profileId,
@@ -292,13 +349,15 @@ export function resolveExternalCliAuthProfiles(
       });
       continue;
     }
-    if (
-      !shouldBootstrapFromExternalCliCredential({
-        existing: existingOAuth,
-        imported: creds,
-        now,
-      })
-    ) {
+    const shouldUseImported =
+      providerConfig.bootstrapOnly && existingOAuth && !existingHasInlineTokenMaterial
+        ? hasUsableOAuthCredential(creds, now)
+        : shouldBootstrapFromExternalCliCredential({
+            existing: existingOAuth,
+            imported: creds,
+            now,
+          });
+    if (!shouldUseImported) {
       if (existingOAuth) {
         log.debug("kept usable local oauth over external cli bootstrap", {
           profileId: providerConfig.profileId,

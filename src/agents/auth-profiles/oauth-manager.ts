@@ -141,12 +141,21 @@ function hasOAuthCredentialChanged(
   );
 }
 
+function hasOAuthCredentialInlineAccess(credential: OAuthCredential): boolean {
+  return typeof credential.access === "string" && credential.access.trim().length > 0;
+}
+
 function canReuseOAuthCredentialAfterRefreshFailure(params: {
   forceRefresh?: boolean;
+  refreshTokenReused?: boolean;
   attempted: Pick<OAuthCredential, "access" | "refresh" | "expires">;
   candidate: OAuthCredential;
 }): boolean {
-  return !params.forceRefresh || hasOAuthCredentialChanged(params.attempted, params.candidate);
+  return (
+    !params.forceRefresh ||
+    params.refreshTokenReused ||
+    hasOAuthCredentialChanged(params.attempted, params.candidate)
+  );
 }
 
 async function loadFreshStoredOAuthCredential(params: {
@@ -187,7 +196,10 @@ export function resolveEffectiveOAuthCredential(params: {
   if (!imported) {
     return params.credential;
   }
-  if (hasUsableOAuthCredential(params.credential)) {
+  if (
+    hasUsableOAuthCredential(params.credential) &&
+    hasOAuthCredentialInlineAccess(params.credential)
+  ) {
     log.debug("resolved oauth credential from canonical local store", {
       profileId: params.profileId,
       provider: params.credential.provider,
@@ -556,6 +568,16 @@ export function createOAuthManager(adapter: OAuthManagerAdapter) {
       });
       return refreshed;
     } catch (error) {
+      const refreshTokenReused = adapter.isRefreshTokenReusedError(error);
+      if (refreshTokenReused && hasUsableOAuthCredential(effectiveCredential)) {
+        return {
+          apiKey: await adapter.buildApiKey(effectiveCredential.provider, effectiveCredential, {
+            cfg: params.cfg,
+            agentDir: params.agentDir,
+          }),
+          credential: effectiveCredential,
+        };
+      }
       const refreshedStore = loadAuthProfileStoreWithoutExternalProfiles(params.agentDir);
       const refreshed = refreshedStore.profiles[params.profileId];
       if (
@@ -563,6 +585,7 @@ export function createOAuthManager(adapter: OAuthManagerAdapter) {
         hasUsableOAuthCredential(refreshed) &&
         canReuseOAuthCredentialAfterRefreshFailure({
           forceRefresh: params.forceRefresh,
+          refreshTokenReused,
           attempted: effectiveCredential,
           candidate: refreshed,
         })
@@ -576,7 +599,7 @@ export function createOAuthManager(adapter: OAuthManagerAdapter) {
         };
       }
       if (
-        adapter.isRefreshTokenReusedError(error) &&
+        refreshTokenReused &&
         refreshed?.type === "oauth" &&
         refreshed.provider === params.credential.provider &&
         hasOAuthCredentialChanged(params.credential, refreshed)
@@ -625,6 +648,7 @@ export function createOAuthManager(adapter: OAuthManagerAdapter) {
             hasUsableOAuthCredential(mainCred) &&
             canReuseOAuthCredentialAfterRefreshFailure({
               forceRefresh: params.forceRefresh,
+              refreshTokenReused,
               attempted: effectiveCredential,
               candidate: mainCred,
             }) &&

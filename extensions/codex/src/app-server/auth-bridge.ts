@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { embeddedAgentLog } from "openclaw/plugin-sdk/agent-harness-runtime";
 import {
   ensureAuthProfileStore,
   ensureAuthProfileStoreWithoutExternalProfiles,
@@ -35,6 +36,8 @@ const CODEX_API_KEY_ENV_VAR = "CODEX_API_KEY";
 const OPENAI_API_KEY_ENV_VAR = "OPENAI_API_KEY";
 const CODEX_APP_SERVER_API_KEY_ENV_VARS = [CODEX_API_KEY_ENV_VAR, OPENAI_API_KEY_ENV_VAR];
 const CODEX_APP_SERVER_HOME_ENV_VARS = [CODEX_HOME_ENV_VAR, HOME_ENV_VAR];
+const CODEX_APP_SERVER_AUTH_REFRESH_SOFT_TIMEOUT_MS = 8_000;
+const CODEX_APP_SERVER_AUTH_REFRESH_FALLBACK_MIN_TTL_MS = 30_000;
 
 type AuthProfileOrderConfig = Parameters<typeof resolveAuthProfileOrder>[0]["cfg"];
 
@@ -336,6 +339,135 @@ export async function refreshCodexAppServerAuthTokens(params: {
   agentDir: string;
   authProfileId?: string;
   config?: AuthProfileOrderConfig;
+  softTimeoutMs?: number;
+}): Promise<CodexChatgptAuthTokensRefreshResponse> {
+  if (shouldPreferReusableCodexAppServerAuthTokens(params)) {
+    const reusable = await resolveReusableCodexAppServerAuthTokens(params);
+    if (reusable) {
+      return reusable;
+    }
+  }
+  const refreshPromise = refreshCodexAppServerAuthTokensStrict(params);
+  const timeoutMs = normalizeCodexAppServerAuthRefreshSoftTimeoutMs(params.softTimeoutMs);
+  const timeoutResult = Symbol("codex-app-server-auth-refresh-timeout");
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const response = await Promise.race([
+    refreshPromise,
+    new Promise<typeof timeoutResult>((resolve) => {
+      timeout = setTimeout(() => resolve(timeoutResult), timeoutMs);
+      timeout.unref?.();
+    }),
+  ]);
+  if (timeout) {
+    clearTimeout(timeout);
+  }
+  if (response !== timeoutResult) {
+    return response;
+  }
+  void refreshPromise.catch((error: unknown) => {
+    embeddedAgentLog.debug("late Codex app-server auth refresh failed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  });
+  const fallback = resolveCachedCodexAppServerAuthTokens({
+    agentDir: params.agentDir,
+    authProfileId: params.authProfileId,
+    config: params.config,
+  });
+  if (fallback) {
+    embeddedAgentLog.warn(
+      "Codex app-server auth refresh exceeded soft timeout; using cached token",
+      {
+        timeoutMs,
+        minTtlMs: CODEX_APP_SERVER_AUTH_REFRESH_FALLBACK_MIN_TTL_MS,
+        authProfileId: params.authProfileId,
+      },
+    );
+    return fallback;
+  }
+  throw new Error(
+    `Codex app-server auth refresh exceeded ${timeoutMs}ms and no unexpired cached token was available.`,
+  );
+}
+
+function shouldPreferReusableCodexAppServerAuthTokens(params: {
+  agentDir: string;
+  authProfileId?: string;
+  config?: AuthProfileOrderConfig;
+}): boolean {
+  const store = ensureCodexAppServerAuthProfileStore({
+    agentDir: params.agentDir,
+    authProfileId: params.authProfileId,
+    config: params.config,
+  });
+  const profileId = resolveCodexAppServerAuthProfileId({
+    authProfileId: params.authProfileId,
+    store,
+    config: params.config,
+  });
+  if (!profileId) {
+    return false;
+  }
+  const credential = store.profiles[profileId];
+  return (
+    credential?.type === "oauth" &&
+    isCodexAppServerAuthProvider(credential.provider, params.config) &&
+    (!credential.access?.trim() ||
+      (profileId === OPENAI_CODEX_DEFAULT_PROFILE_ID &&
+        isCachedCodexAccessTokenUsable(credential) &&
+        isCodexAppServerDefaultProfileBackedByNonInlineAuth(params)))
+  );
+}
+
+function isCodexAppServerDefaultProfileBackedByNonInlineAuth(params: {
+  agentDir: string;
+  config?: AuthProfileOrderConfig;
+}): boolean {
+  const credential = loadAuthProfileStoreForSecretsRuntime(params.agentDir).profiles[
+    OPENAI_CODEX_DEFAULT_PROFILE_ID
+  ];
+  return (
+    credential?.type === "oauth" &&
+    isCodexAppServerAuthProvider(credential.provider, params.config) &&
+    Boolean(credential.oauthRef) &&
+    isCachedCodexAccessTokenUsable(credential)
+  );
+}
+
+async function resolveReusableCodexAppServerAuthTokens(params: {
+  agentDir: string;
+  authProfileId?: string;
+  config?: AuthProfileOrderConfig;
+}): Promise<CodexChatgptAuthTokensRefreshResponse | undefined> {
+  const cached = resolveCachedCodexAppServerAuthTokens(params);
+  if (cached) {
+    return cached;
+  }
+  try {
+    const loginParams = await resolveCodexAppServerAuthProfileLoginParamsInternal({
+      ...params,
+      forceOAuthRefresh: false,
+    });
+    if (!loginParams || loginParams.type !== "chatgptAuthTokens") {
+      return undefined;
+    }
+    return {
+      accessToken: loginParams.accessToken,
+      chatgptAccountId: loginParams.chatgptAccountId,
+      chatgptPlanType: loginParams.chatgptPlanType ?? null,
+    };
+  } catch (error) {
+    embeddedAgentLog.debug("reusable Codex app-server auth token lookup failed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return undefined;
+  }
+}
+
+async function refreshCodexAppServerAuthTokensStrict(params: {
+  agentDir: string;
+  authProfileId?: string;
+  config?: AuthProfileOrderConfig;
 }): Promise<CodexChatgptAuthTokensRefreshResponse> {
   const loginParams = await resolveCodexAppServerAuthProfileLoginParamsInternal({
     ...params,
@@ -348,6 +480,83 @@ export async function refreshCodexAppServerAuthTokens(params: {
     accessToken: loginParams.accessToken,
     chatgptAccountId: loginParams.chatgptAccountId,
     chatgptPlanType: loginParams.chatgptPlanType ?? null,
+  };
+}
+
+function normalizeCodexAppServerAuthRefreshSoftTimeoutMs(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    return Math.max(1, Math.floor(value));
+  }
+  return CODEX_APP_SERVER_AUTH_REFRESH_SOFT_TIMEOUT_MS;
+}
+
+function resolveCachedCodexAppServerAuthTokens(params: {
+  agentDir: string;
+  authProfileId?: string;
+  config?: AuthProfileOrderConfig;
+}): CodexChatgptAuthTokensRefreshResponse | undefined {
+  const store = ensureCodexAppServerAuthProfileStore({
+    agentDir: params.agentDir,
+    authProfileId: params.authProfileId,
+    config: params.config,
+  });
+  const profileId = resolveCodexAppServerAuthProfileId({
+    authProfileId: params.authProfileId,
+    store,
+    config: params.config,
+  });
+  if (!profileId) {
+    return undefined;
+  }
+  const credential = store.profiles[profileId];
+  if (!credential || !isCodexAppServerAuthProfileCredential(credential, params.config)) {
+    return undefined;
+  }
+  if (credential.type === "oauth") {
+    const accessToken = credential.access?.trim();
+    return accessToken && isCachedCodexAccessTokenUsable(credential)
+      ? buildChatgptAuthTokensRefreshResponse(profileId, credential, accessToken)
+      : undefined;
+  }
+  if (credential.type === "token") {
+    const accessToken = credential.token?.trim();
+    return accessToken && isCachedCodexTokenCredentialUsable(credential)
+      ? buildChatgptAuthTokensRefreshResponse(profileId, credential, accessToken)
+      : undefined;
+  }
+  return undefined;
+}
+
+function isCachedCodexAccessTokenUsable(credential: OAuthCredential): boolean {
+  return isExpiryAtLeastFreshForCodexAppServerFallback(credential.expires);
+}
+
+function isCachedCodexTokenCredentialUsable(
+  credential: Extract<AuthProfileCredential, { type: "token" }>,
+): boolean {
+  if (credential.expires === undefined) {
+    return true;
+  }
+  return isExpiryAtLeastFreshForCodexAppServerFallback(credential.expires);
+}
+
+function isExpiryAtLeastFreshForCodexAppServerFallback(expires: unknown): boolean {
+  return (
+    typeof expires === "number" &&
+    Number.isFinite(expires) &&
+    expires - Date.now() > CODEX_APP_SERVER_AUTH_REFRESH_FALLBACK_MIN_TTL_MS
+  );
+}
+
+function buildChatgptAuthTokensRefreshResponse(
+  profileId: string,
+  credential: AuthProfileCredential,
+  accessToken: string,
+): CodexChatgptAuthTokensRefreshResponse {
+  return {
+    accessToken,
+    chatgptAccountId: resolveChatgptAccountId(profileId, credential),
+    chatgptPlanType: resolveChatgptPlanType(credential) ?? null,
   };
 }
 

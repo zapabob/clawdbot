@@ -46,7 +46,6 @@ export class VrmController implements IAvatarController {
   /** Fallback avatar references (when no VRM model is loaded) */
   private _fallbackMouth: import("three").Mesh | null = null;
   private _fallbackGroup: import("three").Group | null = null;
-  private _fallbackEyes: import("three").Mesh[] | null = null;
 
   async init(container: HTMLElement): Promise<void> {
     this.three = await import("three");
@@ -167,7 +166,6 @@ export class VrmController implements IAvatarController {
 
     this._fallbackGroup = group;
     this._fallbackMouth = mouth;
-    this._fallbackEyes = [leftEye, rightEye];
     console.log("[VrmController] Fallback avatar rendered — drag a .vrm to load a real model");
   }
 
@@ -362,7 +360,6 @@ export class VrmController implements IAvatarController {
     }
     this._fallbackGroup = null;
     this._fallbackMouth = null;
-    this._fallbackEyes = null;
     this.renderer?.dispose();
     this.renderer?.domElement.remove();
     this.renderer = null;

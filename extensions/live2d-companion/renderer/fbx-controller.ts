@@ -212,7 +212,6 @@ export class FbxController implements IAvatarController {
   private clips: import("three").AnimationClip[] = [];
   private fallbackMouth: import("three").Mesh | null = null;
   private fallbackGroup: import("three").Group | null = null;
-  private fallbackEyes: import("three").Mesh[] | null = null;
   private baseModelY = 0;
   private baseModelScale = 1;
   private idleTime = 0;
@@ -378,7 +377,6 @@ export class FbxController implements IAvatarController {
     }
     this.fallbackGroup = null;
     this.fallbackMouth = null;
-    this.fallbackEyes = null;
     this.renderer?.dispose();
     this.renderer?.domElement.remove();
     this.renderer = null;
@@ -439,7 +437,6 @@ export class FbxController implements IAvatarController {
 
     this.fallbackGroup = group;
     this.fallbackMouth = mouth;
-    this.fallbackEyes = [leftEye, rightEye];
     console.log("[FbxController] Fallback avatar rendered; load a local .fbx for the real model.");
   }
 
@@ -663,7 +660,6 @@ export class FbxController implements IAvatarController {
       this.scene.remove(this.fallbackGroup);
       this.fallbackGroup = null;
       this.fallbackMouth = null;
-      this.fallbackEyes = null;
     }
 
     this.model = fbx;

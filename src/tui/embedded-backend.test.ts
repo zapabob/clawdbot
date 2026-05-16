@@ -646,6 +646,34 @@ describe("EmbeddedTuiBackend", () => {
     }
   });
 
+  it("passes explicit thinking overrides to the agent command", async () => {
+    const { EmbeddedTuiBackend } = await import("./embedded-backend.js");
+    agentCommandFromIngressMock.mockResolvedValueOnce({
+      payloads: [{ text: "hello" }],
+      meta: {},
+    });
+
+    const backend = new EmbeddedTuiBackend();
+    backend.start();
+    try {
+      await backend.sendChat({
+        sessionKey: "agent:main:main",
+        message: "use the quick lane",
+        runId: "run-explicit-thinking",
+        thinking: "low",
+      });
+      await flushMicrotasks();
+
+      expect(agentCommandFromIngressMock).toHaveBeenCalledTimes(1);
+      const ingressOptions = agentCommandFromIngressMock.mock.calls.at(0)?.[0] as
+        | { thinking?: unknown }
+        | undefined;
+      expect(ingressOptions?.thinking).toBe("low");
+    } finally {
+      backend.stop();
+    }
+  });
+
   it("restores embedded mode and runtime loggers on stop", async () => {
     const { EmbeddedTuiBackend } = await import("./embedded-backend.js");
 

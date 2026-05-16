@@ -196,6 +196,154 @@ describe("createOAuthManager", () => {
     });
   });
 
+  it("reuses fresh stored access when forced refresh reports refresh token reuse", async () => {
+    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "oauth-manager-reused-"));
+    tempDirs.push(tempRoot);
+    process.env.OPENCLAW_STATE_DIR = tempRoot;
+    const agentDir = path.join(tempRoot, "agents", "main", "agent");
+    await fs.mkdir(agentDir, { recursive: true });
+
+    const profileId = "openai-codex:default";
+    const credential = createCredential({
+      access: "still-fresh-access",
+      refresh: "already-used-refresh",
+      expires: Date.now() + 10 * 60_000,
+    });
+    saveAuthProfileStore(
+      {
+        version: 1,
+        profiles: {
+          [profileId]: credential,
+        },
+      },
+      agentDir,
+      { filterExternalAuthProfiles: false },
+    );
+
+    const refreshError = new Error(
+      "Your refresh token has already been used to generate a new access token.",
+    );
+    const refreshCredential = vi.fn(async () => {
+      throw refreshError;
+    });
+    const manager = createOAuthManager({
+      buildApiKey: async (_provider, value) => value.access,
+      refreshCredential,
+      readBootstrapCredential: () => null,
+      isRefreshTokenReusedError: (error) => error === refreshError,
+    });
+
+    const result = await manager.resolveOAuthAccess({
+      store: ensureAuthProfileStoreWithoutExternalProfiles(agentDir, {
+        allowKeychainPrompt: false,
+      }),
+      profileId,
+      credential,
+      agentDir,
+      forceRefresh: true,
+    });
+
+    expect(refreshCredential).toHaveBeenCalledTimes(1);
+    expect(result?.apiKey).toBe("still-fresh-access");
+    expect(result?.credential.access).toBe("still-fresh-access");
+  });
+
+  it("reuses fresh external bootstrap access when forced refresh reports refresh token reuse", async () => {
+    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "oauth-manager-external-reused-"));
+    tempDirs.push(tempRoot);
+    process.env.OPENCLAW_STATE_DIR = tempRoot;
+    const agentDir = path.join(tempRoot, "agents", "main", "agent");
+    await fs.mkdir(agentDir, { recursive: true });
+
+    const profileId = "openai-codex:default";
+    const localCredential = createCredential({
+      access: "expired-local-access",
+      refresh: "already-used-local-refresh",
+      expires: Date.now() - 60_000,
+    });
+    const externalCredential = createCredential({
+      access: "fresh-external-access",
+      refresh: "already-used-external-refresh",
+      expires: Date.now() + 10 * 60_000,
+    });
+    saveAuthProfileStore(
+      {
+        version: 1,
+        profiles: {
+          [profileId]: localCredential,
+        },
+      },
+      agentDir,
+      { filterExternalAuthProfiles: false },
+    );
+
+    const refreshError = new Error(
+      "Your refresh token has already been used to generate a new access token.",
+    );
+    const refreshCredential = vi.fn(async (credential: OAuthCredential) => {
+      expect(credential.access).toBe("fresh-external-access");
+      throw refreshError;
+    });
+    const manager = createOAuthManager({
+      buildApiKey: async (_provider, value) => value.access,
+      refreshCredential,
+      readBootstrapCredential: () => externalCredential,
+      isRefreshTokenReusedError: (error) => error === refreshError,
+    });
+
+    const result = await manager.resolveOAuthAccess({
+      store: ensureAuthProfileStoreWithoutExternalProfiles(agentDir, {
+        allowKeychainPrompt: false,
+      }),
+      profileId,
+      credential: localCredential,
+      agentDir,
+      forceRefresh: true,
+    });
+
+    expect(refreshCredential).toHaveBeenCalledTimes(1);
+    expect(result?.apiKey).toBe("fresh-external-access");
+    expect(result?.credential.access).toBe("fresh-external-access");
+  });
+
+  it("uses external bootstrap access when local metadata is usable but tokenless", async () => {
+    const profileId = "openai-codex:default";
+    const localCredential = createCredential({
+      access: undefined as never,
+      refresh: undefined as never,
+      expires: Date.now() + 10 * 60_000,
+      accountId: "acct-cli",
+    });
+    const externalCredential = createCredential({
+      access: "fresh-external-access",
+      refresh: "fresh-external-refresh",
+      expires: Date.now() + 10 * 60_000,
+      accountId: "acct-cli",
+    });
+    const refreshCredential = vi.fn(async () => null);
+    const manager = createOAuthManager({
+      buildApiKey: async (_provider, value) => value.access,
+      refreshCredential,
+      readBootstrapCredential: () => externalCredential,
+      isRefreshTokenReusedError: () => false,
+    });
+
+    const result = await manager.resolveOAuthAccess({
+      store: {
+        version: 1,
+        profiles: {
+          [profileId]: localCredential,
+        },
+      },
+      profileId,
+      credential: localCredential,
+    });
+
+    expect(refreshCredential).not.toHaveBeenCalled();
+    expect(result?.apiKey).toBe("fresh-external-access");
+    expect(result?.credential.access).toBe("fresh-external-access");
+  });
+
   it("does not overlay external auth while checking main-store adoption", async () => {
     const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "oauth-manager-main-adopt-"));
     tempDirs.push(tempRoot);

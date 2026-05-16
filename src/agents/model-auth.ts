@@ -22,7 +22,6 @@ import { normalizeOptionalSecretInput } from "../utils/normalize-secret-input.js
 import {
   type AuthProfileCredential,
   type AuthProfileStore,
-  externalCliDiscoveryForProviderAuth,
   ensureAuthProfileStore,
   isConfiguredAwsSdkAuthProfileForProvider,
   listProfilesForProvider,

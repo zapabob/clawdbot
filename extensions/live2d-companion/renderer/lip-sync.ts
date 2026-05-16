@@ -1,6 +1,5 @@
 import type { TtsProvider } from "../bridge/event-types.js";
 import type { IAvatarController } from "./avatar-controller.js";
-import type { EmotionProfile } from "./emotion-mapper.js";
 
 type MoraData = { vowel_length?: number };
 type AccentPhrase = { moras?: MoraData[] };

@@ -187,7 +187,6 @@ export class BlueBubblesClient {
   readonly trustedHostname: string | undefined;
   readonly trustedHostnameIsPrivate: boolean;
 
-  private readonly password: string;
   private readonly ssrfPolicy: SsrFPolicy;
   private readonly defaultTimeoutMs: number;
   private readonly authStrategy: BlueBubblesAuthStrategy;
@@ -195,7 +194,6 @@ export class BlueBubblesClient {
   constructor(params: ClientConstructorParams) {
     this.accountId = params.accountId;
     this.baseUrl = params.baseUrl;
-    this.password = params.password;
     this.ssrfPolicy = params.ssrfPolicy;
     this.trustedHostname = params.trustedHostname;
     this.trustedHostnameIsPrivate = params.trustedHostnameIsPrivate;

@@ -337,6 +337,47 @@ describe("resolveAuthProfileOrder", () => {
     expect(order).toEqual(["openai-codex:personal", "openai:default"]);
   });
 
+  it("places recently failed implicit Codex OAuth profiles behind healthy peers", async () => {
+    const now = Date.now();
+    const store: AuthProfileStore = {
+      version: 1,
+      profiles: {
+        "openai-codex:default": {
+          type: "oauth",
+          provider: "openai-codex",
+          access: "default-access",
+          refresh: "default-refresh",
+          expires: now + 60_000,
+        },
+        "openai-codex:work": {
+          type: "oauth",
+          provider: "openai-codex",
+          access: "work-access",
+          refresh: "work-refresh",
+          expires: now + 60_000,
+        },
+      },
+      usageStats: {
+        "openai-codex:default": {
+          lastUsed: now - 1_000,
+          errorCount: 0,
+        },
+        "openai-codex:work": {
+          lastUsed: now - 10_000,
+          lastFailureAt: now - 500,
+          errorCount: 0,
+        },
+      },
+    };
+
+    const order = resolveAuthProfileOrder({
+      store,
+      provider: "openai-codex",
+    });
+
+    expect(order).toEqual(["openai-codex:default", "openai-codex:work"]);
+  });
+
   it("keeps direct OpenAI Codex auth order ahead of the friendly OpenAI alias", async () => {
     const store: AuthProfileStore = {
       version: 1,

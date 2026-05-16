@@ -3,7 +3,6 @@ import fsPromises from "node:fs/promises";
 import path from "node:path";
 import { ipcMain } from "electron";
 import { FLAG_FILES, IPC_CHANNELS } from "./event-types.js";
-import type { CompanionLineEvent, CompanionEmotionEvent } from "./event-types.js";
 
 /**
  * Watches .openclaw-desktop flag files and forwards events to the renderer
