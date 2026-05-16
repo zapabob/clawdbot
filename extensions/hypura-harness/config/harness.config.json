@@ -5,6 +5,10 @@
   "osc_receive_port": 9001,
   "voicevox_url": "http://127.0.0.1:50021",
   "virtual_cable_name": "CABLE Input",
+  "voice": {
+    "output_devices": [],
+    "openclaw_command": "node openclaw.mjs agent --agent main --json --timeout 180 --message {message}"
+  },
   "companion_url": "http://127.0.0.1:18791",
   "models": {
     "ollama_base_url": "http://127.0.0.1:11434",

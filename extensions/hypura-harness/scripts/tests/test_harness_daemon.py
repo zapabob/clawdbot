@@ -71,6 +71,89 @@ def test_speak_forwards_to_companion_bridge() -> None:
         mock_bridge.forward_speak.assert_awaited_once_with("hello", "happy")
 
 
+def test_voice_devices_returns_sounddevice_inventory() -> None:
+    from harness_daemon import app
+
+    with patch(
+        "harness_daemon.list_audio_devices",
+        return_value={"devices": [{"index": 4, "name": "Speaker"}], "default": [1, 4]},
+    ):
+        client = TestClient(app)
+        resp = client.get("/voice/devices")
+        assert resp.status_code == 200
+        assert resp.json()["devices"][0]["index"] == 4
+
+
+def test_voice_test_say_synthesizes_and_plays_selected_device() -> None:
+    from harness_daemon import app
+
+    with patch("harness_daemon.voicevox_seq") as mock_vx:
+        mock_vx.synthesize = AsyncMock(return_value=b"RIFF")
+        client = TestClient(app)
+        resp = client.post(
+            "/voice/test-say",
+            json={"text": "hello", "speaker": 3, "output_device": 4},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["success"] is True
+        mock_vx.synthesize.assert_awaited_once_with("hello", emotion="neutral", speaker=3)
+        mock_vx.play_wav_bytes.assert_called_once_with(b"RIFF", output_devices=[4])
+
+
+def test_voice_test_say_accepts_dual_output_devices() -> None:
+    from harness_daemon import app
+
+    with patch("harness_daemon.voicevox_seq") as mock_vx:
+        mock_vx.synthesize = AsyncMock(return_value=b"RIFF")
+        client = TestClient(app)
+        resp = client.post(
+            "/voice/test-say",
+            json={"text": "hello", "speaker": 3, "output_devices": [5, 4]},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["output_devices"] == [5, 4]
+        mock_vx.play_wav_bytes.assert_called_once_with(b"RIFF", output_devices=[5, 4])
+
+
+def test_voice_transcribe_uses_whisper_bridge() -> None:
+    from harness_daemon import app
+
+    with patch("harness_daemon.transcribe_wav", return_value="transcript") as mock_transcribe:
+        client = TestClient(app)
+        resp = client.post(
+            "/voice/transcribe",
+            json={"wav_path": "C:/tmp/input.wav"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["transcript"] == "transcript"
+        assert mock_transcribe.called
+
+
+def test_voice_turn_speaks_openclaw_reply() -> None:
+    from harness_daemon import app
+
+    with patch(
+        "harness_daemon.run_voice_turn",
+        return_value={"success": True, "transcript": "hi", "reply": "reply"},
+    ) as mock_turn, patch("harness_daemon.voicevox_seq") as mock_vx:
+        mock_vx.synthesize = AsyncMock(return_value=b"RIFF")
+        client = TestClient(app)
+        resp = client.post(
+            "/voice/turn",
+            json={
+                "record_seconds": 1,
+                "input_device": 1,
+                "output_device": 4,
+                "speaker": 3,
+            },
+        )
+        assert resp.status_code == 200
+        assert resp.json()["reply"] == "reply"
+        assert mock_turn.called
+        mock_vx.synthesize.assert_awaited_once_with("reply", emotion="neutral", speaker=3)
+        mock_vx.play_wav_bytes.assert_called_once_with(b"RIFF", output_devices=[4])
+
+
 def test_osc_emotion_forwards_companion_bridge() -> None:
     from harness_daemon import app
 

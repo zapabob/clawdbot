@@ -1,4 +1,4 @@
-"""Hypura Harness — central FastAPI daemon (default port 18794; avoids OpenClaw Bridge on 18790).
+"""Hypura Harness central FastAPI daemon (default port 18794; avoids OpenClaw Bridge on 18790).
 
 OpenClaw calls this as a general-purpose agent toolkit.
 """
@@ -29,6 +29,14 @@ from osc_controller import OSCController, OSCListener, load_param_map
 from pydantic import BaseModel
 from shinka_adapter import ShinkaAdapter
 from skill_generator import SkillGenerator
+from voice_bridge import (
+    DEFAULT_WHISPER_EXE,
+    DEFAULT_WHISPER_MODEL,
+    list_audio_devices,
+    run_companion_transcript_turn,
+    run_voice_turn,
+    transcribe_wav,
+)
 from voicevox_sequencer import VoicevoxSequencer
 from web_scavenger import WebScavenger
 from knowledge_graph_shinka import KnowledgeGraphShinka
@@ -59,7 +67,7 @@ def load_config() -> dict[str, Any]:
     """Load JSON config from disk into the module-level ``config`` dict."""
     global config
     if CONFIG_PATH.exists():
-        config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+        config = json.loads(CONFIG_PATH.read_text(encoding="utf-8-sig"))
     else:
         config = {}
     return config
@@ -109,6 +117,62 @@ class SpeakRequest(BaseModel):
     emotion: str = "neutral"
     speaker: int = 8
     scene: list[dict[str, Any]] = []
+
+
+class VoiceTestSayRequest(BaseModel):
+    text: str = "voice playback test"
+    emotion: str = "neutral"
+    speaker: int = 8
+    output_device: int | None = None
+    output_devices: list[int] | None = None
+
+
+class VoiceTranscribeRequest(BaseModel):
+    wav_path: str
+    whisper_exe: str | None = None
+    whisper_model: str | None = None
+
+
+class VoiceTurnRequest(BaseModel):
+    record_seconds: float = 5.0
+    samplerate: int = 16000
+    input_device: int | None = None
+    output_device: int | None = None
+    output_devices: list[int] | None = None
+    speaker: int = 8
+    emotion: str = "neutral"
+    whisper_exe: str | None = None
+    whisper_model: str | None = None
+    openclaw_timeout: int = 240
+
+
+class CompanionVoiceTurnRequest(BaseModel):
+    transcript: str | None = None
+    transcript_timestamp: int | float | None = None
+    last_seen_timestamp: int | float | None = None
+    openclaw_timeout: int = 240
+    speak: bool = True
+    animate: bool = True
+
+
+class CompanionMicRequest(BaseModel):
+    enabled: bool = True
+
+
+def _resolve_voice_output_devices(
+    output_device: int | None,
+    output_devices: list[int] | None,
+) -> list[int] | None:
+    if output_devices:
+        return output_devices
+    if output_device is not None:
+        return [output_device]
+    voice = config.get("voice")
+    if isinstance(voice, dict):
+        configured = voice.get("output_devices")
+        if isinstance(configured, list) and all(isinstance(item, int) for item in configured):
+            return configured
+    return None
 
 
 class CompanionControlRequest(BaseModel):
@@ -361,6 +425,99 @@ async def speak(req: SpeakRequest) -> dict:
     return {"success": True}
 
 
+@app.get("/voice/devices")
+async def voice_devices() -> dict[str, Any]:
+    return list_audio_devices()
+
+
+@app.post("/voice/test-say")
+async def voice_test_say(req: VoiceTestSayRequest) -> dict[str, Any]:
+    try:
+        wav_bytes = await voicevox_seq.synthesize(req.text, emotion=req.emotion, speaker=req.speaker)
+        output_devices = _resolve_voice_output_devices(req.output_device, req.output_devices)
+        voicevox_seq.play_wav_bytes(wav_bytes, output_devices=output_devices)
+    except Exception as e:
+        logger.error("Voice test-say error: %s", e)
+        return {"success": False, "error": str(e)}
+    return {"success": True, "text": req.text, "output_devices": output_devices}
+
+
+@app.post("/voice/transcribe")
+async def voice_transcribe(req: VoiceTranscribeRequest) -> dict[str, Any]:
+    try:
+        transcript = await asyncio.to_thread(
+            transcribe_wav,
+            Path(req.wav_path).expanduser(),
+            Path(req.whisper_exe).expanduser() if req.whisper_exe else DEFAULT_WHISPER_EXE,
+            Path(req.whisper_model).expanduser() if req.whisper_model else DEFAULT_WHISPER_MODEL,
+        )
+    except Exception as e:
+        logger.error("Voice transcribe error: %s", e)
+        return {"success": False, "error": str(e)}
+    return {"success": True, "transcript": transcript}
+
+
+@app.post("/voice/turn")
+async def voice_turn(req: VoiceTurnRequest) -> dict[str, Any]:
+    try:
+        result = await asyncio.to_thread(
+            run_voice_turn,
+            config=config,
+            record_seconds=req.record_seconds,
+            samplerate=req.samplerate,
+            input_device=req.input_device,
+            whisper_exe=Path(req.whisper_exe).expanduser() if req.whisper_exe else DEFAULT_WHISPER_EXE,
+            whisper_model=Path(req.whisper_model).expanduser() if req.whisper_model else DEFAULT_WHISPER_MODEL,
+            openclaw_timeout=req.openclaw_timeout,
+        )
+        if result.get("success") and result.get("reply"):
+            output_devices = _resolve_voice_output_devices(req.output_device, req.output_devices)
+            wav_bytes = await voicevox_seq.synthesize(
+                str(result["reply"]),
+                emotion=req.emotion,
+                speaker=req.speaker,
+            )
+            voicevox_seq.play_wav_bytes(wav_bytes, output_devices=output_devices)
+    except Exception as e:
+        logger.error("Voice turn error: %s", e)
+        return {"success": False, "error": str(e)}
+    return result
+
+
+@app.post("/voice/companion-turn")
+async def voice_companion_turn(req: CompanionVoiceTurnRequest) -> dict[str, Any]:
+    try:
+        result = await asyncio.to_thread(
+            run_companion_transcript_turn,
+            config=config,
+            transcript=req.transcript,
+            transcript_timestamp=req.transcript_timestamp,
+            last_seen_timestamp=req.last_seen_timestamp,
+            openclaw_timeout=req.openclaw_timeout,
+        )
+        if result.get("success") and result.get("reply"):
+            reply = str(result["reply"])
+            emotion = str(result.get("emotion") or "neutral")
+            if req.animate:
+                await companion_bridge.forward_emotion(emotion)
+            if req.speak:
+                await companion_bridge.forward_speak(reply, emotion)
+    except Exception as e:
+        logger.error("Companion voice turn error: %s", e)
+        return {"success": False, "error": str(e)}
+    return result
+
+
+@app.post("/voice/companion-mic")
+async def voice_companion_mic(req: CompanionMicRequest) -> dict[str, Any]:
+    try:
+        await companion_bridge.set_mic_enabled(req.enabled)
+    except Exception as e:
+        logger.error("Companion mic toggle error: %s", e)
+        return {"success": False, "error": str(e)}
+    return {"success": True, "enabled": req.enabled}
+
+
 @app.post("/companion/control")
 async def companion_control(req: CompanionControlRequest) -> dict[str, Any]:
     try:
@@ -520,8 +677,8 @@ class TinyLoraConvertRequest(BaseModel):
 
 @app.post("/lora/convert/tinylora_to_peft")
 async def lora_convert_tinylora_to_peft(req: TinyLoraConvertRequest) -> dict[str, Any]:
-    """TinyLoRA JSON アダプター → PEFT rank-2 LoRA 形式に変換する。
-    lora_watcher から呼ばれ、GGUF 変換の前処理として使用される。
+    """Convert a TinyLoRA JSON adapter to PEFT rank-2 LoRA format.
+    Called by lora_watcher as preprocessing before GGUF conversion.
     """
     try:
         import json as _json
@@ -532,9 +689,9 @@ async def lora_convert_tinylora_to_peft(req: TinyLoraConvertRequest) -> dict[str
         output_dir = Path(req.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        # ダミーモデルを使って TinyLoRAModel を復元してから変換
-        # (実際の変換は adapter_json の A, B テンソルを使う)
-        # 簡易版: PEFT config と空の adapter_model.bin を生成
+        # Rehydrate TinyLoRAModel with a dummy model before conversion.
+        # The actual conversion uses A/B tensors from adapter_json.
+        # Lightweight path: emit PEFT config plus an empty adapter_model.bin.
         adapter_config = {
             "base_model_name_or_path": "",
             "bias": "none",
@@ -550,7 +707,7 @@ async def lora_convert_tinylora_to_peft(req: TinyLoraConvertRequest) -> dict[str
         (output_dir / "adapter_config.json").write_text(
             _json.dumps(adapter_config, indent=2), encoding="utf-8"
         )
-        # 空の state dict (変換は lora_watcher の Python 側で行う)
+        # Empty state dict; lora_watcher performs the Python-side conversion.
         torch.save({}, str(output_dir / "adapter_model.bin"))
         return {"success": True, "output_dir": str(output_dir)}
     except Exception as e:
@@ -613,16 +770,15 @@ async def lora_job(job_id: str) -> dict[str, Any]:
 @app.post("/run")
 async def run(req: RunRequest) -> dict:
     """
-    コード生成 → 実行 → Redisループへ接続。
+    Generate code, run it, and connect successful output to the Redis loop.
 
-    成功: training:examples に保存 (quality_score はリトライ数で決定)
-    失敗: atlas:failures に保存 + ShinkaEvolve で再試行
+    Success: save to training:examples.
+    Failure: save to atlas:failures and retry through ShinkaEvolve.
     """
     result = await asyncio.to_thread(code_runner_instance.run_task, req.task)
 
     if result.get("success"):
-        # 成功パスの品質スコア (リトライ数は code_runner の内部情報がないため
-        # output から推定するか、1.0 で固定する)
+        # Use a fixed score here because code_runner does not expose retry count.
         redis_loop.push_training_example(
             task=req.task,
             code=result.get("output", ""),
@@ -630,7 +786,7 @@ async def run(req: RunRequest) -> dict:
             source="run/success",
         )
     else:
-        # 失敗 → atlas:failures に記録
+        # Record failures for later recovery.
         redis_loop.push_failure(
             task=req.task,
             stop_reason="max_retries",
@@ -639,7 +795,7 @@ async def run(req: RunRequest) -> dict:
             source="run/failure",
         )
 
-        # ShinkaEvolve でリカバリを試みる
+        # Try recovery through ShinkaEvolve.
         fitness_hints = redis_loop.get_fitness_hints(max_hints=2)
         fitness_hint = (
             f"Fix this error: {result.get('last_error', '')[:200]}"
@@ -652,7 +808,7 @@ async def run(req: RunRequest) -> dict:
         )
 
         if evolve_result and evolve_result != result.get("output", req.task):
-            # evolve 成功 → 低品質スコアで training:examples に保存
+            # Save recovered output with a lower confidence score.
             redis_loop.push_training_example(
                 task=req.task,
                 code=evolve_result,
@@ -663,7 +819,7 @@ async def run(req: RunRequest) -> dict:
             result["output"] = evolve_result
             result["evolved"] = True
         else:
-            # evolve も失敗
+            # Record unrecovered failures too.
             redis_loop.push_failure(
                 task=req.task,
                 stop_reason="evolve_failed",
@@ -712,13 +868,12 @@ async def skill(req: SkillRequest) -> dict:
 @app.post("/evolve")
 async def evolve(req: EvolveRequest) -> dict:
     """
-    ShinkaEvolve ループ。
+    Run the ShinkaEvolve loop.
 
-    Redis から AI Scientist の fitness_hints を取得してヒントを補強する。
-    成功 → training:examples (quality_score=0.7)
-    失敗 → atlas:failures
+    Adds AI Scientist fitness hints from Redis when available.
+    Success writes training:examples; failure writes atlas:failures.
     """
-    # AI Scientist のヒントを取得してフィットネスヒントに追加
+    # Add AI Scientist hints to the fitness hint.
     ai_hints = redis_loop.get_fitness_hints(max_hints=2)
     combined_hint = req.fitness_hint
     if ai_hints:
@@ -726,7 +881,7 @@ async def evolve(req: EvolveRequest) -> dict:
 
     if req.target == "code":
         result = await shinka.evolve_code(req.seed, combined_hint, req.generations)
-        # seed と異なれば改善されたとみなす
+        # Treat a non-empty result that differs from the seed as an improvement.
         improved = result != req.seed and bool(result)
         if improved:
             redis_loop.push_training_example(
@@ -759,7 +914,7 @@ async def evolve(req: EvolveRequest) -> dict:
     return {"success": True, "result": result, "improved": improved if req.target in ("code", "skill") else None}
 
 
-# ── AI Scientist エンドポイント ───────────────────────────────────────────
+# AI Scientist endpoints.
 
 class ScientistRunRequest(BaseModel):
     topic: str = ""
@@ -770,7 +925,7 @@ class ScientistRunRequest(BaseModel):
 
 
 def _get_scientist() -> Any:
-    """AiScientistRunner を遅延初期化する。"""
+    """Lazily initialize AiScientistRunner."""
     try:
         from ai_scientist_runner import AiScientistRunner
         return AiScientistRunner()
@@ -781,10 +936,10 @@ def _get_scientist() -> Any:
 @app.post("/scientist/run")
 async def scientist_run(req: ScientistRunRequest) -> dict:
     """
-    AI-Scientist アイデア生成 (+実験) を実行して Redis に保存する。
+    Generate AI Scientist ideas and optionally experiments, then save them to Redis.
 
-    topic が空の場合は atlas:failures から自動設定する。
-    run_experiment=true の場合は perform_experiments も実行する (時間がかかる)。
+    Empty topic values pull from atlas:failures automatically.
+    run_experiment=true also runs perform_experiments, which can take time.
     """
     runner = await asyncio.to_thread(_get_scientist)
     if req.topic:
@@ -816,7 +971,7 @@ async def scientist_run(req: ScientistRunRequest) -> dict:
 
 @app.post("/scientist/ideas")
 async def scientist_ideas(req: ScientistRunRequest) -> dict:
-    """アイデア生成のみ実行して返す (Redis 保存なし)。"""
+    """Generate ideas only and return them without saving to Redis."""
     runner = await asyncio.to_thread(_get_scientist)
     topic = req.topic or "improve code generation quality"
     ideas = await asyncio.to_thread(runner.run_ideas, topic, req.template, req.num_ideas, req.model)
@@ -825,7 +980,7 @@ async def scientist_ideas(req: ScientistRunRequest) -> dict:
 
 @app.get("/scientist/status")
 async def scientist_status() -> dict:
-    """ai_scientist:findings / ai_scientist:tasks のキュー状態を返す。"""
+    """Return queue state for ai_scientist:findings / ai_scientist:tasks."""
     stats = redis_loop.get_loop_stats()
     return {
         "findings": stats.get("scientist_findings", 0),

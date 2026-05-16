@@ -2,11 +2,20 @@ import { createRequire } from "node:module";
 import type { IoStreamRead } from "naudiodon";
 
 type AudioInputHandler = (data: Buffer) => void;
-type NaudiodonRuntime = Pick<typeof import("naudiodon"), "AudioIO" | "SampleFormat16Bit">;
+type NaudiodonDevice = {
+  id: number;
+  name: string;
+  maxInputChannels: number;
+  defaultSampleRate: number;
+  hostAPIName: string;
+};
+type NaudiodonRuntime = Pick<
+  typeof import("naudiodon"),
+  "AudioIO" | "SampleFormat16Bit" | "getDevices"
+>;
 
 const require = createRequire(import.meta.url);
-const AUDIO_SAMPLE_RATE = 8_000;
-const AUDIO_FRAMES_PER_BUFFER = 320;
+const TARGET_SAMPLE_RATE = 8_000;
 const MU_LAW_BIAS = 0x84;
 const MU_LAW_CLIP = 32_635;
 
@@ -21,10 +30,25 @@ function loadNaudiodonRuntime(): NaudiodonRuntime {
     const runtime = require("naudiodon") as typeof import("naudiodon");
     naudiodonRuntimeCache = {
       AudioIO: runtime.AudioIO,
+      getDevices: runtime.getDevices,
       SampleFormat16Bit: runtime.SampleFormat16Bit,
     };
   }
   return naudiodonRuntimeCache;
+}
+
+function selectInputDevice(devices: NaudiodonDevice[]): NaudiodonDevice | null {
+  const inputDevices = devices.filter((device) => device.maxInputChannels > 0);
+  return (
+    inputDevices.find(
+      (device) =>
+        device.hostAPIName === "Windows WASAPI" &&
+        /mic|microphone|\u30de\u30a4\u30af/i.test(device.name),
+    ) ??
+    inputDevices.find((device) => /mic|microphone|\u30de\u30a4\u30af/i.test(device.name)) ??
+    inputDevices[0] ??
+    null
+  );
 }
 
 function linear16ToMuLaw(sample: number): number {
@@ -37,7 +61,7 @@ function linear16ToMuLaw(sample: number): number {
   }
 
   const mantissa = (magnitude >> (exponent + 3)) & 0x0f;
-  return (~(sign | (exponent << 4) | mantissa)) & 0xff;
+  return ~(sign | (exponent << 4) | mantissa) & 0xff;
 }
 
 function pcm16LeToMuLaw(chunk: Buffer): Buffer {
@@ -49,9 +73,32 @@ function pcm16LeToMuLaw(chunk: Buffer): Buffer {
   return encoded;
 }
 
+function downsamplePcm16Le(chunk: Buffer, sourceSampleRate: number): Buffer {
+  if (sourceSampleRate === TARGET_SAMPLE_RATE) {
+    return chunk;
+  }
+
+  const sourceSampleCount = Math.floor(chunk.length / 2);
+  if (sourceSampleCount === 0) {
+    return Buffer.alloc(0);
+  }
+
+  const ratio = sourceSampleRate / TARGET_SAMPLE_RATE;
+  const targetSampleCount = Math.max(1, Math.floor(sourceSampleCount / ratio));
+  const output = Buffer.allocUnsafe(targetSampleCount * 2);
+
+  for (let targetIndex = 0; targetIndex < targetSampleCount; targetIndex += 1) {
+    const sourceIndex = Math.min(sourceSampleCount - 1, Math.floor(targetIndex * ratio));
+    output.writeInt16LE(chunk.readInt16LE(sourceIndex * 2), targetIndex * 2);
+  }
+
+  return output;
+}
+
 export class AudioInput {
   private stream: IoStreamRead | null = null;
   private dataHandler: AudioInputHandler | null = null;
+  private sourceSampleRate = TARGET_SAMPLE_RATE;
 
   private readonly handleData = (chunk: Buffer): void => {
     if (!this.dataHandler || chunk.length < 2) {
@@ -61,7 +108,8 @@ export class AudioInput {
     if (evenChunk.length === 0) {
       return;
     }
-    this.dataHandler(pcm16LeToMuLaw(evenChunk));
+    const targetRateChunk = downsamplePcm16Le(evenChunk, this.sourceSampleRate);
+    this.dataHandler(pcm16LeToMuLaw(targetRateChunk));
   };
 
   private readonly handleError = (): void => {
@@ -79,12 +127,20 @@ export class AudioInput {
 
     try {
       const naudiodon = loadNaudiodonRuntime();
+      const selectedDevice = selectInputDevice(naudiodon.getDevices() as NaudiodonDevice[]);
+      if (!selectedDevice) {
+        return false;
+      }
+
+      const sampleRate = Number(selectedDevice.defaultSampleRate) || TARGET_SAMPLE_RATE;
+      this.sourceSampleRate = sampleRate;
       const stream = naudiodon.AudioIO({
         inOptions: {
+          deviceId: selectedDevice.id,
           channelCount: 1,
-          framesPerBuffer: AUDIO_FRAMES_PER_BUFFER,
+          framesPerBuffer: Math.max(160, Math.round(sampleRate * 0.02)),
           sampleFormat: naudiodon.SampleFormat16Bit,
-          sampleRate: AUDIO_SAMPLE_RATE,
+          sampleRate,
         },
       });
       stream.on("data", this.handleData);

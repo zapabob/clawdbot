@@ -993,6 +993,55 @@ describe("GatewayBrowserClient", () => {
     vi.useRealTimers();
   });
 
+  it("clears stale stored device tokens and does not reconnect on direct device-token close", async () => {
+    useNodeFakeTimers();
+    const onClose = vi.fn();
+
+    const client = new GatewayBrowserClient({
+      url: "ws://127.0.0.1:18789",
+      onClose,
+    });
+
+    const { ws, connectFrame } = await startConnect(client);
+    expect(connectFrame.params?.auth?.token).toBe("stored-device-token");
+
+    ws.emitClose(1008, "unauthorized: device token mismatch");
+
+    expect(loadDeviceAuthToken({ deviceId: "device-1", role: "operator" })).toBeNull();
+    expect(onClose).toHaveBeenCalledWith({
+      code: 1008,
+      reason: "unauthorized: device token mismatch",
+      error: undefined,
+    });
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(wsInstances).toHaveLength(1);
+
+    vi.useRealTimers();
+  });
+
+  it("does not clear stored device tokens on direct device-token close for shared-token auth", async () => {
+    useNodeFakeTimers();
+
+    const client = new GatewayBrowserClient({
+      url: "ws://127.0.0.1:18789",
+      token: "shared-auth-token",
+    });
+
+    const { ws, connectFrame } = await startConnect(client);
+    expect(connectFrame.params?.auth?.token).toBe("shared-auth-token");
+    expect(connectFrame.params?.auth?.deviceToken).toBeUndefined();
+
+    ws.emitClose(1008, "unauthorized: device token mismatch");
+
+    expect(loadDeviceAuthToken({ deviceId: "device-1", role: "operator" })?.token).toBe(
+      "stored-device-token",
+    );
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(wsInstances).toHaveLength(1);
+
+    vi.useRealTimers();
+  });
+
   it("does not clear stored device tokens or reconnect on AUTH_SCOPE_MISMATCH", async () => {
     useNodeFakeTimers();
 

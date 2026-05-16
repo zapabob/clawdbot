@@ -1,13 +1,6 @@
-import {
-  loadActivatedBundledPluginPublicSurfaceModuleSync,
-} from "./facade-runtime.js";
+import { loadActivatedBundledPluginPublicSurfaceModuleSync } from "./facade-runtime.js";
 
-export const COMPANION_PERMISSION_CAPABILITIES = [
-  "mic",
-  "camera",
-  "screen",
-  "tab-follow",
-] as const;
+export const COMPANION_PERMISSION_CAPABILITIES = ["mic", "camera", "screen", "tab-follow"] as const;
 
 export type CompanionPermissionCapability = (typeof COMPANION_PERMISSION_CAPABILITIES)[number];
 export type CompanionPermissionDecision = "granted" | "denied";
@@ -136,9 +129,7 @@ export type CompanionSpeakPayload = {
 
 type Live2dCompanionFacadeModule = {
   getCompanionState: (params?: { stateDir?: string }) => Promise<CompanionRuntimeState>;
-  listCompanionAssets: (params?: {
-    stateDir?: string;
-  }) => Promise<CompanionAssetManifestEntry[]>;
+  listCompanionAssets: (params?: { stateDir?: string }) => Promise<CompanionAssetManifestEntry[]>;
   getCompanionInputSnapshot: (params?: {
     stateDir?: string;
     payload?: CompanionInputSnapshotPayload;
@@ -148,6 +139,10 @@ type Live2dCompanionFacadeModule = {
     capability: CompanionPermissionCapability;
     decision: CompanionPermissionDecision;
   }) => Promise<CompanionRuntimeState>;
+  setCompanionMicEnabled: (params: {
+    stateDir?: string;
+    enabled: boolean;
+  }) => Promise<{ ok: boolean; reason?: string }>;
   speakWithCompanion: (params: {
     stateDir?: string;
     text: string;
@@ -214,6 +209,13 @@ export function setCompanionPermission(params: {
   return loadLive2dCompanionFacadeModule().setCompanionPermission(params);
 }
 
+export function setCompanionMicEnabled(params: {
+  stateDir?: string;
+  enabled: boolean;
+}): Promise<{ ok: boolean; reason?: string }> {
+  return loadLive2dCompanionFacadeModule().setCompanionMicEnabled(params);
+}
+
 export function speakWithCompanion(params: {
   stateDir?: string;
   text: string;
@@ -235,9 +237,7 @@ export function attachCompanionTab(params: {
   return loadLive2dCompanionFacadeModule().attachCompanionTab(params);
 }
 
-export function detachCompanionTab(params?: {
-  stateDir?: string;
-}): Promise<CompanionRuntimeState> {
+export function detachCompanionTab(params?: { stateDir?: string }): Promise<CompanionRuntimeState> {
   return loadLive2dCompanionFacadeModule().detachCompanionTab(params);
 }
 

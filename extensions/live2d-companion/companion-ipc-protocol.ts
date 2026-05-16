@@ -1,10 +1,10 @@
+import type { AvatarCommand, TtsProvider } from "./bridge/event-types.js";
+import type { CompanionAssetManifestEntry } from "./companion-asset-manifest.js";
 import type {
   CompanionPermissionCapability,
   CompanionPermissionDecision,
   CompanionPermissionState,
 } from "./companion-permissions.js";
-import type { CompanionAssetManifestEntry } from "./companion-asset-manifest.js";
-import type { AvatarCommand, TtsProvider } from "./bridge/event-types.js";
 
 export type CompanionVoiceRuntimeState = {
   sttBackend: "local-voice-whisper";
@@ -60,6 +60,7 @@ export type CompanionIpcAction =
   | "list-assets"
   | "get-input-snapshot"
   | "set-permission"
+  | "set-mic-enabled"
   | "speak"
   | "set-avatar-command"
   | "attach-tab"
@@ -74,6 +75,10 @@ export type CompanionIpcAction =
 export type CompanionSetPermissionPayload = {
   capability: CompanionPermissionCapability;
   decision: CompanionPermissionDecision;
+};
+
+export type CompanionSetMicEnabledPayload = {
+  enabled: boolean;
 };
 
 export type CompanionAttachTabPayload = {
@@ -148,9 +153,7 @@ export function isCompanionIpcRequestEnvelope(
     return typeof record.token === "string";
   }
   return (
-    record.type === "request" &&
-    typeof record.id === "string" &&
-    typeof record.action === "string"
+    record.type === "request" && typeof record.id === "string" && typeof record.action === "string"
   );
 }
 

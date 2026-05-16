@@ -1,7 +1,5 @@
 import path from "node:path";
-import {
-  sendCompanionIpcRequest,
-} from "./companion-ipc.js";
+import type { CompanionAssetManifestEntry } from "./companion-asset-manifest.js";
 import type {
   CompanionBinaryCapture,
   CompanionBrowserAttachment,
@@ -14,9 +12,7 @@ import type {
   CompanionUpdateTabContextPayload,
   CompanionImportAssetPayload,
 } from "./companion-ipc-protocol.js";
-import type {
-  CompanionAssetManifestEntry,
-} from "./companion-asset-manifest.js";
+import { sendCompanionIpcRequest } from "./companion-ipc.js";
 import type {
   CompanionPermissionCapability,
   CompanionPermissionDecision,
@@ -27,6 +23,7 @@ type CompanionActionResultMap = {
   "list-assets": CompanionAssetManifestEntry[];
   "get-input-snapshot": CompanionInputSnapshot;
   "set-permission": CompanionRuntimeState;
+  "set-mic-enabled": { ok: boolean; reason?: string };
   speak: CompanionRuntimeState;
   "set-avatar-command": CompanionRuntimeState;
   "attach-tab": CompanionRuntimeState;
@@ -99,6 +96,19 @@ export function setCompanionPermission(params: {
   });
 }
 
+export function setCompanionMicEnabled(params: {
+  stateDir?: string;
+  enabled: boolean;
+}): Promise<{ ok: boolean; reason?: string }> {
+  return sendCompanionAction({
+    ...(params.stateDir ? { stateDir: params.stateDir } : {}),
+    action: "set-mic-enabled",
+    payload: {
+      enabled: params.enabled,
+    },
+  });
+}
+
 export function speakWithCompanion(params: {
   stateDir?: string;
   text: string;
@@ -137,9 +147,7 @@ export function attachCompanionTab(params: {
   });
 }
 
-export function detachCompanionTab(params?: {
-  stateDir?: string;
-}): Promise<CompanionRuntimeState> {
+export function detachCompanionTab(params?: { stateDir?: string }): Promise<CompanionRuntimeState> {
   return sendCompanionAction({
     ...(params?.stateDir ? { stateDir: params.stateDir } : {}),
     action: "detach-tab",

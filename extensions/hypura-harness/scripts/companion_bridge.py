@@ -32,12 +32,15 @@ class CompanionBridge:
         *,
         text: str | None = None,
         avatar_command: dict[str, Any] | None = None,
+        mic_enabled: bool | None = None,
     ) -> None:
         payload: dict[str, Any] = {"stateDir": str(self._state_dir)}
         if text:
             payload["text"] = text
         if avatar_command:
             payload["avatarCommand"] = avatar_command
+        if mic_enabled is not None:
+            payload["micEnabled"] = mic_enabled
 
         proc = await asyncio.create_subprocess_exec(
             "node",
@@ -77,9 +80,14 @@ class CompanionBridge:
         *,
         text: str | None = None,
         avatar_command: dict[str, Any] | None = None,
+        mic_enabled: bool | None = None,
     ) -> None:
         try:
-            await self._run_sdk_bridge(text=text, avatar_command=avatar_command)
+            await self._run_sdk_bridge(
+                text=text,
+                avatar_command=avatar_command,
+                mic_enabled=mic_enabled,
+            )
             return
         except Exception as e:  # noqa: BLE001 - preserve legacy compatibility fallback
             logger.warning("Companion SDK bridge failed, falling back to legacy HTTP: %s", e)
@@ -108,3 +116,6 @@ class CompanionBridge:
 
     async def forward_load_model(self, model_path: str) -> None:
         await self._dispatch(avatar_command={"loadModel": model_path})
+
+    async def set_mic_enabled(self, enabled: bool) -> None:
+        await self._dispatch(mic_enabled=enabled)

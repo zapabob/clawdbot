@@ -13,6 +13,19 @@ import { getLineRuntime } from "./runtime.js";
 const loadLineProbeRuntime = createLazyRuntimeModule(() => import("./probe.runtime.js"));
 const loadLineMonitorRuntime = createLazyRuntimeModule(() => import("./monitor.runtime.js"));
 
+async function waitForAbortSignal(signal: AbortSignal): Promise<void> {
+  if (signal.aborted) {
+    return;
+  }
+  await new Promise<void>((resolve) => {
+    const onAbort = () => {
+      signal.removeEventListener("abort", onAbort);
+      resolve();
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
 export const lineGatewayAdapter: NonNullable<ChannelPlugin<ResolvedLineAccount>["gateway"]> = {
   startAccount: async (ctx) => {
     const account = ctx.account;
@@ -48,7 +61,7 @@ export const lineGatewayAdapter: NonNullable<ChannelPlugin<ResolvedLineAccount>[
       getLineRuntime().channel.line?.monitorLineProvider ??
       (await loadLineMonitorRuntime()).monitorLineProvider;
 
-    return await monitorLineProvider({
+    const monitor = await monitorLineProvider({
       channelAccessToken: token,
       channelSecret: secret,
       accountId: account.accountId,
@@ -57,6 +70,11 @@ export const lineGatewayAdapter: NonNullable<ChannelPlugin<ResolvedLineAccount>[
       abortSignal: ctx.abortSignal,
       webhookPath: account.config.webhookPath,
     });
+    try {
+      await waitForAbortSignal(ctx.abortSignal);
+    } finally {
+      monitor.stop();
+    }
   },
   logoutAccount: async ({ accountId, cfg }) => {
     const envToken = process.env.LINE_CHANNEL_ACCESS_TOKEN?.trim() ?? "";

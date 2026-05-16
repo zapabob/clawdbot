@@ -22,7 +22,7 @@ async function loadCompanionSdk() {
     return await import("openclaw/plugin-sdk/live2d-companion");
   } catch {
     return await import(
-      pathToFileURL(path.join(repoRoot, "src/plugin-sdk/live2d-companion.js")).href
+      pathToFileURL(path.join(repoRoot, "extensions/live2d-companion/runtime-api.js")).href
     );
   }
 }
@@ -46,6 +46,21 @@ async function main() {
     });
   }
 
+  let micResult = null;
+  if (typeof request.micEnabled === "boolean") {
+    if (request.micEnabled) {
+      await sdk.setCompanionPermission({
+        stateDir,
+        capability: "mic",
+        decision: "granted",
+      });
+    }
+    micResult = await sdk.setCompanionMicEnabled({
+      stateDir,
+      enabled: request.micEnabled,
+    });
+  }
+
   if (typeof request.text === "string" && request.text.trim()) {
     await sdk.speakWithCompanion({
       stateDir,
@@ -57,6 +72,7 @@ async function main() {
     JSON.stringify({
       ok: true,
       stateDir,
+      micResult,
     }),
   );
 }

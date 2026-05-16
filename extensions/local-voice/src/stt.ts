@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
-import { writeFileSync, unlinkSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import WebSocket from "ws";
 import type { AuthResult } from "./auth.js";
@@ -11,6 +11,10 @@ export type STTConfig = {
   vadThreshold: number;
   silenceDurationMs: number;
   prefixPaddingMs: number;
+  whisperCommand?: string;
+  whisperArgs?: string[];
+  whisperModelPath?: string;
+  whisperLanguage?: string;
 };
 
 export type STTEventHandlers = {
@@ -37,7 +41,127 @@ const DEFAULT_STT_CONFIG: STTConfig = {
   vadThreshold: 0.5,
   silenceDurationMs: 800,
   prefixPaddingMs: 300,
+  whisperLanguage: "ja",
 };
+
+type WhisperInvocation = {
+  command: string;
+  args: string[];
+  transcriptPath?: string;
+};
+
+function resolveDesktopWhisperCppExecutable(): string {
+  const executableName = process.platform === "win32" ? "whisper-cli.exe" : "whisper-cli";
+  return join(homedir(), "Desktop", "whisper.cpp", "Release", executableName);
+}
+
+function resolveDesktopWhisperCppModel(): string {
+  return join(homedir(), "Desktop", "whisper.cpp", "models", "ggml-small.bin");
+}
+
+function expandWhisperArgTemplate(args: string[], filePath: string, config: STTConfig): string[] {
+  return args.map((arg) =>
+    arg
+      .replaceAll("{file}", filePath)
+      .replaceAll("{model}", config.whisperModelPath ?? "")
+      .replaceAll("{language}", config.whisperLanguage ?? "ja"),
+  );
+}
+
+export function buildLocalWhisperInvocation(
+  filePath: string,
+  config: Partial<STTConfig>,
+): WhisperInvocation {
+  const mergedConfig = { ...DEFAULT_STT_CONFIG, ...config };
+  if (mergedConfig.whisperCommand) {
+    return {
+      command: mergedConfig.whisperCommand,
+      args: mergedConfig.whisperArgs
+        ? expandWhisperArgTemplate(mergedConfig.whisperArgs, filePath, mergedConfig)
+        : [filePath],
+    };
+  }
+
+  const whisperCppExecutable =
+    process.env.OPENCLAW_WHISPER_CPP_PATH ?? resolveDesktopWhisperCppExecutable();
+  const whisperCppModel =
+    mergedConfig.whisperModelPath ??
+    process.env.OPENCLAW_WHISPER_MODEL_PATH ??
+    resolveDesktopWhisperCppModel();
+  if (existsSync(whisperCppExecutable) && existsSync(whisperCppModel)) {
+    return {
+      command: whisperCppExecutable,
+      args: [
+        "-m",
+        whisperCppModel,
+        "-f",
+        filePath,
+        "-l",
+        mergedConfig.whisperLanguage ?? "ja",
+        "-nt",
+        "-np",
+      ],
+    };
+  }
+
+  return {
+    command: "py",
+    args: [
+      "-3",
+      "-m",
+      "whisper",
+      filePath,
+      "--model",
+      "tiny",
+      "--language",
+      "Japanese",
+      "--output_format",
+      "txt",
+    ],
+    transcriptPath: filePath.replace(".wav", ".txt"),
+  };
+}
+
+function cleanWhisperCppOutput(stdout: string): string {
+  return stdout
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^\s*\[[^\]]+\]\s*/, "").trim())
+    .filter(Boolean)
+    .join("\n");
+}
+
+export function runLocalWhisper(filePath: string, config: Partial<STTConfig>): Promise<string> {
+  const invocation = buildLocalWhisperInvocation(filePath, config);
+  return new Promise((resolve, reject) => {
+    const child = spawn(invocation.command, invocation.args);
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout.on("data", (data) => (stdout += data.toString()));
+    child.stderr.on("data", (data) => (stderr += data.toString()));
+    child.on("error", (error) => {
+      reject(error);
+    });
+
+    child.on("close", (code) => {
+      if (code !== 0) {
+        reject(new Error(`Whisper failed with code ${code}: ${stderr}`));
+        return;
+      }
+
+      if (invocation.transcriptPath) {
+        try {
+          const result = readFileSync(invocation.transcriptPath, "utf-8");
+          unlinkSync(invocation.transcriptPath);
+          resolve(result);
+          return;
+        } catch {}
+      }
+
+      resolve(cleanWhisperCppOutput(stdout));
+    });
+  });
+}
 
 export class OpenAIRealtimeSTT implements STTSession {
   private ws: WebSocket | null = null;
@@ -318,42 +442,7 @@ export class LocalWhisperSTT implements STTSession {
   }
 
   private runWhisper(filePath: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const child = spawn("py", [
-        "-3",
-        "-m",
-        "whisper",
-        filePath,
-        "--model",
-        "tiny",
-        "--language",
-        "Japanese",
-        "--output_format",
-        "txt",
-      ]);
-      let stdout = "";
-      let stderr = "";
-
-      child.stdout.on("data", (data) => (stdout += data.toString()));
-      child.stderr.on("data", (data) => (stderr += data.toString()));
-
-      child.on("close", (code) => {
-        if (code === 0) {
-          // Whisper writes a .txt file in the same dir. Read it.
-          const txtPath = filePath.replace(".wav", ".txt");
-          try {
-            const fs = require("node:fs");
-            const result = fs.readFileSync(txtPath, "utf-8");
-            fs.unlinkSync(txtPath);
-            resolve(result);
-          } catch {
-            resolve(stdout); // Fallback to stdout if file not found
-          }
-        } else {
-          reject(new Error(`Whisper failed with code ${code}: ${stderr}`));
-        }
-      });
-    });
+    return runLocalWhisper(filePath, this.config);
   }
 
   private muLawToLinear(muLawData: Buffer): Float32Array {

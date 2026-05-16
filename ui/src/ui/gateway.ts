@@ -181,6 +181,12 @@ type SelectedConnectAuth = {
 
 const CONTROL_UI_OPERATOR_ROLE = "operator";
 
+type ActiveConnectAuthState = {
+  deviceId: string;
+  role: string;
+  usingStoredDeviceToken: boolean;
+};
+
 export const CONTROL_UI_OPERATOR_SCOPES = [
   "operator.admin",
   "operator.read",
@@ -351,18 +357,26 @@ function formatBrowserWebSocketConstructorError(err: unknown, url: string): Gate
 }
 
 function resolveControlUiConnectScopes(selectedAuth: SelectedConnectAuth): string[] {
-  const isUsingStoredDeviceToken =
-    Boolean(selectedAuth.storedToken) &&
-    (selectedAuth.resolvedDeviceToken === selectedAuth.storedToken ||
-      selectedAuth.authDeviceToken === selectedAuth.storedToken);
   if (
-    isUsingStoredDeviceToken &&
+    selectedAuthUsesStoredDeviceToken(selectedAuth) &&
     selectedAuth.storedScopes &&
     selectedAuth.storedScopes.length > 0
   ) {
     return [...selectedAuth.storedScopes];
   }
   return [...CONTROL_UI_OPERATOR_SCOPES];
+}
+
+function selectedAuthUsesStoredDeviceToken(selectedAuth: SelectedConnectAuth): boolean {
+  return (
+    Boolean(selectedAuth.storedToken) &&
+    (selectedAuth.resolvedDeviceToken === selectedAuth.storedToken ||
+      selectedAuth.authDeviceToken === selectedAuth.storedToken)
+  );
+}
+
+function isDeviceTokenMismatchCloseReason(reason: string): boolean {
+  return reason.trim().toLowerCase().includes("device token mismatch");
 }
 
 async function buildGatewayConnectDevice(params: {
@@ -425,6 +439,7 @@ export class GatewayBrowserClient {
   private pendingDeviceTokenRetry = false;
   private deviceTokenRetryBudgetUsed = false;
   private pendingStartupReconnectDelayMs: number | null = null;
+  private activeConnectAuthState: ActiveConnectAuthState | null = null;
   private eventListeners = new Set<GatewayEventListener>();
 
   constructor(private opts: GatewayBrowserClientOptions) {}
@@ -443,6 +458,7 @@ export class GatewayBrowserClient {
     this.pendingDeviceTokenRetry = false;
     this.deviceTokenRetryBudgetUsed = false;
     this.pendingStartupReconnectDelayMs = null;
+    this.activeConnectAuthState = null;
     this.flushPending(new Error("gateway client stopped"));
   }
 
@@ -463,6 +479,7 @@ export class GatewayBrowserClient {
       this.pendingConnectError = undefined;
       this.pendingDeviceTokenRetry = false;
       this.pendingStartupReconnectDelayMs = null;
+      this.activeConnectAuthState = null;
       this.flushPending(new Error(error.message));
       this.opts.onClose?.({
         code: BROWSER_WEBSOCKET_CLOSE_CODE,
@@ -490,6 +507,11 @@ export class GatewayBrowserClient {
       const reason = ev.reason ?? "";
       const connectError = this.pendingConnectError;
       this.pendingConnectError = undefined;
+      const directDeviceTokenMismatch = isDeviceTokenMismatchCloseReason(reason);
+      if (directDeviceTokenMismatch) {
+        this.clearStaleDeviceAuthFromActiveConnect();
+      }
+      this.activeConnectAuthState = null;
       this.ws = null;
       if (this.pendingStartupReconnectDelayMs !== null) {
         this.flushPending(new Error(`gateway closed (${ev.code}): ${reason}`));
@@ -503,6 +525,9 @@ export class GatewayBrowserClient {
         if (this.pendingDeviceTokenRetry) {
           this.scheduleReconnect();
         }
+        return;
+      }
+      if (directDeviceTokenMismatch) {
         return;
       }
       if (!isNonRecoverableAuthError(connectError)) {
@@ -644,6 +669,7 @@ export class GatewayBrowserClient {
     this.pendingDeviceTokenRetry = false;
     this.deviceTokenRetryBudgetUsed = false;
     this.pendingStartupReconnectDelayMs = null;
+    this.activeConnectAuthState = null;
     if (hello?.auth?.deviceToken && plan.deviceIdentity) {
       storeDeviceAuthToken({
         deviceId: plan.deviceIdentity.deviceId,
@@ -696,12 +722,8 @@ export class GatewayBrowserClient {
     } else {
       this.pendingConnectError = undefined;
     }
-    const usedStoredDeviceToken =
-      Boolean(plan.selectedAuth.storedToken) &&
-      (plan.selectedAuth.resolvedDeviceToken === plan.selectedAuth.storedToken ||
-        plan.selectedAuth.authDeviceToken === plan.selectedAuth.storedToken);
     if (
-      usedStoredDeviceToken &&
+      selectedAuthUsesStoredDeviceToken(plan.selectedAuth) &&
       plan.deviceIdentity &&
       connectErrorCode === ConnectErrorDetailCodes.AUTH_DEVICE_TOKEN_MISMATCH
     ) {
@@ -739,9 +761,28 @@ export class GatewayBrowserClient {
     if (this.pendingDeviceTokenRetry && plan.selectedAuth.authDeviceToken) {
       this.pendingDeviceTokenRetry = false;
     }
+    this.activeConnectAuthState = plan.deviceIdentity
+      ? {
+          deviceId: plan.deviceIdentity.deviceId,
+          role: plan.role,
+          usingStoredDeviceToken: selectedAuthUsesStoredDeviceToken(plan.selectedAuth),
+        }
+      : null;
     void this.requestOnSocket<GatewayHelloOk>(ws, "connect", this.buildConnectParams(plan))
       .then((hello) => this.handleConnectHello(hello, plan, ws, generation))
       .catch((err: unknown) => this.handleConnectFailure(err, plan, ws, generation));
+  }
+
+  private clearStaleDeviceAuthFromActiveConnect() {
+    const active = this.activeConnectAuthState;
+    if (!active?.usingStoredDeviceToken) {
+      return;
+    }
+    try {
+      clearDeviceAuthToken({ deviceId: active.deviceId, role: active.role });
+    } catch {
+      // Best effort: stale storage should not break close handling.
+    }
   }
 
   private handleMessage(ws: WebSocket, generation: number, raw: string) {

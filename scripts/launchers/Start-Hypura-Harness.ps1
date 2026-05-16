@@ -33,7 +33,12 @@ if ((Test-Path $openclawCfgPath) -and (Test-Path $harnessCfgPath)) {
             }
         }
 
-        $hc | ConvertTo-Json -Depth 10 | Set-Content $harnessCfgPath -Encoding UTF8
+        $harnessJson = $hc | ConvertTo-Json -Depth 10
+        [System.IO.File]::WriteAllText(
+            $harnessCfgPath,
+            $harnessJson,
+            [System.Text.UTF8Encoding]::new($false)
+        )
         Write-Host "  [MODEL] harness.config.json synced from openclaw.json" -ForegroundColor Green
     } catch {
         Write-Host "  [WARN] Model sync failed: $_" -ForegroundColor Yellow

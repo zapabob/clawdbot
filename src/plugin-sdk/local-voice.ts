@@ -1,4 +1,5 @@
 import {
+  loadBundledPluginPublicSurfaceModuleSync,
   tryLoadActivatedBundledPluginPublicSurfaceModuleSync,
 } from "./facade-runtime.js";
 
@@ -31,10 +32,16 @@ type LocalVoiceFacadeModule = {
 };
 
 function tryLoadLocalVoiceFacadeModule(): LocalVoiceFacadeModule | null {
-  return tryLoadActivatedBundledPluginPublicSurfaceModuleSync<LocalVoiceFacadeModule>({
-    dirName: "local-voice",
-    artifactBasename: "runtime-api.js",
-  });
+  return (
+    tryLoadActivatedBundledPluginPublicSurfaceModuleSync<LocalVoiceFacadeModule>({
+      dirName: "local-voice",
+      artifactBasename: "runtime-api.js",
+    }) ??
+    loadBundledPluginPublicSurfaceModuleSync<LocalVoiceFacadeModule>({
+      dirName: "local-voice",
+      artifactBasename: "runtime-api.js",
+    })
+  );
 }
 
 export function resolveLocalVoiceCompanionDefaults(): LocalVoiceCompanionDefaults {

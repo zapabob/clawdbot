@@ -27,6 +27,20 @@ describe("AudioInput", () => {
     setAudioInputRuntimeForTest({
       naudiodon: {
         AudioIO: audioIoMock,
+        getDevices: () => [
+          {
+            id: 10,
+            name: "Microphone (Brio 100)",
+            maxInputChannels: 2,
+            maxOutputChannels: 0,
+            defaultSampleRate: 48_000,
+            defaultLowInputLatency: 0,
+            defaultLowOutputLatency: 0,
+            defaultHighInputLatency: 0,
+            defaultHighOutputLatency: 0,
+            hostAPIName: "Windows WASAPI",
+          },
+        ],
         SampleFormat16Bit: 16,
       },
     });
@@ -38,13 +52,17 @@ describe("AudioInput", () => {
     expect(audioIoMock).toHaveBeenCalledWith({
       inOptions: expect.objectContaining({
         channelCount: 1,
-        framesPerBuffer: 320,
+        deviceId: 10,
+        framesPerBuffer: 960,
         sampleFormat: 16,
-        sampleRate: 8000,
+        sampleRate: 48000,
       }),
     });
 
-    stream.emit("data", Buffer.from([0x00, 0x00, 0xff, 0x7f]));
+    const pcm = Buffer.alloc(24);
+    pcm.writeInt16LE(0, 0);
+    pcm.writeInt16LE(0x7fff, 12);
+    stream.emit("data", pcm);
 
     expect(handler).toHaveBeenCalledTimes(1);
     const [encoded] = handler.mock.calls[0] as [Buffer];
@@ -53,5 +71,19 @@ describe("AudioInput", () => {
 
     input.stop();
     expect(stream.quit).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns false when no input device is available", () => {
+    setAudioInputRuntimeForTest({
+      naudiodon: {
+        AudioIO: vi.fn(),
+        getDevices: () => [],
+        SampleFormat16Bit: 16,
+      },
+    });
+
+    const input = new AudioInput();
+
+    expect(input.start()).toBe(false);
   });
 });

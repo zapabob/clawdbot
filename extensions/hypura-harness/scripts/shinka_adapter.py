@@ -19,7 +19,7 @@ if SHINKA_PATH.exists() and str(SHINKA_PATH) not in sys.path:
 CONFIG_PATH = ROOT.parent / "config" / "harness.config.json"
 _config: dict = {}
 if CONFIG_PATH.exists():
-    _config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    _config = json.loads(CONFIG_PATH.read_text(encoding="utf-8-sig"))
 
 _OLLAMA_URL = _config.get("models", {}).get("ollama_base_url", "http://127.0.0.1:11434")
 _PRIMARY_MODEL = _config.get("models", {}).get("primary", "qwen-hakua-core")

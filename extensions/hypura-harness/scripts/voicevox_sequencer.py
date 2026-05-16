@@ -5,6 +5,7 @@ import asyncio
 import io
 import json
 import logging
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -32,6 +33,24 @@ def _find_cable_device(name: str = "CABLE Input") -> int | None:
     return None
 
 
+def _normalize_output_devices(
+    configured_device: int | None,
+    output_device: int | None = None,
+    output_devices: list[int] | None = None,
+) -> list[int | None]:
+    if output_devices:
+        seen: set[int] = set()
+        normalized: list[int | None] = []
+        for device in output_devices:
+            if device not in seen:
+                seen.add(device)
+                normalized.append(device)
+        return normalized
+    if output_device is not None:
+        return [output_device]
+    return [configured_device]
+
+
 class VoicevoxSequencer:
     def __init__(
         self,
@@ -53,6 +72,11 @@ class VoicevoxSequencer:
 
     async def speak(self, text: str, emotion: str = "neutral", speaker: int = 8) -> None:
         """Synthesize text and play through VB-Cable."""
+        wav_bytes = await self.synthesize(text, emotion=emotion, speaker=speaker)
+        self.play_wav_bytes(wav_bytes)
+
+    async def synthesize(self, text: str, emotion: str = "neutral", speaker: int = 8) -> bytes:
+        """Synthesize text and return wav bytes."""
         param_map = load_param_map()
         voice_params = self._emotion_to_voice_params(emotion, param_map)
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -69,11 +93,34 @@ class VoicevoxSequencer:
                 json=query,
             )
             r2.raise_for_status()
-            wav_bytes = r2.content
+            return r2.content
+
+    def play_wav_bytes(
+        self,
+        wav_bytes: bytes,
+        output_device: int | None = None,
+        output_devices: list[int] | None = None,
+    ) -> None:
+        """Play wav bytes through one or more selected output devices."""
         try:
             data, samplerate = sf.read(io.BytesIO(wav_bytes))
-            sd.play(data, samplerate, device=self._device)
-            sd.wait()
+            targets = _normalize_output_devices(self._device, output_device, output_devices)
+            errors: list[str] = []
+
+            def play_one(device: int | None) -> None:
+                try:
+                    sd.play(data, samplerate, device=device)
+                    sd.wait()
+                except Exception as exc:
+                    errors.append(f"{device}: {exc}")
+
+            threads = [threading.Thread(target=play_one, args=(device,)) for device in targets]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join()
+            if errors:
+                logger.warning("Audio playback failed on some devices: %s", "; ".join(errors))
         except Exception as e:
             logger.warning("Audio playback failed: %s", e)
 

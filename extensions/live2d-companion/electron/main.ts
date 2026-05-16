@@ -37,6 +37,8 @@ import {
 const require = createRequire(import.meta.url);
 const rawCompanionConfig = require("../companion.config.json") as Record<string, unknown>;
 const companionPolicy = resolveLive2dCompanionConfig(rawCompanionConfig);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(path.join(__dirname, "../../.."));
 
 type LocalWhisperMicSessionState = "idle" | "listening" | "processing" | "error";
 
@@ -66,11 +68,37 @@ type LocalVoiceFacade = {
   }) => LocalWhisperMicSession;
 };
 
-function loadLocalVoiceFacade(): LocalVoiceFacade | null {
+const localVoiceSdkSpecifier = "openclaw/plugin-sdk/local-voice";
+
+async function loadLocalVoiceFacade(): Promise<LocalVoiceFacade | null> {
   try {
-    return require("openclaw/plugin-sdk/local-voice") as LocalVoiceFacade;
+    return (await import(localVoiceSdkSpecifier)) as LocalVoiceFacade;
   } catch {
-    return null;
+    try {
+      const { createJiti } = require("jiti") as typeof import("jiti");
+      const loadSource = createJiti(import.meta.url);
+      return loadSource(
+        path.join(repoRoot, "extensions/local-voice/runtime-api.ts"),
+      ) as LocalVoiceFacade;
+    } catch {
+      return null;
+    }
+  }
+}
+
+function loadLocalVoiceDefaults(facade: LocalVoiceFacade | null): LocalVoiceCompanionDefaults {
+  try {
+    return (
+      facade?.resolveLocalVoiceCompanionDefaults() ?? {
+        sttBackend: "local-voice-whisper",
+        ttsBackend: "voicevox",
+      }
+    );
+  } catch {
+    return {
+      sttBackend: "local-voice-whisper",
+      ttsBackend: "voicevox",
+    };
   }
 }
 
@@ -83,14 +111,60 @@ function hasErrorCode(error: unknown, code: string): boolean {
   );
 }
 
-const localVoiceFacade = loadLocalVoiceFacade();
-const localVoiceDefaults = localVoiceFacade?.resolveLocalVoiceCompanionDefaults() ?? {
-  sttBackend: "local-voice-whisper",
-  ttsBackend: "voicevox",
+type RendererIpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];
+type RendererIpcFrame = {
+  send: (channel: string, ...args: unknown[]) => void;
+  isDestroyed?: () => boolean;
 };
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(path.join(__dirname, "../../.."));
+function isDisposedRendererSendError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    message.includes("Render frame was disposed") ||
+    message.includes("WebFrameMain could be accessed") ||
+    message.includes("Object has been destroyed")
+  );
+}
+
+function sendToRenderer(channel: RendererIpcChannel, ...args: unknown[]): boolean {
+  if (!rendererIpcReady) {
+    return false;
+  }
+
+  const window = mainWindow;
+  if (!window || window.isDestroyed()) {
+    return false;
+  }
+
+  const { webContents } = window;
+  if (webContents.isDestroyed()) {
+    return false;
+  }
+
+  try {
+    const frame = webContents.mainFrame as RendererIpcFrame | undefined;
+    if (frame?.isDestroyed?.()) {
+      rendererIpcReady = false;
+      return false;
+    }
+    if (frame) {
+      frame.send(channel, ...args);
+    } else {
+      webContents.send(channel, ...args);
+    }
+    return true;
+  } catch (error) {
+    if (isDisposedRendererSendError(error)) {
+      rendererIpcReady = false;
+      return false;
+    }
+    throw error;
+  }
+}
+
+const localVoiceFacade = await loadLocalVoiceFacade();
+const localVoiceDefaults = loadLocalVoiceDefaults(localVoiceFacade);
+
 const stateDir = process.env.OPENCLAW_STATE_DIR
   ? path.resolve(process.env.OPENCLAW_STATE_DIR)
   : path.resolve(path.join(repoRoot, String(rawCompanionConfig.stateDir ?? ".openclaw-desktop")));
@@ -119,6 +193,7 @@ type RuntimeStateCache = {
 };
 
 let mainWindow: BrowserWindow | null = null;
+let rendererIpcReady = false;
 let ignoreMouseTimer: ReturnType<typeof setInterval> | null = null;
 let legacyHttpServer: http.Server | null = null;
 let companionIpcServer: CompanionIpcServerHandle | null = null;
@@ -249,8 +324,24 @@ async function writeLegacyBinaryCapture(params: {
 
 function publishRuntimeState(): void {
   runtimeState.timestamp = Date.now();
-  mainWindow?.webContents.send(IPC_CHANNELS.RUNTIME_STATE, runtimeState);
+  sendToRenderer(IPC_CHANNELS.RUNTIME_STATE, runtimeState);
   void writeStateCache();
+}
+
+function markRendererIpcUnavailable(window: BrowserWindow): void {
+  if (mainWindow !== window) {
+    return;
+  }
+  rendererIpcReady = false;
+  resolveCameraWaiters(latestCameraCapture);
+}
+
+function markRendererIpcReady(window: BrowserWindow): void {
+  if (mainWindow !== window || window.isDestroyed() || window.webContents.isDestroyed()) {
+    return;
+  }
+  rendererIpcReady = true;
+  publishRuntimeState();
 }
 
 function startIgnoreMouseTimer(): ReturnType<typeof setInterval> {
@@ -306,12 +397,25 @@ function createWindow(): void {
   mainWindow.setIgnoreMouseEvents(true, { forward: true });
   ignoreMouseTimer = startIgnoreMouseTimer();
 
-  void mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
-  mainWindow.once("ready-to-show", () => {
+  const createdWindow = mainWindow;
+  rendererIpcReady = false;
+  createdWindow.webContents.on("did-start-loading", () =>
+    markRendererIpcUnavailable(createdWindow),
+  );
+  createdWindow.webContents.on("did-fail-load", () => markRendererIpcUnavailable(createdWindow));
+  createdWindow.webContents.on("render-process-gone", () =>
+    markRendererIpcUnavailable(createdWindow),
+  );
+  createdWindow.webContents.on("destroyed", () => markRendererIpcUnavailable(createdWindow));
+  createdWindow.webContents.on("did-finish-load", () => markRendererIpcReady(createdWindow));
+
+  void createdWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
+  createdWindow.once("ready-to-show", () => {
     mainWindow?.show();
     publishRuntimeState();
   });
-  mainWindow.on("closed", () => {
+  createdWindow.on("close", () => markRendererIpcUnavailable(createdWindow));
+  createdWindow.on("closed", () => {
     if (ignoreMouseTimer) {
       clearInterval(ignoreMouseTimer);
       ignoreMouseTimer = null;
@@ -343,7 +447,7 @@ function updateBrowserAttachment(
 }
 
 function sendAvatarCommand(command: AvatarCommand): void {
-  mainWindow?.webContents.send(IPC_CHANNELS.AVATAR_COMMAND, command);
+  sendToRenderer(IPC_CHANNELS.AVATAR_COMMAND, command);
 }
 
 async function requestRendererCameraCapture(): Promise<CompanionBinaryCapture | null> {
@@ -353,7 +457,9 @@ async function requestRendererCameraCapture(): Promise<CompanionBinaryCapture | 
   if (!mainWindow) {
     return latestCameraCapture;
   }
-  mainWindow.webContents.send(IPC_CHANNELS.CAMERA_CAPTURE_REQUEST);
+  if (!sendToRenderer(IPC_CHANNELS.CAMERA_CAPTURE_REQUEST)) {
+    return latestCameraCapture;
+  }
   return await new Promise<CompanionBinaryCapture | null>((resolve) => {
     const waiter = (capture: CompanionBinaryCapture | null) => {
       clearTimeout(timer);
@@ -509,10 +615,14 @@ async function handleCompanionAction(
       };
       return setPermissionDecision(request.capability, request.decision);
     }
+    case "set-mic-enabled": {
+      const request = payload as { enabled?: boolean };
+      return setMicEnabled(request.enabled === true);
+    }
     case "speak": {
       const request = payload as { text: string };
       if (typeof request.text === "string" && request.text.trim()) {
-        mainWindow?.webContents.send(IPC_CHANNELS.SPEAK_TEXT, request.text.trim());
+        sendToRenderer(IPC_CHANNELS.SPEAK_TEXT, request.text.trim());
       }
       return runtimeState;
     }
@@ -630,7 +740,7 @@ function handleLegacyControlCommand(command: Record<string, unknown>): void {
     runtimeState.ttsProvider = command.ttsProvider;
   }
   if (typeof command.speakText === "string" && command.speakText.trim()) {
-    mainWindow?.webContents.send(IPC_CHANNELS.SPEAK_TEXT, command.speakText.trim());
+    sendToRenderer(IPC_CHANNELS.SPEAK_TEXT, command.speakText.trim());
   }
   if (command.avatarCommand && typeof command.avatarCommand === "object") {
     sendAvatarCommand(command.avatarCommand as AvatarCommand);

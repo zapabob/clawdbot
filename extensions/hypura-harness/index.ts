@@ -33,6 +33,53 @@ function okText(text: string, details: Record<string, unknown> = {}) {
   };
 }
 
+function addStringParam(
+  body: Record<string, unknown>,
+  params: Record<string, unknown>,
+  key: string,
+): void {
+  if (typeof params[key] === "string") {
+    body[key] = params[key];
+  }
+}
+
+function addFiniteNumberParam(
+  body: Record<string, unknown>,
+  params: Record<string, unknown>,
+  key: string,
+): void {
+  const value = params[key];
+  if (typeof value === "number" && Number.isFinite(value)) {
+    body[key] = value;
+  }
+}
+
+function addFiniteNumberArrayParam(
+  body: Record<string, unknown>,
+  params: Record<string, unknown>,
+  key: string,
+): void {
+  const value = params[key];
+  if (Array.isArray(value)) {
+    const values = value.filter(
+      (item): item is number => typeof item === "number" && Number.isFinite(item),
+    );
+    if (values.length > 0) {
+      body[key] = values;
+    }
+  }
+}
+
+function addBooleanParam(
+  body: Record<string, unknown>,
+  params: Record<string, unknown>,
+  key: string,
+): void {
+  if (typeof params[key] === "boolean") {
+    body[key] = params[key];
+  }
+}
+
 async function harnessJson(
   api: OpenClawPluginApi,
   path: string,
@@ -87,7 +134,9 @@ export default definePluginEntry({
         action: stringEnum(COMPANION_CONTROL_ACTIONS, {
           description: "Companion action to perform.",
         }),
-        value: Type.Optional(Type.String({ description: "Text, emotion, motion, or expression value." })),
+        value: Type.Optional(
+          Type.String({ description: "Text, emotion, motion, or expression value." }),
+        ),
         motion_index: Type.Optional(Type.Number({ description: "Motion index (default 0)." })),
         x: Type.Optional(Type.Number({ description: "Normalized look-at x coordinate." })),
         y: Type.Optional(Type.Number({ description: "Normalized look-at y coordinate." })),
@@ -128,10 +177,16 @@ export default definePluginEntry({
       description:
         "POST /submodule/run - run a registry-backed vendor submodule preset through the gateway tool surface.",
       parameters: Type.Object({
-        repoId: Type.String({ description: "Registered repo id from vendor/submodules/registry.json." }),
+        repoId: Type.String({
+          description: "Registered repo id from vendor/submodules/registry.json.",
+        }),
         preset: Type.String({ description: "Registered preset name for the target repo." }),
         extraArgs: Type.Optional(
-          Type.Array(Type.String({ description: "Additional arguments appended after the preset template." })),
+          Type.Array(
+            Type.String({
+              description: "Additional arguments appended after the preset template.",
+            }),
+          ),
         ),
       }),
       async execute(_id: string, params: Record<string, unknown>) {
@@ -212,6 +267,197 @@ export default definePluginEntry({
           body.scene = params.scene;
         }
         const data = (await harnessJson(api, "/speak", {
+          method: "POST",
+          body: JSON.stringify(body),
+        })) as Record<string, unknown>;
+        return okText(JSON.stringify(data, null, 2), data);
+      },
+    });
+
+    api.registerTool({
+      name: "hypura_harness_voice_devices",
+      label: "Hypura Harness Voice Devices",
+      description:
+        "GET /voice/devices - list local sounddevice input/output devices and defaults for voice I/O routing.",
+      parameters: Type.Object({}),
+      async execute() {
+        const data = (await harnessJson(api, "/voice/devices", undefined, 10_000)) as Record<
+          string,
+          unknown
+        >;
+        return okText(JSON.stringify(data, null, 2), data);
+      },
+    });
+
+    api.registerTool({
+      name: "hypura_harness_voice_test_say",
+      label: "Hypura Harness Voice Test Say",
+      description:
+        "POST /voice/test-say - synthesize VOICEVOX text and play it through selected local output device ids.",
+      parameters: Type.Object({
+        text: Type.Optional(Type.String({ description: "Text to synthesize." })),
+        emotion: Type.Optional(Type.String({ description: "Voice emotion preset." })),
+        speaker: Type.Optional(Type.Number({ description: "VOICEVOX speaker id." })),
+        output_device: Type.Optional(Type.Number({ description: "Single sounddevice output id." })),
+        output_devices: Type.Optional(
+          Type.Array(Type.Number({ description: "Sounddevice output id." })),
+        ),
+      }),
+      async execute(_id: string, params: Record<string, unknown>) {
+        const body: Record<string, unknown> = {};
+        addStringParam(body, params, "text");
+        addStringParam(body, params, "emotion");
+        addFiniteNumberParam(body, params, "speaker");
+        addFiniteNumberParam(body, params, "output_device");
+        addFiniteNumberArrayParam(body, params, "output_devices");
+        const data = (await harnessJson(api, "/voice/test-say", {
+          method: "POST",
+          body: JSON.stringify(body),
+        })) as Record<string, unknown>;
+        return okText(JSON.stringify(data, null, 2), data);
+      },
+    });
+
+    api.registerTool({
+      name: "hypura_harness_voice_transcribe",
+      label: "Hypura Harness Voice Transcribe",
+      description:
+        "POST /voice/transcribe - transcribe an existing WAV file with the configured or supplied whisper.cpp runtime.",
+      parameters: Type.Object({
+        wav_path: Type.String({ description: "WAV file path visible to the harness daemon." }),
+        whisper_exe: Type.Optional(
+          Type.String({ description: "Optional whisper-cli executable path." }),
+        ),
+        whisper_model: Type.Optional(
+          Type.String({ description: "Optional whisper.cpp model path." }),
+        ),
+      }),
+      async execute(_id: string, params: Record<string, unknown>) {
+        const body: Record<string, unknown> = {
+          wav_path: typeof params.wav_path === "string" ? params.wav_path : "",
+        };
+        addStringParam(body, params, "whisper_exe");
+        addStringParam(body, params, "whisper_model");
+        const data = (await harnessJson(api, "/voice/transcribe", {
+          method: "POST",
+          body: JSON.stringify(body),
+        })) as Record<string, unknown>;
+        return okText(JSON.stringify(data, null, 2), data);
+      },
+    });
+
+    api.registerTool({
+      name: "hypura_harness_voice_turn",
+      label: "Hypura Harness Voice Turn",
+      description:
+        "POST /voice/turn - record local mic audio, transcribe it, run the OpenClaw agent command, and speak the reply.",
+      parameters: Type.Object({
+        record_seconds: Type.Optional(
+          Type.Number({ description: "Recording duration in seconds." }),
+        ),
+        samplerate: Type.Optional(Type.Number({ description: "Recording sample rate." })),
+        input_device: Type.Optional(Type.Number({ description: "Sounddevice input id." })),
+        output_device: Type.Optional(Type.Number({ description: "Single sounddevice output id." })),
+        output_devices: Type.Optional(
+          Type.Array(Type.Number({ description: "Sounddevice output id." })),
+        ),
+        speaker: Type.Optional(Type.Number({ description: "VOICEVOX speaker id." })),
+        emotion: Type.Optional(Type.String({ description: "Voice emotion preset for the reply." })),
+        whisper_exe: Type.Optional(
+          Type.String({ description: "Optional whisper-cli executable path." }),
+        ),
+        whisper_model: Type.Optional(
+          Type.String({ description: "Optional whisper.cpp model path." }),
+        ),
+        openclaw_timeout: Type.Optional(
+          Type.Number({ description: "Agent command timeout in seconds." }),
+        ),
+      }),
+      async execute(_id: string, params: Record<string, unknown>) {
+        const body: Record<string, unknown> = {};
+        addFiniteNumberParam(body, params, "record_seconds");
+        addFiniteNumberParam(body, params, "samplerate");
+        addFiniteNumberParam(body, params, "input_device");
+        addFiniteNumberParam(body, params, "output_device");
+        addFiniteNumberArrayParam(body, params, "output_devices");
+        addFiniteNumberParam(body, params, "speaker");
+        addStringParam(body, params, "emotion");
+        addStringParam(body, params, "whisper_exe");
+        addStringParam(body, params, "whisper_model");
+        addFiniteNumberParam(body, params, "openclaw_timeout");
+        const data = (await harnessJson(
+          api,
+          "/voice/turn",
+          {
+            method: "POST",
+            body: JSON.stringify(body),
+          },
+          600_000,
+        )) as Record<string, unknown>;
+        return okText(JSON.stringify(data, null, 2), data);
+      },
+    });
+
+    api.registerTool({
+      name: "hypura_harness_companion_voice_turn",
+      label: "Hypura Harness Companion Voice Turn",
+      description:
+        "POST /voice/companion-turn - use a Desktop Companion transcript as an OpenClaw agent turn and optionally speak/animate the reply.",
+      parameters: Type.Object({
+        transcript: Type.Optional(
+          Type.String({ description: "Transcript text. If omitted, read latest companion state." }),
+        ),
+        transcript_timestamp: Type.Optional(
+          Type.Number({ description: "Transcript timestamp from companion state." }),
+        ),
+        last_seen_timestamp: Type.Optional(
+          Type.Number({ description: "Skip transcript if timestamp is not newer." }),
+        ),
+        openclaw_timeout: Type.Optional(
+          Type.Number({ description: "Agent command timeout in seconds." }),
+        ),
+        speak: Type.Optional(
+          Type.Boolean({ description: "Speak the reply through the Desktop Companion." }),
+        ),
+        animate: Type.Optional(
+          Type.Boolean({ description: "Forward inferred emotion to the Desktop Companion." }),
+        ),
+      }),
+      async execute(_id: string, params: Record<string, unknown>) {
+        const body: Record<string, unknown> = {};
+        addStringParam(body, params, "transcript");
+        addFiniteNumberParam(body, params, "transcript_timestamp");
+        addFiniteNumberParam(body, params, "last_seen_timestamp");
+        addFiniteNumberParam(body, params, "openclaw_timeout");
+        addBooleanParam(body, params, "speak");
+        addBooleanParam(body, params, "animate");
+        const data = (await harnessJson(
+          api,
+          "/voice/companion-turn",
+          {
+            method: "POST",
+            body: JSON.stringify(body),
+          },
+          600_000,
+        )) as Record<string, unknown>;
+        return okText(JSON.stringify(data, null, 2), data);
+      },
+    });
+
+    api.registerTool({
+      name: "hypura_harness_companion_mic",
+      label: "Hypura Harness Companion Mic",
+      description:
+        "POST /voice/companion-mic - enable or disable Desktop Companion microphone capture through the harness bridge.",
+      parameters: Type.Object({
+        enabled: Type.Optional(
+          Type.Boolean({ description: "Whether companion microphone capture should be enabled." }),
+        ),
+      }),
+      async execute(_id: string, params: Record<string, unknown>) {
+        const body: Record<string, unknown> = {};
+        addBooleanParam(body, params, "enabled");
+        const data = (await harnessJson(api, "/voice/companion-mic", {
           method: "POST",
           body: JSON.stringify(body),
         })) as Record<string, unknown>;
@@ -569,6 +815,8 @@ export default definePluginEntry({
         "",
         "- Prefer **`hypura_harness_status`** before other harness tools.",
         "- VRChat / VOICEVOX: **`hypura_harness_osc`**, **`hypura_harness_speak`**.",
+        "- Voice I/O: use **`hypura_harness_voice_devices`** first, **`hypura_harness_voice_test_say`** for output routing, **`hypura_harness_voice_transcribe`** for WAV input, and **`hypura_harness_voice_turn`** for mic -> OpenClaw -> VOICEVOX turns.",
+        "- Desktop Companion voice: **`hypura_harness_companion_mic`** toggles mic capture and **`hypura_harness_companion_voice_turn`** handles transcript -> OpenClaw -> companion speech/animation.",
         "- Sanctioned external repos: **`hypura_harness_submodule`** for registry-backed vendor submodule presets.",
         "- Code execution: **`hypura_harness_run`** (→ 成功時に training:examples へ保存、失敗時に ShinkaEvolve → atlas:failures へ記録).",
         "- Skills / evolution / LoRA: **`hypura_harness_skill`**, **`hypura_harness_evolve`**, `hypura_harness_lora_*`.",
