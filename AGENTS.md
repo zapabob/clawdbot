@@ -1,169 +1,119 @@
 # AGENTS.MD
 
-Telegraph style. Root rules only. Read scoped `AGENTS.md` before subtree work.
-Skills own workflows; root owns hard policy and routing.
+Tele.Root policy/routing.Scoped `AGENTS.md` pre subtree.Skills own.Abbrev:WT,CB/TB,dep,rt,cfg,GH,beh,prf,cmt,pkg.
 
 ## Start
 
-- Repo: `https://github.com/openclaw/openclaw`
-- Replies: repo-root refs only: `extensions/telegram/src/index.ts:80`. No absolute paths, no `~/`.
-- Docs/user-visible work: `pnpm docs:list`, then read relevant docs only.
-- Fix/triage answers need source, tests, current/shipped behavior, and dependency contract proof.
-- Dependency-backed behavior: read upstream docs/source/types first. No API/default/error/timing guesses.
-- Live-verify when feasible. Never print secrets.
-- Missing deps: `pnpm install`, retry once, then report first actionable error.
-- CODEOWNERS: maint/refactor/tests ok. Larger behavior/product/security/ownership: owner ask/review.
-- Product/docs/UI/changelog wording: "plugin/plugins"; `extensions/` is internal.
-- New channel/plugin/app/doc surface: update `.github/labeler.yml` + GH labels.
-- New `AGENTS.md`: add sibling `CLAUDE.md` symlink; edit `AGENTS.md` only.
+- Repo:`https://github.com/openclaw/openclaw`
+- Replies:repo-root refs only (`extensions/telegram/src/index.ts:80`);no absolute paths or `~/`.
+- Docs/user-visible:`pnpm docs:list`;read relevant docs only.
+- Fix/triage:prove with source,tests,cur/shipped beh,dep contract.
+- Dep-backed:upstream docs/source/types first;no API/default/error/timing guesses.
+- Live verify when feasible;never print secrets.Missing deps:`pnpm install`,retry once,report first actionable error.
+- CODEOWNERS:maint/refactor/tests ok;beh/product/security/ownership needs owner review.
+- Wording:product/docs/UI/changelog say "plugin/plugins";`extensions/` internal.
+- New channel/plugin/app/doc:update `.github/labeler.yml` + GH labels.New `AGENTS.md`:add sibling `CLAUDE.md` symlink;edit `AGENTS.md` only.
 
 ## Map
 
-- Core TS: `src/`, `ui/`, `packages/`; plugins: `extensions/`; SDK: `src/plugin-sdk/*`; channels: `src/channels/*`; loader: `src/plugins/*`; protocol: `src/gateway/protocol/*`; docs/apps: `docs/`, `apps/`.
-- Installers: sibling `../openclaw.ai`.
-- Scoped guides: `extensions/`, `src/{plugin-sdk,channels,plugins,gateway,gateway/protocol,agents}/`, `test/helpers*/`, `docs/`, `ui/`, `scripts/`.
+- Areas:core TS `src/`,`ui/`,`packages/`;plugins `extensions/`;SDK `src/plugin-sdk/*`;channels `src/channels/*`;loader `src/plugins/*`;protocol `src/gateway/protocol/*`;docs/apps `docs/`,`apps/`;installers sibling `../openclaw.ai`.
+- Scoped guides:`extensions/`,`src/{plugin-sdk,channels,plugins,gateway,gateway/protocol,agents}/`,`test/helpers*/`,`docs/`,`ui/`,`scripts/`.
 
 ## Architecture
 
-- Core stays plugin-agnostic. No bundled ids/defaults/policy in core when manifest/registry/capability contracts work.
-- Plugins cross into core only via `openclaw/plugin-sdk/*`, manifest metadata, injected runtime helpers, documented barrels (`api.ts`, `runtime-api.ts`).
-- Plugin prod code: no core `src/**`, `src/plugin-sdk-internal/**`, other plugin `src/**`, or relative outside package.
-- Core/tests: no deep plugin internals (`extensions/*/src/**`, `onboard.js`). Use public barrels, SDK facade, generic contracts.
-- Owner boundary: owner-specific repair/detection/onboarding/auth/defaults/provider behavior lives in owner plugin. Shared/core gets generic seams only.
-- Dependency ownership follows runtime ownership: plugin-only deps stay plugin-local; root deps only for core imports or intentionally internalized bundled plugin runtime.
-- Internal bundled plugins ship in core dist; bundled-only facade loader ok only for them.
-- External official plugins own package/deps and are excluded from core dist; core uses registry-aware `facade-runtime` or generic contracts.
-- Externalizing a bundled plugin: update package excludes, official catalogs, docs, tests, and prove core runtime paths resolve installed plugin roots before root-dep removal.
-- Legacy config repair belongs in `openclaw doctor --fix`, not startup/load-time core migrations. Runtime paths use canonical contracts.
-- New seams: backward-compatible, documented, versioned. Third-party plugins exist.
-- Channels are implementation under `src/channels/**`; plugin authors get SDK seams. Providers own auth/catalog/runtime hooks; core owns generic loop.
-- Hot paths should carry prepared facts forward: provider id, model ref, channel id, target, capability family, attachment class. Do not rediscover with broad plugin/provider/channel/capability loaders.
-- Do not fix repeated request-time discovery with scattered caches. Move the canonical fact earlier; reuse prepared runtime objects; delete duplicate lookup branches.
-- Inline code comments: brief notes for tricky, bug-prone, or previously buggy logic.
-- Gateway protocol changes: additive first; incompatible needs versioning/docs/client follow-through.
-- Config contract: exported types, schema/help, metadata, baselines, docs aligned. Retired public keys stay retired; compat in raw migration/doctor only.
-- Prompt cache: deterministic ordering for maps/sets/registries/plugin lists/files/network results before model/tool payloads. Preserve old transcript bytes when possible.
+- Core plugin-agnostic;no bundled ids/defaults/policy when manifest/registry/capability contracts work.
+- Boundaries:plugin->core only SDK/manifests/helpers/barrels;prod plugin no core/internal/other-plugin src or outside relatives;core/tests no `extensions/*/src/**`/`onboard.js`,use public barrels/SDK facade/generic contracts.
+- Ownership/deps:owner plugin owns repair/detect/onboard/auth/defaults/provider beh;shared/core generic seams.Deps follow rt:plugin-only local;root only core imports/internalized bundled rt.
+- Bundling:internal bundled plugins ship core dist;bundled facade only them.External plugins own pkg/deps,stay out of core dist;core uses registry-aware facade/generic contracts.Externalizing bundled:update excludes/catalogs/docs/tests;prove root before root-dep removal.
+- Contracts:legacy cfg fix=`openclaw doctor --fix`;no startup/load migrations;rt paths canonical.New seams compat/docs/versioned;third-party plugins exist.Gateway additive;incompatible version/docs/client.Config aligned;retired keys retired;raw migration/doctor compat only.
+- Channels/cache:channels in `src/channels/**`;authors get SDK;providers auth/catalog/rt hooks;core loop.Hot paths carry provider/model/channel/target/capability/attach;no broad rediscovery/caches;reuse rt,delete dupe lookups.Prompt cache sorts inputs;preserve transcript bytes.
+- cmts:brief only for tricky,bug-prone,or previously buggy logic.
 
 ## Commands
 
-- Runtime: Node 22+. Keep Node + Bun paths working.
-- Package manager/runtime: repo defaults only. No swaps without approval.
-- Install: `pnpm install` (keep Bun lock/patches aligned if touched).
-- CLI: `pnpm openclaw ...` or `pnpm dev`; build: `pnpm build`.
-- Tests in a normal source checkout: `pnpm test <path-or-filter> [vitest args...]`, `pnpm test:changed`, `pnpm test:serial`, `pnpm test:coverage`; never raw `vitest`.
-- Tests in a Codex worktree or linked/sparse checkout: avoid direct local `pnpm test*`; use `node scripts/run-vitest.mjs <path-or-filter>` for tiny explicit-file proof, or Crabbox/Testbox for anything broader.
-- Checks in a normal source checkout: `pnpm check:changed`; lanes: `pnpm changed:lanes --json`; staged: `pnpm check:changed --staged`; full: `pnpm check`.
-- Checks in a Codex worktree or linked/sparse checkout: avoid direct local `pnpm check*`; use `node scripts/crabbox-wrapper.mjs run ... --shell -- "pnpm check:changed"` so pnpm runs inside Testbox, not locally.
-- Extension tests: `pnpm test:extensions`, `pnpm test extensions`, `pnpm test extensions/<id>`.
-- Typecheck: `tsgo` lanes only (`pnpm tsgo*`, `pnpm check:test-types`); never add `tsc --noEmit`, `typecheck`, `check:types`.
-- Formatting: `oxfmt`, not Prettier. Use repo wrappers (`pnpm format:*`, `pnpm lint:*`, `scripts/run-oxlint.mjs`).
-- Build before push when build output, packaging, lazy/module boundaries, dynamic imports, or published surfaces can change.
+- Runtime/PM:Node 22+;keep Node+Bun paths;repo defaults only,no swaps.
+- Install/CLI/build:`pnpm install` (align Bun lock/patches if touched);`pnpm openclaw ...` or `pnpm dev`;`pnpm build`.
+- Tests normal:`pnpm test <path-or-filter> [vitest args...]`,`pnpm test:changed`,`pnpm test:serial`,`pnpm test:coverage`;never raw `vitest`.
+- Tests Codex WT:avoid local `pnpm test*`;use `node scripts/run-vitest.mjs <path-or-filter>` for tiny prf,or CB/TB.
+- Checks normal:`pnpm check:changed`,`pnpm changed:lanes --json`,`pnpm check:changed --staged`,`pnpm check`.
+- Checks Codex WT:avoid local `pnpm check*`;use `node scripts/crabbox-wrapper.mjs run ...--shell -- "pnpm check:changed"` so pnpm runs in Testbox.
+- Extensions:`pnpm test:extensions`,`pnpm test extensions`,`pnpm test extensions/<id>`.
+- Typecheck:`tsgo` lanes only (`pnpm tsgo*`,`pnpm check:test-types`);never add `tsc --noEmit`,`typecheck`,`check:types`.Format:`oxfmt`,not Prettier;use repo wrappers.
+- Build before push if build output,packaging,lazy/module boundaries,dynamic imports,or published surfaces can change.
 
 ## Validation
 
-- Use `$openclaw-testing` for test/CI choice and `$crabbox` for remote/full/E2E proof.
-- Small/narrow tests, lints, format checks, and type probes are fine locally only in a healthy normal checkout.
-- In Codex worktrees, direct local `pnpm test*`, `pnpm check*`, `pnpm crabbox:run`, and `scripts/committer` can trigger pnpm dependency reconciliation or install prompts. Prefer `node` wrappers locally and Crabbox/Testbox for pnpm-gated proof.
-- Full suites, broad changed gates, Docker/package/E2E/live/cross-OS proof, or anything that bogs down the Mac: Crabbox/Testbox.
-- One/few files local. If a local command fans out, stop and move broad proof to Crabbox/Testbox.
-- Before handoff/push: prove touched surface. Before landing to `main`: issue proof plus appropriate full/broad proof unless scope is clearly narrow.
-- If proof is blocked, say exactly what is missing and why.
-- Do not land related failing format/lint/type/build/tests. If unrelated on latest `origin/main`, say so with scoped proof.
-- Docs/changelog-only and CI/workflow metadata-only: `git diff --check` plus relevant docs/workflow sanity; escalate only if scripts/config/generated/package/runtime behavior changed.
+- Use `$openclaw-testing` for test/CI choice;`$crabbox` for remote/full/E2E prf.
+- Local only in healthy normal checkout:small/narrow tests,lints,format checks,type probes.
+- Codex WTs:local `pnpm test*`,`pnpm check*`,`pnpm crabbox:run`,`scripts/committer` may trigger pnpm reconciliation/install prompts;prefer `node` wrappers and CB/TB.
+- Broad prf (full suites/gates,Docker/pkg/E2E/live/cross-OS,Mac-heavy) => CB/TB.One/few files local;if command fans out,stop and move broad prf.
+- Before handoff/push prove touched surface;before landing to `main`,issue prf plus full/broad prf unless clearly narrow.
+- Blocked prf:state exactly what is missing/why.Do not land related failing format/lint/type/build/tests;if unrelated on latest `origin/main`,say so with scoped prf.
+- Docs/changelog-only or CI/workflow metadata-only:`git diff --check` plus relevant docs/workflow sanity;escalate only if scripts/cfg/generated/pkg/rt beh changed.
 
 ## GitHub / PRs
 
-- Use `$openclaw-pr-maintainer` immediately for maintainer-side OpenClaw issue/PR review, triage, duplicates, labels, comments, close, land, or evidence. Contributor PR creation/refresh follows the requested contributor workflow; linked refs alone do not require maintainer archive tooling.
-- PR refs: `gh pr view/diff` or `gh api`, not web search. Prefer `gitcrawl` for maintainer discovery; missing/stale `gitcrawl` falls through to live `gh`, not contributor setup. Verify live with `gh` before mutation.
-- Bare issue/PR URL/number means review/report in chat. Suggest comment/close/merge when appropriate; mutate only when asked.
-- No unsolicited PR comments/reviews/labels/retitles/rebases/fixups/landing. Exception: close/duplicate action that needs a reason comment after explicit close/sweep/landing request.
-- Maintainer decision closes the cluster: if deciding reported behavior/proposed fix is not planned, comment+close all directly associated open issues/PRs unless explicitly told to keep one open. Associated means linked PRs/issues, duplicates, companion workaround PRs, and the canonical issue for the rejected behavior.
-- Do not leave associated issues open for hypothetical future repros. Close with rationale; ask for a new issue or reopen only if concrete new evidence appears. Close comment states: decision, why, supported alternative, and what evidence would change the decision.
-- PR review answer: bug/behavior, URL(s), affected surface, best-fix judgment, evidence from code/tests/CI/current or shipped behavior.
-- Issue/PR final answer: last line is the full GitHub URL.
-- Changelog: PR landings/fixes need one unless pure test/internal. Do not mention missing changelog as a review finding; Codex handles it during fix/landing.
-- PR verification: before merge, post exact local commands, CI/Testbox run IDs, before/after proof when used, and known proof gaps.
-- Issue fixed on `main` with proof: comment proof + commit/PR, then close.
-- After landing or requested close/sweep: search duplicates; comment proof + canonical commit/PR/release before closing.
-- After landing/ship final: include 2-5 sentence recap of what landed: behavior change, key files/surface, proof run, issue/PR state. Do not answer with only status/links.
-- `ship` that fixes an issue: after push, comment proof + commit link, then close the issue.
-- GH comments with backticks, `$`, or shell snippets: use heredoc/body file, not inline double-quoted `--body`.
-- PR create: real body required. Include Summary + Verification; mention refs, behavior, and proof.
-- Real behavior proof section is parsed. Use exact `field: value` labels: `Behavior addressed`, `Real environment tested`, `Exact steps or command run after this patch`, `Evidence after fix`, `Observed result after fix`, `What was not tested`.
-- PR artifacts/screenshots: attach to PR/comment/external artifact store. Do not commit `.github/pr-assets`.
-- CI polling: exact SHA, relevant checks only, minimal fields. Skip routine noise (`Auto response`, `Labeler`, docs agents, performance/stale). Logs only after failure/completion or concrete need.
-- Maintainers: may skip/ignore `Real behavior proof` when local tests or Crabbox verified behavior; record proof in PR verification.
-- `/landpr`: use `~/.codex/prompts/landpr.md`; do not idle on `auto-response` or `check-docs`.
+- Maintainer issue/PR ops (review/triage/dupe/label/cmt/close/land/evidence):use `$openclaw-pr-maintainer`.Contributor PR create/refresh follows request;linked refs alone need no archive tooling.
+- Refs:`gh pr view/diff` or `gh api`,not web.Prefer `gitcrawl`;stale/missing -> live `gh`,not contributor setup.Verify with `gh` before mutation.
+- Bare URL/number:review/report;suggest actions;mutate only when asked.No unsolicited PR cmts/reviews/labels/retitles/rebases/fixups/landing;explicit close/duplicate/sweep/landing may need reason cmt.
+- Rejection closes cluster unless told otherwise:cmt+close associated open issues/PRs (linked,dupes,workaround PRs,canonical issue).No hypothetical holds;new/reopen only concrete evidence.Close cmt:decision,why,alternative,change-evidence.
+- PR review:bug/beh,URLs,surface,best fix,code/tests/CI/cur-or-shipped evidence.Issue/PR final:full GH URL last line.Changelog:landings/fixes need one unless pure test/internal;missing changelog not review finding.
+- Verify/close:before merge post exact commands,CI/Testbox IDs,pre/post prf,gaps.Fixed on `main`:cmt prf + commit/PR,close.Post landing/close/sweep:search dupes;cmt prf + canon commit/PR/release before close.`ship` fix:after push,cmt prf + commit link,close.
+- Landing/ship final:2-5 sentence recap with beh change,key files/surface,prf run,issue/PR state;not status/links only.
+- GH cmts with backticks,`$`,shell snippets:heredoc/body file,not inline double-quoted `--body`.PR create:real body with Summary + Verification;mention refs,beh,prf.
+- Parsed prf labels:`Behavior addressed`,`Real environment tested`,`Exact steps or command run after this patch`,`Evidence after fix`,`Observed result after fix`,`What was not tested`.
+- PR artifacts/screenshots:attach to PR/cmt/external store;do not commit `.github/pr-assets`.CI polling:exact SHA,relevant checks,minimal fields;skip routine noise (`Auto response`,`Labeler`,docs agents,performance/stale);logs only after failure/completion/need.
+- Maintainers may skip/ignore `Real behavior proof` when local tests or Crabbox verified beh;record prf in PR verification.
+- `/landpr`:use `~/.codex/prompts/landpr.md`;do not idle on `auto-response` or `check-docs`.
 
 ## Code
 
-- TS ESM, strict. Avoid `any`; prefer real types, `unknown`, narrow adapters.
-- No `@ts-nocheck`. Lint suppressions only intentional + explained.
-- External boundaries: prefer `zod` or existing schema helpers.
-- Runtime branching: discriminated unions/closed codes over freeform strings. Avoid semantic sentinels (`?? 0`, empty object/string).
-- Dynamic import: no static+dynamic import for same prod module. Use `*.runtime.ts` lazy boundary. After edits: `pnpm build`; check `[INEFFECTIVE_DYNAMIC_IMPORT]`.
-- Cycles: keep `pnpm check:import-cycles` + architecture/madge green.
-- Classes: no prototype mixins/mutations. Prefer inheritance/composition. Tests prefer per-instance stubs.
-- Comments: brief, only non-obvious logic.
-- Split files around ~700 LOC when clarity/testability improves.
-- Naming: **OpenClaw** product/docs; `openclaw` CLI/package/path/config.
-- English: American spelling.
+- TS ESM strict.Avoid `any`;prefer real types,`unknown`,narrow adapters.No `@ts-nocheck`;lint suppressions intentional + explained.
+- External boundaries:prefer `zod` or existing schema helpers.Runtime branching:discriminated unions/closed codes;no freeform strings or semantic sentinels (`?? 0`,empty object/string).
+- Dynamic import:no static+dynamic import for same prod module;use `*.runtime.ts` lazy boundary.After edits:`pnpm build`;check `[INEFFECTIVE_DYNAMIC_IMPORT]`.
+- Cycles:keep `pnpm check:import-cycles` + architecture/madge green.
+- Classes:no prototype mixins/mutations;prefer inheritance/composition.Tests prefer per-instance stubs.
+- cmts brief/non-obvious only.Split files around ~700 LOC when clarity/testability improves.
+- Naming:**OpenClaw** product/docs;`openclaw` CLI/pkg/path/cfg.English:American spelling.
 
 ## Tests
 
-- Vitest. Colocated `*.test.ts`; e2e `*.e2e.test.ts`; example models `sonnet-4.6`, `gpt-5.5`; test GPT with 5.5 preferred, 5.4 ok; no GPT-4.x agent-smoke defaults.
-- Prefer behavior tests over workflow/docs string greps. Put operator policy reminders in AGENTS/docs.
-- Clean timers/env/globals/mocks/sockets/temp dirs/module state; `--isolate=false` safe.
-- Prefer injection and narrow `*.runtime.ts` mocks over broad barrels or `openclaw/plugin-sdk/*`.
-- Do not edit baseline/inventory/ignore/snapshot/expected-failure files to silence checks without explicit approval.
-- Do not run independent `pnpm test`/Vitest commands concurrently in one worktree; Vitest cache races with `ENOTEMPTY`. Group one command or use distinct `OPENCLAW_VITEST_FS_MODULE_CACHE_PATH`.
-- Test workers max 16. Memory pressure: `OPENCLAW_VITEST_MAX_WORKERS=1 pnpm test`.
-- Live: `OPENCLAW_LIVE_TEST=1 pnpm test:live`; verbose `OPENCLAW_LIVE_TEST_QUIET=0`.
-- Guide: `docs/reference/test.md`.
+- Vitest:colocated `*.test.ts`;e2e `*.e2e.test.ts`;example models `sonnet-4.6`,`gpt-5.5`;test GPT 5.5 preferred,5.4 ok;no GPT-4.x agent-smoke defaults.
+- Prefer beh tests over workflow/docs string greps;policy reminders go in AGENTS/docs.Clean timers/env/globals/mocks/sockets/temp dirs/module state;`--isolate=false` safe.
+- Prefer injection/narrow `*.runtime.ts` mocks over broad barrels or `openclaw/plugin-sdk/*`.Do not edit baseline/inventory/ignore/snapshot/expected-failure files to silence checks without explicit approval.
+- No concur independent `pnpm test`/Vitest in one WT;cache races with `ENOTEMPTY`.Group one command or set distinct `OPENCLAW_VITEST_FS_MODULE_CACHE_PATH`.
+- Test workers max 16;memory pressure `OPENCLAW_VITEST_MAX_WORKERS=1 pnpm test`;live `OPENCLAW_LIVE_TEST=1 pnpm test:live`;verbose `OPENCLAW_LIVE_TEST_QUIET=0`;guide `docs/reference/test.md`.
 
 ## Docs / Changelog
 
-- Use `$openclaw-docs` for docs writing/review. Docs change with behavior/API.
-- Codex harness upgrade (`extensions/codex/package.json` `@openai/codex`): refresh `docs/plugins/codex-harness.md` model snapshot from the new harness `model/list`.
-- Docs final answers: include relevant full `https://docs.openclaw.ai/...` URL(s). If issue/PR work too, GitHub URL last.
-- Changelog entries: active version `### Changes`/`### Fixes`; single-line bullets only.
-- Contributor PR authors should not edit `CHANGELOG.md`; maintainer/AI adds entries during landing/merge.
-- Contributor-facing changelog entries thank credited human `@author`. Never thank bots, `@openclaw`, `@clawsweeper`, or `@steipete`; if unknown, omit thanks.
+- Use `$openclaw-docs` for docs writing/review;docs change with beh/API.
+- Codex harness upgrade (`extensions/codex/package.json` `@openai/codex`):refresh `docs/plugins/codex-harness.md` model snapshot from new harness `model/list`.
+- Docs final answers:include relevant full `https://docs.openclaw.ai/...` URL(s);if issue/PR work too,GH URL last.
+- Changelog:active `### Changes`/`### Fixes`,single-line bullets.Contributors do not edit `CHANGELOG.md`;maintainer/AI adds landing/merge entries.Contributor entries thank human `@author`;never bots,`@openclaw`,`@clawsweeper`,or `@steipete`;omit if unknown.
 
 ## Git
 
-- Commit via `scripts/committer "<msg>" <file...>`; stage intended files only.
-- Commits: conventional-ish, concise, grouped.
-- No manual stash/autostash unless explicit. No branch/worktree changes unless requested.
-- `main`: no merge commits; rebase on latest `origin/main` before push. After one green run plus clean rebase sanity, do not chase moving `main` with repeated full gates.
-- User says `commit`: your changes only. `commit all`: all changes in grouped chunks. `push`: may `git pull --rebase` first.
-- User says `ship it`: changelog if needed, commit intended changes, pull --rebase, push.
-- Do not delete/rename unexpected files; ask if blocking, else ignore.
-- Bulk PR close/reopen >5: ask with count/scope.
+- Commit via `scripts/committer "<msg>" <file...>`;stage intended files only;commits conventional-ish,concise,grouped.
+- No manual stash/autostash unless explicit.No branch/WT changes unless requested.
+- `main`:no merge commits;rebase on latest `origin/main` before push;after one green run plus clean rebase sanity,do not chase moving `main`.
+- User says `commit`:your changes only;`commit all`:all changes in grouped chunks;`push`:may `git pull --rebase` first;`ship it`:changelog if needed,commit intended changes,pull --rebase,push.
+- Do not delete/rename unexpected files;ask if blocking,else ignore.Bulk PR close/reopen >5:ask with count/scope.
 
 ## Security / Release
 
-- Never commit real phone numbers, videos, credentials, live config.
-- Secrets: channel/provider creds in `~/.openclaw/credentials/`; model auth profiles in `~/.openclaw/agents/<agentId>/agent/auth-profiles.json`.
-- Dependency patches/overrides/vendor changes need explicit approval. `pnpm-workspace.yaml` patched dependencies use exact versions only.
-- Carbon pins owner-only: do not change `@buape/carbon` unless Shadow (`@thewilloftheshadow`, verified by `gh`) asks.
-- Releases/publish/version bumps need explicit approval. Use `$openclaw-release-maintainer`.
-- GHSA/advisories: `$openclaw-ghsa-maintainer` / `$security-triage`. Secret scanning: `$openclaw-secret-scanning-maintainer`.
-- Beta tag/version match: `vYYYY.M.D-beta.N` -> npm `YYYY.M.D-beta.N --tag beta`.
+- Never commit real phone numbers,videos,credentials,live cfg.
+- Secrets:channel/provider creds in `~/.openclaw/credentials/`;model auth profiles in `~/.openclaw/agents/<agentId>/agent/auth-profiles.json`.
+- Dep patches/overrides/vendor changes need explicit approval;`pnpm-workspace.yaml` patched deps use exact versions.Carbon pins owner-only:do not change `@buape/carbon` unless Shadow (`@thewilloftheshadow`,verified by `gh`) asks.
+- Releases/publish/version bumps need explicit approval;use `$openclaw-release-maintainer`.GHSA/advisories:`$openclaw-ghsa-maintainer` / `$security-triage`;secret scanning:`$openclaw-secret-scanning-maintainer`.
+- Beta tag/version match:`vYYYY.M.D-beta.N` -> npm `YYYY.M.D-beta.N --tag beta`.
 
 ## Platform / Ops
 
-- Before simulator/emulator testing, check real iOS/Android devices.
-- "restart iOS/Android apps" = rebuild/reinstall/relaunch, not kill/launch.
-- SwiftUI: Observation (`@Observable`, `@Bindable`) over new `ObservableObject`.
-- Mac gateway: dev watch = `pnpm gateway:watch`; managed installs = `openclaw gateway restart/status --deep`; logs = `./scripts/clawlog.sh`. No launchd/ad-hoc tmux.
-- Version bump surfaces live in `$openclaw-release-maintainer`.
-- Parallels: `$openclaw-parallels-smoke`; Discord roundtrip: `$parallels-discord-roundtrip`.
-- Crabbox/WebVNC human demos: keep remote desktop visible/windowed; no fullscreen remote browser unless video/capture-style output.
-- ClawSweeper ops: `$clawsweeper`. Deployed hook sessions may post one concise `#clawsweeper` note only when surprising/actionable/risky; if using message tool, reply exactly `NO_REPLY`.
-- Memory wiki prompt digest stays tiny; prefer `wiki_search` / `wiki_get`; verify contact data before use; source-class provenance for generated people facts.
-- Rebrand/migration/config warnings: run `openclaw doctor`.
-- Never edit `node_modules`.
-- Local-only `.agents` ignores: `.git/info/exclude`, not repo `.gitignore`.
-- Provider tool schemas: prefer flat string enum helpers over `Type.Union([Type.Literal(...)])`; some providers reject `anyOf`.
-- External messaging: no token-delta channel messages. Follow `docs/concepts/streaming.md`.
+- Mobile:real iOS/Android devices before simulator/emulator;restart = rebuild/reinstall/relaunch,not kill/launch;SwiftUI Observation (`@Observable`,`@Bindable`) over new `ObservableObject`.
+- Mac gateway:dev `pnpm gateway:watch`;managed `openclaw gateway restart/status --deep`;logs `./scripts/clawlog.sh`;no launchd/ad-hoc tmux.
+- Ops:version bumps `$openclaw-release-maintainer`;Parallels `$openclaw-parallels-smoke`;Discord `$parallels-discord-roundtrip`;rebrand/migration/cfg warnings `openclaw doctor`.
+- CB/WebVNC demos:desktop visible/windowed;no fullscreen remote browser unless video/capture output.ClawSweeper:`$clawsweeper`;deployed hooks may post one concise `#clawsweeper` note only when surprising/actionable/risky;if using message tool,reply `NO_REPLY`.
+- Memory wiki:tiny digest;prefer `wiki_search`/`wiki_get`;verify contacts;source-class provenance for generated people facts.
+- Never edit `node_modules`.Local-only `.agents` ignores:`.git/info/exclude`,not repo `.gitignore`.
+- Provider tool schemas:prefer flat string enum helpers over `Type.Union([Type.Literal(...)])`;some providers reject `anyOf`.
+- External messaging:no token-delta channel messages.Follow `docs/concepts/streaming.md`.
