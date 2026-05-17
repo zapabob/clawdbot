@@ -79,4 +79,29 @@ describe("resolveCommandConfigWithSecrets", () => {
     });
     expect(result.effectiveConfig).toBe(effectiveConfig);
   });
+
+  it("forwards skipGateway for read-only fallback callers", async () => {
+    const config = { channels: {} };
+    const targetIds = new Set(["channels.telegram.token"]);
+    mocks.resolveCommandSecretRefsViaGateway.mockResolvedValue({
+      resolvedConfig: config,
+      diagnostics: [],
+    });
+
+    await resolveCommandConfigWithSecrets({
+      config,
+      commandName: "channels status",
+      targetIds,
+      mode: "read_only_status",
+      skipGateway: true,
+    });
+
+    expect(mocks.resolveCommandSecretRefsViaGateway).toHaveBeenCalledWith({
+      config,
+      commandName: "channels status",
+      targetIds,
+      mode: "read_only_status",
+      skipGateway: true,
+    });
+  });
 });

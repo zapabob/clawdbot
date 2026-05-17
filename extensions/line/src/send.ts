@@ -68,6 +68,10 @@ function normalizeTarget(to: string): string {
     throw new Error("Recipient is required for LINE sends");
   }
 
+  if (/^[ucr][a-f0-9]{32}$/i.test(normalized)) {
+    return `${normalized[0].toUpperCase()}${normalized.slice(1)}`;
+  }
+
   return normalized;
 }
 

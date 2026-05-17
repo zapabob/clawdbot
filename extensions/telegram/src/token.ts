@@ -21,6 +21,8 @@ type RuntimeTokenValueResolution =
   | { status: "configured_unavailable" }
   | { status: "missing" };
 
+const LEGACY_ENV_TEMPLATE_RE = /^\$\{([A-Za-z_][A-Za-z0-9_]*)\}$/;
+
 function resolveEnvSecretRefValue(params: {
   cfg?: Pick<OpenClawConfig, "secrets">;
   provider: string;
@@ -49,11 +51,44 @@ function resolveEnvSecretRefValue(params: {
   return normalizeSecretInputString((params.env ?? process.env)[params.id]);
 }
 
+function resolveLegacyEnvTemplateTokenValue(params: {
+  cfg?: Pick<OpenClawConfig, "secrets">;
+  value: unknown;
+}): RuntimeTokenValueResolution | null {
+  if (typeof params.value !== "string") {
+    return null;
+  }
+  const match = params.value.trim().match(LEGACY_ENV_TEMPLATE_RE);
+  if (!match) {
+    return null;
+  }
+  const envValue = resolveEnvSecretRefValue({
+    cfg: params.cfg,
+    provider: resolveDefaultSecretProviderAlias({ secrets: params.cfg?.secrets }, "env"),
+    id: match[1],
+  });
+  if (envValue) {
+    return {
+      status: "available",
+      value: envValue,
+    };
+  }
+  return { status: "configured_unavailable" };
+}
+
 function resolveRuntimeTokenValue(params: {
   cfg?: Pick<OpenClawConfig, "secrets">;
   value: unknown;
   path: string;
 }): RuntimeTokenValueResolution {
+  const legacyEnvTemplate = resolveLegacyEnvTemplateTokenValue({
+    cfg: params.cfg,
+    value: params.value,
+  });
+  if (legacyEnvTemplate) {
+    return legacyEnvTemplate;
+  }
+
   const resolved = resolveSecretInputString({
     value: params.value,
     path: params.path,

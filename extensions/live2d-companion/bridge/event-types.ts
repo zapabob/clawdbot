@@ -1,5 +1,14 @@
 export type EmotionType = "happy" | "sad" | "surprised" | "angry" | "embarrassed" | "neutral";
 export type TtsProvider = "voicevox" | "web-speech";
+export type CompanionAvatarAction =
+  | "speak"
+  | "emotion"
+  | "expression"
+  | "motion"
+  | "gesture"
+  | "pose"
+  | "look_at"
+  | "load_model";
 
 export interface CompanionLineEvent {
   type: "line_message";
@@ -84,6 +93,10 @@ export interface AvatarCommand {
   pose?: AvatarPoseCommand;
   /** Speak text via TTS (triggers lip sync) */
   speakText?: string;
+  /** Optional emotion to apply before speakText. */
+  speakEmotion?: string;
+  /** Optional TTS backend override for this command. */
+  ttsProvider?: TtsProvider;
   /** Eye gaze direction: normalised [-1,1] per axis */
   lookAt?: { x: number; y: number };
 }
@@ -93,7 +106,19 @@ export interface CompanionStateUpdate {
   agentId: string;
   ttsProvider: TtsProvider;
   speaking: boolean;
+  avatar?: CompanionAvatarStateUpdate;
   timestamp: number;
+}
+
+export interface CompanionAvatarStateUpdate {
+  lastAction?: CompanionAvatarAction;
+  lastEmotion?: string | null;
+  lastExpression?: string | null;
+  lastMotion?: string | null;
+  lastMotionIndex?: number | null;
+  lastLookAt?: { x: number; y: number } | null;
+  lastUpdatedAt?: number | null;
+  lastSpeechAt?: number | null;
 }
 
 export type CompanionEvent =

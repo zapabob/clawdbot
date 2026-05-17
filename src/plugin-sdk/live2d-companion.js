@@ -9,6 +9,12 @@ function loadLive2dCompanionFacadeModule() {
 export function getCompanionState(params) {
   return loadLive2dCompanionFacadeModule().getCompanionState(params);
 }
+export function getCompanionProfile(params) {
+  return loadLive2dCompanionFacadeModule().getCompanionProfile(params);
+}
+export function updateCompanionProfile(params) {
+  return loadLive2dCompanionFacadeModule().updateCompanionProfile(params);
+}
 export function getCompanionInputSnapshot(params) {
   return loadLive2dCompanionFacadeModule().getCompanionInputSnapshot(params);
 }
@@ -44,6 +50,9 @@ export function activateCompanionAsset(params) {
 }
 export function requestCompanionCameraCapture(params) {
   return loadLive2dCompanionFacadeModule().requestCompanionCameraCapture(params);
+}
+export function requestCompanionWindowCapture(params) {
+  return loadLive2dCompanionFacadeModule().requestCompanionWindowCapture(params);
 }
 export function requestCompanionScreenCapture(params) {
   return loadLive2dCompanionFacadeModule().requestCompanionScreenCapture(params);

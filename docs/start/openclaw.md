@@ -231,6 +231,7 @@ Logs live under `/tmp/openclaw/` (default: `openclaw-YYYY-MM-DD.log`).
 - Gateway ops: [Gateway runbook](/gateway)
 - Cron + wakeups: [Cron jobs](/automation/cron-jobs)
 - macOS menu bar companion: [OpenClaw macOS app](/platforms/macos)
+- Local Desktop Companion overlay: [Windows](/platforms/windows) or [Linux](/platforms/linux)
 - iOS node app: [iOS app](/platforms/ios)
 - Android node app: [Android app](/platforms/android)
 - Windows status: [Windows (WSL2)](/platforms/windows)

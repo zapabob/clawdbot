@@ -210,7 +210,11 @@ describe("config-only channels status output", () => {
     expect(listReadOnlyChannelPluginsForConfig).toHaveBeenCalledOnce();
     expect(requireReadOnlyPluginListCall()).toStrictEqual([
       cfg,
-      { activationSourceConfig: cfg, includeSetupFallbackPlugins: true },
+      {
+        activationSourceConfig: cfg,
+        includeSetupFallbackPlugins: true,
+        skipMetadataSnapshot: true,
+      },
     ]);
   });
 

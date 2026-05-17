@@ -12,6 +12,7 @@ export async function resolveCommandConfigWithSecrets<TConfig extends OpenClawCo
   targetIds: Set<string>;
   mode?: CommandSecretResolutionMode;
   allowedPaths?: Set<string>;
+  skipGateway?: boolean;
   runtime?: RuntimeEnv;
   autoEnable?: boolean;
   env?: NodeJS.ProcessEnv;
@@ -26,6 +27,7 @@ export async function resolveCommandConfigWithSecrets<TConfig extends OpenClawCo
     targetIds: params.targetIds,
     ...(params.mode ? { mode: params.mode } : {}),
     ...(params.allowedPaths ? { allowedPaths: params.allowedPaths } : {}),
+    ...(params.skipGateway ? { skipGateway: true } : {}),
   });
   if (params.runtime) {
     for (const entry of diagnostics) {

@@ -18,6 +18,21 @@ export function getCompanionState(params) {
     action: "get-state",
   });
 }
+export function getCompanionProfile(params) {
+  return sendCompanionAction({
+    ...(params?.stateDir ? { stateDir: params.stateDir } : {}),
+    action: "get-profile",
+  });
+}
+export function updateCompanionProfile(params) {
+  return sendCompanionAction({
+    ...(params.stateDir ? { stateDir: params.stateDir } : {}),
+    action: "update-profile",
+    payload: {
+      profile: params.profile,
+    },
+  });
+}
 export function listCompanionAssets(params) {
   return sendCompanionAction({
     ...(params?.stateDir ? { stateDir: params.stateDir } : {}),
@@ -53,6 +68,8 @@ export function setCompanionMicEnabled(params) {
 export function speakWithCompanion(params) {
   const payload = {
     text: params.text,
+    ...(params.emotion ? { emotion: params.emotion } : {}),
+    ...(params.ttsProvider ? { ttsProvider: params.ttsProvider } : {}),
   };
   return sendCompanionAction({
     ...(params.stateDir ? { stateDir: params.stateDir } : {}),
@@ -115,6 +132,12 @@ export function requestCompanionCameraCapture(params) {
   return sendCompanionAction({
     ...(params?.stateDir ? { stateDir: params.stateDir } : {}),
     action: "request-camera-capture",
+  });
+}
+export function requestCompanionWindowCapture(params) {
+  return sendCompanionAction({
+    ...(params?.stateDir ? { stateDir: params.stateDir } : {}),
+    action: "request-window-capture",
   });
 }
 export function requestCompanionScreenCapture(params) {

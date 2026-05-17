@@ -16,7 +16,7 @@ type VoiceVoxOverrideConfig = {
 };
 
 const DEFAULT_BASE_URL = "http://127.0.0.1:50021";
-const DEFAULT_SPEAKER_ID = 2;
+const DEFAULT_SPEAKER_ID = 8;
 
 function trimToUndefined(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
@@ -54,13 +54,18 @@ function normalizeVoiceVoxProviderConfig(
     (providers?.voicevox as Record<string, unknown> | undefined) ??
     (rawConfig.voicevox as Record<string, unknown> | undefined) ??
     {};
+  const legacyBaseUrl = trimToUndefined(rawConfig.vvEndpoint);
+  const legacySpeakerId = parseSpeakerId(rawConfig.vvSpeakerId);
 
   return {
     baseUrl: normalizeBaseUrl(
-      trimToUndefined(raw.baseUrl) ?? trimToUndefined(process.env.VOICEVOX_ENDPOINT),
+      trimToUndefined(raw.baseUrl) ??
+        legacyBaseUrl ??
+        trimToUndefined(process.env.VOICEVOX_ENDPOINT),
     ),
     speakerId:
       parseSpeakerId(raw.speakerId) ??
+      legacySpeakerId ??
       parseSpeakerId(process.env.VOICEVOX_SPEAKER_ID) ??
       DEFAULT_SPEAKER_ID,
     speed: asNumber(raw.speed),

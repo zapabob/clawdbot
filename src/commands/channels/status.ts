@@ -3,7 +3,8 @@ import { resolveCommandConfigWithSecrets } from "../../cli/command-config-resolu
 import { formatCliCommand } from "../../cli/command-format.js";
 import { getConfiguredChannelsCommandSecretTargetIds } from "../../cli/command-secret-targets.js";
 import { withProgress } from "../../cli/progress.js";
-import { readConfigFileSnapshot } from "../../config/config.js";
+import { readSourceConfigBestEffort, resolveConfigPath } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { callGateway } from "../../gateway/call.js";
 import { collectChannelStatusIssues } from "../../infra/channels-status-issues.js";
 import { formatErrorMessage } from "../../infra/errors.js";
@@ -20,7 +21,6 @@ import {
   appendTokenSourceBits,
   buildChannelAccountLine,
   type ChatChannel,
-  requireValidConfigSnapshot,
 } from "./shared.js";
 import { formatConfigChannelsStatusLines } from "./status-config-format.js";
 
@@ -208,6 +208,12 @@ export async function channelsStatusCommand(
 ) {
   const timeoutMs = Number(opts.timeout ?? (opts.probe ? 30_000 : 10_000));
   const requestedChannel = opts.channel ? normalizeChannelId(opts.channel) : null;
+  let statusConfig: OpenClawConfig | null = null;
+  const readStatusConfig = async () => {
+    statusConfig ??= await readSourceConfigBestEffort();
+    return statusConfig;
+  };
+  const configPath = resolveConfigPath();
   const statusLabel = opts.probe ? "Checking channel status (probe)…" : "Checking channel status…";
   const shouldLogStatus = opts.json !== true && !process.stderr.isTTY;
   if (shouldLogStatus) {
@@ -221,6 +227,7 @@ export async function channelsStatusCommand(
         enabled: opts.json !== true,
       },
       async () => {
+        const cfg = await readStatusConfig();
         const params: { channel?: string; probe: boolean; timeoutMs: number } = {
           probe: Boolean(opts.probe),
           timeoutMs,
@@ -232,6 +239,8 @@ export async function channelsStatusCommand(
           method: "channels.status",
           params,
           timeoutMs,
+          config: cfg,
+          configPath,
         });
       },
     );
@@ -243,18 +252,7 @@ export async function channelsStatusCommand(
   } catch (err) {
     const safeError = formatChannelsStatusError(err);
     runtime.error(`Gateway not reachable: ${safeError}`);
-    const cfg = await requireValidConfigSnapshot(runtime);
-    if (!cfg) {
-      return;
-    }
-    const { resolvedConfig } = await resolveCommandConfigWithSecrets({
-      config: cfg,
-      commandName: "channels status",
-      targetIds: getConfiguredChannelsCommandSecretTargetIds(cfg),
-      mode: "read_only_status",
-      runtime,
-    });
-    const snapshot = await readConfigFileSnapshot();
+    const cfg = await readStatusConfig();
     const mode = cfg.gateway?.mode === "remote" ? "remote" : "local";
     if (opts.json) {
       writeRuntimeJson(runtime, {
@@ -262,11 +260,11 @@ export async function channelsStatusCommand(
         error: safeError,
         configOnly: true,
         config: {
-          path: snapshot.path,
+          path: configPath,
           mode,
         },
         configuredChannels: listConfiguredChannelIdsForReadOnlyScope({
-          config: resolvedConfig,
+          config: cfg,
           activationSourceConfig: cfg,
           env: process.env,
           includePersistedAuthState: false,
@@ -274,12 +272,20 @@ export async function channelsStatusCommand(
       });
       return;
     }
+    const { resolvedConfig } = await resolveCommandConfigWithSecrets({
+      config: cfg,
+      commandName: "channels status",
+      targetIds: getConfiguredChannelsCommandSecretTargetIds(cfg),
+      mode: "read_only_status",
+      skipGateway: true,
+      runtime,
+    });
     runtime.log(
       (
         await formatConfigChannelsStatusLines(
           resolvedConfig,
           {
-            path: snapshot.path,
+            path: configPath,
             mode,
           },
           { sourceConfig: cfg, channel: opts.channel },

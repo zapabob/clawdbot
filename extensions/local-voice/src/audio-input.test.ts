@@ -85,5 +85,63 @@ describe("AudioInput", () => {
     const input = new AudioInput();
 
     expect(input.start()).toBe(false);
+    expect(input.getLastError()).toBe("No audio input device is available");
+  });
+
+  it("falls back to the next input device when the preferred device fails", () => {
+    const stream = new FakeAudioStream();
+    const audioIoMock = vi
+      .fn()
+      .mockImplementationOnce(() => {
+        throw new Error("WASAPI unavailable");
+      })
+      .mockImplementationOnce(() => stream);
+
+    setAudioInputRuntimeForTest({
+      naudiodon: {
+        AudioIO: audioIoMock,
+        getDevices: () => [
+          {
+            id: 10,
+            name: "Microphone (Primary)",
+            maxInputChannels: 2,
+            maxOutputChannels: 0,
+            defaultSampleRate: 48_000,
+            defaultLowInputLatency: 0,
+            defaultLowOutputLatency: 0,
+            defaultHighInputLatency: 0,
+            defaultHighOutputLatency: 0,
+            hostAPIName: "Windows WASAPI",
+          },
+          {
+            id: 11,
+            name: "Microphone (Fallback)",
+            maxInputChannels: 2,
+            maxOutputChannels: 0,
+            defaultSampleRate: 44_100,
+            defaultLowInputLatency: 0,
+            defaultLowOutputLatency: 0,
+            defaultHighInputLatency: 0,
+            defaultHighOutputLatency: 0,
+            hostAPIName: "MME",
+          },
+        ],
+        SampleFormat16Bit: 16,
+      },
+    });
+
+    const input = new AudioInput();
+
+    expect(input.start()).toBe(true);
+    expect(audioIoMock).toHaveBeenCalledTimes(2);
+    expect(audioIoMock).toHaveBeenLastCalledWith({
+      inOptions: expect.objectContaining({
+        deviceId: 11,
+        sampleRate: 44_100,
+      }),
+    });
+    expect(input.getLastError()).toBeNull();
+
+    input.stop();
   });
 });

@@ -63,10 +63,13 @@ export class LipSyncController {
         await this.speakWithVoicevox(text, emotionProfile);
         return;
       } catch (err) {
-        console.warn("[LipSync] VOICEVOX unavailable, falling back to Web Speech:", err);
+        console.warn("[LipSync] VOICEVOX unavailable; skipping Web Speech fallback:", err);
+        this.live2d.setLipSyncValue(0);
+        window.companionBridge?.sendStateUpdate?.({ speaking: false });
+        return;
       }
     }
-    // Free TTS fallback: Web Speech API (browser built-in, no cost)
+    // Explicit local fallback: Web Speech API (browser built-in, no cost).
     await this.speakWithWebSpeech(text);
   }
 

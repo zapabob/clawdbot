@@ -762,6 +762,41 @@
         resize: vertical;
       }
 
+      .field input {
+        width: 100%;
+        min-height: 40px;
+        padding: 0 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text-primary);
+        font: inherit;
+      }
+
+      .field input[type="range"] {
+        min-height: 28px;
+        padding: 0;
+        accent-color: var(--accent-rose);
+      }
+
+      .profile-form {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .profile-form .field {
+        margin-top: 0;
+      }
+
+      .field--full {
+        grid-column: 1 / -1;
+      }
+
+      .profile-actions {
+        margin-top: 12px;
+      }
+
       .checkbox-row {
         display: flex;
         align-items: flex-start;
@@ -822,7 +857,8 @@
 
         .permission-grid,
         .quick-actions,
-        .asset-actions {
+        .asset-actions,
+        .profile-form {
           grid-template-columns: 1fr;
         }
 
@@ -905,6 +941,70 @@
             </div>
             <div id="setup-progress" class="progress-row"></div>
             <ol id="setup-checklist" class="checklist"></ol>
+          </section>
+
+          <section class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Character profile</h2>
+                <div class="card-copy">
+                  Local persona state for the dock, agent tools, voice, and relationship labels.
+                </div>
+              </div>
+              <span id="profile-status-badge" class="badge badge--muted">Saved</span>
+            </div>
+            <div class="profile-form">
+              <div class="field">
+                <label for="profile-display-name">Name</label>
+                <input id="profile-display-name" maxlength="80" autocomplete="off" />
+              </div>
+              <div class="field">
+                <label for="profile-mood">Mood</label>
+                <input
+                  id="profile-mood"
+                  maxlength="40"
+                  autocomplete="off"
+                  list="profile-mood-options"
+                />
+                <datalist id="profile-mood-options">
+                  <option value="neutral"></option>
+                  <option value="happy"></option>
+                  <option value="sad"></option>
+                  <option value="surprised"></option>
+                  <option value="angry"></option>
+                  <option value="embarrassed"></option>
+                </datalist>
+              </div>
+              <div class="field">
+                <label for="profile-greeting">Greeting</label>
+                <input id="profile-greeting" maxlength="500" autocomplete="off" />
+              </div>
+              <div class="field">
+                <label for="profile-voice">Voice profile</label>
+                <input id="profile-voice" maxlength="120" autocomplete="off" />
+              </div>
+              <div class="field field--full">
+                <label for="profile-character-prompt">Character prompt</label>
+                <textarea
+                  id="profile-character-prompt"
+                  maxlength="4000"
+                  placeholder="Local-only companion persona notes"
+                ></textarea>
+              </div>
+              <div class="field">
+                <label for="profile-relationship-level">Relationship</label>
+                <input id="profile-relationship-level" min="0" max="100" type="range" />
+                <div id="profile-relationship-value" class="info-label">0 / 100</div>
+              </div>
+              <div class="field">
+                <label for="profile-relationship-label">Relationship label</label>
+                <input id="profile-relationship-label" maxlength="80" autocomplete="off" />
+              </div>
+            </div>
+            <div class="asset-actions profile-actions">
+              <button id="profile-save" class="action-button">Save profile</button>
+              <button id="profile-reset" class="ghost-button">Revert</button>
+            </div>
           </section>
 
           <section class="card">

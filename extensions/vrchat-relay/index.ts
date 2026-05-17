@@ -14,6 +14,14 @@ import {
   clearSession,
   getStoredSession,
 } from "./src/auth/index.js";
+import { AudioOutputRouter } from "./src/autonomous/audio-output.js";
+import { VRChatChatBoxSender } from "./src/autonomous/chatbox.js";
+import { resolveAutonomousVrchatAiConfig } from "./src/autonomous/config.js";
+import { validateAgentDecision, type AgentDecision } from "./src/autonomous/decision.js";
+import { InputHub, type InputHubSource } from "./src/autonomous/input-hub.js";
+import { GPT55LowOrchestrator } from "./src/autonomous/orchestrator.js";
+import { AutonomousVrchatAiRuntime } from "./src/autonomous/runtime.js";
+import { VOICEVOXAdapter } from "./src/autonomous/voicevox.js";
 import { applyReactiveManifest } from "./src/autonomy/reactive-manifest.js";
 import { registerVrchatRelayGatewayMethods } from "./src/gateway.js";
 import { startGhostBridge, stopGhostBridge, getGhostBridgeStatus } from "./src/ghost-bridge.js";
@@ -103,6 +111,54 @@ const plugin: any = {
         host: Type.Optional(Type.String({ default: "127.0.0.1" })),
       }),
     ),
+    autonomousVrchatAi: Type.Optional(
+      Type.Object({
+        enabled: Type.Optional(Type.Boolean({ default: false })),
+      }),
+    ),
+    inputHub: Type.Optional(
+      Type.Object({
+        maxBufferedEvents: Type.Optional(Type.Number({ default: 64 })),
+        textBox: Type.Optional(
+          Type.Object({ enabled: Type.Optional(Type.Boolean({ default: true })) }),
+        ),
+        speechToText: Type.Optional(
+          Type.Object({ enabled: Type.Optional(Type.Boolean({ default: false })) }),
+        ),
+        visionObservation: Type.Optional(
+          Type.Object({ enabled: Type.Optional(Type.Boolean({ default: true })) }),
+        ),
+        streamComment: Type.Optional(
+          Type.Object({ enabled: Type.Optional(Type.Boolean({ default: true })) }),
+        ),
+      }),
+    ),
+    orchestrator: Type.Optional(
+      Type.Object({
+        model: Type.Optional(Type.String({ default: "gpt-5.5" })),
+        reasoning: Type.Optional(
+          Type.Object({
+            effort: Type.Optional(Type.String({ default: "low" })),
+          }),
+        ),
+        maxOutputTokens: Type.Optional(Type.Number({ default: 700 })),
+      }),
+    ),
+    voicevox: Type.Optional(
+      Type.Object({
+        enabled: Type.Optional(Type.Boolean({ default: true })),
+        baseUrl: Type.Optional(Type.String({ default: "http://127.0.0.1:50021" })),
+        speaker: Type.Optional(Type.Number({ default: 1 })),
+        timeoutMs: Type.Optional(Type.Number({ default: 30000 })),
+      }),
+    ),
+    audioOutput: Type.Optional(
+      Type.Object({
+        mode: Type.Optional(Type.String({ default: "speaker" })),
+        virtualCableDeviceName: Type.Optional(Type.String({ default: "" })),
+        emitSpeakingEvents: Type.Optional(Type.Boolean({ default: true })),
+      }),
+    ),
     vrchatOsc: Type.Optional(
       Type.Object({
         enabled: Type.Optional(Type.Boolean({ default: true })),
@@ -148,6 +204,23 @@ const plugin: any = {
         alwaysResetToZero: Type.Optional(Type.Boolean({ default: true })),
       }),
     ),
+    chatBox: Type.Optional(
+      Type.Object({
+        enabled: Type.Optional(Type.Boolean({ default: false })),
+        maxChars: Type.Optional(Type.Number({ default: 144 })),
+        maxLines: Type.Optional(Type.Number({ default: 9 })),
+        minIntervalMs: Type.Optional(Type.Number({ default: 3000 })),
+        submit: Type.Optional(Type.Boolean({ default: true })),
+        notify: Type.Optional(Type.Boolean({ default: false })),
+        typing: Type.Optional(Type.Boolean({ default: true })),
+      }),
+    ),
+    speechToText: Type.Optional(
+      Type.Object({
+        enabled: Type.Optional(Type.Boolean({ default: false })),
+        suppressDuringTts: Type.Optional(Type.Boolean({ default: true })),
+      }),
+    ),
     safety: Type.Optional(
       Type.Object({
         requireOscJsonParameterPresence: Type.Optional(Type.Boolean({ default: true })),
@@ -181,6 +254,7 @@ const plugin: any = {
     console.log("[vrchat-relay] Registering VRChat Relay plugin (Pro Edition)...");
     registerVrchatRelayGatewayMethods(api);
 
+    const autonomousConfig = resolveAutonomousVrchatAiConfig(api.pluginConfig);
     const ownAvatarConfig = resolveOwnAvatarConfig(api.pluginConfig);
     getOSCClient({
       host: ownAvatarConfig.vrchatOsc.host,
@@ -205,6 +279,54 @@ const plugin: any = {
       },
     });
     const ownAvatarReceiver = new VRChatOscReceiver(getOSCClient());
+    const inputHub = new InputHub({
+      config: autonomousConfig.inputHub,
+      speechToText: autonomousConfig.speechToText,
+    });
+    const orchestrator = new GPT55LowOrchestrator({
+      config: autonomousConfig.orchestrator,
+      complete: async (request) => {
+        const complete = api.runtime?.llm?.complete;
+        if (typeof complete !== "function") {
+          throw new Error("OpenClaw runtime LLM completion is not available");
+        }
+        const result = await complete({
+          messages: request.messages,
+          model: request.model,
+          maxTokens: request.maxOutputTokens,
+          temperature: 0.2,
+          purpose: "vrchat-relay.agent-decision",
+        });
+        return result.text;
+      },
+    });
+    const voicevox = new VOICEVOXAdapter(autonomousConfig.voicevox);
+    const audioOutput = new AudioOutputRouter({
+      config: autonomousConfig.audioOutput,
+    });
+    audioOutput.onEvent((event) => {
+      inputHub.setTtsSpeaking(event.type === "speaking.start");
+      if (event.type === "speaking.start") {
+        ownAvatarController.applyState("speaking");
+      } else {
+        ownAvatarController.applyState("idle");
+      }
+    });
+    const autonomousChatBox = new VRChatChatBoxSender(autonomousConfig.chatBox, getOSCClient());
+    const autonomousRuntime = new AutonomousVrchatAiRuntime({
+      config: autonomousConfig,
+      inputHub,
+      orchestrator,
+      voicevox,
+      audioOutput,
+      ownAvatarController,
+      chatBox: autonomousChatBox,
+      log: {
+        info: logInfo,
+        warn: logWarn,
+        error: logError,
+      },
+    });
 
     // /chatbox command - Direct access for the Parent (via Python OSC bridge)
     api.registerCommand({
@@ -858,6 +980,193 @@ ${paramList}`,
       },
     });
 
+    // vrchat_ai_avatar_status - Autonomous VRChat AI Avatar status
+    api.registerTool({
+      name: "vrchat_ai_avatar_status",
+      description:
+        "Get Autonomous VRChat AI Avatar status, orchestrator defaults, input buffer, voice, ChatBox, and safety defaults.",
+      parameters: Type.Object({}),
+      execute() {
+        const inputStatus = inputHub.getStatus();
+        const ownAvatarStatus = ownAvatarController.getStatus();
+        return ok(
+          `Autonomous VRChat AI Avatar:
+- Enabled: ${autonomousConfig.autonomousVrchatAi.enabled}
+- Orchestrator: ${autonomousConfig.orchestrator.model} / reasoning=${autonomousConfig.orchestrator.reasoning.effort}
+- Input Buffer: ${inputStatus.bufferedEvents}
+- TTS Speaking: ${inputStatus.ttsSpeaking}
+- VOICEVOX: ${autonomousConfig.voicevox.enabled ? autonomousConfig.voicevox.baseUrl : "disabled"}
+- Audio Output: ${autonomousConfig.audioOutput.mode}
+- ChatBox: ${autonomousConfig.chatBox.enabled ? "enabled" : "disabled"}
+- Movement: ${autonomousConfig.movement.enabled ? "enabled" : "disabled"}
+- STT Echo Suppression: ${autonomousConfig.speechToText.suppressDuringTts}
+- Own Avatar Supported: ${ownAvatarStatus.supported}`,
+          {
+            autonomous: autonomousConfig.autonomousVrchatAi,
+            orchestrator: autonomousConfig.orchestrator,
+            inputStatus,
+            voicevox: autonomousConfig.voicevox,
+            audioOutput: autonomousConfig.audioOutput,
+            chatBox: autonomousConfig.chatBox,
+            movement: autonomousConfig.movement,
+            speechToText: autonomousConfig.speechToText,
+            ownAvatarStatus,
+          },
+        );
+      },
+    });
+
+    // vrchat_ai_avatar_ingest - Add one text/STT/vision/comment event to InputHub
+    api.registerTool({
+      name: "vrchat_ai_avatar_ingest",
+      description:
+        "Add a textBox, speechToText, visionObservation, or streamComment event to the Autonomous VRChat AI Avatar InputHub.",
+      parameters: Type.Object({
+        source: Type.String({
+          description: "Input source: textBox, speechToText, visionObservation, or streamComment",
+        }),
+        text: Type.String({ description: "Input text or observation" }),
+      }),
+      execute(_id: string, params: { source: string; text: string }) {
+        const sources = new Set(["textBox", "speechToText", "visionObservation", "streamComment"]);
+        if (!sources.has(params.source)) {
+          return fail(`Invalid input source: ${params.source}`, { source: params.source });
+        }
+        const result = autonomousRuntime.ingest({
+          source: params.source as InputHubSource,
+          text: params.text,
+        });
+        return result.accepted
+          ? ok("Autonomous VRChat AI input accepted", {
+              ...inputHub.getStatus(),
+              source: params.source,
+            })
+          : fail(`Autonomous VRChat AI input rejected: ${result.reason}`, {
+              ...inputHub.getStatus(),
+              source: params.source,
+              reason: result.reason,
+            });
+      },
+    });
+
+    // vrchat_ai_avatar_build_decision_request - Build structured request for the orchestrator
+    api.registerTool({
+      name: "vrchat_ai_avatar_build_decision_request",
+      description:
+        "Build the gpt-5.5 low-reasoning structured JSON AgentDecision request from buffered InputHub events.",
+      parameters: Type.Object({
+        flush: Type.Optional(
+          Type.Boolean({
+            description: "Clear buffered inputs after building the request",
+            default: false,
+          }),
+        ),
+      }),
+      execute(_id: string, params: { flush?: boolean }) {
+        const snapshot = params.flush ? inputHub.flush() : inputHub.snapshot();
+        const request = orchestrator.buildRequest(snapshot);
+        return ok("Autonomous VRChat AI AgentDecision request built", {
+          request,
+          eventCount: snapshot.events.length,
+        });
+      },
+    });
+
+    // vrchat_ai_avatar_run_decision - Run runtime LLM orchestration and apply the result
+    api.registerTool({
+      name: "vrchat_ai_avatar_run_decision",
+      description:
+        "Run gpt-5.5 low-reasoning AgentDecision orchestration from buffered InputHub events and apply the validated result.",
+      parameters: Type.Object({}),
+      async execute() {
+        try {
+          const result = await autonomousRuntime.processBufferedInputs();
+          return ok(
+            "Autonomous VRChat AI decision generated and applied",
+            result as unknown as Record<string, unknown>,
+          );
+        } catch (error) {
+          return fail(
+            `Autonomous VRChat AI decision failed: ${error instanceof Error ? error.message : String(error)}`,
+            { error: error instanceof Error ? error.message : String(error) },
+          );
+        }
+      },
+    });
+
+    // vrchat_ai_avatar_apply_decision - Apply validated structured AgentDecision JSON
+    api.registerTool({
+      name: "vrchat_ai_avatar_apply_decision",
+      description:
+        "Validate and apply an AgentDecision to OC_* avatar parameters, VOICEVOX/audio events, and optional ChatBox output.",
+      parameters: Type.Object({
+        decision: Type.Any({ description: "AgentDecision JSON object" }),
+      }),
+      async execute(_id: string, params: { decision: unknown }) {
+        const validation = validateAgentDecision(params.decision);
+        if (!validation.ok || !validation.decision) {
+          return fail(`Invalid AgentDecision: ${validation.errors.join("; ")}`, {
+            errors: validation.errors,
+          });
+        }
+        const result = await autonomousRuntime.applyDecision(validation.decision as AgentDecision);
+        return ok(
+          "Autonomous VRChat AI decision applied",
+          result as unknown as Record<string, unknown>,
+        );
+      },
+    });
+
+    // vrchat_ai_avatar_chatbox - Autonomous ChatBox sender with opt-in config and rate limit
+    api.registerTool({
+      name: "vrchat_ai_avatar_chatbox",
+      description:
+        "Send a VRChat ChatBox message through the autonomous ChatBox guard. Disabled unless chatBox.enabled=true.",
+      parameters: Type.Object({
+        text: Type.String({ description: "ChatBox text. It is clamped to 144 chars and 9 lines." }),
+        submit: Type.Optional(Type.Boolean({ default: true })),
+        notify: Type.Optional(Type.Boolean({ default: false })),
+      }),
+      execute(_id: string, params: { text: string; submit?: boolean; notify?: boolean }) {
+        const result = autonomousChatBox.send({
+          text: params.text,
+          submit: params.submit,
+          notify: params.notify,
+        });
+        return result.success
+          ? ok(
+              "Autonomous VRChat ChatBox message sent",
+              result as unknown as Record<string, unknown>,
+            )
+          : fail(
+              `Autonomous VRChat ChatBox blocked: ${result.error}`,
+              result as unknown as Record<string, unknown>,
+            );
+      },
+    });
+
+    // vrchat_ai_avatar_voicevox_request - Show the VOICEVOX requests without calling the engine
+    api.registerTool({
+      name: "vrchat_ai_avatar_voicevox_request",
+      description:
+        "Build VOICEVOX audio_query and synthesis request metadata for a reply without calling VOICEVOX.",
+      parameters: Type.Object({
+        text: Type.String({ description: "Text to synthesize" }),
+        speaker: Type.Optional(Type.Number({ default: autonomousConfig.voicevox.speaker })),
+      }),
+      execute(_id: string, params: { text: string; speaker?: number }) {
+        const audioQuery = voicevox.buildAudioQueryRequest({
+          text: params.text,
+          speaker: params.speaker,
+        });
+        const synthesis = voicevox.buildSynthesisRequest(
+          { accent_phrases: [], speedScale: 1 },
+          params.speaker ?? autonomousConfig.voicevox.speaker,
+        );
+        return ok("VOICEVOX request metadata built", { audioQuery, synthesis });
+      },
+    });
+
     // vrchat_send_osc - Send raw OSC message
     api.registerTool({
       name: "vrchat_send_osc",
@@ -905,6 +1214,11 @@ ${paramList}`,
         ),
       }),
       execute(_id: string, params: { action: string; value?: boolean | number }) {
+        if (!autonomousConfig.movement.enabled) {
+          return fail("VRChat input controller is disabled by movement.enabled=false", {
+            movement: autonomousConfig.movement,
+          });
+        }
         const result = sendInputCommand({
           action: params.action,
           value: params.value,
@@ -939,6 +1253,11 @@ ${paramList}`,
         ),
       }),
       async execute(_id: string, params: { direction: string; durationMs?: number }) {
+        if (!autonomousConfig.movement.enabled) {
+          return fail("VRChat movement is disabled by movement.enabled=false", {
+            movement: autonomousConfig.movement,
+          });
+        }
         const allowed = ["forward", "backward", "left", "right", "jump"];
         if (!allowed.includes(params.direction)) {
           return fail(`Invalid direction. Use one of: ${allowed.join(", ")}`, {
@@ -1361,17 +1680,14 @@ ${logText}`,
     // Inject MD guidance so the agent uses VRChat tools autonomously
     api.on("before_prompt_build", () => ({
       appendSystemContext: [
-        "## VRChat 制御ツール (vrchat-relay)",
+        "## VRChat Relay plugin",
         "",
-        "- **`vrchat_login`** / **`vrchat_status`** — 認証・接続確認（他のツールより先に実行）",
-        "- **`vrchat_chatbox`** — チャットボックスにメッセージ送信（最大 144 文字）",
-        "- **`vrchat_manual_move`** — 方向入力を一定時間だけ送って必ずリセット",
-        "- **`vrchat_set_avatar_param`** — アバターパラメーター制御",
-        "- **`vrchat_autonomy_react`** — 会話感情から表情 + 追従移動を反映（クールダウン付き）",
-        "- **`vrchat_autonomy_start`** / **`vrchat_autonomy_stop`** / **`vrchat_autonomy_status`** — Ghost Bridge 自律行動ループ制御",
-        "- **`vrchat_guardian_pulse_start`** — 自律的に定期メッセージ + 感情を VRChat に送信",
-        "- カメラ制御・OSC・フレンド一覧など 27 ツール利用可能。",
-        "> 権限レベル: SAFE（デフォルト）→ PRO → DIRECTOR の順で昇格が必要。",
+        "- Use official VRChat OSC only. Do not request VRChat credentials for own-avatar control, modify the client, inject DLLs, bypass EAC, or auto-join worlds.",
+        "- `vrchat_own_avatar_*` controls the user's currently worn OpenClaw-ready avatar through `OC_*` parameters.",
+        "- `vrchat_ai_avatar_ingest`, `vrchat_ai_avatar_run_decision`, and `vrchat_ai_avatar_apply_decision` provide the structured autonomous avatar path.",
+        "- Autonomous ChatBox output is disabled unless `chatBox.enabled=true`; movement remains disabled unless explicitly configured.",
+        "- Keep public-instance actions subtle. Prefer listen, think, small nod, speaking, and neutral reset states.",
+        "- Emergency stop is `vrchat_own_avatar_emergency_stop` and maps to `OC_Reset`, `OC_Action=0`, `OC_State=0`, and `OC_Emotion=0`.",
       ].join("\n"),
     }));
 

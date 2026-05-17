@@ -125,6 +125,7 @@ type ReadOnlyChannelPluginOptions = {
   activationSourceConfig?: OpenClawConfig;
   includePersistedAuthState?: boolean;
   includeSetupFallbackPlugins?: boolean;
+  skipMetadataSnapshot?: boolean;
 };
 
 type ReadOnlyChannelPluginResolution = {
@@ -700,21 +701,25 @@ export function resolveReadOnlyChannelPluginsForConfig(
   const env = options.env ?? process.env;
   const workspaceDir = resolveReadOnlyWorkspaceDir(cfg, options);
   const metadataSnapshot =
-    options.stateDir === undefined
-      ? getCurrentPluginMetadataSnapshot({
-          config: cfg,
-          env,
-          workspaceDir,
-        })
-      : undefined;
+    options.skipMetadataSnapshot === true
+      ? undefined
+      : options.stateDir === undefined
+        ? getCurrentPluginMetadataSnapshot({
+            config: cfg,
+            env,
+            workspaceDir,
+          })
+        : undefined;
   const manifestRecords =
-    metadataSnapshot?.plugins ??
-    loadPluginMetadataSnapshot({
-      config: cfg,
-      stateDir: options.stateDir,
-      workspaceDir,
-      env,
-    }).plugins;
+    options.skipMetadataSnapshot === true
+      ? []
+      : (metadataSnapshot?.plugins ??
+        loadPluginMetadataSnapshot({
+          config: cfg,
+          stateDir: options.stateDir,
+          workspaceDir,
+          env,
+        }).plugins);
   const bundledManifestRecords = listBundledChannelManifestRecords(manifestRecords);
   const externalManifestRecords = listExternalChannelManifestRecords(manifestRecords);
   const configuredChannelIds = [

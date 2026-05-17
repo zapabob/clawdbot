@@ -5,7 +5,9 @@ import asyncio
 import io
 import json
 import logging
+import os
 import threading
+import time
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +17,7 @@ import soundfile as sf
 
 logger = logging.getLogger(__name__)
 ROOT = Path(__file__).parent
+DEFAULT_PLAYBACK_TIMEOUT_SEC = 10.0
 
 
 def load_param_map() -> dict:
@@ -51,6 +54,18 @@ def _normalize_output_devices(
     return [configured_device]
 
 
+def _playback_timeout_sec() -> float:
+    raw = os.getenv("HYPURA_VOICE_PLAYBACK_TIMEOUT_SEC")
+    if raw:
+        try:
+            parsed = float(raw)
+            if parsed > 0:
+                return parsed
+        except ValueError:
+            pass
+    return DEFAULT_PLAYBACK_TIMEOUT_SEC
+
+
 class VoicevoxSequencer:
     def __init__(
         self,
@@ -73,7 +88,7 @@ class VoicevoxSequencer:
     async def speak(self, text: str, emotion: str = "neutral", speaker: int = 8) -> None:
         """Synthesize text and play through VB-Cable."""
         wav_bytes = await self.synthesize(text, emotion=emotion, speaker=speaker)
-        self.play_wav_bytes(wav_bytes)
+        await asyncio.to_thread(self.play_wav_bytes, wav_bytes)
 
     async def synthesize(self, text: str, emotion: str = "neutral", speaker: int = 8) -> bytes:
         """Synthesize text and return wav bytes."""
@@ -114,11 +129,19 @@ class VoicevoxSequencer:
                 except Exception as exc:
                     errors.append(f"{device}: {exc}")
 
-            threads = [threading.Thread(target=play_one, args=(device,)) for device in targets]
-            for thread in threads:
+            timeout_sec = _playback_timeout_sec()
+            deadline = time.monotonic() + timeout_sec
+            threads = [
+                (device, threading.Thread(target=play_one, args=(device,), daemon=True))
+                for device in targets
+            ]
+            for _device, thread in threads:
                 thread.start()
-            for thread in threads:
-                thread.join()
+            for device, thread in threads:
+                remaining = max(0.0, deadline - time.monotonic())
+                thread.join(remaining)
+                if thread.is_alive():
+                    errors.append(f"{device}: playback timed out after {timeout_sec:.1f}s")
             if errors:
                 logger.warning("Audio playback failed on some devices: %s", "; ".join(errors))
         except Exception as e:

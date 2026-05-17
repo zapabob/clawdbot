@@ -5,6 +5,77 @@
   "osc_receive_port": 9001,
   "voicevox_url": "http://127.0.0.1:50021",
   "virtual_cable_name": "CABLE Input",
+  "vrchat": {
+    "enabled": true,
+    "osc": {
+      "enabled": true,
+      "sendHost": "127.0.0.1",
+      "sendPort": 9000,
+      "listenHost": "127.0.0.1",
+      "listenPort": 9001,
+      "library": "python-osc"
+    },
+    "avatarControl": {
+      "mode": "existing_avatar_parameters",
+      "requireProfileForWrites": true,
+      "autoGenerateProfileSuggestions": true,
+      "profileDir": "state/vrchat/avatar-profiles",
+      "allowDirectParameterWrite": false,
+      "forbidSyntheticOcPrefixRequirement": true,
+      "blockedParameterNames": [
+        "AFK",
+        "MuteSelf",
+        "Voice",
+        "TrackingType",
+        "VRMode",
+        "IsOnGround",
+        "VelocityX",
+        "VelocityY",
+        "VelocityZ",
+        "Upright",
+        "Grounded",
+        "Seated",
+        "InStation",
+        "AvatarVersion"
+      ]
+    },
+    "chatBox": {
+      "enabled": false,
+      "maxChars": 144,
+      "maxLines": 9,
+      "cooldownMs": 8000,
+      "publicEnabled": false
+    },
+    "movement": {
+      "enabled": false,
+      "allowAxes": false,
+      "autoResetMs": 120,
+      "privateOnly": true
+    },
+    "safety": {
+      "emergencyStopHotkey": "Ctrl+Alt+O",
+      "globalOscRateLimitPerSecond": 10,
+      "actionCooldownMs": 1500,
+      "localhostOnly": true
+    }
+  },
+  "desktopCompanion3d": {
+    "enabled": true,
+    "browserPort": 18795,
+    "eventWsPort": 18796,
+    "overlay": {
+      "enabled": true,
+      "transparent": true,
+      "alwaysOnTop": true,
+      "clickThrough": false
+    },
+    "assetRoot": "state/companion3d/assets",
+    "allowedExtensions": [".vrm", ".glb", ".gltf", ".fbx"],
+    "defaultModel": "state/companion3d/assets/default.vrm",
+    "allowRemoteModelUrl": false,
+    "maxModelSizeMb": 150,
+    "preferVrm": true
+  },
   "voice": {
     "output_devices": [],
     "openclaw_command": "node openclaw.mjs agent --agent main --json --timeout 180 --message {message}"

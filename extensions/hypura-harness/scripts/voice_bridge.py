@@ -53,28 +53,38 @@ def transcribe_wav(
     whisper_exe: Path = DEFAULT_WHISPER_EXE,
     whisper_model: Path = DEFAULT_WHISPER_MODEL,
 ) -> str:
+    if not wav_path.exists():
+        raise FileNotFoundError(f"wav file not found: {wav_path}")
     if not whisper_exe.exists():
         raise FileNotFoundError(f"whisper executable not found: {whisper_exe}")
     if not whisper_model.exists():
         raise FileNotFoundError(f"whisper model not found: {whisper_model}")
-    result = subprocess.run(
-        [
-            str(whisper_exe),
-            "-m",
-            str(whisper_model),
-            "-f",
-            str(wav_path),
-            "-l",
-            "ja",
-            "-nt",
-            "-np",
-        ],
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        capture_output=True,
-        check=True,
-    )
+    command = [
+        str(whisper_exe),
+        "-m",
+        str(whisper_model),
+        "-f",
+        str(wav_path),
+        "-l",
+        "ja",
+        "-nt",
+        "-np",
+    ]
+    try:
+        result = subprocess.run(
+            command,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            capture_output=True,
+            check=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        detail = (exc.stderr or exc.stdout or "").strip()
+        raise RuntimeError(
+            f"whisper transcription failed with exit code {exc.returncode}"
+            f"{': ' + detail if detail else ''}"
+        ) from exc
     return result.stdout.strip()
 
 

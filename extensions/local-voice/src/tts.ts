@@ -48,7 +48,7 @@ const DEFAULT_SBV2_CONFIG: StyleBertVITS2Config = {
 
 const DEFAULT_VV_CONFIG: VoiceVoxConfig = {
   endpoint: "http://localhost:50021",
-  speakerId: 2, // Default "四国めたん" (Metan) or similar, can be adjusted
+  speakerId: 8, // VOICEVOX Kasukabe Tsumugi default.
 };
 
 export function getTTSConfig(globalConfig: OpenClawConfig): TTSConfig {

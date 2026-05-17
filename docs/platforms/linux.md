@@ -10,7 +10,12 @@ title: "Linux app"
 The Gateway is fully supported on Linux. **Node is the recommended runtime**.
 Bun is not recommended for the Gateway (WhatsApp/Telegram bugs).
 
-Native Linux companion apps are planned. Contributions are welcome if you want to help build one.
+The strict-local Desktop Companion overlay exists in source through the bundled
+`live2d-companion` plugin. It is useful on graphical Linux desktops for local
+VRM/FBX avatar workflows, local character profiles, VOICEVOX speech, opt-in
+capture permissions, and the `control_companion` agent tool. Packaged native
+Linux companion apps are still planned. Contributions are welcome if you want to
+help build one.
 
 ## Beginner quick path (VPS)
 
@@ -32,6 +37,31 @@ Full Linux server guide: [Linux Server](/vps). Step-by-step VPS example: [exe.de
 
 - [Gateway runbook](/gateway)
 - [Configuration](/gateway/configuration)
+
+## Desktop Companion overlay
+
+On a Linux desktop with a working display server, the source checkout can run
+the local Electron Desktop Companion overlay:
+
+```bash
+pnpm --dir extensions/live2d-companion start
+```
+
+The overlay stays local by default. It prefers VRM/FBX avatars, keeps Live2D as
+a compatibility path, stores the companion character profile in local state,
+requires explicit permission for microphone, camera, screen, and browser-follow
+capture, and can be driven by the `control_companion` agent tool. The setup
+panel includes a Character profile card for editing the local display name,
+mood, greeting, persona prompt, voice profile, and relationship label. Use
+`control_companion` with `action: "profile"` to read or update the same local
+character profile from an agent. The saved profile is also appended to
+`before_prompt_build` system context so companion turns can keep the local
+character name, mood, greeting, voice profile, and relationship tone without a
+remote profile service. Use `control_companion` with `action: "window_capture"`
+when you need visual proof of the rendered companion window.
+
+Headless servers and VPS installs should keep using the Gateway and Control UI;
+the Desktop Companion overlay needs a graphical session.
 
 ## Gateway service install (CLI)
 

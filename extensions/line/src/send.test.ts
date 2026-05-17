@@ -302,6 +302,17 @@ describe("LINE send helpers", () => {
     });
   });
 
+  it("normalizes lowercase LINE group id prefixes before pushing", async () => {
+    await sendModule.sendMessageLine("line:group:c1234567890abcdef1234567890abcdef", "Hello", {
+      cfg: LINE_TEST_CFG,
+    });
+
+    expect(pushMessageMock).toHaveBeenCalledWith({
+      to: "C1234567890abcdef1234567890abcdef",
+      messages: [{ type: "text", text: "Hello" }],
+    });
+  });
+
   it("throws when video preview URL is missing", async () => {
     await expect(
       sendModule.sendMessageLine("line:user:U200", "Video", {

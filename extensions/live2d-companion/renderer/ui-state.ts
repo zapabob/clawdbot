@@ -1,6 +1,8 @@
 import type {
   CompanionAssetManifestEntry,
+  CompanionCharacterProfile,
   CompanionPermissionCapability,
+  CompanionProfilePatch,
   CompanionRuntimeState,
 } from "../runtime-api.js";
 
@@ -55,6 +57,48 @@ export type CompanionUiAction =
   | { type: "dialog/open"; dialog: CompanionUiDialogState }
   | { type: "dialog/close" }
   | { type: "onboarding/mark-seen" };
+
+export type CompanionProfileDraft = {
+  displayName: string;
+  characterPrompt: string;
+  greeting: string;
+  mood: string;
+  voiceProfile: string;
+  relationshipLevel: number;
+  relationshipLabel: string;
+};
+
+function clampRelationshipLevel(value: number): number {
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+export function createCompanionProfileDraft(
+  profile: CompanionCharacterProfile,
+): CompanionProfileDraft {
+  return {
+    displayName: profile.displayName,
+    characterPrompt: profile.characterPrompt,
+    greeting: profile.greeting,
+    mood: profile.mood,
+    voiceProfile: profile.voiceProfile ?? "",
+    relationshipLevel: profile.relationship.level,
+    relationshipLabel: profile.relationship.label,
+  };
+}
+
+export function buildCompanionProfilePatch(draft: CompanionProfileDraft): CompanionProfilePatch {
+  return {
+    displayName: draft.displayName,
+    characterPrompt: draft.characterPrompt,
+    greeting: draft.greeting,
+    mood: draft.mood,
+    voiceProfile: draft.voiceProfile.trim() ? draft.voiceProfile : null,
+    relationship: {
+      level: clampRelationshipLevel(draft.relationshipLevel),
+      label: draft.relationshipLabel,
+    },
+  };
+}
 
 export function buildSetupChecklist(params: {
   runtimeState: CompanionRuntimeState;

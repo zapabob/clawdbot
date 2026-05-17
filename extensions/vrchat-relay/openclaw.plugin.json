@@ -31,6 +31,80 @@
           }
         }
       },
+      "autonomousVrchatAi": {
+        "type": "object",
+        "description": "Autonomous VRChat AI Avatar runtime switch. Disabled by default.",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "inputHub": {
+        "type": "object",
+        "description": "InputHub source settings for text, STT, vision observations, and stream comments.",
+        "properties": {
+          "maxBufferedEvents": {
+            "type": "integer",
+            "default": 64,
+            "minimum": 1
+          },
+          "textBox": {
+            "type": "object",
+            "properties": { "enabled": { "type": "boolean", "default": true } }
+          },
+          "speechToText": {
+            "type": "object",
+            "properties": { "enabled": { "type": "boolean", "default": false } }
+          },
+          "visionObservation": {
+            "type": "object",
+            "properties": { "enabled": { "type": "boolean", "default": true } }
+          },
+          "streamComment": {
+            "type": "object",
+            "properties": { "enabled": { "type": "boolean", "default": true } }
+          }
+        }
+      },
+      "orchestrator": {
+        "type": "object",
+        "description": "Structured AgentDecision orchestrator defaults.",
+        "properties": {
+          "model": { "type": "string", "default": "gpt-5.5" },
+          "reasoning": {
+            "type": "object",
+            "properties": {
+              "effort": { "type": "string", "default": "low" }
+            }
+          },
+          "maxOutputTokens": { "type": "integer", "default": 700 }
+        }
+      },
+      "voicevox": {
+        "type": "object",
+        "description": "VOICEVOX Engine HTTP settings.",
+        "properties": {
+          "enabled": { "type": "boolean", "default": true },
+          "baseUrl": { "type": "string", "default": "http://127.0.0.1:50021" },
+          "speaker": { "type": "integer", "default": 8, "minimum": 0 },
+          "timeoutMs": { "type": "integer", "default": 30000, "minimum": 1000 }
+        }
+      },
+      "audioOutput": {
+        "type": "object",
+        "description": "Audio routing target for synthesized speech.",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "description": "speaker, virtual_cable, or both",
+            "default": "speaker"
+          },
+          "virtualCableDeviceName": { "type": "string", "default": "" },
+          "emitSpeakingEvents": { "type": "boolean", "default": true }
+        }
+      },
       "vrchatOsc": {
         "type": "object",
         "description": "Own-avatar OSC connection settings. Uses localhost by default and does not handle VRChat account credentials.",
@@ -117,6 +191,27 @@
           "allowInPublicInstances": { "type": "boolean", "default": false },
           "maxInputDurationMs": { "type": "integer", "default": 1000 },
           "alwaysResetToZero": { "type": "boolean", "default": true }
+        }
+      },
+      "chatBox": {
+        "type": "object",
+        "description": "Autonomous VRChat ChatBox guard. Disabled by default for public-instance safety.",
+        "properties": {
+          "enabled": { "type": "boolean", "default": false },
+          "maxChars": { "type": "integer", "default": 144, "minimum": 1, "maximum": 144 },
+          "maxLines": { "type": "integer", "default": 9, "minimum": 1, "maximum": 9 },
+          "minIntervalMs": { "type": "integer", "default": 3000, "minimum": 0 },
+          "submit": { "type": "boolean", "default": true },
+          "notify": { "type": "boolean", "default": false },
+          "typing": { "type": "boolean", "default": true }
+        }
+      },
+      "speechToText": {
+        "type": "object",
+        "description": "Speech-to-text guard settings for autonomous VRChat AI Avatar.",
+        "properties": {
+          "enabled": { "type": "boolean", "default": false },
+          "suppressDuringTts": { "type": "boolean", "default": true }
         }
       },
       "safety": {

@@ -1,10 +1,11 @@
-import type { AvatarCommand, TtsProvider } from "./bridge/event-types.js";
+import type { AvatarCommand, CompanionAvatarAction, TtsProvider } from "./bridge/event-types.js";
 import type { CompanionAssetManifestEntry } from "./companion-asset-manifest.js";
 import type {
   CompanionPermissionCapability,
   CompanionPermissionDecision,
   CompanionPermissionState,
 } from "./companion-permissions.js";
+import type { CompanionCharacterProfile, CompanionProfilePatch } from "./companion-profile.js";
 
 export type CompanionVoiceRuntimeState = {
   sttBackend: "local-voice-whisper";
@@ -27,6 +28,17 @@ export type CompanionBrowserAttachment = {
   updatedAt: number | null;
 };
 
+export type CompanionAvatarRuntimeState = {
+  lastAction: CompanionAvatarAction | null;
+  lastEmotion: string | null;
+  lastExpression: string | null;
+  lastMotion: string | null;
+  lastMotionIndex: number | null;
+  lastLookAt: { x: number; y: number } | null;
+  lastUpdatedAt: number | null;
+  lastSpeechAt: number | null;
+};
+
 export type CompanionRuntimeState = {
   visible: boolean;
   agentId: string;
@@ -34,6 +46,8 @@ export type CompanionRuntimeState = {
   permissions: CompanionPermissionState;
   browser: CompanionBrowserAttachment;
   voice: CompanionVoiceRuntimeState;
+  avatar: CompanionAvatarRuntimeState;
+  profile: CompanionCharacterProfile;
   activeAssetId: string | null;
   activeAsset: CompanionAssetManifestEntry | null;
   timestamp: number;
@@ -57,6 +71,8 @@ export type CompanionInputSnapshot = {
 
 export type CompanionIpcAction =
   | "get-state"
+  | "get-profile"
+  | "update-profile"
   | "list-assets"
   | "get-input-snapshot"
   | "set-permission"
@@ -70,6 +86,7 @@ export type CompanionIpcAction =
   | "import-asset"
   | "activate-asset"
   | "request-camera-capture"
+  | "request-window-capture"
   | "request-screen-capture";
 
 export type CompanionSetPermissionPayload = {
@@ -107,6 +124,10 @@ export type CompanionActivateAssetPayload = {
 export type CompanionInputSnapshotPayload = {
   includeCamera?: boolean;
   captureCamera?: boolean;
+};
+
+export type CompanionUpdateProfilePayload = {
+  profile: CompanionProfilePatch;
 };
 
 export type CompanionIpcRequestEnvelope =
@@ -163,4 +184,6 @@ export type CompanionSetAvatarCommandPayload = {
 
 export type CompanionSpeakPayload = {
   text: string;
+  emotion?: string;
+  ttsProvider?: TtsProvider;
 };

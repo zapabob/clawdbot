@@ -315,6 +315,43 @@ describe("resolveCommandSecretRefsViaGateway", () => {
     }
   });
 
+  it("can skip gateway resolution and use local read-only resolution directly", async () => {
+    const priorValue = process.env.TALK_API_KEY_SKIP_GATEWAY;
+    process.env.TALK_API_KEY_SKIP_GATEWAY = "local-skip-gateway-key"; // pragma: allowlist secret
+    try {
+      const result = await resolveCommandSecretRefsViaGateway({
+        config: {
+          ...buildTalkTestProviderConfig({
+            source: "env",
+            provider: "default",
+            id: "TALK_API_KEY_SKIP_GATEWAY",
+          }),
+          secrets: {
+            providers: {
+              default: { source: "env" },
+            },
+          },
+        } as unknown as OpenClawConfig,
+        commandName: "channels status",
+        targetIds: new Set(["talk.providers.*.apiKey"]),
+        mode: "read_only_status",
+        skipGateway: true,
+      });
+
+      expect(callGateway).not.toHaveBeenCalled();
+      expect(readTalkProviderApiKey(result.resolvedConfig)).toBe("local-skip-gateway-key");
+      expect(
+        result.diagnostics.some((entry) => entry.includes("gateway secrets.resolve unavailable")),
+      ).toBe(false);
+    } finally {
+      if (priorValue === undefined) {
+        delete process.env.TALK_API_KEY_SKIP_GATEWAY;
+      } else {
+        process.env.TALK_API_KEY_SKIP_GATEWAY = priorValue;
+      }
+    }
+  });
+
   it("falls back to local resolution for web search SecretRefs when gateway is unavailable", async () => {
     const restoreDeps = commandSecretGatewayTesting.setDepsForTest({
       collectConfigAssignments: ({ context }) => {

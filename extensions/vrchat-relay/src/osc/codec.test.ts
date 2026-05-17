@@ -32,4 +32,18 @@ describe("OSC codec", () => {
     expect(look?.address).toBe("/avatar/parameters/OC_LookX");
     expect(look?.args[0]).toBeCloseTo(0.25);
   });
+
+  it("serializes and parses VRChat /avatar/change events", () => {
+    const decoded = decodeOSCMessage(
+      encodeOSCMessage({
+        address: "/avatar/change",
+        args: [{ type: "string", value: "avtr_openclaw" }],
+      }),
+    );
+
+    expect(decoded).toEqual({
+      address: "/avatar/change",
+      args: ["avtr_openclaw"],
+    });
+  });
 });

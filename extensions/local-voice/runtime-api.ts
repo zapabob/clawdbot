@@ -6,11 +6,7 @@ import {
   type STTSessionState,
 } from "./src/stt.js";
 
-export type LocalWhisperMicSessionState =
-  | "idle"
-  | "listening"
-  | "processing"
-  | "error";
+export type LocalWhisperMicSessionState = "idle" | "listening" | "processing" | "error";
 
 export type LocalWhisperMicSessionHandlers = {
   onTranscript: (text: string) => void;
@@ -23,6 +19,7 @@ export type LocalWhisperMicSession = {
   stop: () => void;
   getState: () => LocalWhisperMicSessionState;
   isRunning: () => boolean;
+  getLastError: () => string | null;
 };
 
 export type LocalVoiceCompanionDefaults = {
@@ -43,6 +40,7 @@ export function createLocalWhisperMicSession(params: {
 }): LocalWhisperMicSession {
   let state: LocalWhisperMicSessionState = "idle";
   let running = false;
+  let lastError: string | null = null;
   let audioInput: AudioInput | null = null;
   let sttSession: LocalWhisperSTT | null = null;
 
@@ -59,6 +57,7 @@ export function createLocalWhisperMicSession(params: {
       setState("listening");
     },
     onError: (error) => {
+      lastError = error.message;
       setState("error");
       params.handlers.onError?.(error);
     },
@@ -70,6 +69,7 @@ export function createLocalWhisperMicSession(params: {
         setState("idle");
         return;
       }
+      lastError = lastError ?? "Local whisper STT disconnected unexpectedly";
       setState("error");
     },
     onSpeechEnd: () => {
@@ -85,9 +85,20 @@ export function createLocalWhisperMicSession(params: {
         return true;
       }
 
+      lastError = null;
       running = true;
       sttSession = new LocalWhisperSTT(params.sttConfig ?? {}, sttHandlers);
-      await sttSession.connect();
+      try {
+        await sttSession.connect();
+      } catch (error) {
+        running = false;
+        lastError = `Unable to start local whisper STT: ${
+          error instanceof Error ? error.message : String(error)
+        }`;
+        sttSession = null;
+        setState("error");
+        return false;
+      }
 
       audioInput = new AudioInput();
       audioInput.onData((data) => {
@@ -95,6 +106,7 @@ export function createLocalWhisperMicSession(params: {
       });
       const started = audioInput.start();
       if (!started) {
+        lastError = audioInput.getLastError() ?? "Unable to start microphone capture";
         running = false;
         setState("error");
         sttSession.disconnect();
@@ -115,6 +127,7 @@ export function createLocalWhisperMicSession(params: {
     },
     getState: () => state,
     isRunning: () => running,
+    getLastError: () => lastError,
   };
 }
 

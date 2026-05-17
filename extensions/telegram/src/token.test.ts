@@ -245,6 +245,38 @@ describe("resolveTelegramToken", () => {
     });
   });
 
+  it("resolves legacy env-template bot tokens from process.env", () => {
+    vi.stubEnv("TELEGRAM_BOT_TOKEN", "env-template-token");
+    const cfg = {
+      channels: {
+        telegram: {
+          botToken: "${TELEGRAM_BOT_TOKEN}",
+        },
+      },
+    } as OpenClawConfig;
+
+    expect(resolveTelegramToken(cfg)).toEqual({
+      token: "env-template-token",
+      source: "config",
+    });
+  });
+
+  it("does not treat unresolved legacy env-template bot tokens as plaintext", () => {
+    vi.stubEnv("TELEGRAM_BOT_TOKEN", "");
+    const cfg = {
+      channels: {
+        telegram: {
+          botToken: "${TELEGRAM_BOT_TOKEN}",
+        },
+      },
+    } as OpenClawConfig;
+
+    expect(resolveTelegramToken(cfg)).toEqual({
+      token: "",
+      source: "none",
+    });
+  });
+
   it("does not fall back to TELEGRAM_BOT_TOKEN when an explicit env SecretRef is configured but unavailable", () => {
     vi.stubEnv("TELEGRAM_BOT_TOKEN", "fallback-env-token");
     vi.stubEnv("TELEGRAM_REF_TOKEN", "");

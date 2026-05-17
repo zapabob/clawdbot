@@ -8,7 +8,7 @@ const resolveDefaultAccountId = () => DEFAULT_ACCOUNT_ID;
 const mocks = vi.hoisted(() => ({
   callGateway: vi.fn(),
   resolveCommandConfigWithSecrets: vi.fn(),
-  readConfigFileSnapshot: vi.fn(async () => ({ path: "/tmp/openclaw.json" })),
+  readSourceConfigBestEffort: vi.fn(),
   requireValidConfigSnapshot: vi.fn(),
   listChannelPlugins: vi.fn(),
   listConfiguredChannelIdsForReadOnlyScope: vi.fn((_params: unknown) => ["discord"]),
@@ -33,7 +33,8 @@ vi.mock("../cli/command-config-resolution.js", () => ({
 }));
 
 vi.mock("../config/config.js", () => ({
-  readConfigFileSnapshot: () => mocks.readConfigFileSnapshot(),
+  readSourceConfigBestEffort: () => mocks.readSourceConfigBestEffort(),
+  resolveConfigPath: () => "/tmp/openclaw.json",
 }));
 
 vi.mock("../plugins/channel-plugin-ids.js", () => ({
@@ -201,7 +202,8 @@ describe("channelsStatusCommand SecretRef fallback flow", () => {
   beforeEach(() => {
     mocks.callGateway.mockReset();
     mocks.resolveCommandConfigWithSecrets.mockReset();
-    mocks.readConfigFileSnapshot.mockClear();
+    mocks.readSourceConfigBestEffort.mockReset();
+    mocks.readSourceConfigBestEffort.mockResolvedValue({ channels: {} });
     mocks.requireValidConfigSnapshot.mockReset();
     mocks.listChannelPlugins.mockReset();
     mocks.missingOfficialExternalChannels.clear();
@@ -220,16 +222,20 @@ describe("channelsStatusCommand SecretRef fallback flow", () => {
 
     await channelsStatusCommand({ channel: "imsg", json: true, probe: true }, runtime as never);
 
-    expect(mocks.callGateway).toHaveBeenCalledWith({
-      method: "channels.status",
-      params: { channel: "imsg", probe: true, timeoutMs: 30000 },
-      timeoutMs: 30000,
-    });
+    expect(mocks.callGateway).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: "channels.status",
+        params: { channel: "imsg", probe: true, timeoutMs: 30000 },
+        timeoutMs: 30000,
+        config: { channels: {} },
+        configPath: "/tmp/openclaw.json",
+      }),
+    );
   });
 
   it("keeps read-only fallback output when SecretRefs are unresolved", async () => {
     mocks.callGateway.mockRejectedValue(new Error("gateway closed"));
-    mocks.requireValidConfigSnapshot.mockResolvedValue({ secretResolved: false, channels: {} });
+    mocks.readSourceConfigBestEffort.mockResolvedValue({ secretResolved: false, channels: {} });
     mocks.resolveCommandConfigWithSecrets.mockResolvedValue({
       resolvedConfig: { secretResolved: false, channels: {} },
       effectiveConfig: { secretResolved: false, channels: {} },
@@ -246,6 +252,7 @@ describe("channelsStatusCommand SecretRef fallback flow", () => {
     const configResolutionRequest = mocks.resolveCommandConfigWithSecrets.mock.calls[0]?.[0];
     expect(configResolutionRequest?.commandName).toBe("channels status");
     expect(configResolutionRequest?.mode).toBe("read_only_status");
+    expect(configResolutionRequest?.skipGateway).toBe(true);
     expect(
       logs.some((line) =>
         line.includes("[secrets] channels status: channels.discord.token is unavailable"),
@@ -258,7 +265,7 @@ describe("channelsStatusCommand SecretRef fallback flow", () => {
 
   it("prefers resolved snapshots when command-local SecretRef resolution succeeds", async () => {
     mocks.callGateway.mockRejectedValue(new Error("gateway closed"));
-    mocks.requireValidConfigSnapshot.mockResolvedValue({ secretResolved: false, channels: {} });
+    mocks.readSourceConfigBestEffort.mockResolvedValue({ secretResolved: false, channels: {} });
     mocks.resolveCommandConfigWithSecrets.mockResolvedValue({
       resolvedConfig: { secretResolved: true, channels: {} },
       effectiveConfig: { secretResolved: true, channels: {} },
@@ -277,7 +284,7 @@ describe("channelsStatusCommand SecretRef fallback flow", () => {
 
   it("shows missing official external plugin repair hints in config-only output", async () => {
     mocks.callGateway.mockRejectedValue(new Error("gateway closed"));
-    mocks.requireValidConfigSnapshot.mockResolvedValue({
+    mocks.readSourceConfigBestEffort.mockResolvedValue({
       channels: { feishu: { appId: "cli_xxx" } },
     });
     mocks.resolveCommandConfigWithSecrets.mockResolvedValue({
@@ -309,7 +316,7 @@ describe("channelsStatusCommand SecretRef fallback flow", () => {
         ].join("\n"),
       ),
     );
-    mocks.requireValidConfigSnapshot.mockResolvedValue({ secretResolved: false, channels: {} });
+    mocks.readSourceConfigBestEffort.mockResolvedValue({ secretResolved: false, channels: {} });
     mocks.resolveCommandConfigWithSecrets.mockResolvedValue({
       resolvedConfig: { secretResolved: true, channels: {} },
       effectiveConfig: { secretResolved: true, channels: {} },
@@ -319,13 +326,14 @@ describe("channelsStatusCommand SecretRef fallback flow", () => {
 
     await channelsStatusCommand({ channel: "imsg", json: true, probe: false }, runtime as never);
 
+    expect(mocks.resolveCommandConfigWithSecrets).not.toHaveBeenCalled();
     expect(mocks.listChannelPlugins).not.toHaveBeenCalled();
     expect(mocks.listConfiguredChannelIdsForReadOnlyScope).toHaveBeenCalledOnce();
     const readOnlyScopeRequest = mocks.listConfiguredChannelIdsForReadOnlyScope.mock
       .calls[0]?.[0] as
       | { config?: { secretResolved?: unknown }; includePersistedAuthState?: unknown }
       | undefined;
-    expect(readOnlyScopeRequest?.config?.secretResolved).toBe(true);
+    expect(readOnlyScopeRequest?.config?.secretResolved).toBe(false);
     expect(readOnlyScopeRequest?.includePersistedAuthState).toBe(false);
     const payload = JSON.parse(logs.at(-1) ?? "{}");
     expect(errors.join("\n")).not.toContain("user:pass");

@@ -21,7 +21,14 @@
 **OpenClaw** is a _personal AI assistant_ you run on your own devices.
 It answers you on the channels you already use. It can speak and listen on macOS/iOS/Android, and can render a live Canvas you control. The Gateway is just the control plane — the product is the assistant.
 
-If you want a personal, single-user assistant that feels local, fast, and always-on, this is it.
+This checkout keeps that upstream OpenClaw base and adds a local companion stack
+for a more embodied, desktop-first assistant: local VOICEVOX speech, microphone
+input, Desktop Companion animation, FBX/VRM avatar control, LINE/Telegram
+readiness tooling, and Hypura Harness tools that agents can operate without
+guessing raw HTTP routes.
+
+If you want a personal, single-user assistant that feels local, fast, always-on,
+and present on your desktop, this is it.
 
 Supported channels include: WhatsApp, Telegram, Slack, Discord, Google Chat, Signal, iMessage, IRC, Microsoft Teams, Matrix, Feishu, LINE, Mattermost, Nextcloud Talk, Nostr, Synology Chat, Tlon, Twitch, Zalo, Zalo Personal, WeChat, QQ, WebChat.
 
@@ -32,6 +39,70 @@ New install? Start here: [Getting started](https://docs.openclaw.ai/start/gettin
 Preferred setup: run `openclaw onboard` in your terminal.
 OpenClaw Onboard guides you step by step through setting up the gateway, workspace, channels, and skills. It is the recommended CLI setup path and works on **macOS, Linux, and Windows (via WSL2; strongly recommended)**.
 Works with npm, pnpm, or bun.
+
+## Local companion and fork features
+
+The fork-specific layer is intentionally local-first. It is built for the
+operator's own desktop, avatar assets, voice devices, and channel state. Keep
+credentials, raw channel ids, voice recordings, and private avatar files out of
+git.
+
+- **Desktop Companion for Live2D, FBX, and VRM**: `extensions/live2d-companion`
+  can load local avatar assets, report avatar state, capture the companion
+  window, and animate expression or motion when the AI speaks. VRM/FBX avatars
+  use native expressions where possible and procedural motion fallback when a
+  model has no matching animation clip.
+- **VOICEVOX speech with Kasukabe Tsumugi**: `extensions/local-voice` and the
+  companion bridge default to VOICEVOX speaker 8 for a less mechanical local
+  voice path. The renderer avoids silently falling back to browser Web Speech
+  when VOICEVOX is explicitly selected.
+- **Local STT and consent controls**: the companion and Hypura voice bridge
+  expose microphone permission, mic start/stop, `input_snapshot`, WAV
+  transcription, and voice-turn tools. Agents must use the permission path
+  before enabling capture.
+- **LINE and Telegram normalization**: the LINE plugin normalizes real
+  `U`/`C`/`R` recipient ids after `line:*` prefixes are stripped, and Telegram
+  resolves legacy `${TELEGRAM_BOT_TOKEN}` env templates before trying to send.
+  The channel skills document webhook, mention-gating, and live-proof steps.
+- **Hypura Harness as the agent bridge**: `extensions/hypura-harness` exposes
+  redacted channel readiness, voice devices, VOICEVOX test speech, WAV
+  transcription, companion controls, and companion voice turns as OpenClaw
+  tools. `GET /channels/readiness` separates credential presence from real
+  roundtrip readiness without printing tokens or raw routing ids.
+- **VRChat own-avatar OSC path**: `extensions/vrchat-relay` and Hypura Harness
+  stay on the official OSC route. Existing-avatar control is profile-gated,
+  local-only, rate-limited, and does not log in to VRChat, modify the client, or
+  load remote avatar assets.
+- **Companion3D fallback body**: the Hypura companion layer can keep a
+  local-only 3D companion body available when a VRChat profile is missing or
+  unapproved.
+
+Useful entry points:
+
+- Desktop Companion guide:
+  `extensions/live2d-companion/skills/desktop-companion/SKILL.md`
+- Local voice guide:
+  `extensions/local-voice/skills/local-voice/SKILL.md`
+- Hypura voice and readiness guides:
+  `extensions/hypura-harness/skills/voice-io/SKILL.md` and
+  `extensions/hypura-harness/skills/channel-readiness/SKILL.md`
+- LINE and Telegram channel guides:
+  `extensions/line/skills/line-channel/SKILL.md` and
+  `extensions/telegram/skills/telegram-channel/SKILL.md`
+- VRChat existing-avatar and Companion3D guides:
+  `extensions/hypura-harness/skills/vrchat-existing-avatar/SKILL.md` and
+  `extensions/hypura-harness/skills/desktop-companion-3d/SKILL.md`
+
+For a development checkout, the fastest local proof loop is:
+
+```bash
+node scripts/build-all.mjs gatewayWatch
+node openclaw.mjs --profile desktop-stack channels status --json
+```
+
+Use `hypura_harness_channel_readiness` or `GET /channels/readiness` before
+claiming LINE or Telegram live roundtrip readiness; a configured token is not
+the same thing as a sendable target.
 
 ## Sponsors
 

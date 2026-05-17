@@ -565,7 +565,19 @@ export const TOOL_DISPLAY_CONFIG: ToolDisplayConfig = {
     control_companion: {
       emoji: "🎭",
       title: "Companion Control",
-      detailKeys: ["action", "value", "motion_index", "x", "y", "model_path"],
+      detailKeys: [
+        "action",
+        "value",
+        "emotion",
+        "tts_provider",
+        "enabled",
+        "capability",
+        "decision",
+        "motion_index",
+        "x",
+        "y",
+        "model_path",
+      ],
     },
     submodule_run: {
       emoji: "🧱",

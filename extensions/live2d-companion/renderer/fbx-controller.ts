@@ -225,7 +225,11 @@ export class FbxController implements IAvatarController {
     this.three = await import("three");
     const THREE = this.three;
 
-    this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    this.renderer = new THREE.WebGLRenderer({
+      alpha: true,
+      antialias: true,
+      preserveDrawingBuffer: true,
+    });
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.setSize(container.clientWidth || 380, container.clientHeight || 480);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;

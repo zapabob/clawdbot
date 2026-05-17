@@ -657,6 +657,7 @@ export async function resolveCommandSecretRefsViaGateway(params: {
   targetIds: Set<string>;
   mode?: CommandSecretResolutionModeInput;
   allowedPaths?: ReadonlySet<string>;
+  skipGateway?: boolean;
 }): Promise<ResolveCommandSecretsResult> {
   const mode = normalizeCommandSecretResolutionMode(params.mode);
   const configuredTargetRefPaths = collectConfiguredTargetRefPaths({
@@ -683,6 +684,17 @@ export async function resolveCommandSecretRefsViaGateway(params: {
       targetStatesByPath: {},
       hadUnresolvedTargets: false,
     };
+  }
+
+  if (params.skipGateway) {
+    return await resolveCommandSecretRefsLocally({
+      config: params.config,
+      commandName: params.commandName,
+      targetIds: params.targetIds,
+      preflightDiagnostics: preflight.diagnostics,
+      mode,
+      allowedPaths: params.allowedPaths,
+    });
   }
 
   let payload: GatewaySecretsResolveResult;

@@ -1,5 +1,6 @@
 ﻿import type {
   AvatarCommand,
+  CompanionAvatarStateUpdate,
   CompanionEmotionEvent,
   CompanionLineEvent,
   TtsProvider,
@@ -11,14 +12,18 @@ import type {
 } from "../runtime-api.js";
 import type { IAvatarController } from "./avatar-controller.js";
 import { createAvatarController, inferAvatarType, type AvatarType } from "./avatar-factory.js";
-import { applyEmotion, detectEmotion } from "./emotion-mapper.js";
+import { buildAvatarEmotionState, buildAvatarSpeechState } from "./avatar-state.js";
+import { applyEmotion, detectEmotion, isEmotionType } from "./emotion-mapper.js";
 import { LipSyncController, type LipSyncConfig } from "./lip-sync.js";
 import {
   buildAssetLibraryView,
+  buildCompanionProfilePatch,
   buildSetupChecklist,
+  createCompanionProfileDraft,
   createCompanionUiState,
   reduceCompanionUiState,
   type AssetImportDialogState,
+  type CompanionProfileDraft,
 } from "./ui-state.js";
 
 const ONBOARDING_STORAGE_KEY = "desktop-companion:onboarding-seen:v1";
@@ -336,6 +341,17 @@ async function main(): Promise<void> {
   const panelScreenCapture = requireElement<HTMLButtonElement>("panel-screen-capture");
   const setupProgress = requireElement<HTMLDivElement>("setup-progress");
   const setupChecklist = requireElement<HTMLOListElement>("setup-checklist");
+  const profileStatusBadge = requireElement<HTMLSpanElement>("profile-status-badge");
+  const profileDisplayName = requireElement<HTMLInputElement>("profile-display-name");
+  const profileMood = requireElement<HTMLInputElement>("profile-mood");
+  const profileGreeting = requireElement<HTMLInputElement>("profile-greeting");
+  const profileVoice = requireElement<HTMLInputElement>("profile-voice");
+  const profileCharacterPrompt = requireElement<HTMLTextAreaElement>("profile-character-prompt");
+  const profileRelationshipLevel = requireElement<HTMLInputElement>("profile-relationship-level");
+  const profileRelationshipValue = requireElement<HTMLDivElement>("profile-relationship-value");
+  const profileRelationshipLabel = requireElement<HTMLInputElement>("profile-relationship-label");
+  const profileSave = requireElement<HTMLButtonElement>("profile-save");
+  const profileReset = requireElement<HTMLButtonElement>("profile-reset");
   const browserFollowStatus = requireElement<HTMLDivElement>("browser-follow-status");
   const avatarActionIdle = requireElement<HTMLButtonElement>("avatar-action-idle");
   const avatarActionHappy = requireElement<HTMLButtonElement>("avatar-action-happy");
@@ -384,6 +400,9 @@ async function main(): Promise<void> {
     licenseMemo: "",
     rightsAcknowledged: false,
   };
+  let profileDraft: CompanionProfileDraft = createCompanionProfileDraft(runtimeState.profile);
+  let profileDirty = false;
+  let profileSaving = false;
   let pendingDialogResolver: PendingDialogResolver | null = null;
 
   const initialAvatarType = toConcreteAvatarType(
@@ -597,6 +616,22 @@ async function main(): Promise<void> {
     }
   }
 
+  function renderProfileEditor(): void {
+    profileDisplayName.value = profileDraft.displayName;
+    profileMood.value = profileDraft.mood;
+    profileGreeting.value = profileDraft.greeting;
+    profileVoice.value = profileDraft.voiceProfile;
+    profileCharacterPrompt.value = profileDraft.characterPrompt;
+    profileRelationshipLevel.value = String(profileDraft.relationshipLevel);
+    profileRelationshipValue.textContent = `${profileDraft.relationshipLevel} / 100`;
+    profileRelationshipLabel.value = profileDraft.relationshipLabel;
+
+    profileStatusBadge.textContent = profileSaving ? "Saving" : profileDirty ? "Unsaved" : "Saved";
+    profileStatusBadge.className = `badge ${profileDirty || profileSaving ? "badge--accent" : "badge--muted"}`;
+    profileSave.disabled = profileSaving || !profileDirty;
+    profileReset.disabled = profileSaving || !profileDirty;
+  }
+
   function renderBrowserCard(): void {
     browserFollowStatus.replaceChildren();
     const permission = runtimeState.permissions["tab-follow"];
@@ -717,7 +752,10 @@ async function main(): Promise<void> {
 
   function renderDock(): void {
     const activeName = runtimeState.activeAsset?.fileName ?? currentModelName;
-    dockAvatarName.textContent = activeName;
+    const profileName = runtimeState.profile.displayName.trim() || "OpenClaw Companion";
+    const mood = runtimeState.profile.mood.trim() || "neutral";
+    const assetSuffix = activeName && activeName !== "No avatar selected" ? ` | ${activeName}` : "";
+    dockAvatarName.textContent = `${profileName} | ${mood}${assetSuffix}`;
 
     const voiceStatus = runtimeState.voice.speaking
       ? "Speaking"
@@ -801,6 +839,7 @@ async function main(): Promise<void> {
     renderPanel();
     renderPermissions();
     renderChecklist();
+    renderProfileEditor();
     renderBrowserCard();
     renderAssets();
     renderCameraCard();
@@ -951,6 +990,47 @@ async function main(): Promise<void> {
     await requestPermission(capability);
   }
 
+  function updateProfileDraft(patch: Partial<CompanionProfileDraft>): void {
+    profileDraft = {
+      ...profileDraft,
+      ...patch,
+    };
+    profileDirty = true;
+    render();
+  }
+
+  async function saveProfileDraft(): Promise<void> {
+    if (!profileDirty || profileSaving) {
+      return;
+    }
+    profileSaving = true;
+    render();
+    try {
+      const profile = await window.companionBridge.updateProfile(
+        buildCompanionProfilePatch(profileDraft),
+      );
+      runtimeState = {
+        ...runtimeState,
+        profile,
+      };
+      profileDraft = createCompanionProfileDraft(profile);
+      profileDirty = false;
+      showToast(toastRegion, "Character profile saved locally.", "success");
+    } catch (error) {
+      console.error("[Companion] profile save failed", error);
+      showToast(toastRegion, "Character profile save failed.", "danger");
+    } finally {
+      profileSaving = false;
+      render();
+    }
+  }
+
+  function resetProfileDraft(): void {
+    profileDraft = createCompanionProfileDraft(runtimeState.profile);
+    profileDirty = false;
+    render();
+  }
+
   async function toggleMicSession(): Promise<void> {
     if (runtimeState.voice.micActive) {
       const result = await window.companionBridge.stopStt();
@@ -1075,6 +1155,15 @@ async function main(): Promise<void> {
     await importAssetFromPath(result.filePath);
   }
 
+  function reportAvatarActivity(update: CompanionAvatarStateUpdate): void {
+    window.companionBridge.sendStateUpdate({
+      avatar: {
+        ...update,
+        lastUpdatedAt: Date.now(),
+      },
+    });
+  }
+
   async function speakWithEmotion(
     text: string,
     emotion?: CompanionEmotionEvent["emotion"],
@@ -1085,31 +1174,64 @@ async function main(): Promise<void> {
     }
     const resolvedEmotion = emotion ?? detectEmotion(trimmed);
     const emotionProfile = applyEmotion(avatar, resolvedEmotion);
+    reportAvatarActivity(
+      buildAvatarSpeechState({
+        avatarType: avatar.avatarType,
+        emotion: resolvedEmotion,
+        emotionProfile,
+      }),
+    );
     lipSync.ttsProvider = runtimeState.ttsProvider;
     showToast(toastRegion, trimText(trimmed, 72), "info");
     await lipSync.speak(trimmed, emotionProfile);
   }
 
   function cueAvatarExpression(emotion: CompanionEmotionEvent["emotion"]): void {
-    applyEmotion(avatar, emotion);
+    const emotionProfile = applyEmotion(avatar, emotion);
+    reportAvatarActivity({
+      lastAction: "emotion",
+      lastEmotion: emotion,
+      ...buildAvatarEmotionState({ avatarType: avatar.avatarType, emotionProfile }),
+    });
     showToast(toastRegion, `Avatar emotion: ${emotion}`, "info");
   }
 
   function cueAvatarLook(x: number): void {
     avatar.lookAt(x, 0);
+    reportAvatarActivity({
+      lastAction: "look_at",
+      lastLookAt: { x, y: 0 },
+    });
   }
 
   function cueAvatarIdle(): void {
     avatar.playMotion("Idle", 0, true);
+    reportAvatarActivity({
+      lastAction: "motion",
+      lastMotion: "Idle",
+      lastMotionIndex: 0,
+    });
     showToast(toastRegion, "Avatar idle motion queued.", "info");
   }
 
   async function handleAvatarCommand(cmd: AvatarCommand): Promise<void> {
+    if (cmd.ttsProvider === "voicevox" || cmd.ttsProvider === "web-speech") {
+      runtimeState = {
+        ...runtimeState,
+        ttsProvider: cmd.ttsProvider,
+      };
+      lipSync.ttsProvider = runtimeState.ttsProvider;
+      render();
+    }
+
     if (cmd.loadModel) {
       try {
         await switchAvatar({
           filePath: cmd.loadModel,
           assetType: inferAssetTypeFromPath(cmd.loadModel),
+        });
+        reportAvatarActivity({
+          lastAction: "load_model",
         });
       } catch (error) {
         console.error("[Companion] command load failed", error);
@@ -1118,27 +1240,59 @@ async function main(): Promise<void> {
     }
 
     if (cmd.expression) {
-      applyEmotion(avatar, detectEmotion(`[EMOTION:${cmd.expression}]`));
+      const expression = cmd.expression.trim();
+      if (isEmotionType(expression)) {
+        const emotionProfile = applyEmotion(avatar, expression);
+        reportAvatarActivity({
+          lastAction: "emotion",
+          lastEmotion: expression,
+          ...buildAvatarEmotionState({ avatarType: avatar.avatarType, emotionProfile }),
+        });
+      } else if (expression) {
+        avatar.playExpression(expression);
+        reportAvatarActivity({
+          lastAction: "expression",
+          lastExpression: expression,
+        });
+      }
     }
 
     if (cmd.motion) {
       avatar.playMotion(cmd.motion, cmd.motionIndex);
+      reportAvatarActivity({
+        lastAction: "motion",
+        lastMotion: cmd.motion,
+        lastMotionIndex: cmd.motionIndex ?? null,
+      });
     }
 
     if (cmd.gesture) {
       avatar.playMotion(cmd.gesture, cmd.motionIndex);
+      reportAvatarActivity({
+        lastAction: "gesture",
+        lastMotion: cmd.gesture,
+        lastMotionIndex: cmd.motionIndex ?? null,
+      });
     }
 
     if (cmd.pose) {
       avatar.applyPose?.(cmd.pose);
+      reportAvatarActivity({
+        lastAction: "pose",
+      });
     }
 
     if (cmd.lookAt) {
       avatar.lookAt(cmd.lookAt.x, cmd.lookAt.y);
+      reportAvatarActivity({
+        lastAction: "look_at",
+        lastLookAt: cmd.lookAt,
+      });
     }
 
     if (cmd.speakText) {
-      await speakWithEmotion(cmd.speakText);
+      const speakEmotion = cmd.speakEmotion ?? "";
+      await speakWithEmotion(cmd.speakText, isEmotionType(speakEmotion) ? speakEmotion : undefined);
     }
   }
 
@@ -1237,6 +1391,34 @@ async function main(): Promise<void> {
     dialogConfirm.disabled = !assetDialogDraft.rightsAcknowledged;
   });
 
+  profileDisplayName.addEventListener("input", () => {
+    updateProfileDraft({ displayName: profileDisplayName.value });
+  });
+  profileMood.addEventListener("input", () => {
+    updateProfileDraft({ mood: profileMood.value });
+  });
+  profileGreeting.addEventListener("input", () => {
+    updateProfileDraft({ greeting: profileGreeting.value });
+  });
+  profileVoice.addEventListener("input", () => {
+    updateProfileDraft({ voiceProfile: profileVoice.value });
+  });
+  profileCharacterPrompt.addEventListener("input", () => {
+    updateProfileDraft({ characterPrompt: profileCharacterPrompt.value });
+  });
+  profileRelationshipLevel.addEventListener("input", () => {
+    updateProfileDraft({ relationshipLevel: Number(profileRelationshipLevel.value) });
+  });
+  profileRelationshipLabel.addEventListener("input", () => {
+    updateProfileDraft({ relationshipLabel: profileRelationshipLabel.value });
+  });
+  profileSave.addEventListener("click", () => {
+    void saveProfileDraft();
+  });
+  profileReset.addEventListener("click", () => {
+    resetProfileDraft();
+  });
+
   document.addEventListener("dragenter", (event) => {
     if (hasModelFile(event)) {
       setDragActive(true);
@@ -1299,6 +1481,9 @@ async function main(): Promise<void> {
   window.companionBridge.onRuntimeState((state) => {
     const previousActiveAssetId = runtimeState.activeAssetId;
     runtimeState = state;
+    if (!profileDirty) {
+      profileDraft = createCompanionProfileDraft(runtimeState.profile);
+    }
     lipSync.ttsProvider = runtimeState.ttsProvider;
     const activeAsset = runtimeState.activeAsset;
 
@@ -1321,8 +1506,7 @@ async function main(): Promise<void> {
       void speakWithEmotion(event.text, event.emotion);
       return;
     }
-    applyEmotion(avatar, event.emotion);
-    showToast(toastRegion, `Emotion: ${event.emotion}`, "info");
+    cueAvatarExpression(event.emotion);
   });
 
   window.companionBridge.onSpeakText((text: string) => {

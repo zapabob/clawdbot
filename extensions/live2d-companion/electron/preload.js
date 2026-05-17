@@ -13,6 +13,8 @@ contextBridge.exposeInMainWorld("companionBridge", {
   },
   getConfig: () => ipcRenderer.invoke("companion:get-config"),
   getStateSnapshot: () => ipcRenderer.invoke("companion:get-state"),
+  getProfile: () => ipcRenderer.invoke("companion:get-profile"),
+  updateProfile: (profile) => ipcRenderer.invoke("companion:update-profile", profile),
   listAssets: () => ipcRenderer.invoke("companion:list-assets"),
   onRuntimeState: (callback) => {
     ipcRenderer.on(IPC_CHANNELS.RUNTIME_STATE, (_ipcEvent, state) => {

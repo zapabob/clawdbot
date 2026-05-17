@@ -1,9 +1,11 @@
+import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import http from "node:http";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { app, BrowserWindow, desktopCapturer, dialog, ipcMain, screen } from "electron";
+import { buildOptimisticAvatarCommandState } from "../avatar-command-state.js";
 import { IPC_CHANNELS } from "../bridge/event-types.js";
 import {
   activateCompanionAsset,
@@ -17,6 +19,11 @@ import {
   isCompanionPermissionGranted,
   setCompanionPermission,
 } from "../companion-permissions.js";
+import {
+  createDefaultCompanionProfile,
+  readCompanionProfile,
+  updateCompanionProfile,
+} from "../companion-profile.js";
 import {
   buildCompanionDiscoveryEntries,
   isSupportedCompanionModelPath,
@@ -111,6 +118,8 @@ const LEGACY_CAMERA_META_FILE = "companion_camera_meta.json";
 const LEGACY_SCREEN_FILE = "companion_screenshot.png";
 const LEGACY_SCREEN_META_FILE = "companion_screenshot_meta.json";
 const CAMERA_CAPTURE_TIMEOUT_MS = 800;
+const WINDOW_CAPTURE_TIMEOUT_MS = 2500;
+const WINDOW_CAPTURE_FALLBACK_TIMEOUT_MS = 1000;
 let mainWindow = null;
 let rendererIpcReady = false;
 let ignoreMouseTimer = null;
@@ -146,6 +155,17 @@ const runtimeState = {
     lastTranscript: null,
     lastTranscriptAt: null,
   },
+  avatar: {
+    lastAction: null,
+    lastEmotion: null,
+    lastExpression: null,
+    lastMotion: null,
+    lastMotionIndex: null,
+    lastLookAt: null,
+    lastUpdatedAt: null,
+    lastSpeechAt: null,
+  },
+  profile: createDefaultCompanionProfile(),
   activeAssetId: null,
   activeAsset: null,
   timestamp: Date.now(),
@@ -163,6 +183,7 @@ function buildStateCache() {
       micActive: runtimeState.voice.micActive,
       speaking: runtimeState.voice.speaking,
     },
+    avatar: runtimeState.avatar,
     activeAssetId: runtimeState.activeAssetId,
     timestamp: runtimeState.timestamp,
   };
@@ -201,9 +222,42 @@ function applyRuntimeStateCache(cache) {
   if (cache.ttsProvider === "voicevox" || cache.ttsProvider === "web-speech") {
     runtimeState.ttsProvider = cache.ttsProvider;
   }
+  if (cache.avatar && typeof cache.avatar === "object") {
+    runtimeState.avatar = {
+      ...runtimeState.avatar,
+      ...cache.avatar,
+    };
+  }
   return typeof cache.activeAssetId === "string" && cache.activeAssetId.trim()
     ? cache.activeAssetId
     : null;
+}
+function updateAvatarRuntimeState(update) {
+  if (!update || typeof update !== "object") {
+    return;
+  }
+  runtimeState.avatar = {
+    ...runtimeState.avatar,
+    ...(update.lastAction ? { lastAction: update.lastAction } : {}),
+    ...(update.lastEmotion !== undefined ? { lastEmotion: update.lastEmotion } : {}),
+    ...(update.lastExpression !== undefined ? { lastExpression: update.lastExpression } : {}),
+    ...(update.lastMotion !== undefined ? { lastMotion: update.lastMotion } : {}),
+    ...(update.lastMotionIndex !== undefined ? { lastMotionIndex: update.lastMotionIndex } : {}),
+    ...(update.lastLookAt !== undefined ? { lastLookAt: update.lastLookAt } : {}),
+    ...(update.lastSpeechAt !== undefined ? { lastSpeechAt: update.lastSpeechAt } : {}),
+    lastUpdatedAt: update.lastUpdatedAt ?? Date.now(),
+  };
+}
+function recordAvatarCommandDispatch(command) {
+  const update = buildOptimisticAvatarCommandState({
+    command,
+    assetType: runtimeState.activeAsset?.assetType ?? null,
+    currentEmotion: runtimeState.avatar.lastEmotion,
+  });
+  if (update) {
+    updateAvatarRuntimeState(update);
+    publishRuntimeState();
+  }
 }
 async function writeLegacyBinaryCapture(params) {
   if (!companionPolicy.security.allowLegacyHttpControl) {
@@ -276,6 +330,7 @@ function createWindow() {
       ? rawCompanionConfig.window
       : {};
   mainWindow = new BrowserWindow({
+    title: "OpenClaw Desktop Companion",
     x: screenWidth - Number(windowConfig.offsetRight ?? 400),
     y: screenHeight - Number(windowConfig.offsetBottom ?? 500),
     width: Number(windowConfig.width ?? 380),
@@ -342,6 +397,7 @@ function updateBrowserAttachment(next) {
   publishRuntimeState();
 }
 function sendAvatarCommand(command) {
+  recordAvatarCommandDispatch(command);
   sendToRenderer(IPC_CHANNELS.AVATAR_COMMAND, command);
 }
 async function requestRendererCameraCapture() {
@@ -402,6 +458,208 @@ async function captureScreenToMemory() {
   });
   return latestScreenCapture;
 }
+function waitForWindowPaint(delayMs = 180) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, delayMs);
+  });
+}
+async function withCaptureTimeout(operation, timeoutMs = 1200) {
+  let timer = null;
+  try {
+    return await Promise.race([
+      operation,
+      new Promise((resolve) => {
+        timer = setTimeout(() => resolve(null), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
+}
+function captureWindowWithWindowsGdi() {
+  if (process.platform !== "win32" || !mainWindow || mainWindow.isDestroyed()) {
+    return Promise.resolve(null);
+  }
+  const bounds = mainWindow.getBounds();
+  if (bounds.width <= 0 || bounds.height <= 0) {
+    return Promise.resolve(null);
+  }
+  const script = `& {
+param([int]$X, [int]$Y, [int]$Width, [int]$Height)
+Add-Type -AssemblyName System.Drawing
+$bitmap = [System.Drawing.Bitmap]::new($Width, $Height)
+$graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+try {
+  $graphics.CopyFromScreen($X, $Y, 0, 0, $bitmap.Size)
+  $stream = [System.IO.MemoryStream]::new()
+  try {
+    $bitmap.Save($stream, [System.Drawing.Imaging.ImageFormat]::Png)
+    [System.Convert]::ToBase64String($stream.ToArray())
+  } finally {
+    $stream.Dispose()
+  }
+} finally {
+  $graphics.Dispose()
+  $bitmap.Dispose()
+}
+}
+`;
+  return new Promise((resolve) => {
+    execFile(
+      "powershell.exe",
+      [
+        "-NoProfile",
+        "-NonInteractive",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        script,
+        String(Math.max(0, bounds.x)),
+        String(Math.max(0, bounds.y)),
+        String(Math.max(1, bounds.width)),
+        String(Math.max(1, bounds.height)),
+      ],
+      { timeout: WINDOW_CAPTURE_FALLBACK_TIMEOUT_MS },
+      (error, stdout) => {
+        if (error) {
+          resolve(null);
+          return;
+        }
+        const base64 = stdout.trim();
+        if (!base64) {
+          resolve(null);
+          return;
+        }
+        resolve({
+          base64,
+          mimeType: "image/png",
+          timestamp: Date.now(),
+          width: bounds.width,
+          height: bounds.height,
+          source: "desktop-companion-window:gdi",
+        });
+      },
+    );
+  });
+}
+async function captureRendererCanvasToMemory() {
+  if (!mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isDestroyed()) {
+    return null;
+  }
+  const preferStatusOnly = runtimeState.activeAsset?.assetType === "vrm";
+  const result = await mainWindow.webContents.executeJavaScript(
+    `(() => {
+      const preferStatusOnly = ${JSON.stringify(preferStatusOnly)};
+      const fromDataUrl = (dataUrl, width, height, source) => {
+        const comma = dataUrl.indexOf(",");
+        if (!dataUrl.startsWith("data:image/png;base64,") || comma < 0) {
+          return null;
+        }
+        return { base64: dataUrl.slice(comma + 1), width, height, source };
+      };
+      const modelCanvas = document.querySelector("#canvas-container canvas");
+      if (!preferStatusOnly &&
+        modelCanvas instanceof HTMLCanvasElement &&
+        modelCanvas.width > 0 &&
+        modelCanvas.height > 0
+      ) {
+        try {
+          const captured = fromDataUrl(
+            modelCanvas.toDataURL("image/png"),
+            modelCanvas.width,
+            modelCanvas.height,
+            "desktop-companion-renderer-canvas",
+          );
+          if (captured) {
+            return captured;
+          }
+        } catch {}
+      }
+      const width = Math.max(320, Math.min(960, Math.round(window.innerWidth || 380)));
+      const height = Math.max(240, Math.min(720, Math.round(window.innerHeight || 480)));
+      const statusCanvas = document.createElement("canvas");
+      statusCanvas.width = width;
+      statusCanvas.height = height;
+      const ctx = statusCanvas.getContext("2d");
+      if (!ctx) {
+        return null;
+      }
+      const text = (selector, fallback) =>
+        (document.querySelector(selector)?.textContent || fallback).trim();
+      const avatarName = text("#dock-avatar-name", "No avatar selected");
+      const voiceStatus = text("#dock-voice-status", "Voice status unavailable");
+      const panelOpen = document.querySelector("#companion-panel")?.classList.contains("is-open");
+      const gradient = ctx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, "#151923");
+      gradient.addColorStop(1, "#253140");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
+      ctx.font = "600 20px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.fillText("OpenClaw Desktop Companion", 24, 42);
+      ctx.font = "500 15px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.fillText("Avatar: " + avatarName, 24, 78);
+      ctx.fillText("Voice: " + voiceStatus, 24, 104);
+      ctx.fillText("Setup panel: " + (panelOpen ? "open" : "closed"), 24, 130);
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.28)";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(12, 12, width - 24, height - 24);
+      return fromDataUrl(
+        statusCanvas.toDataURL("image/png"),
+        width,
+        height,
+        "desktop-companion-renderer-status",
+      );
+    })()`,
+    true,
+  );
+  if (
+    !result ||
+    typeof result.base64 !== "string" ||
+    typeof result.width !== "number" ||
+    typeof result.height !== "number" ||
+    result.width <= 0 ||
+    result.height <= 0
+  ) {
+    return null;
+  }
+  return {
+    base64: result.base64,
+    mimeType: "image/png",
+    timestamp: Date.now(),
+    width: result.width,
+    height: result.height,
+    source:
+      typeof result.source === "string" && result.source.trim()
+        ? result.source
+        : "desktop-companion-renderer-canvas",
+  };
+}
+async function captureWindowToMemory() {
+  if (!mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isDestroyed()) {
+    return null;
+  }
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  }
+  if (!mainWindow.isVisible()) {
+    mainWindow.showInactive();
+  }
+  await waitForWindowPaint();
+  const canvasCapture = await withCaptureTimeout(
+    captureRendererCanvasToMemory(),
+    WINDOW_CAPTURE_TIMEOUT_MS,
+  );
+  if (canvasCapture) {
+    return canvasCapture;
+  }
+  return await withCaptureTimeout(
+    captureWindowWithWindowsGdi(),
+    WINDOW_CAPTURE_FALLBACK_TIMEOUT_MS,
+  );
+}
 function ensureMicSession() {
   if (micSession) {
     return micSession;
@@ -448,7 +706,12 @@ async function setMicEnabled(enabled) {
   runtimeState.voice.micActive = started;
   runtimeState.voice.sttAvailable = started || runtimeState.voice.sttAvailable;
   publishRuntimeState();
-  return started ? { ok: true } : { ok: false, reason: "Unable to start microphone capture" };
+  return started
+    ? { ok: true }
+    : {
+        ok: false,
+        reason: session.getLastError?.() ?? "Unable to start microphone capture",
+      };
 }
 function setPermissionDecision(capability, decision, source = "user") {
   runtimeState.permissions = setCompanionPermission(
@@ -470,10 +733,24 @@ function inferOrigin(url) {
     return null;
   }
 }
+function isTtsProvider(value) {
+  return value === "voicevox" || value === "web-speech";
+}
 async function handleCompanionAction(action, payload) {
   switch (action) {
     case "get-state":
       return runtimeState;
+    case "get-profile":
+      return runtimeState.profile;
+    case "update-profile": {
+      const request = payload;
+      runtimeState.profile = await updateCompanionProfile({
+        stateDir,
+        patch: request?.profile ?? {},
+      });
+      publishRuntimeState();
+      return runtimeState.profile;
+    }
     case "list-assets":
       return await readCompanionAssets(stateDir);
     case "get-input-snapshot": {
@@ -498,7 +775,35 @@ async function handleCompanionAction(action, payload) {
     case "speak": {
       const request = payload;
       if (typeof request.text === "string" && request.text.trim()) {
-        sendToRenderer(IPC_CHANNELS.SPEAK_TEXT, request.text.trim());
+        const ttsProvider = isTtsProvider(request.ttsProvider) ? request.ttsProvider : undefined;
+        const emotion =
+          typeof request.emotion === "string" && request.emotion.trim()
+            ? request.emotion.trim()
+            : undefined;
+        let shouldPublishState = false;
+        if (emotion) {
+          runtimeState.profile = await updateCompanionProfile({
+            stateDir,
+            patch: { mood: emotion },
+          });
+          shouldPublishState = true;
+        }
+        if (ttsProvider) {
+          runtimeState.ttsProvider = ttsProvider;
+          shouldPublishState = true;
+        }
+        if (shouldPublishState) {
+          publishRuntimeState();
+        }
+        if (emotion || ttsProvider) {
+          sendAvatarCommand({
+            speakText: request.text.trim(),
+            ...(emotion ? { expression: emotion, speakEmotion: emotion } : {}),
+            ...(ttsProvider ? { ttsProvider } : {}),
+          });
+        } else {
+          sendToRenderer(IPC_CHANNELS.SPEAK_TEXT, request.text.trim());
+        }
       }
       return runtimeState;
     }
@@ -576,6 +881,8 @@ async function handleCompanionAction(action, payload) {
     }
     case "request-camera-capture":
       return await requestRendererCameraCapture();
+    case "request-window-capture":
+      return await captureWindowToMemory();
     case "request-screen-capture":
       return await captureScreenToMemory();
     default:
@@ -716,6 +1023,11 @@ async function scanModels(dir) {
 }
 ipcMain.handle("companion:get-config", async () => rawCompanionConfig);
 ipcMain.handle("companion:get-state", async () => runtimeState);
+ipcMain.handle("companion:get-profile", async () => runtimeState.profile);
+ipcMain.handle(
+  "companion:update-profile",
+  async (_event, profile) => await handleCompanionAction("update-profile", { profile }),
+);
 ipcMain.handle("companion:list-assets", async () => await readCompanionAssets(stateDir));
 ipcMain.handle("companion:set-permission", async (_event, capability, decision) =>
   setPermissionDecision(capability, decision),
@@ -834,6 +1146,7 @@ ipcMain.on(IPC_CHANNELS.STATE_UPDATE, (_event, update) => {
   if (update.ttsProvider === "voicevox" || update.ttsProvider === "web-speech") {
     runtimeState.ttsProvider = update.ttsProvider;
   }
+  updateAvatarRuntimeState(update.avatar);
   publishRuntimeState();
 });
 if (process.platform === "win32") {
@@ -851,6 +1164,7 @@ if (!hasCompanionInstanceLock) {
     .whenReady()
     .then(async () => {
       await fs.mkdir(stateDir, { recursive: true });
+      runtimeState.profile = await readCompanionProfile(stateDir);
       const cachedActiveAssetId = applyRuntimeStateCache(await readStateCache());
       const manifestAssets = await readCompanionAssets(stateDir);
       const startupAssetId = selectStartupCompanionAssetId({

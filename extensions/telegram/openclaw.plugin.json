@@ -1,5 +1,6 @@
 {
   "id": "telegram",
+  "skills": ["./skills"],
   "activation": {
     "onStartup": false
   },

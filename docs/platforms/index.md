@@ -10,9 +10,13 @@ OpenClaw core is written in TypeScript. **Node is the recommended runtime**.
 Bun is not recommended for the Gateway — known issues with WhatsApp and
 Telegram channels; see [Bun (experimental)](/install/bun) for details.
 
-Companion apps exist for macOS (menu bar app) and mobile nodes (iOS/Android). Windows and
-Linux companion apps are planned, but the Gateway is fully supported today.
-Native companion apps for Windows are also planned; the Gateway is recommended via WSL2.
+Companion apps exist for macOS (menu bar app) and mobile nodes (iOS/Android).
+The source tree also includes the strict-local Desktop Companion overlay
+(`live2d-companion`) for VRM/FBX avatar workflows, local character profiles,
+agent prompt context, and Live2D compatibility.
+Packaged native companion apps for Windows and Linux are still planned, but the
+Gateway is fully supported today. For Windows Gateway installs, WSL2 remains the
+recommended path.
 
 ## Choose your OS
 

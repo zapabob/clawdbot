@@ -1,5 +1,9 @@
 # scripts/hypura/tests/test_harness_daemon.py
+import importlib
 import json
+import sys
+import time
+import types
 from unittest.mock import AsyncMock, Mock, patch
 
 from fastapi.testclient import TestClient
@@ -24,6 +28,83 @@ def test_status_has_required_keys() -> None:
     assert "ollama_alive" in data
     assert "lora" in data
     assert "base_model_configured" in data["lora"]
+
+
+def test_channel_readiness_endpoint_redacts_config_values(tmp_path, monkeypatch) -> None:
+    config_path = tmp_path / "openclaw.json"
+    config_path.write_text(
+        json.dumps(
+            {
+                "channels": {
+                    "line": {
+                        "channelAccessToken": "line-secret-token",
+                        "channelSecret": "line-channel-secret",
+                    },
+                    "telegram": {
+                        "botToken": "telegram-secret-token",
+                        "groups": {"-1001234567890": {}},
+                    },
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("OPENCLAW_CONFIG_PATH", str(config_path))
+    from harness_daemon import app
+
+    client = TestClient(app)
+    resp = client.get("/channels/readiness")
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["success"] is True
+    assert data["channels"]["line"]["credentialPresence"]["channelAccessToken"] is True
+    assert data["channels"]["line"]["liveRoundtripReady"] is False
+    assert data["channels"]["telegram"]["liveRoundtripReady"] is True
+    serialized = json.dumps(data)
+    assert "line-secret-token" not in serialized
+    assert "line-channel-secret" not in serialized
+    assert "telegram-secret-token" not in serialized
+    assert "-1001234567890" not in serialized
+
+
+def test_status_times_out_optional_redis_loop(monkeypatch) -> None:
+    monkeypatch.setenv("OPENCLAW_HYPURA_STATUS_DEP_TIMEOUT_SEC", "0.05")
+    from harness_daemon import app
+
+    def slow_loop_stats() -> dict[str, str]:
+        time.sleep(0.5)
+        return {"redis": "connected"}
+
+    with patch("harness_daemon.redis_loop.get_loop_stats", side_effect=slow_loop_stats):
+        client = TestClient(app)
+        resp = client.get("/status")
+
+    assert resp.status_code == 200
+    assert resp.json()["loop"] == {"redis": "timeout"}
+
+
+def test_redis_loop_unavailable_connection_is_cached(monkeypatch) -> None:
+    monkeypatch.setenv("OPENCLAW_HYPURA_REDIS_TIMEOUT_SEC", "0.01")
+    monkeypatch.setenv("OPENCLAW_HYPURA_REDIS_RETRY_INTERVAL_SEC", "30")
+    import redis_loop
+
+    redis_loop = importlib.reload(redis_loop)
+
+    class FakeRedis:
+        calls = 0
+
+        def __init__(self, **_kwargs) -> None:
+            FakeRedis.calls += 1
+
+        def ping(self) -> None:
+            raise TimeoutError("redis unavailable")
+
+    monkeypatch.setitem(sys.modules, "redis", types.SimpleNamespace(Redis=FakeRedis))
+
+    assert redis_loop.get_loop_stats() == {"redis": "unavailable"}
+    assert redis_loop.get_loop_stats() == {"redis": "unavailable"}
+    assert FakeRedis.calls == 1
 
 
 def test_osc_endpoint_chatbox() -> None:
@@ -186,6 +267,172 @@ def test_companion_control_motion_endpoint() -> None:
         assert resp.status_code == 200
         assert resp.json()["success"] is True
         mock_bridge.forward_motion.assert_awaited_once_with("Idle", 1)
+
+
+def test_companion_control_speak_endpoint_forwards_emotion_and_tts_provider() -> None:
+    from harness_daemon import app
+
+    with patch("harness_daemon.companion_bridge") as mock_bridge:
+        mock_bridge.forward_speak = AsyncMock(return_value={"ok": True})
+        client = TestClient(app)
+        resp = client.post(
+            "/companion/control",
+            json={
+                "action": "speak",
+                "value": "hello",
+                "emotion": "happy",
+                "tts_provider": "web-speech",
+            },
+        )
+        assert resp.status_code == 200
+        assert resp.json()["success"] is True
+        mock_bridge.forward_speak.assert_awaited_once_with(
+            "hello", "happy", "web-speech"
+        )
+
+
+def test_companion_control_state_endpoints() -> None:
+    from harness_daemon import app
+
+    with patch("harness_daemon.companion_bridge") as mock_bridge:
+        mock_bridge.get_state = AsyncMock(return_value={"state": {"voice": {"micActive": False}}})
+        mock_bridge.set_permission = AsyncMock(return_value={"permissionState": {"ok": True}})
+        mock_bridge.set_mic_enabled = AsyncMock(return_value={"micResult": {"ok": True}})
+        mock_bridge.input_snapshot = AsyncMock(
+            return_value={"inputSnapshot": {"transcript": "hello"}}
+        )
+        mock_bridge.window_capture = AsyncMock(
+            return_value={"windowCapture": {"mimeType": "image/png"}}
+        )
+        client = TestClient(app)
+
+        status_resp = client.post("/companion/control", json={"action": "status"})
+        permission_resp = client.post(
+            "/companion/control",
+            json={"action": "permission", "capability": "mic", "decision": "granted"},
+        )
+        mic_resp = client.post(
+            "/companion/control", json={"action": "mic", "enabled": True}
+        )
+        snapshot_resp = client.post(
+            "/companion/control",
+            json={
+                "action": "input_snapshot",
+                "include_camera": True,
+                "capture_camera": False,
+            },
+        )
+        capture_resp = client.post(
+            "/companion/control", json={"action": "window_capture"}
+        )
+
+        assert status_resp.status_code == 200
+        assert permission_resp.status_code == 200
+        assert mic_resp.status_code == 200
+        assert snapshot_resp.status_code == 200
+        assert capture_resp.status_code == 200
+        assert status_resp.json()["state"]["voice"]["micActive"] is False
+        assert snapshot_resp.json()["inputSnapshot"]["transcript"] == "hello"
+        assert capture_resp.json()["windowCapture"]["mimeType"] == "image/png"
+        mock_bridge.set_permission.assert_awaited_once_with("mic", "granted")
+        mock_bridge.set_mic_enabled.assert_awaited_once_with(True)
+        mock_bridge.input_snapshot.assert_awaited_once_with(
+            include_camera=True,
+            capture_camera=False,
+        )
+        mock_bridge.window_capture.assert_awaited_once_with()
+
+
+def test_companion_control_mic_reports_nested_bridge_denial() -> None:
+    from harness_daemon import app
+
+    with patch("harness_daemon.companion_bridge") as mock_bridge:
+        mock_bridge.set_mic_enabled = AsyncMock(
+            return_value={
+                "ok": True,
+                "micResult": {
+                    "ok": False,
+                    "reason": "Microphone permission is denied",
+                },
+            }
+        )
+        client = TestClient(app)
+        resp = client.post(
+            "/companion/control", json={"action": "mic", "enabled": True}
+        )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["success"] is False
+        assert data["micResult"]["reason"] == "Microphone permission is denied"
+        mock_bridge.set_mic_enabled.assert_awaited_once_with(True)
+
+
+def test_companion_control_speak_reports_bridge_failure() -> None:
+    from harness_daemon import app
+
+    with patch("harness_daemon.companion_bridge") as mock_bridge:
+        mock_bridge.forward_speak = AsyncMock(
+            return_value={"ok": False, "error": "Desktop companion IPC unavailable"}
+        )
+        client = TestClient(app)
+        resp = client.post(
+            "/companion/control",
+            json={"action": "speak", "value": "hello", "emotion": "happy"},
+        )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["success"] is False
+        assert data["error"] == "Desktop companion IPC unavailable"
+        mock_bridge.forward_speak.assert_awaited_once_with("hello", "happy", None)
+
+
+def test_voice_companion_mic_reports_nested_bridge_denial() -> None:
+    from harness_daemon import app
+
+    with patch("harness_daemon.companion_bridge") as mock_bridge:
+        mock_bridge.set_mic_enabled = AsyncMock(
+            return_value={
+                "ok": True,
+                "micResult": {
+                    "ok": False,
+                    "reason": "Microphone permission is denied",
+                },
+            }
+        )
+        client = TestClient(app)
+        resp = client.post("/voice/companion-mic", json={"enabled": True})
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["success"] is False
+        assert data["enabled"] is True
+        assert data["micResult"]["reason"] == "Microphone permission is denied"
+
+
+def test_voice_companion_turn_reports_companion_speech_failure() -> None:
+    from harness_daemon import app
+
+    with patch(
+        "harness_daemon.run_companion_transcript_turn",
+        return_value={"success": True, "reply": "reply", "emotion": "happy"},
+    ), patch("harness_daemon.companion_bridge") as mock_bridge:
+        mock_bridge.forward_emotion = AsyncMock(return_value={"ok": True})
+        mock_bridge.forward_speak = AsyncMock(
+            return_value={"ok": False, "error": "Desktop companion IPC unavailable"}
+        )
+        client = TestClient(app)
+        resp = client.post(
+            "/voice/companion-turn",
+            json={"transcript": "hi", "speak": True, "animate": True},
+        )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["success"] is False
+        assert data["companion_animation"]["ok"] is True
+        assert data["companion_speech"]["error"] == "Desktop companion IPC unavailable"
 
 
 def test_companion_control_look_at_endpoint() -> None:

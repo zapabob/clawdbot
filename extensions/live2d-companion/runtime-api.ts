@@ -11,15 +11,19 @@ import type {
   CompanionAttachTabPayload,
   CompanionUpdateTabContextPayload,
   CompanionImportAssetPayload,
+  CompanionUpdateProfilePayload,
 } from "./companion-ipc-protocol.js";
 import { sendCompanionIpcRequest } from "./companion-ipc.js";
 import type {
   CompanionPermissionCapability,
   CompanionPermissionDecision,
 } from "./companion-permissions.js";
+import type { CompanionCharacterProfile, CompanionProfilePatch } from "./companion-profile.js";
 
 type CompanionActionResultMap = {
   "get-state": CompanionRuntimeState;
+  "get-profile": CompanionCharacterProfile;
+  "update-profile": CompanionCharacterProfile;
   "list-assets": CompanionAssetManifestEntry[];
   "get-input-snapshot": CompanionInputSnapshot;
   "set-permission": CompanionRuntimeState;
@@ -33,6 +37,7 @@ type CompanionActionResultMap = {
   "import-asset": CompanionAssetManifestEntry;
   "activate-asset": CompanionRuntimeState;
   "request-camera-capture": CompanionBinaryCapture | null;
+  "request-window-capture": CompanionBinaryCapture | null;
   "request-screen-capture": CompanionBinaryCapture | null;
 };
 
@@ -58,6 +63,28 @@ export function getCompanionState(params?: { stateDir?: string }): Promise<Compa
   return sendCompanionAction({
     ...(params?.stateDir ? { stateDir: params.stateDir } : {}),
     action: "get-state",
+  });
+}
+
+export function getCompanionProfile(params?: {
+  stateDir?: string;
+}): Promise<CompanionCharacterProfile> {
+  return sendCompanionAction({
+    ...(params?.stateDir ? { stateDir: params.stateDir } : {}),
+    action: "get-profile",
+  });
+}
+
+export function updateCompanionProfile(params: {
+  stateDir?: string;
+  profile: CompanionProfilePatch;
+}): Promise<CompanionCharacterProfile> {
+  return sendCompanionAction({
+    ...(params.stateDir ? { stateDir: params.stateDir } : {}),
+    action: "update-profile",
+    payload: {
+      profile: params.profile,
+    } satisfies CompanionUpdateProfilePayload,
   });
 }
 
@@ -112,9 +139,13 @@ export function setCompanionMicEnabled(params: {
 export function speakWithCompanion(params: {
   stateDir?: string;
   text: string;
+  emotion?: string;
+  ttsProvider?: "voicevox" | "web-speech";
 }): Promise<CompanionRuntimeState> {
   const payload: CompanionSpeakPayload = {
     text: params.text,
+    ...(params.emotion ? { emotion: params.emotion } : {}),
+    ...(params.ttsProvider ? { ttsProvider: params.ttsProvider } : {}),
   };
   return sendCompanionAction({
     ...(params.stateDir ? { stateDir: params.stateDir } : {}),
@@ -207,6 +238,15 @@ export function requestCompanionCameraCapture(params?: {
   });
 }
 
+export function requestCompanionWindowCapture(params?: {
+  stateDir?: string;
+}): Promise<CompanionBinaryCapture | null> {
+  return sendCompanionAction({
+    ...(params?.stateDir ? { stateDir: params.stateDir } : {}),
+    action: "request-window-capture",
+  });
+}
+
 export function requestCompanionScreenCapture(params?: {
   stateDir?: string;
 }): Promise<CompanionBinaryCapture | null> {
@@ -220,9 +260,11 @@ export type {
   CompanionAssetManifestEntry,
   CompanionBinaryCapture,
   CompanionBrowserAttachment,
+  CompanionCharacterProfile,
   CompanionInputSnapshot,
   CompanionInputSnapshotPayload,
   CompanionPermissionCapability,
   CompanionPermissionDecision,
+  CompanionProfilePatch,
   CompanionRuntimeState,
 };

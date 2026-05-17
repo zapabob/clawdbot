@@ -16,6 +16,7 @@ export type LocalWhisperMicSession = {
   stop: () => void;
   getState: () => LocalWhisperMicSessionState;
   isRunning: () => boolean;
+  getLastError: () => string | null;
 };
 
 export type LocalVoiceCompanionDefaults = {

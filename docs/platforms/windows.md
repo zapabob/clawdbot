@@ -12,7 +12,12 @@ stable path and recommended for the full experience — the CLI, Gateway, and
 tooling run inside Linux with full compatibility. Native Windows works for
 core CLI and Gateway use, with some caveats noted below.
 
-Native Windows companion apps are planned.
+The strict-local Desktop Companion overlay exists in source through the bundled
+`live2d-companion` plugin. It is useful for local avatar workflows with VRM/FBX
+assets, local character profiles, VOICEVOX speech, opt-in capture permissions,
+and the `control_companion` agent tool. A packaged native Windows companion app
+or installer is still planned; use the source overlay for development and local
+proof.
 
 ## WSL2 (recommended)
 
@@ -245,8 +250,27 @@ Full guide: [Getting Started](/start/getting-started)
 
 ## Windows companion app
 
-We do not have a Windows companion app yet. Contributions are welcome if you want to
-help make it happen.
+The source checkout includes a local Electron Desktop Companion overlay:
+
+```powershell
+pnpm --dir extensions/live2d-companion start
+```
+
+The overlay is local-only by default. It prefers VRM/FBX avatars, keeps Live2D as
+a compatibility path, stores the companion character profile in local state,
+requires explicit permission for microphone, camera, screen, and browser-follow
+capture, and can be driven by the `control_companion` agent tool. The setup
+panel includes a Character profile card for editing the local display name,
+mood, greeting, persona prompt, voice profile, and relationship label. Use
+`control_companion` with `action: "profile"` to read or update the same local
+character profile from an agent. The saved profile is also appended to
+`before_prompt_build` system context so companion turns can keep the local
+character name, mood, greeting, voice profile, and relationship tone without a
+remote profile service. Use `control_companion` with `action: "window_capture"`
+when you need visual proof of the rendered companion window.
+
+This is not a packaged Windows app yet. Contributions are welcome if you want to
+help turn the source overlay into a signed installer and updater.
 
 ## Git and GitHub connectivity (contributors)
 

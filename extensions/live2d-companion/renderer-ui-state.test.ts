@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
-import type {
-  CompanionAssetManifestEntry,
-  CompanionRuntimeState,
-} from "./runtime-api.js";
+import { createDefaultCompanionProfile } from "./companion-profile.js";
 import {
   buildAssetLibraryView,
+  buildCompanionProfilePatch,
   buildSetupChecklist,
+  createCompanionProfileDraft,
   createCompanionUiState,
   reduceCompanionUiState,
 } from "./renderer/ui-state.js";
+import type { CompanionAssetManifestEntry, CompanionRuntimeState } from "./runtime-api.js";
 
 function createAsset(params: {
   id: string;
@@ -33,9 +33,7 @@ function createAsset(params: {
   };
 }
 
-function createRuntimeState(
-  overrides: Partial<CompanionRuntimeState> = {},
-): CompanionRuntimeState {
+function createRuntimeState(overrides: Partial<CompanionRuntimeState> = {}): CompanionRuntimeState {
   return {
     visible: true,
     agentId: "main",
@@ -84,6 +82,30 @@ function createRuntimeState(
       speaking: false,
       lastTranscript: null,
       lastTranscriptAt: null,
+    },
+    avatar: {
+      lastAction: null,
+      lastEmotion: null,
+      lastExpression: null,
+      lastMotion: null,
+      lastMotionIndex: null,
+      lastLookAt: null,
+      lastUpdatedAt: null,
+      lastSpeechAt: null,
+    },
+    profile: {
+      version: 1,
+      displayName: "OpenClaw Companion",
+      characterPrompt: "",
+      greeting: "",
+      mood: "neutral",
+      voiceProfile: null,
+      relationship: {
+        level: 0,
+        label: "new",
+        updatedAt: null,
+      },
+      updatedAt: 1,
     },
     activeAssetId: null,
     activeAsset: null,
@@ -169,5 +191,44 @@ describe("renderer ui state helpers", () => {
     expect(closed.panelExpanded).toBe(false);
     expect(closed.activeDialog).toBeNull();
     expect(closed.onboardingSeen).toBe(true);
+  });
+
+  it("builds profile drafts and clamps the relationship patch", () => {
+    const draft = createCompanionProfileDraft({
+      version: 1,
+      displayName: "Hakua",
+      characterPrompt: "Local-first companion",
+      greeting: "Welcome back",
+      mood: "happy",
+      voiceProfile: "VOICEVOX:8",
+      relationship: {
+        level: 42,
+        label: "familiar",
+        updatedAt: 123,
+      },
+      updatedAt: 456,
+    });
+
+    expect(draft).toMatchObject({
+      displayName: "Hakua",
+      mood: "happy",
+      relationshipLevel: 42,
+      relationshipLabel: "familiar",
+    });
+
+    const patch = buildCompanionProfilePatch({
+      ...draft,
+      voiceProfile: " ",
+      relationshipLevel: 140,
+    });
+
+    expect(patch).toMatchObject({
+      displayName: "Hakua",
+      voiceProfile: null,
+      relationship: {
+        level: 100,
+        label: "familiar",
+      },
+    });
   });
 });

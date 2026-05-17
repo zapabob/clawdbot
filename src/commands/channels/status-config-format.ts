@@ -68,6 +68,7 @@ export async function formatConfigChannelsStatusLines(
   const plugins = listReadOnlyChannelPluginsForConfig(cfg, {
     activationSourceConfig: sourceConfig,
     includeSetupFallbackPlugins: true,
+    skipMetadataSnapshot: true,
   }).filter((plugin) => !requestedChannel || plugin.id === requestedChannel);
   const visibleChannelIds = new Set<string>();
   for (const plugin of plugins) {

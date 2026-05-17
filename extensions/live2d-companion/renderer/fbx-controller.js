@@ -173,7 +173,6 @@ export class FbxController {
   clips = [];
   fallbackMouth = null;
   fallbackGroup = null;
-  fallbackEyes = null;
   baseModelY = 0;
   baseModelScale = 1;
   idleTime = 0;
@@ -185,7 +184,11 @@ export class FbxController {
   async init(container) {
     this.three = await import("three");
     const THREE = this.three;
-    this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    this.renderer = new THREE.WebGLRenderer({
+      alpha: true,
+      antialias: true,
+      preserveDrawingBuffer: true,
+    });
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.setSize(container.clientWidth || 380, container.clientHeight || 480);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -323,7 +326,6 @@ export class FbxController {
     }
     this.fallbackGroup = null;
     this.fallbackMouth = null;
-    this.fallbackEyes = null;
     this.renderer?.dispose();
     this.renderer?.domElement.remove();
     this.renderer = null;
@@ -376,7 +378,6 @@ export class FbxController {
     this.scene.add(group);
     this.fallbackGroup = group;
     this.fallbackMouth = mouth;
-    this.fallbackEyes = [leftEye, rightEye];
     console.log("[FbxController] Fallback avatar rendered; load a local .fbx for the real model.");
   }
   async loadFromBuffer(buffer, resourceDir) {
@@ -577,7 +578,6 @@ export class FbxController {
       this.scene.remove(this.fallbackGroup);
       this.fallbackGroup = null;
       this.fallbackMouth = null;
-      this.fallbackEyes = null;
     }
     this.model = fbx;
     this.scene.add(fbx);

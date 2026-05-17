@@ -1,0 +1,115 @@
+{
+  "plugins": {
+    "entries": {
+      "vrchat-relay": {
+        "enabled": true,
+        "llm": {
+          "allowModelOverride": true,
+          "allowedModels": ["openai/gpt-5.5"]
+        },
+        "config": {
+          "autonomousVrchatAi": {
+            "enabled": false
+          },
+          "inputHub": {
+            "maxBufferedEvents": 64,
+            "textBox": {
+              "enabled": true
+            },
+            "speechToText": {
+              "enabled": false
+            },
+            "visionObservation": {
+              "enabled": true
+            },
+            "streamComment": {
+              "enabled": true
+            }
+          },
+          "orchestrator": {
+            "model": "gpt-5.5",
+            "reasoning": {
+              "effort": "low"
+            },
+            "maxOutputTokens": 700
+          },
+          "voicevox": {
+            "enabled": true,
+            "baseUrl": "http://127.0.0.1:50021",
+            "speaker": 8,
+            "timeoutMs": 30000
+          },
+          "audioOutput": {
+            "mode": "speaker",
+            "virtualCableDeviceName": "",
+            "emitSpeakingEvents": true
+          },
+          "vrchatOsc": {
+            "enabled": true,
+            "host": "127.0.0.1",
+            "sendPort": 9000,
+            "receivePort": 9001,
+            "allowRemoteOsc": false,
+            "autoDiscoverAvatarConfig": true
+          },
+          "avatarControl": {
+            "mode": "existing_avatar_parameters",
+            "requireProfileForWrites": true,
+            "autoGenerateProfileSuggestions": true,
+            "forbidSyntheticOcPrefixRequirement": true,
+            "profileDir": "state/vrchat/avatar-profiles",
+            "allowDirectParameterWrite": false,
+            "autoEnabledOnStart": false
+          },
+          "behavior": {
+            "mode": "subtle",
+            "idleMinIntervalMs": 30000,
+            "idleMaxIntervalMs": 90000,
+            "actionCooldownMs": 15000,
+            "emotionCooldownMs": 3000,
+            "maxCommandsPerSecond": 6,
+            "speakingHoldMs": 2500
+          },
+          "chatBox": {
+            "enabled": false,
+            "maxChars": 144,
+            "maxLines": 9,
+            "minIntervalMs": 3000,
+            "submit": true,
+            "notify": false,
+            "typing": true
+          },
+          "speechToText": {
+            "enabled": false,
+            "suppressDuringTts": true
+          },
+          "movement": {
+            "enabled": false,
+            "allowInPublicInstances": false,
+            "maxInputDurationMs": 1000,
+            "alwaysResetToZero": true
+          },
+          "safety": {
+            "requireOscJsonParameterPresence": true,
+            "disableChatBoxByDefault": true,
+            "emergencyStopHotkey": "Ctrl+Alt+O"
+          },
+          "mirror": {
+            "syncAiResponseToChatbox": false
+          },
+          "topology": {
+            "controlPlane": "relay-primary",
+            "autoStartOscListener": true,
+            "autoStartGuardianPulse": false
+          }
+        }
+      },
+      "hypura-harness": {
+        "enabled": true,
+        "config": {
+          "baseUrl": "http://127.0.0.1:18794"
+        }
+      }
+    }
+  }
+}

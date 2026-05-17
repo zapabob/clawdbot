@@ -2,12 +2,16 @@ import { execFile } from "node:child_process";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { Type } from "@sinclair/typebox";
+import { resolveLive2dCompanionConfig } from "./companion-config.js";
+import {
+  formatCompanionProfilePromptContext,
+  readCompanionProfileSync,
+} from "./companion-profile.js";
 import {
   getCompanionInputSnapshot,
   requestCompanionCameraCapture,
   speakWithCompanion,
 } from "./runtime-api.js";
-import { resolveLive2dCompanionConfig } from "./companion-config.js";
 
 const require = createRequire(import.meta.url);
 const DEFAULT_MAX_CHARS = 120;
@@ -27,10 +31,20 @@ type LocalVoiceFacade = {
   resolveLocalVoiceCompanionDefaults: () => LocalVoiceCompanionDefaults;
 };
 
+const TTS_PROVIDERS = ["voicevox", "web-speech"] as const;
+
+function normalizeTtsProvider(value: unknown): (typeof TTS_PROVIDERS)[number] | undefined {
+  return typeof value === "string" &&
+    TTS_PROVIDERS.includes(value as (typeof TTS_PROVIDERS)[number])
+    ? (value as (typeof TTS_PROVIDERS)[number])
+    : undefined;
+}
+
 function resolveCompanionLocalVoiceDefaults(): LocalVoiceCompanionDefaults {
   try {
-    return (require("openclaw/plugin-sdk/local-voice") as LocalVoiceFacade)
-      .resolveLocalVoiceCompanionDefaults();
+    return (
+      require("openclaw/plugin-sdk/local-voice") as LocalVoiceFacade
+    ).resolveLocalVoiceCompanionDefaults();
   } catch {
     return {
       sttBackend: "local-voice-whisper",
@@ -88,10 +102,20 @@ function buildBeforePromptGuidance(): string {
     "## Desktop Companion Tools",
     "",
     "### Available tools",
-    "- `voicevox_speak`: speak through the local Desktop Companion overlay with local VOICEVOX output.",
+    "- `control_companion`: primary OpenClaw harness for Desktop Companion status, speech, emotion, gaze, model loading, microphone consent, input snapshots, and window captures.",
+    "- `voicevox_speak`: speak through the local Desktop Companion overlay with local VOICEVOX output and optional emotion animation.",
     "- `voicevox_speak_direct`: use the local Python VOICEVOX helper without requiring the overlay.",
     "- `get_companion_input`: read the latest local transcript, visible tab context, and optional camera frame.",
     "- `companion_camera_capture`: capture the latest local webcam frame when the user has allowed camera access.",
+    "",
+    "### Preferred workflow",
+    '- Use `control_companion({ action: "status" })` before diagnosis or live operation.',
+    '- Use `control_companion({ action: "profile" })` to read the local character profile before roleplay, relationship, or avatar-persona work.',
+    '- Use `control_companion({ action: "profile", display_name, character_prompt, mood })` to update the strict-local companion profile instead of inventing transient identity state.',
+    '- Use `control_companion({ action: "permission", capability: "mic", decision: "granted" })` before enabling STT.',
+    '- Use `control_companion({ action: "speak", value, emotion })` when assistant speech should animate the loaded VRM or FBX avatar.',
+    '- Use `control_companion({ action: "input_snapshot" })` to read local STT transcripts instead of guessing voice state.',
+    '- Use `control_companion({ action: "window_capture" })` for local visual proof of the rendered companion window after a speech or motion command.',
     "",
     "### Privacy and consent",
     "- The Desktop Companion stays in strict local-only mode by default.",
@@ -99,6 +123,19 @@ function buildBeforePromptGuidance(): string {
     "- Camera, microphone, screen, and tab follow each require explicit permission.",
     "- Imported avatars require rights acknowledgment before activation.",
   ].join("\n");
+}
+
+function resolveCompanionStateDir(): string {
+  return path.resolve(
+    process.env.OPENCLAW_STATE_DIR ?? path.join(process.cwd(), ".openclaw-desktop"),
+  );
+}
+
+function buildBeforePromptContext(): string {
+  const profileContext = formatCompanionProfilePromptContext(
+    readCompanionProfileSync(resolveCompanionStateDir()),
+  );
+  return [buildBeforePromptGuidance(), profileContext].filter(Boolean).join("\n\n");
 }
 
 const plugin: {
@@ -170,7 +207,8 @@ const plugin: {
         persistentFollow: Type.Optional(
           Type.Boolean({
             default: true,
-            description: "Allow the attached tab helper to keep following the same tab until detached.",
+            description:
+              "Allow the attached tab helper to keep following the same tab until detached.",
           }),
         ),
       }),
@@ -254,7 +292,7 @@ const plugin: {
         return;
       }
       return {
-        appendSystemContext: buildBeforePromptGuidance(),
+        appendSystemContext: buildBeforePromptContext(),
       };
     });
 
@@ -288,16 +326,36 @@ const plugin: {
         text: Type.String({
           description: "Text to speak locally through the Desktop Companion.",
         }),
+        emotion: Type.Optional(
+          Type.String({
+            description: "Optional emotion to animate before speech.",
+          }),
+        ),
+        tts_provider: Type.Optional(
+          Type.String({
+            enum: [...TTS_PROVIDERS],
+            description: "Optional TTS backend override for this speech call.",
+          }),
+        ),
       }),
-      async execute(_id: string, params: { text: string }) {
+      async execute(
+        _id: string,
+        params: { text: string; emotion?: string; tts_provider?: string },
+      ) {
         const text = params.text.slice(0, 200);
+        const emotion = typeof params.emotion === "string" ? params.emotion.trim() : "";
+        const ttsProvider = normalizeTtsProvider(params.tts_provider);
         try {
-          await speakWithCompanion({ text });
+          await speakWithCompanion({
+            text,
+            ...(emotion ? { emotion } : {}),
+            ...(ttsProvider ? { ttsProvider } : {}),
+          });
           return {
             content: [
               {
                 type: "text",
-                text: `Desktop Companion spoke: "${text.slice(0, 60)}${text.length > 60 ? "..." : ""}"`,
+                text: `Desktop Companion spoke${emotion ? ` with ${emotion}` : ""}: "${text.slice(0, 60)}${text.length > 60 ? "..." : ""}"`,
               },
             ],
           };
@@ -385,7 +443,9 @@ const plugin: {
           const content: Array<Record<string, unknown>> = [];
           if (snapshot.transcript) {
             const ageMs =
-              snapshot.transcriptTimestamp === null ? null : Date.now() - snapshot.transcriptTimestamp;
+              snapshot.transcriptTimestamp === null
+                ? null
+                : Date.now() - snapshot.transcriptTimestamp;
             const ageLabel =
               ageMs === null
                 ? "unknown age"

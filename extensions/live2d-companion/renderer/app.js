@@ -1,9 +1,12 @@
 import { createAvatarController, inferAvatarType } from "./avatar-factory.js";
-import { applyEmotion, detectEmotion } from "./emotion-mapper.js";
+import { buildAvatarEmotionState, buildAvatarSpeechState } from "./avatar-state.js";
+import { applyEmotion, detectEmotion, isEmotionType } from "./emotion-mapper.js";
 import { LipSyncController } from "./lip-sync.js";
 import {
   buildAssetLibraryView,
+  buildCompanionProfilePatch,
   buildSetupChecklist,
+  createCompanionProfileDraft,
   createCompanionUiState,
   reduceCompanionUiState,
 } from "./ui-state.js";
@@ -245,6 +248,17 @@ async function main() {
   const panelScreenCapture = requireElement("panel-screen-capture");
   const setupProgress = requireElement("setup-progress");
   const setupChecklist = requireElement("setup-checklist");
+  const profileStatusBadge = requireElement("profile-status-badge");
+  const profileDisplayName = requireElement("profile-display-name");
+  const profileMood = requireElement("profile-mood");
+  const profileGreeting = requireElement("profile-greeting");
+  const profileVoice = requireElement("profile-voice");
+  const profileCharacterPrompt = requireElement("profile-character-prompt");
+  const profileRelationshipLevel = requireElement("profile-relationship-level");
+  const profileRelationshipValue = requireElement("profile-relationship-value");
+  const profileRelationshipLabel = requireElement("profile-relationship-label");
+  const profileSave = requireElement("profile-save");
+  const profileReset = requireElement("profile-reset");
   const browserFollowStatus = requireElement("browser-follow-status");
   const avatarActionIdle = requireElement("avatar-action-idle");
   const avatarActionHappy = requireElement("avatar-action-happy");
@@ -292,6 +306,9 @@ async function main() {
     licenseMemo: "",
     rightsAcknowledged: false,
   };
+  let profileDraft = createCompanionProfileDraft(runtimeState.profile);
+  let profileDirty = false;
+  let profileSaving = false;
   let pendingDialogResolver = null;
   const initialAvatarType = toConcreteAvatarType(
     discoveredModel ? inferAvatarType(discoveredModel) : configuredAvatarType,
@@ -468,6 +485,20 @@ async function main() {
       setupChecklist.appendChild(li);
     }
   }
+  function renderProfileEditor() {
+    profileDisplayName.value = profileDraft.displayName;
+    profileMood.value = profileDraft.mood;
+    profileGreeting.value = profileDraft.greeting;
+    profileVoice.value = profileDraft.voiceProfile;
+    profileCharacterPrompt.value = profileDraft.characterPrompt;
+    profileRelationshipLevel.value = String(profileDraft.relationshipLevel);
+    profileRelationshipValue.textContent = `${profileDraft.relationshipLevel} / 100`;
+    profileRelationshipLabel.value = profileDraft.relationshipLabel;
+    profileStatusBadge.textContent = profileSaving ? "Saving" : profileDirty ? "Unsaved" : "Saved";
+    profileStatusBadge.className = `badge ${profileDirty || profileSaving ? "badge--accent" : "badge--muted"}`;
+    profileSave.disabled = profileSaving || !profileDirty;
+    profileReset.disabled = profileSaving || !profileDirty;
+  }
   function renderBrowserCard() {
     browserFollowStatus.replaceChildren();
     const permission = runtimeState.permissions["tab-follow"];
@@ -572,7 +603,10 @@ async function main() {
   }
   function renderDock() {
     const activeName = runtimeState.activeAsset?.fileName ?? currentModelName;
-    dockAvatarName.textContent = activeName;
+    const profileName = runtimeState.profile.displayName.trim() || "OpenClaw Companion";
+    const mood = runtimeState.profile.mood.trim() || "neutral";
+    const assetSuffix = activeName && activeName !== "No avatar selected" ? ` | ${activeName}` : "";
+    dockAvatarName.textContent = `${profileName} | ${mood}${assetSuffix}`;
     const voiceStatus = runtimeState.voice.speaking
       ? "Speaking"
       : runtimeState.voice.micActive
@@ -645,6 +679,7 @@ async function main() {
     renderPanel();
     renderPermissions();
     renderChecklist();
+    renderProfileEditor();
     renderBrowserCard();
     renderAssets();
     renderCameraCard();
@@ -767,6 +802,44 @@ async function main() {
     }
     await requestPermission(capability);
   }
+  function updateProfileDraft(patch) {
+    profileDraft = {
+      ...profileDraft,
+      ...patch,
+    };
+    profileDirty = true;
+    render();
+  }
+  async function saveProfileDraft() {
+    if (!profileDirty || profileSaving) {
+      return;
+    }
+    profileSaving = true;
+    render();
+    try {
+      const profile = await window.companionBridge.updateProfile(
+        buildCompanionProfilePatch(profileDraft),
+      );
+      runtimeState = {
+        ...runtimeState,
+        profile,
+      };
+      profileDraft = createCompanionProfileDraft(profile);
+      profileDirty = false;
+      showToast(toastRegion, "Character profile saved locally.", "success");
+    } catch (error) {
+      console.error("[Companion] profile save failed", error);
+      showToast(toastRegion, "Character profile save failed.", "danger");
+    } finally {
+      profileSaving = false;
+      render();
+    }
+  }
+  function resetProfileDraft() {
+    profileDraft = createCompanionProfileDraft(runtimeState.profile);
+    profileDirty = false;
+    render();
+  }
   async function toggleMicSession() {
     if (runtimeState.voice.micActive) {
       const result = await window.companionBridge.stopStt();
@@ -878,6 +951,14 @@ async function main() {
     }
     await importAssetFromPath(result.filePath);
   }
+  function reportAvatarActivity(update) {
+    window.companionBridge.sendStateUpdate({
+      avatar: {
+        ...update,
+        lastUpdatedAt: Date.now(),
+      },
+    });
+  }
   async function speakWithEmotion(text, emotion) {
     const trimmed = text.trim();
     if (!trimmed) {
@@ -885,27 +966,59 @@ async function main() {
     }
     const resolvedEmotion = emotion ?? detectEmotion(trimmed);
     const emotionProfile = applyEmotion(avatar, resolvedEmotion);
+    reportAvatarActivity(
+      buildAvatarSpeechState({
+        avatarType: avatar.avatarType,
+        emotion: resolvedEmotion,
+        emotionProfile,
+      }),
+    );
     lipSync.ttsProvider = runtimeState.ttsProvider;
     showToast(toastRegion, trimText(trimmed, 72), "info");
     await lipSync.speak(trimmed, emotionProfile);
   }
   function cueAvatarExpression(emotion) {
-    applyEmotion(avatar, emotion);
+    const emotionProfile = applyEmotion(avatar, emotion);
+    reportAvatarActivity({
+      lastAction: "emotion",
+      lastEmotion: emotion,
+      ...buildAvatarEmotionState({ avatarType: avatar.avatarType, emotionProfile }),
+    });
     showToast(toastRegion, `Avatar emotion: ${emotion}`, "info");
   }
   function cueAvatarLook(x) {
     avatar.lookAt(x, 0);
+    reportAvatarActivity({
+      lastAction: "look_at",
+      lastLookAt: { x, y: 0 },
+    });
   }
   function cueAvatarIdle() {
     avatar.playMotion("Idle", 0, true);
+    reportAvatarActivity({
+      lastAction: "motion",
+      lastMotion: "Idle",
+      lastMotionIndex: 0,
+    });
     showToast(toastRegion, "Avatar idle motion queued.", "info");
   }
   async function handleAvatarCommand(cmd) {
+    if (cmd.ttsProvider === "voicevox" || cmd.ttsProvider === "web-speech") {
+      runtimeState = {
+        ...runtimeState,
+        ttsProvider: cmd.ttsProvider,
+      };
+      lipSync.ttsProvider = runtimeState.ttsProvider;
+      render();
+    }
     if (cmd.loadModel) {
       try {
         await switchAvatar({
           filePath: cmd.loadModel,
           assetType: inferAssetTypeFromPath(cmd.loadModel),
+        });
+        reportAvatarActivity({
+          lastAction: "load_model",
         });
       } catch (error) {
         console.error("[Companion] command load failed", error);
@@ -913,22 +1026,54 @@ async function main() {
       }
     }
     if (cmd.expression) {
-      applyEmotion(avatar, detectEmotion(`[EMOTION:${cmd.expression}]`));
+      const expression = cmd.expression.trim();
+      if (isEmotionType(expression)) {
+        const emotionProfile = applyEmotion(avatar, expression);
+        reportAvatarActivity({
+          lastAction: "emotion",
+          lastEmotion: expression,
+          ...buildAvatarEmotionState({ avatarType: avatar.avatarType, emotionProfile }),
+        });
+      } else if (expression) {
+        avatar.playExpression(expression);
+        reportAvatarActivity({
+          lastAction: "expression",
+          lastExpression: expression,
+        });
+      }
     }
     if (cmd.motion) {
       avatar.playMotion(cmd.motion, cmd.motionIndex);
+      reportAvatarActivity({
+        lastAction: "motion",
+        lastMotion: cmd.motion,
+        lastMotionIndex: cmd.motionIndex ?? null,
+      });
     }
     if (cmd.gesture) {
       avatar.playMotion(cmd.gesture, cmd.motionIndex);
+      reportAvatarActivity({
+        lastAction: "gesture",
+        lastMotion: cmd.gesture,
+        lastMotionIndex: cmd.motionIndex ?? null,
+      });
     }
     if (cmd.pose) {
       avatar.applyPose?.(cmd.pose);
+      reportAvatarActivity({
+        lastAction: "pose",
+      });
     }
     if (cmd.lookAt) {
       avatar.lookAt(cmd.lookAt.x, cmd.lookAt.y);
+      reportAvatarActivity({
+        lastAction: "look_at",
+        lastLookAt: cmd.lookAt,
+      });
     }
     if (cmd.speakText) {
-      await speakWithEmotion(cmd.speakText);
+      const speakEmotion = cmd.speakEmotion ?? "";
+      await speakWithEmotion(cmd.speakText, isEmotionType(speakEmotion) ? speakEmotion : undefined);
     }
   }
   function setDragActive(active) {
@@ -1019,6 +1164,33 @@ async function main() {
     assetDialogDraft.rightsAcknowledged = dialogRightsCheckbox.checked;
     dialogConfirm.disabled = !assetDialogDraft.rightsAcknowledged;
   });
+  profileDisplayName.addEventListener("input", () => {
+    updateProfileDraft({ displayName: profileDisplayName.value });
+  });
+  profileMood.addEventListener("input", () => {
+    updateProfileDraft({ mood: profileMood.value });
+  });
+  profileGreeting.addEventListener("input", () => {
+    updateProfileDraft({ greeting: profileGreeting.value });
+  });
+  profileVoice.addEventListener("input", () => {
+    updateProfileDraft({ voiceProfile: profileVoice.value });
+  });
+  profileCharacterPrompt.addEventListener("input", () => {
+    updateProfileDraft({ characterPrompt: profileCharacterPrompt.value });
+  });
+  profileRelationshipLevel.addEventListener("input", () => {
+    updateProfileDraft({ relationshipLevel: Number(profileRelationshipLevel.value) });
+  });
+  profileRelationshipLabel.addEventListener("input", () => {
+    updateProfileDraft({ relationshipLabel: profileRelationshipLabel.value });
+  });
+  profileSave.addEventListener("click", () => {
+    void saveProfileDraft();
+  });
+  profileReset.addEventListener("click", () => {
+    resetProfileDraft();
+  });
   document.addEventListener("dragenter", (event) => {
     if (hasModelFile(event)) {
       setDragActive(true);
@@ -1079,6 +1251,9 @@ async function main() {
   window.companionBridge.onRuntimeState((state) => {
     const previousActiveAssetId = runtimeState.activeAssetId;
     runtimeState = state;
+    if (!profileDirty) {
+      profileDraft = createCompanionProfileDraft(runtimeState.profile);
+    }
     lipSync.ttsProvider = runtimeState.ttsProvider;
     const activeAsset = runtimeState.activeAsset;
     if (runtimeState.activeAssetId !== previousActiveAssetId) {
@@ -1098,8 +1273,7 @@ async function main() {
       void speakWithEmotion(event.text, event.emotion);
       return;
     }
-    applyEmotion(avatar, event.emotion);
-    showToast(toastRegion, `Emotion: ${event.emotion}`, "info");
+    cueAvatarExpression(event.emotion);
   });
   window.companionBridge.onSpeakText((text) => {
     void speakWithEmotion(text);

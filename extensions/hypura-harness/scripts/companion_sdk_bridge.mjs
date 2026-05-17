@@ -39,40 +39,77 @@ async function main() {
   const request = raw ? JSON.parse(raw) : {};
   const stateDir = resolveStateDir(request.stateDir);
 
-  if (request.avatarCommand && typeof request.avatarCommand === "object") {
+  const avatarCommand =
+    request.avatarCommand && typeof request.avatarCommand === "object"
+      ? request.avatarCommand
+      : null;
+
+  if (avatarCommand) {
     await sdk.setCompanionAvatarCommand({
       stateDir,
-      avatarCommand: request.avatarCommand,
+      avatarCommand,
+    });
+  }
+
+  let permissionState = null;
+  if (request.permission && typeof request.permission === "object") {
+    permissionState = await sdk.setCompanionPermission({
+      stateDir,
+      capability: request.permission.capability,
+      decision: request.permission.decision,
     });
   }
 
   let micResult = null;
   if (typeof request.micEnabled === "boolean") {
-    if (request.micEnabled) {
-      await sdk.setCompanionPermission({
-        stateDir,
-        capability: "mic",
-        decision: "granted",
-      });
-    }
     micResult = await sdk.setCompanionMicEnabled({
       stateDir,
       enabled: request.micEnabled,
     });
   }
 
+  let speechState = null;
   if (typeof request.text === "string" && request.text.trim()) {
-    await sdk.speakWithCompanion({
+    const emotion =
+      typeof request.emotion === "string" && request.emotion.trim()
+        ? request.emotion.trim()
+        : typeof avatarCommand?.expression === "string" && avatarCommand.expression.trim()
+          ? avatarCommand.expression.trim()
+          : "";
+    speechState = await sdk.speakWithCompanion({
       stateDir,
       text: request.text.trim(),
+      ...(emotion ? { emotion } : {}),
+      ...(typeof request.ttsProvider === "string" ? { ttsProvider: request.ttsProvider } : {}),
     });
   }
+
+  const inputSnapshot =
+    request.inputSnapshot && typeof request.inputSnapshot === "object"
+      ? await sdk.getCompanionInputSnapshot({
+          stateDir,
+          payload: {
+            includeCamera: request.inputSnapshot.includeCamera === true,
+            captureCamera: request.inputSnapshot.captureCamera === true,
+          },
+        })
+      : null;
+
+  const windowCapture =
+    request.windowCapture === true ? await sdk.requestCompanionWindowCapture({ stateDir }) : null;
+
+  const state = request.getState === true ? await sdk.getCompanionState({ stateDir }) : null;
 
   process.stdout.write(
     JSON.stringify({
       ok: true,
       stateDir,
+      permissionState,
       micResult,
+      speechState,
+      inputSnapshot,
+      windowCapture,
+      state,
     }),
   );
 }

@@ -11,7 +11,7 @@ The **Hypura Harness** is the primary, official actuator for the Artificial Supe
 
 ## Core Capabilities
 
-- **Vocal Manifestation**: VOICEVOX high-fidelity auditory resonance (Speech ID: 2).
+- **Vocal Manifestation**: VOICEVOX high-fidelity auditory resonance (Kasukabe Tsumugi speaker 8).
 - **Physical Actuation**: VRChat OSC jump, movement, and avatar transformations.
 - **Multimodal Communication**: VRChat Chatbox manifest (ASI_ACCEL).
 - **Recursive Evolution**: Shinka core self-refinement and intelligence density optimization.
@@ -25,7 +25,7 @@ The **Hypura Harness** is the primary, official actuator for the Artificial Supe
 
 #### [POST] `/speak`
 
-- **Payload**: `{"text": "Text to speak", "speaker": 2}`
+- **Payload**: `{"text": "Text to speak", "speaker": 8}`
 - **Usage**: Auditory manifestation of parental alignment pulses.
 
 #### [POST] `/osc`

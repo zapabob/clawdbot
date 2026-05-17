@@ -13,6 +13,12 @@ import type { IAvatarController } from "./avatar-controller.js";
 
 type ThreeModule = typeof import("three");
 type VrmModule = typeof import("@pixiv/three-vrm");
+type ProceduralGesture = {
+  name: string;
+  startedAt: number;
+  loop: boolean;
+  duration: number;
+};
 
 // VOICEVOX vowel → VRM viseme expression name
 const VOWEL_TO_VISEME: Record<string, string> = {
@@ -22,6 +28,13 @@ const VOWEL_TO_VISEME: Record<string, string> = {
   e: "ee",
   o: "oh",
 };
+
+function normalizeMotionName(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, "-");
+}
 
 export class VrmController implements IAvatarController {
   readonly avatarType = "vrm" as const;
@@ -46,6 +59,11 @@ export class VrmController implements IAvatarController {
   /** Fallback avatar references (when no VRM model is loaded) */
   private _fallbackMouth: import("three").Mesh | null = null;
   private _fallbackGroup: import("three").Group | null = null;
+  private baseSceneY = 0;
+  private idleTime = 0;
+  private expressionPulse = 0;
+  private gaze = { x: 0, y: 0 };
+  private proceduralGesture: ProceduralGesture | null = null;
 
   async init(container: HTMLElement): Promise<void> {
     this.three = await import("three");
@@ -53,7 +71,11 @@ export class VrmController implements IAvatarController {
     const THREE = this.three;
 
     // Renderer
-    this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    this.renderer = new THREE.WebGLRenderer({
+      alpha: true,
+      antialias: true,
+      preserveDrawingBuffer: true,
+    });
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.setSize(container.clientWidth || 380, container.clientHeight || 480);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -166,6 +188,7 @@ export class VrmController implements IAvatarController {
 
     this._fallbackGroup = group;
     this._fallbackMouth = mouth;
+    this.baseSceneY = group.position.y;
     console.log("[VrmController] Fallback avatar rendered — drag a .vrm to load a real model");
   }
 
@@ -208,6 +231,7 @@ export class VrmController implements IAvatarController {
     vrm.scene.rotation.y = Math.PI;
     this.scene.add(vrm.scene);
     this.vrm = vrm;
+    this.baseSceneY = vrm.scene.position.y;
     if (this.mixer) this.mixer.stopAllAction();
     this.mixer = new this.three.AnimationMixer(vrm.scene);
     this.clips = gltf.animations ?? [];
@@ -248,6 +272,7 @@ export class VrmController implements IAvatarController {
     vrm.scene.rotation.y = Math.PI;
     this.scene.add(vrm.scene);
     this.vrm = vrm;
+    this.baseSceneY = vrm.scene.position.y;
     if (this.mixer) this.mixer.stopAllAction();
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     this.mixer = new this.three!.AnimationMixer(vrm.scene);
@@ -256,12 +281,23 @@ export class VrmController implements IAvatarController {
   }
 
   playMotion(group: string, index = 0, loop = false): void {
-    if (!this.mixer || !this.clips.length || !this.three) return;
+    const requestedMotion = group.trim() || "idle";
+    if (!this.mixer || !this.clips.length || !this.three) {
+      this.startProceduralGesture(requestedMotion, loop);
+      return;
+    }
     // Prefer a clip whose name contains the group name; fall back to positional index.
-    const groupLower = group.toLowerCase();
+    const groupLower = requestedMotion.toLowerCase();
     let clip = this.clips.find((c) => c.name.toLowerCase().includes(groupLower));
-    if (!clip) clip = this.clips[index] ?? this.clips[0];
-    if (!clip) return;
+    if (!clip) {
+      clip = /idle|stand|breath/i.test(requestedMotion)
+        ? (this.clips[index] ?? this.clips[0])
+        : undefined;
+    }
+    if (!clip) {
+      this.startProceduralGesture(requestedMotion, loop);
+      return;
+    }
     this.mixer.stopAllAction();
     const action = this.mixer.clipAction(clip);
     action.setLoop(loop ? this.three.LoopRepeat : this.three.LoopOnce, Infinity);
@@ -285,6 +321,8 @@ export class VrmController implements IAvatarController {
   }
 
   playExpression(expressionId: string): void {
+    this.expressionPulse = Math.max(this.expressionPulse, 1);
+    this.startProceduralGesture(expressionId, false);
     if (!this.vrm) return;
     this.clearExpression();
     try {
@@ -336,12 +374,16 @@ export class VrmController implements IAvatarController {
   }
 
   lookAt(x: number, y: number): void {
+    this.gaze = {
+      x: Math.max(-1, Math.min(1, x)),
+      y: Math.max(-1, Math.min(1, y)),
+    };
     if (!this.vrm?.lookAt) return;
     // three-vrm lookAt target in world space
     const dist = 2;
     this.vrm.lookAt.target = {
       getWorldPosition: (v: import("three").Vector3) => {
-        v.set(x * dist, 1.3 - y * 0.3, -1);
+        v.set(this.gaze.x * dist, 1.3 - this.gaze.y * 0.3, -1);
         return v;
       },
     } as unknown as import("three").Object3D;
@@ -367,6 +409,7 @@ export class VrmController implements IAvatarController {
     this.camera = null;
     this.vrm = null;
     this.clock = null;
+    this.proceduralGesture = null;
   }
 
   // ── Private helpers ──────────────────────────────────────────────────────
@@ -382,12 +425,111 @@ export class VrmController implements IAvatarController {
     }
   }
 
+  private startProceduralGesture(name: string, loop: boolean): void {
+    const normalized = normalizeMotionName(name);
+    if (
+      !normalized ||
+      normalized === "idle" ||
+      normalized === "stand" ||
+      normalized === "neutral"
+    ) {
+      this.proceduralGesture = null;
+      return;
+    }
+
+    this.proceduralGesture = {
+      name: normalized,
+      startedAt: this.idleTime,
+      loop,
+      duration: loop ? 2.4 : 1.6,
+    };
+  }
+
+  private applyProceduralMotion(delta: number): void {
+    const target = this.vrm?.scene ?? this._fallbackGroup;
+    if (!target) {
+      return;
+    }
+
+    this.idleTime += delta;
+    const idleSway = Math.sin(this.idleTime * 1.25);
+    const idleBreath = Math.sin(this.idleTime * 1.8);
+    const baseRotationY = this.vrm ? Math.PI : 0;
+    let rotationX = this.gaze.y * 0.035 + idleBreath * 0.01;
+    let rotationY = baseRotationY + this.gaze.x * 0.08 + idleSway * 0.018;
+    let rotationZ = idleSway * 0.015;
+    let yOffset = Math.sin(this.idleTime * 1.6) * (this.vrm ? 0.01 : 0.012);
+
+    const gesture = this.proceduralGesture;
+    if (gesture) {
+      const elapsed = Math.max(0, this.idleTime - gesture.startedAt);
+      const progress = gesture.loop
+        ? (elapsed % gesture.duration) / gesture.duration
+        : Math.min(1, elapsed / gesture.duration);
+      const fade = gesture.loop ? 1 : Math.sin(Math.PI * progress);
+      const wave = Math.sin(progress * Math.PI * 2);
+
+      if (!gesture.loop && elapsed > gesture.duration) {
+        this.proceduralGesture = null;
+      } else {
+        switch (gesture.name) {
+          case "happy":
+          case "cheer":
+          case "relaxed":
+            yOffset += Math.sin(progress * Math.PI) * 0.035 * fade;
+            rotationZ += wave * 0.045 * fade;
+            break;
+          case "surprised":
+          case "surprise":
+            rotationX -= 0.09 * fade;
+            yOffset += 0.02 * fade;
+            break;
+          case "sad":
+          case "bow":
+            rotationX += 0.12 * fade;
+            yOffset -= 0.015 * fade;
+            break;
+          case "angry":
+          case "shake":
+          case "no":
+            rotationY += wave * 0.16 * fade;
+            break;
+          case "nod":
+            rotationX += wave * 0.12 * fade;
+            break;
+          case "left":
+          case "point-left":
+            rotationY -= 0.12 * fade;
+            break;
+          case "right":
+          case "point-right":
+            rotationY += 0.12 * fade;
+            break;
+          default:
+            rotationZ += wave * 0.035 * fade;
+            break;
+        }
+      }
+    }
+
+    if (this.expressionPulse > 0) {
+      this.expressionPulse = Math.max(0, this.expressionPulse - delta * 2.4);
+      yOffset += Math.sin(this.expressionPulse * Math.PI) * 0.012;
+    }
+
+    target.rotation.x = rotationX;
+    target.rotation.y = rotationY;
+    target.rotation.z = rotationZ;
+    target.position.y = this.baseSceneY + yOffset;
+  }
+
   private startRenderLoop(): void {
     const loop = () => {
       this.rafId = requestAnimationFrame(loop);
       const delta = this.clock?.getDelta() ?? 0;
       this.mixer?.update(delta);
       this.vrm?.update(delta);
+      this.applyProceduralMotion(delta);
       if (this.renderer && this.scene && this.camera) {
         this.renderer.render(this.scene, this.camera);
       }

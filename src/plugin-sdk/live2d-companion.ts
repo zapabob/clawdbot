@@ -57,6 +57,43 @@ export type CompanionBrowserAttachment = {
   updatedAt: number | null;
 };
 
+export type CompanionAvatarRuntimeState = {
+  lastAction: string | null;
+  lastEmotion: string | null;
+  lastExpression: string | null;
+  lastMotion: string | null;
+  lastMotionIndex: number | null;
+  lastLookAt: { x: number; y: number } | null;
+  lastUpdatedAt: number | null;
+  lastSpeechAt: number | null;
+};
+
+export type CompanionRelationshipState = {
+  level: number;
+  label: string;
+  updatedAt: number | null;
+};
+
+export type CompanionCharacterProfile = {
+  version: 1;
+  displayName: string;
+  characterPrompt: string;
+  greeting: string;
+  mood: string;
+  voiceProfile: string | null;
+  relationship: CompanionRelationshipState;
+  updatedAt: number;
+};
+
+export type CompanionProfilePatch = {
+  displayName?: string;
+  characterPrompt?: string;
+  greeting?: string;
+  mood?: string;
+  voiceProfile?: string | null;
+  relationship?: Partial<CompanionRelationshipState>;
+};
+
 export type CompanionRuntimeState = {
   visible: boolean;
   agentId: string;
@@ -64,6 +101,8 @@ export type CompanionRuntimeState = {
   permissions: CompanionPermissionState;
   browser: CompanionBrowserAttachment;
   voice: CompanionVoiceRuntimeState;
+  avatar: CompanionAvatarRuntimeState;
+  profile: CompanionCharacterProfile;
   activeAssetId: string | null;
   activeAsset: CompanionAssetManifestEntry | null;
   timestamp: number;
@@ -116,6 +155,8 @@ export type CompanionSetAvatarCommandPayload = {
     motion?: string;
     motionIndex?: number;
     speakText?: string;
+    speakEmotion?: string;
+    ttsProvider?: string;
     lookAt?: {
       x: number;
       y: number;
@@ -125,10 +166,17 @@ export type CompanionSetAvatarCommandPayload = {
 
 export type CompanionSpeakPayload = {
   text: string;
+  emotion?: string;
+  ttsProvider?: "voicevox" | "web-speech";
 };
 
 type Live2dCompanionFacadeModule = {
   getCompanionState: (params?: { stateDir?: string }) => Promise<CompanionRuntimeState>;
+  getCompanionProfile: (params?: { stateDir?: string }) => Promise<CompanionCharacterProfile>;
+  updateCompanionProfile: (params: {
+    stateDir?: string;
+    profile: CompanionProfilePatch;
+  }) => Promise<CompanionCharacterProfile>;
   listCompanionAssets: (params?: { stateDir?: string }) => Promise<CompanionAssetManifestEntry[]>;
   getCompanionInputSnapshot: (params?: {
     stateDir?: string;
@@ -146,6 +194,8 @@ type Live2dCompanionFacadeModule = {
   speakWithCompanion: (params: {
     stateDir?: string;
     text: string;
+    emotion?: string;
+    ttsProvider?: "voicevox" | "web-speech";
   }) => Promise<CompanionRuntimeState>;
   setCompanionAvatarCommand: (params: {
     stateDir?: string;
@@ -172,6 +222,9 @@ type Live2dCompanionFacadeModule = {
   requestCompanionCameraCapture: (params?: {
     stateDir?: string;
   }) => Promise<CompanionBinaryCapture | null>;
+  requestCompanionWindowCapture: (params?: {
+    stateDir?: string;
+  }) => Promise<CompanionBinaryCapture | null>;
   requestCompanionScreenCapture: (params?: {
     stateDir?: string;
   }) => Promise<CompanionBinaryCapture | null>;
@@ -186,6 +239,19 @@ function loadLive2dCompanionFacadeModule(): Live2dCompanionFacadeModule {
 
 export function getCompanionState(params?: { stateDir?: string }): Promise<CompanionRuntimeState> {
   return loadLive2dCompanionFacadeModule().getCompanionState(params);
+}
+
+export function getCompanionProfile(params?: {
+  stateDir?: string;
+}): Promise<CompanionCharacterProfile> {
+  return loadLive2dCompanionFacadeModule().getCompanionProfile(params);
+}
+
+export function updateCompanionProfile(params: {
+  stateDir?: string;
+  profile: CompanionProfilePatch;
+}): Promise<CompanionCharacterProfile> {
+  return loadLive2dCompanionFacadeModule().updateCompanionProfile(params);
 }
 
 export function listCompanionAssets(params?: {
@@ -219,6 +285,8 @@ export function setCompanionMicEnabled(params: {
 export function speakWithCompanion(params: {
   stateDir?: string;
   text: string;
+  emotion?: string;
+  ttsProvider?: "voicevox" | "web-speech";
 }): Promise<CompanionRuntimeState> {
   return loadLive2dCompanionFacadeModule().speakWithCompanion(params);
 }
@@ -272,6 +340,12 @@ export function requestCompanionCameraCapture(params?: {
   stateDir?: string;
 }): Promise<CompanionBinaryCapture | null> {
   return loadLive2dCompanionFacadeModule().requestCompanionCameraCapture(params);
+}
+
+export function requestCompanionWindowCapture(params?: {
+  stateDir?: string;
+}): Promise<CompanionBinaryCapture | null> {
+  return loadLive2dCompanionFacadeModule().requestCompanionWindowCapture(params);
 }
 
 export function requestCompanionScreenCapture(params?: {

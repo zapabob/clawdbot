@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from "electron";
 import { IPC_CHANNELS } from "../bridge/event-types.js";
 import type {
   AvatarCommand,
+  CompanionAvatarStateUpdate,
   CompanionEmotionEvent,
   CompanionLineEvent,
   CompanionStateUpdate,
@@ -9,8 +10,10 @@ import type {
 } from "../bridge/event-types.js";
 import type {
   CompanionAssetManifestEntry,
+  CompanionCharacterProfile,
   CompanionPermissionCapability,
   CompanionPermissionDecision,
+  CompanionProfilePatch,
   CompanionRuntimeState,
 } from "../runtime-api.js";
 
@@ -27,6 +30,9 @@ contextBridge.exposeInMainWorld("companionBridge", {
   },
   getConfig: (): Promise<Record<string, unknown>> => ipcRenderer.invoke("companion:get-config"),
   getStateSnapshot: (): Promise<CompanionRuntimeState> => ipcRenderer.invoke("companion:get-state"),
+  getProfile: (): Promise<CompanionCharacterProfile> => ipcRenderer.invoke("companion:get-profile"),
+  updateProfile: (profile: CompanionProfilePatch): Promise<CompanionCharacterProfile> =>
+    ipcRenderer.invoke("companion:update-profile", profile),
   listAssets: (): Promise<CompanionAssetManifestEntry[]> =>
     ipcRenderer.invoke("companion:list-assets"),
   onRuntimeState: (callback: (state: CompanionRuntimeState) => void) => {
@@ -110,6 +116,8 @@ declare global {
       onEmotionEvent: (cb: (event: CompanionEmotionEvent) => void) => void;
       getConfig: () => Promise<Record<string, unknown>>;
       getStateSnapshot: () => Promise<CompanionRuntimeState>;
+      getProfile: () => Promise<CompanionCharacterProfile>;
+      updateProfile: (profile: CompanionProfilePatch) => Promise<CompanionCharacterProfile>;
       listAssets: () => Promise<CompanionAssetManifestEntry[]>;
       onRuntimeState: (cb: (state: CompanionRuntimeState) => void) => void;
       setPermission: (
@@ -133,6 +141,7 @@ declare global {
         speaking?: boolean;
         agentId?: string;
         ttsProvider?: TtsProvider;
+        avatar?: CompanionAvatarStateUpdate;
       }) => void;
       onAvatarCommand: (cb: (cmd: AvatarCommand) => void) => void;
       captureScreen: () => Promise<{

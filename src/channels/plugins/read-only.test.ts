@@ -514,12 +514,13 @@ describe("listReadOnlyChannelPluginsForConfig", () => {
 
     expectExternalChatSetupOnlyPluginLoaded({ plugins, setupMarker, fullMarker });
     expect(
-      moduleLoaderParams.some(
-        (entry) =>
+      moduleLoaderParams.some((entry) => {
+        const modulePath = entry.modulePath.replaceAll("\\", "/");
+        return (
           entry.tryNative === true &&
-          (entry.modulePath.endsWith("/plugins/loader.js") ||
-            entry.modulePath.endsWith("/plugins/loader.ts")),
-      ),
+          (modulePath.endsWith("/plugins/loader.js") || modulePath.endsWith("/plugins/loader.ts"))
+        );
+      }),
     ).toBe(true);
   });
 
@@ -1058,6 +1059,33 @@ describe("listReadOnlyChannelPluginsForConfig", () => {
     const plugin = plugins.find((entry) => entry.id === "external-chat");
     expect(plugin?.meta.blurb).toBe("setup entry");
     expect(fs.existsSync(setupMarker)).toBe(true);
+    expect(fs.existsSync(fullMarker)).toBe(false);
+  });
+
+  it("can skip plugin metadata snapshots for fast config-only status", () => {
+    const { pluginDir, fullMarker, setupMarker } = writeExternalSetupChannelPlugin({
+      pluginId: "external-chat-plugin",
+      channelId: "external-chat",
+    });
+    const plugins = listReadOnlyChannelPluginsForConfig(
+      {
+        channels: {
+          "external-chat": { token: "configured" },
+        },
+        plugins: {
+          load: { paths: [pluginDir] },
+          allow: ["external-chat-plugin"],
+        },
+      } as never,
+      {
+        env: { ...process.env },
+        includeSetupFallbackPlugins: true,
+        skipMetadataSnapshot: true,
+      },
+    );
+
+    expect(pluginIds(plugins)).not.toContain("external-chat");
+    expect(fs.existsSync(setupMarker)).toBe(false);
     expect(fs.existsSync(fullMarker)).toBe(false);
   });
 

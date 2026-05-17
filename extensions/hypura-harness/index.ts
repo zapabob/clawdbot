@@ -8,11 +8,29 @@ import { Type } from "typebox";
 
 const DEFAULT_BASE_URL = "http://127.0.0.1:18794";
 const COMPANION_CONTROL_ACTIONS = [
+  "status",
   "speak",
   "emotion",
   "motion",
   "expression",
   "look_at",
+  "load_model",
+  "mic",
+  "input_snapshot",
+  "window_capture",
+  "permission",
+] as const;
+const COMPANION_TTS_PROVIDERS = ["voicevox", "web-speech"] as const;
+const COMPANION_PERMISSION_CAPABILITIES = ["mic", "camera", "screen", "tab-follow"] as const;
+const COMPANION_PERMISSION_DECISIONS = ["granted", "denied"] as const;
+const COMPANION3D_EVENT_TYPES = [
+  "state",
+  "emotion",
+  "speak_start",
+  "speak_end",
+  "gesture",
+  "look_at",
+  "idle",
   "load_model",
 ] as const;
 
@@ -129,7 +147,7 @@ export default definePluginEntry({
       name: "hypura_harness_companion",
       label: "Hypura Harness Companion",
       description:
-        "POST /companion/control - drive the Desktop Companion avatar through the Hypura harness bridge.",
+        "POST /companion/control - drive Desktop Companion speech, avatar, mic, permission, input snapshot, and window capture state through the Hypura harness bridge.",
       parameters: Type.Object({
         action: stringEnum(COMPANION_CONTROL_ACTIONS, {
           description: "Companion action to perform.",
@@ -137,32 +155,62 @@ export default definePluginEntry({
         value: Type.Optional(
           Type.String({ description: "Text, emotion, motion, or expression value." }),
         ),
+        emotion: Type.Optional(
+          Type.String({ description: "Optional emotion to cue when action=speak." }),
+        ),
+        tts_provider: Type.Optional(
+          stringEnum(COMPANION_TTS_PROVIDERS, {
+            description: "Optional action=speak local TTS backend override.",
+          }),
+        ),
         motion_index: Type.Optional(Type.Number({ description: "Motion index (default 0)." })),
         x: Type.Optional(Type.Number({ description: "Normalized look-at x coordinate." })),
         y: Type.Optional(Type.Number({ description: "Normalized look-at y coordinate." })),
         model_path: Type.Optional(
           Type.String({ description: "Absolute or workspace-relative avatar model path." }),
         ),
+        enabled: Type.Optional(
+          Type.Boolean({ description: "For action=mic, enable or disable local STT capture." }),
+        ),
+        include_camera: Type.Optional(
+          Type.Boolean({
+            description: "For action=input_snapshot, include existing camera frame.",
+          }),
+        ),
+        capture_camera: Type.Optional(
+          Type.Boolean({
+            description: "For action=input_snapshot, request a fresh camera capture.",
+          }),
+        ),
+        capability: Type.Optional(
+          stringEnum(COMPANION_PERMISSION_CAPABILITIES, {
+            description: "For action=permission, local capture capability.",
+          }),
+        ),
+        decision: Type.Optional(
+          stringEnum(COMPANION_PERMISSION_DECISIONS, {
+            description: "For action=permission, permission decision.",
+          }),
+        ),
       }),
       async execute(_id: string, params: Record<string, unknown>) {
         const body: Record<string, unknown> = {
           action: params.action,
         };
-        if (typeof params.value === "string") {
-          body.value = params.value;
-        }
-        if (typeof params.motion_index === "number" && Number.isFinite(params.motion_index)) {
-          body.motion_index = params.motion_index;
-        }
-        if (typeof params.x === "number" && Number.isFinite(params.x)) {
-          body.x = params.x;
-        }
-        if (typeof params.y === "number" && Number.isFinite(params.y)) {
-          body.y = params.y;
-        }
+        addStringParam(body, params, "value");
+        addStringParam(body, params, "emotion");
+        addStringParam(body, params, "tts_provider");
+        addFiniteNumberParam(body, params, "motion_index");
+        addFiniteNumberParam(body, params, "x");
+        addFiniteNumberParam(body, params, "y");
         if (typeof params.model_path === "string") {
           body.model_path = params.model_path;
         }
+        addBooleanParam(body, params, "enabled");
+        addBooleanParam(body, params, "include_camera");
+        addBooleanParam(body, params, "capture_camera");
+        addStringParam(body, params, "capability");
+        addStringParam(body, params, "decision");
         const data = (await harnessJson(api, "/companion/control", {
           method: "POST",
           body: JSON.stringify(body),
@@ -212,6 +260,21 @@ export default definePluginEntry({
       parameters: Type.Object({}),
       async execute() {
         const data = (await harnessJson(api, "/status", undefined, 10_000)) as Record<
+          string,
+          unknown
+        >;
+        return okText(JSON.stringify(data, null, 2), data);
+      },
+    });
+
+    api.registerTool({
+      name: "hypura_harness_channel_readiness",
+      label: "Hypura Harness Channel Readiness",
+      description:
+        "GET /channels/readiness - inspect redacted LINE/Telegram credential and live-roundtrip readiness without printing tokens or raw routing ids.",
+      parameters: Type.Object({}),
+      async execute() {
+        const data = (await harnessJson(api, "/channels/readiness", undefined, 10_000)) as Record<
           string,
           unknown
         >;
@@ -460,6 +523,267 @@ export default definePluginEntry({
         const data = (await harnessJson(api, "/voice/companion-mic", {
           method: "POST",
           body: JSON.stringify(body),
+        })) as Record<string, unknown>;
+        return okText(JSON.stringify(data, null, 2), data);
+      },
+    });
+
+    api.registerTool({
+      name: "hypura_harness_vrc_status",
+      label: "Hypura Harness VRC Status",
+      description:
+        "GET /vrc/status - inspect VRChat OSC bridge, current avatar id, catalog/profile readiness, and emergency-stop state.",
+      parameters: Type.Object({}),
+      async execute() {
+        const data = (await harnessJson(api, "/vrc/status", undefined, 10_000)) as Record<
+          string,
+          unknown
+        >;
+        return okText(JSON.stringify(data, null, 2), data);
+      },
+    });
+
+    api.registerTool({
+      name: "hypura_harness_vrc_current_avatar",
+      label: "Hypura Harness VRC Current Avatar",
+      description:
+        "GET /vrc/avatar/current - show the current VRChat avatar id and loaded OSC parameter catalog.",
+      parameters: Type.Object({}),
+      async execute() {
+        const data = (await harnessJson(api, "/vrc/avatar/current", undefined, 10_000)) as Record<
+          string,
+          unknown
+        >;
+        return okText(JSON.stringify(data, null, 2), data);
+      },
+    });
+
+    api.registerTool({
+      name: "hypura_harness_vrc_parameters",
+      label: "Hypura Harness VRC Parameters",
+      description:
+        "GET /vrc/avatar/parameters - list writable/readable parameters discovered from the current avatar's VRChat OSC JSON.",
+      parameters: Type.Object({}),
+      async execute() {
+        const data = (await harnessJson(
+          api,
+          "/vrc/avatar/parameters",
+          undefined,
+          10_000,
+        )) as Record<string, unknown>;
+        return okText(JSON.stringify(data, null, 2), data);
+      },
+    });
+
+    api.registerTool({
+      name: "hypura_harness_vrc_profile",
+      label: "Hypura Harness VRC Profile",
+      description:
+        "GET /vrc/avatar/profile - inspect approved and suggested action profiles for the current VRChat avatar.",
+      parameters: Type.Object({}),
+      async execute() {
+        const data = (await harnessJson(api, "/vrc/avatar/profile", undefined, 10_000)) as Record<
+          string,
+          unknown
+        >;
+        return okText(JSON.stringify(data, null, 2), data);
+      },
+    });
+
+    api.registerTool({
+      name: "hypura_harness_vrc_suggest_profile",
+      label: "Hypura Harness VRC Suggest Profile",
+      description:
+        "POST /vrc/avatar/profile/suggest - generate an unapproved per-avatar action profile suggestion from the OSC JSON catalog.",
+      parameters: Type.Object({
+        avatar_id: Type.Optional(
+          Type.String({ description: "Optional avatar id; defaults to the current avatar." }),
+        ),
+      }),
+      async execute(_id: string, params: Record<string, unknown>) {
+        const body: Record<string, unknown> = {};
+        addStringParam(body, params, "avatar_id");
+        const data = (await harnessJson(api, "/vrc/avatar/profile/suggest", {
+          method: "POST",
+          body: JSON.stringify(body),
+        })) as Record<string, unknown>;
+        return okText(JSON.stringify(data, null, 2), data);
+      },
+    });
+
+    api.registerTool({
+      name: "hypura_harness_vrc_approve_profile",
+      label: "Hypura Harness VRC Approve Profile",
+      description:
+        "POST /vrc/avatar/profile/approve - operator-only approval for a reviewed avatar action profile. Use only after explicit user approval.",
+      parameters: Type.Object({
+        avatar_id: Type.Optional(
+          Type.String({ description: "Optional avatar id; defaults to the current avatar." }),
+        ),
+        confirm: Type.String({
+          description:
+            'Required explicit confirmation text containing "approve" or "承認"; agents must not invent this.',
+        }),
+        notes: Type.Optional(Type.String({ description: "Optional operator approval notes." })),
+      }),
+      async execute(_id: string, params: Record<string, unknown>) {
+        const body: Record<string, unknown> = {
+          confirm: typeof params.confirm === "string" ? params.confirm : "",
+        };
+        addStringParam(body, params, "avatar_id");
+        addStringParam(body, params, "notes");
+        const data = (await harnessJson(api, "/vrc/avatar/profile/approve", {
+          method: "POST",
+          body: JSON.stringify(body),
+        })) as Record<string, unknown>;
+        return okText(JSON.stringify(data, null, 2), data);
+      },
+    });
+
+    api.registerTool({
+      name: "hypura_harness_vrc_action",
+      label: "Hypura Harness VRC Action",
+      description:
+        "POST /vrc/action - send only approved profile actions to the current VRChat avatar through the safety gate.",
+      parameters: Type.Object({
+        action: Type.String({ description: "Approved action name from the avatar profile." }),
+        reason: Type.Optional(Type.String({ description: "Short reason for audit/debug output." })),
+        intensity: Type.Optional(Type.Number({ description: "Optional action intensity hint." })),
+      }),
+      async execute(_id: string, params: Record<string, unknown>) {
+        const body: Record<string, unknown> = {
+          action: typeof params.action === "string" ? params.action : "",
+        };
+        addStringParam(body, params, "reason");
+        addFiniteNumberParam(body, params, "intensity");
+        const data = (await harnessJson(api, "/vrc/action", {
+          method: "POST",
+          body: JSON.stringify(body),
+        })) as Record<string, unknown>;
+        return okText(JSON.stringify(data, null, 2), data);
+      },
+    });
+
+    api.registerTool({
+      name: "hypura_harness_vrc_chatbox",
+      label: "Hypura Harness VRC ChatBox",
+      description:
+        "POST /vrc/chatbox - send a rate-limited VRChat ChatBox message only when ChatBox is explicitly enabled.",
+      parameters: Type.Object({
+        text: Type.String({ description: "ChatBox text; daemon truncates to configured limits." }),
+        send_immediately: Type.Optional(Type.Boolean()),
+        notify: Type.Optional(Type.Boolean()),
+        public_instance: Type.Optional(
+          Type.Boolean({ description: "Set true when operating in a Public instance." }),
+        ),
+      }),
+      async execute(_id: string, params: Record<string, unknown>) {
+        const body: Record<string, unknown> = {
+          text: typeof params.text === "string" ? params.text : "",
+        };
+        addBooleanParam(body, params, "send_immediately");
+        addBooleanParam(body, params, "notify");
+        addBooleanParam(body, params, "public_instance");
+        const data = (await harnessJson(api, "/vrc/chatbox", {
+          method: "POST",
+          body: JSON.stringify(body),
+        })) as Record<string, unknown>;
+        return okText(JSON.stringify(data, null, 2), data);
+      },
+    });
+
+    api.registerTool({
+      name: "hypura_harness_vrc_emergency_stop",
+      label: "Hypura Harness VRC Emergency Stop",
+      description:
+        "POST /vrc/emergency-stop - cancel VRChat movement/typing and block further avatar actions until safety is reset.",
+      parameters: Type.Object({}),
+      async execute() {
+        const data = (await harnessJson(api, "/vrc/emergency-stop", {
+          method: "POST",
+          body: "{}",
+        })) as Record<string, unknown>;
+        return okText(JSON.stringify(data, null, 2), data);
+      },
+    });
+
+    api.registerTool({
+      name: "hypura_harness_companion3d_status",
+      label: "Hypura Harness Companion3D Status",
+      description:
+        "GET /companion3d/status - inspect browser/Electron 3D companion policy, events, and last state.",
+      parameters: Type.Object({}),
+      async execute() {
+        const data = (await harnessJson(api, "/companion3d/status", undefined, 10_000)) as Record<
+          string,
+          unknown
+        >;
+        return okText(JSON.stringify(data, null, 2), data);
+      },
+    });
+
+    api.registerTool({
+      name: "hypura_harness_companion3d_load_model",
+      label: "Hypura Harness Companion3D Load Model",
+      description:
+        "POST /companion3d/load-model - load a user-approved local VRM/GLB/GLTF/FBX asset from the configured companion3d assetRoot.",
+      parameters: Type.Object({
+        model_path: Type.String({
+          description:
+            "Local model path under state/companion3d/assets; remote URLs and traversal are rejected.",
+        }),
+      }),
+      async execute(_id: string, params: Record<string, unknown>) {
+        const data = (await harnessJson(api, "/companion3d/load-model", {
+          method: "POST",
+          body: JSON.stringify({
+            model_path: typeof params.model_path === "string" ? params.model_path : "",
+          }),
+        })) as Record<string, unknown>;
+        return okText(JSON.stringify(data, null, 2), data);
+      },
+    });
+
+    api.registerTool({
+      name: "hypura_harness_companion3d_event",
+      label: "Hypura Harness Companion3D Event",
+      description:
+        "POST /companion3d/event - send a structured emotion/speech/gesture/look/idle event to the local 3D companion event bus.",
+      parameters: Type.Object({
+        type: stringEnum(COMPANION3D_EVENT_TYPES, {
+          description: "Companion3D event type.",
+        }),
+        payload: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+      }),
+      async execute(_id: string, params: Record<string, unknown>) {
+        const payload =
+          params.payload && typeof params.payload === "object" && params.payload !== null
+            ? (params.payload as Record<string, unknown>)
+            : {};
+        const data = (await harnessJson(api, "/companion3d/event", {
+          method: "POST",
+          body: JSON.stringify({ type: params.type, payload }),
+        })) as Record<string, unknown>;
+        return okText(JSON.stringify(data, null, 2), data);
+      },
+    });
+
+    api.registerTool({
+      name: "hypura_harness_companion3d_set_state",
+      label: "Hypura Harness Companion3D Set State",
+      description:
+        "POST /companion3d/state - record companion state such as AI emotion, speaking, idle, or VRChat sync fallback.",
+      parameters: Type.Object({
+        state: Type.Record(Type.String(), Type.Unknown()),
+      }),
+      async execute(_id: string, params: Record<string, unknown>) {
+        const state =
+          params.state && typeof params.state === "object" && params.state !== null
+            ? (params.state as Record<string, unknown>)
+            : {};
+        const data = (await harnessJson(api, "/companion3d/state", {
+          method: "POST",
+          body: JSON.stringify({ state }),
         })) as Record<string, unknown>;
         return okText(JSON.stringify(data, null, 2), data);
       },
@@ -814,9 +1138,14 @@ export default definePluginEntry({
         "## Hypura Python harness (hypura-harness plugin)",
         "",
         "- Prefer **`hypura_harness_status`** before other harness tools.",
-        "- VRChat / VOICEVOX: **`hypura_harness_osc`**, **`hypura_harness_speak`**.",
+        "- Channel readiness: use **`hypura_harness_channel_readiness`** to separate LINE/Telegram credential readiness from live roundtrip readiness without printing tokens or raw routing ids.",
+        "- VRChat / VOICEVOX legacy tools: **`hypura_harness_osc`**, **`hypura_harness_speak`**.",
+        "- VRChat existing avatar tools: call **`hypura_harness_vrc_status`** first, inspect **`hypura_harness_vrc_current_avatar`** and **`hypura_harness_vrc_profile`**, generate only unapproved suggestions with **`hypura_harness_vrc_suggest_profile`**, and send avatar changes only through **`hypura_harness_vrc_action`** after an approved profile exists.",
+        "- Do not approve VRChat avatar profiles unless the user explicitly provides approval; if no approved action is available, use **`hypura_harness_companion3d_event`** or **`hypura_harness_companion3d_set_state`** instead of writing VRChat parameters.",
+        "- VRChat ChatBox stays disabled by default; use **`hypura_harness_vrc_chatbox`** only after status/config show it is enabled, and use **`hypura_harness_vrc_emergency_stop`** immediately if avatar behavior is surprising.",
         "- Voice I/O: use **`hypura_harness_voice_devices`** first, **`hypura_harness_voice_test_say`** for output routing, **`hypura_harness_voice_transcribe`** for WAV input, and **`hypura_harness_voice_turn`** for mic -> OpenClaw -> VOICEVOX turns.",
-        "- Desktop Companion voice: **`hypura_harness_companion_mic`** toggles mic capture and **`hypura_harness_companion_voice_turn`** handles transcript -> OpenClaw -> companion speech/animation.",
+        "- Desktop Companion voice: **`hypura_harness_companion`** mirrors `control_companion` for status/speech/avatar/mic/permissions/snapshots/window captures; **`hypura_harness_companion_mic`** toggles mic capture and **`hypura_harness_companion_voice_turn`** handles transcript -> OpenClaw -> companion speech/animation.",
+        "- Desktop Companion 3D: **`hypura_harness_companion3d_status`**, **`hypura_harness_companion3d_load_model`**, **`hypura_harness_companion3d_event`**, and **`hypura_harness_companion3d_set_state`** only use local approved assets under the configured asset root.",
         "- Sanctioned external repos: **`hypura_harness_submodule`** for registry-backed vendor submodule presets.",
         "- Code execution: **`hypura_harness_run`** (→ 成功時に training:examples へ保存、失敗時に ShinkaEvolve → atlas:failures へ記録).",
         "- Skills / evolution / LoRA: **`hypura_harness_skill`**, **`hypura_harness_evolve`**, `hypura_harness_lora_*`.",
