@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { Type } from "typebox";
 import { jsonResult, type OpenClawPluginApi } from "../api.js";
 import type { SkillWorkshopConfig } from "./config.js";
+import { buildSkillWorkshopCuratorReport } from "./curator.js";
 import { applyProposalToWorkspace, normalizeSkillName, writeSupportFile } from "./skills.js";
 import type { SkillChange, SkillProposal, SkillWorkshopStatus } from "./types.js";
 import { applyOrStoreProposal, createStoreForContext, resolveWorkspaceDir } from "./workshop.js";
@@ -48,6 +49,17 @@ function buildProposal(params: {
       throw new Error("oldText and newText required for replace");
     }
     change = { kind: "replace", oldText, newText };
+  } else if (params.raw.relativePath !== undefined) {
+    const relativePath = readString(params.raw.relativePath);
+    if (!relativePath || !body) {
+      throw new Error("relativePath and body required for write_file");
+    }
+    change = {
+      kind: "write_file",
+      relativePath,
+      body,
+      description,
+    };
   } else if (readString(params.raw.section)) {
     if (!body) {
       throw new Error("body required");
@@ -98,6 +110,7 @@ export function createSkillWorkshopTool(params: {
           "suggest",
           "apply",
           "reject",
+          "curator_report",
           "write_support_file",
         ],
       }),
@@ -136,6 +149,15 @@ export function createSkillWorkshopTool(params: {
       }
       if (action === "list_quarantine") {
         return jsonResult(await store.list("quarantined"));
+      }
+      if (action === "curator_report") {
+        return jsonResult(
+          await buildSkillWorkshopCuratorReport({
+            workspaceDir,
+            proposals: await store.list(),
+            maxSkillBytes: params.config.maxSkillBytes,
+          }),
+        );
       }
       if (action === "inspect") {
         if (!raw.id) {

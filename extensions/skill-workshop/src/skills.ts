@@ -57,6 +57,26 @@ function skillPath(workspaceDir: string, skillName: string): string {
   return path.join(skillDir(workspaceDir, skillName), "SKILL.md");
 }
 
+function supportFilePath(workspaceDir: string, skillName: string, relativePath: string): string {
+  const name = assertValidSkillName(skillName);
+  const parts = relativePath.split(/[\\/]+/).filter(Boolean);
+  if (parts.length < 2 || !SUPPORT_DIRS.has(parts[0])) {
+    throw new Error(`support file path must start with ${Array.from(SUPPORT_DIRS).join(", ")}`);
+  }
+  if (parts.some((part) => part === "." || part === "..")) {
+    throw new Error("support file path escapes skill directory");
+  }
+  const target = resolvePathWithinRoot({
+    rootDir: skillDir(workspaceDir, name),
+    requestedPath: path.join(...parts),
+    scopeLabel: "skill directory",
+  });
+  if (!target.ok) {
+    throw new Error("support file path escapes skill directory");
+  }
+  return target.path;
+}
+
 async function atomicWrite(filePath: string, content: string): Promise<void> {
   await replaceFileAtomic({
     filePath,
@@ -104,12 +124,26 @@ export async function prepareProposalWrite(params: {
   content: string;
   created: boolean;
   findings: SkillScanFinding[];
+  targetKind: "skill" | "support";
 }> {
   const name = assertValidSkillName(params.proposal.skillName);
+  const change = params.proposal.change;
+  if (change.kind === "write_file") {
+    const target = supportFilePath(params.proposal.workspaceDir, name, change.relativePath);
+    const next = `${change.body.trimEnd()}\n`;
+    ensureBodyUnderLimit(next, params.maxSkillBytes);
+    const findings = scanSkillContent(next);
+    return {
+      skillPath: target,
+      content: next,
+      created: !(await pathExists(target)),
+      findings,
+      targetKind: "support",
+    };
+  }
   const target = skillPath(params.proposal.workspaceDir, name);
   const exists = await pathExists(target);
   let next: string;
-  const change = params.proposal.change;
   if (change.kind === "create") {
     next = exists
       ? appendSection(await fs.readFile(target, "utf8"), "Workflow", change.body)
@@ -135,7 +169,7 @@ export async function prepareProposalWrite(params: {
   }
   ensureBodyUnderLimit(next, params.maxSkillBytes);
   const findings = scanSkillContent(next);
-  return { skillPath: target, content: next, created: !exists, findings };
+  return { skillPath: target, content: next, created: !exists, findings, targetKind: "skill" };
 }
 
 export async function applyProposalToWorkspace(params: {
@@ -160,27 +194,11 @@ export async function writeSupportFile(params: {
   content: string;
   maxBytes: number;
 }): Promise<string> {
-  const name = assertValidSkillName(params.skillName);
-  const parts = params.relativePath.split(/[\\/]+/).filter(Boolean);
-  if (parts.length < 2 || !SUPPORT_DIRS.has(parts[0])) {
-    throw new Error(`support file path must start with ${Array.from(SUPPORT_DIRS).join(", ")}`);
-  }
-  if (parts.some((part) => part === "." || part === "..")) {
-    throw new Error("support file path escapes skill directory");
-  }
   if (Buffer.byteLength(params.content, "utf8") > params.maxBytes) {
     throw new Error(`support file exceeds ${params.maxBytes} bytes`);
   }
   assertSkillContentSafe(params.content);
-  const root = skillDir(params.workspaceDir, name);
-  const target = resolvePathWithinRoot({
-    rootDir: root,
-    requestedPath: path.join(...parts),
-    scopeLabel: "skill directory",
-  });
-  if (!target.ok) {
-    throw new Error("support file path escapes skill directory");
-  }
-  await atomicWrite(target.path, `${params.content.trimEnd()}\n`);
-  return target.path;
+  const target = supportFilePath(params.workspaceDir, params.skillName, params.relativePath);
+  await atomicWrite(target, `${params.content.trimEnd()}\n`);
+  return target;
 }

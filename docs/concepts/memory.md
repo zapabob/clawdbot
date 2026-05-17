@@ -232,9 +232,16 @@ openclaw memory rem-backfill --rollback-short-term
 
 ```bash
 openclaw memory status          # Check index status and provider
+openclaw memory report          # Dry-run memory hygiene recommendations
 openclaw memory search "query"  # Search from the command line
 openclaw memory index --force   # Rebuild the index
 ```
+
+`openclaw memory report` is read-only. It follows the same boundary as memory
+itself: facts, preferences, and past context stay in memory files; reusable
+procedures stay in skills. The report can point out duplicate entries, old daily
+notes, root memory near its budget, key/value conflict candidates, and source
+sparseness, but it does not edit or promote anything.
 
 ## Further reading
 

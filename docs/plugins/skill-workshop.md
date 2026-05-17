@@ -217,7 +217,7 @@ The reviewer has no tools:
 - `toolsAllow: []`
 - `disableMessageTool: true`
 
-The reviewer returns either `{ "action": "none" }` or one proposal. The `action` field is `create`, `append`, or `replace` - prefer `append`/`replace` when a relevant skill already exists; use `create` only when no existing skill fits.
+The reviewer returns either `{ "action": "none" }` or one proposal. The `action` field is `create`, `append`, `replace`, or `write_file` - prefer `append`/`replace` when a relevant skill already exists, use `write_file` for longer references/templates/scripts/assets that should not bloat `SKILL.md`, and use `create` only when no existing skill fits.
 
 Example `create`:
 
@@ -233,6 +233,9 @@ Example `create`:
 ```
 
 `append` adds `section` + `body`. `replace` swaps `oldText` for `newText` in the named skill.
+`write_file` writes `body` to an allowed support path such as
+`references/checklist.md`, through the same scanner and proposal lifecycle as a
+`SKILL.md` update.
 
 ## Proposal lifecycle
 
@@ -330,6 +333,43 @@ List quarantined proposals.
 Use this when automatic capture appears to do nothing and the logs mention
 `skill-workshop: quarantined <skill>`.
 
+### `curator_report`
+
+Return a dry-run maintenance report for workspace skills and proposals.
+
+```json
+{ "action": "curator_report" }
+```
+
+The report is read-only. It counts workspace skills, support files under
+`references/`, `templates/`, `scripts/`, and `assets/`, proposal states, and
+report-only recommendations such as missing `SKILL.md`, large skill files,
+stale pending proposals, and quarantined proposals that need review.
+
+Result shape:
+
+```json
+{
+  "workspaceDir": "/path/to/workspace",
+  "dryRun": true,
+  "generatedAt": "2026-05-18T00:00:00.000Z",
+  "summary": {
+    "skills": 3,
+    "pending": 1,
+    "quarantined": 1,
+    "recommendations": 2
+  },
+  "recommendations": [
+    {
+      "kind": "review_pending_proposal",
+      "skillName": "release-workflow",
+      "reason": "pending proposal is older than 30 days",
+      "proposalId": "proposal-id"
+    }
+  ]
+}
+```
+
 ### `inspect`
 
 Fetch a proposal by id.
@@ -410,6 +450,20 @@ the `apply` action after approval.
   "skillName": "github-pr-workflow",
   "oldText": "- Check the PR.",
   "newText": "- Check unresolved review threads, CI status, linked issues, and changed files before deciding."
+}
+```
+
+  </Accordion>
+
+  <Accordion title="Queue a support file proposal">
+
+```json
+{
+  "action": "suggest",
+  "skillName": "release-workflow",
+  "relativePath": "references/checklist.md",
+  "description": "Release checklist reference.",
+  "body": "# Release Checklist\n\n- Verify changelog.\n- Run release docs."
 }
 ```
 
@@ -503,6 +557,14 @@ For `replace`:
 - the skill must already exist
 - `oldText` must be present exactly
 - only the first exact match is replaced
+
+For `write_file`:
+
+- the target path must start with `references/`, `templates/`, `scripts/`, or
+  `assets/`
+- `.` and `..` path segments are rejected
+- the file is byte-limited, scanned, and written atomically
+- the skill snapshot is refreshed after the support file is written
 
 All writes are atomic and refresh the in-memory skills snapshot immediately, so
 the new or updated skill can become visible without a Gateway restart.

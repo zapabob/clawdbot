@@ -927,6 +927,47 @@ describe("memory cli", () => {
     expect(close).toHaveBeenCalled();
   });
 
+  it("prints memory dry-run report as json", async () => {
+    await withTempWorkspace(async (workspaceDir) => {
+      await fs.writeFile(
+        path.join(workspaceDir, "MEMORY.md"),
+        [
+          "# Long-Term Memory",
+          "",
+          "- Favorite shell: PowerShell",
+          "- Favorite shell: nushell",
+        ].join("\n"),
+        "utf-8",
+      );
+      await writeDailyMemoryNote(workspaceDir, "2025-01-01", ["- Old memory note."]);
+      const close = vi.fn(async () => {});
+      mockManager({
+        status: () => makeMemoryStatus({ workspaceDir }),
+        close,
+      });
+
+      const writeJson = spyRuntimeJson(defaultRuntime);
+      await runMemoryCli(["report", "--json", "--stale-days", "30"]);
+
+      const payload = firstWrittenJsonArg<unknown[]>(writeJson);
+      const entry = payload?.[0] as {
+        agentId?: string;
+        report?: {
+          dryRun?: boolean;
+          summary?: { dailyMemoryFiles?: number };
+          recommendations?: Array<{ kind?: string }>;
+        };
+      };
+      expect(entry.agentId).toBe("main");
+      expect(entry.report?.dryRun).toBe(true);
+      expect(entry.report?.summary?.dailyMemoryFiles).toBe(1);
+      expect(entry.report?.recommendations?.map((item) => item.kind)).toEqual(
+        expect.arrayContaining(["review_possible_memory_conflict", "review_old_daily_memory"]),
+      );
+      expect(close).toHaveBeenCalled();
+    });
+  });
+
   it("routes gateway secret diagnostics to stderr for json status output", async () => {
     const close = vi.fn(async () => {});
     setupMemoryStatusWithInactiveSecretDiagnostics(close);

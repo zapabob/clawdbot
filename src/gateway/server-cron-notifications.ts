@@ -251,6 +251,14 @@ export function dispatchGatewayCronFinishedNotifications(params: {
     })();
   }
 
+  dispatchCronScriptOutputNotifications({
+    evt: params.evt,
+    job: params.job,
+    deps: params.deps,
+    logger: params.logger,
+    resolveCronAgent: params.resolveCronAgent,
+  });
+
   dispatchCronFailureDestinationNotifications({
     evt: params.evt,
     job: params.job,
@@ -259,6 +267,43 @@ export function dispatchGatewayCronFinishedNotifications(params: {
     resolveCronAgent: params.resolveCronAgent,
     webhookToken,
     globalFailureDestination: params.globalFailureDestination,
+  });
+}
+
+function dispatchCronScriptOutputNotifications(params: {
+  evt: CronEvent;
+  job?: CronJob;
+  deps: CliDeps;
+  logger: CronLogger;
+  resolveCronAgent: CronAgentResolver;
+}): void {
+  if (params.evt.status !== "ok" || !params.evt.summary || params.job?.payload.kind !== "script") {
+    return;
+  }
+  const plan = resolveCronDeliveryPlan(params.job);
+  if (plan.mode !== "announce" || !plan.requested) {
+    return;
+  }
+  const { agentId, cfg: runtimeConfig } = params.resolveCronAgent(params.job.agentId);
+  const abortController = new AbortController();
+  void sendCronAnnouncePayloadStrict({
+    deps: params.deps,
+    cfg: runtimeConfig,
+    agentId,
+    jobId: params.job.id,
+    target: {
+      channel: plan.channel,
+      to: plan.to,
+      accountId: plan.accountId,
+      sessionKey: resolveCronDeliverySessionKey(params.job),
+    },
+    message: params.evt.summary,
+    abortSignal: abortController.signal,
+  }).catch((err) => {
+    params.logger.warn(
+      { jobId: params.job?.id, err: formatErrorMessage(err) },
+      "cron: script output announce delivery failed",
+    );
   });
 }
 

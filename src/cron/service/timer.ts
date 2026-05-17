@@ -47,7 +47,7 @@ import {
 import { locked } from "./locked.js";
 import type { CronEvent, CronServiceState } from "./state.js";
 import { ensureLoaded, persist } from "./store.js";
-import { resolveCronJobTimeoutMs } from "./timeout-policy.js";
+import { DEFAULT_JOB_TIMEOUT_MS, resolveCronJobTimeoutMs } from "./timeout-policy.js";
 
 export { DEFAULT_JOB_TIMEOUT_MS } from "./timeout-policy.js";
 
@@ -1297,10 +1297,10 @@ async function planStartupCatchup(
       (a, b) => (a.state.nextRunAtMs ?? 0) - (b.state.nextRunAtMs ?? 0),
     );
     const deferredAgentJobs = opts?.deferAgentTurnJobs
-      ? sorted.filter((job) => job.payload.kind === "agentTurn")
+      ? sorted.filter((job) => job.payload.kind === "agentTurn" || job.payload.kind === "script")
       : [];
     const startupEligible = opts?.deferAgentTurnJobs
-      ? sorted.filter((job) => job.payload.kind !== "agentTurn")
+      ? sorted.filter((job) => job.payload.kind !== "agentTurn" && job.payload.kind !== "script")
       : sorted;
     const startupCandidates = startupEligible.slice(0, maxImmediate);
     const deferredOverflow = startupEligible.slice(maxImmediate);
@@ -1640,15 +1640,18 @@ async function executeDetachedCronJob(
     }
 > {
   if (job.payload.kind !== "agentTurn") {
-    const error = "isolated job requires payload.kind=agentTurn";
-    return {
-      status: "skipped",
-      error,
-      diagnostics: createCronRunDiagnosticsFromError("cron-preflight", error, {
-        severity: "warn",
-        nowMs: state.deps.nowMs,
-      }),
-    };
+    if (job.payload.kind !== "script") {
+      const error = "isolated job requires payload.kind=agentTurn or script";
+      return {
+        status: "skipped",
+        error,
+        diagnostics: createCronRunDiagnosticsFromError("cron-preflight", error, {
+          severity: "warn",
+          nowMs: state.deps.nowMs,
+        }),
+      };
+    }
+    return await executeScriptCronJob(state, job, abortSignal);
   }
   if (abortSignal?.aborted) {
     const aborted = resolveAbortError();
@@ -1693,6 +1696,48 @@ async function executeDetachedCronJob(
     provider: res.provider,
     usage: res.usage,
   };
+}
+
+async function executeScriptCronJob(
+  state: CronServiceState,
+  job: CronJob,
+  abortSignal: AbortSignal | undefined,
+): Promise<CronRunOutcome> {
+  if (!state.deps.runScriptJob) {
+    const error = "cron script runner is not configured";
+    return {
+      status: "skipped",
+      error,
+      diagnostics: createCronRunDiagnosticsFromError("cron-preflight", error, {
+        severity: "warn",
+        nowMs: state.deps.nowMs,
+      }),
+    };
+  }
+  if (abortSignal?.aborted) {
+    const error = abortErrorMessage(abortSignal);
+    return {
+      status: "error",
+      error,
+      diagnostics: createCronRunDiagnosticsFromError("cron-setup", error, {
+        nowMs: state.deps.nowMs,
+      }),
+    };
+  }
+  const payload = job.payload;
+  if (payload.kind !== "script") {
+    return { status: "skipped", error: "cron script runner received non-script payload" };
+  }
+  const timeoutMs = resolveCronJobTimeoutMs(job) ?? DEFAULT_JOB_TIMEOUT_MS;
+  return await state.deps.runScriptJob({
+    job,
+    command: payload.command,
+    args: payload.args ?? [],
+    cwd: payload.cwd,
+    input: payload.input,
+    timeoutMs,
+    abortSignal,
+  });
 }
 
 /**

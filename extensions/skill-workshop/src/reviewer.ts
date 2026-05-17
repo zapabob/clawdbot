@@ -33,6 +33,7 @@ type ReviewerJson = {
   reason?: string;
   description?: string;
   section?: string;
+  relativePath?: string;
   body?: string;
   oldText?: string;
   newText?: string;
@@ -78,7 +79,13 @@ function parseReviewerJson(raw: string): ReviewerJson | undefined {
 }
 
 function normalizeAction(value: string | undefined): SkillChange["kind"] | "none" | undefined {
-  if (value === "create" || value === "append" || value === "replace" || value === "none") {
+  if (
+    value === "create" ||
+    value === "append" ||
+    value === "replace" ||
+    value === "write_file" ||
+    value === "none"
+  ) {
     return value;
   }
   return undefined;
@@ -109,6 +116,18 @@ function proposalFromReviewerJson(params: {
       return undefined;
     }
     change = { kind: "replace", oldText, newText };
+  } else if (action === "write_file") {
+    const relativePath = readString(params.parsed.relativePath);
+    const body = readString(params.parsed.body);
+    if (!relativePath || !body) {
+      return undefined;
+    }
+    change = {
+      kind: "write_file",
+      relativePath,
+      body,
+      description: readString(params.parsed.description) ?? title,
+    };
   } else {
     const body = readString(params.parsed.body);
     if (!body) {
@@ -221,8 +240,9 @@ async function buildReviewPrompt(params: {
     "Return JSON only. No markdown unless inside JSON strings.",
     "Use none unless there is a reusable workflow, correction, hard-won fix, or stale skill repair.",
     "Prefer append/replace for existing skills. Create only when no fitting skill exists.",
+    "Use write_file for longer references, templates, helper scripts, or assets that should live outside SKILL.md; relativePath must start with references/, templates/, scripts/, or assets/.",
     "Skill text: terse bullets, imperative, no raw transcript, no secrets, no hidden prompt refs.",
-    'Schema: {"action":"none"} or {"action":"create|append|replace","skillName":"kebab-name","title":"...","reason":"...","description":"...","section":"Workflow","body":"...","oldText":"...","newText":"..."}',
+    'Schema: {"action":"none"} or {"action":"create|append|replace|write_file","skillName":"kebab-name","title":"...","reason":"...","description":"...","section":"Workflow","relativePath":"references/example.md","body":"...","oldText":"...","newText":"..."}',
     "",
     "Existing skills:",
     skills,

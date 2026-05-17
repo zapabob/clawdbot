@@ -8,6 +8,7 @@ import type {
   MemoryCommandOptions,
   MemoryPromoteCommandOptions,
   MemoryPromoteExplainOptions,
+  MemoryReportCommandOptions,
   MemoryRemBackfillOptions,
   MemoryRemHarnessOptions,
   MemorySearchCommandOptions,
@@ -55,6 +56,11 @@ async function runMemoryPromoteExplain(
   await runtime.runMemoryPromoteExplain(selectorArg, opts);
 }
 
+async function runMemoryReport(opts: MemoryReportCommandOptions) {
+  const runtime = await loadMemoryCliRuntime();
+  await runtime.runMemoryReport(opts);
+}
+
 async function runMemoryRemHarness(opts: MemoryRemHarnessOptions) {
   const runtime = await loadMemoryCliRuntime();
   await runtime.runMemoryRemHarness(opts);
@@ -96,6 +102,10 @@ export function registerMemoryCli(program: Command) {
           [
             'openclaw memory promote-explain "router vlan"',
             "Explain why a specific candidate would or would not promote.",
+          ],
+          [
+            "openclaw memory report --json",
+            "Dry-run memory hygiene recommendations without writing.",
           ],
           [
             "openclaw memory rem-harness --json",
@@ -185,6 +195,21 @@ export function registerMemoryCli(program: Command) {
     .option("--json", "Print JSON")
     .action(async (selectorArg: string | undefined, opts: MemoryPromoteExplainOptions) => {
       await runMemoryPromoteExplain(selectorArg, opts);
+    });
+
+  memory
+    .command("report")
+    .description("Dry-run memory hygiene report without writing")
+    .option("--agent <id>", "Agent id (default: default agent)")
+    .option("--stale-days <n>", "Age threshold for daily-memory review", (value: string) =>
+      Number(value),
+    )
+    .option("--max-root-chars <n>", "Root MEMORY.md character budget", (value: string) =>
+      Number(value),
+    )
+    .option("--json", "Print JSON")
+    .action(async (opts: MemoryReportCommandOptions) => {
+      await runMemoryReport(opts);
     });
 
   memory

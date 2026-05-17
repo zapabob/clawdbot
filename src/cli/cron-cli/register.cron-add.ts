@@ -102,6 +102,14 @@ export function registerCronAddCommand(cron: Command) {
       .option("--exact", "Disable cron staggering (set stagger to 0)", false)
       .option("--system-event <text>", "System event payload (main session)")
       .option("--message <text>", "Agent message payload")
+      .option("--script <command>", "Script-only command payload (runs without an agent)")
+      .option(
+        "--script-arg <arg>",
+        "Argument for --script; repeat to pass multiple argv values",
+        (value, previous: string[]) => [...previous, value],
+        [],
+      )
+      .option("--cwd <dir>", "Working directory for --script")
       .option(
         "--thinking <level>",
         "Thinking level for agent jobs (off|minimal|low|medium|high|xhigh)",
@@ -151,12 +159,29 @@ export function registerCronAddCommand(cron: Command) {
           const payload = (() => {
             const systemEvent = normalizeOptionalString(opts.systemEvent) ?? "";
             const message = normalizeOptionalString(opts.message) ?? "";
-            const chosen = [Boolean(systemEvent), Boolean(message)].filter(Boolean).length;
+            const script = normalizeOptionalString(opts.script) ?? "";
+            const chosen = [Boolean(systemEvent), Boolean(message), Boolean(script)].filter(
+              Boolean,
+            ).length;
             if (chosen !== 1) {
-              throw new Error("Choose exactly one payload: --system-event or --message");
+              throw new Error("Choose exactly one payload: --system-event, --message, or --script");
             }
             if (systemEvent) {
               return { kind: "systemEvent" as const, text: systemEvent };
+            }
+            if (script) {
+              const timeoutSeconds = parsePositiveIntOrUndefined(opts.timeoutSeconds);
+              const scriptArgs = Array.isArray(opts.scriptArg)
+                ? opts.scriptArg.map((entry) => String(entry))
+                : [];
+              return {
+                kind: "script" as const,
+                command: script,
+                args: scriptArgs.length > 0 ? scriptArgs : undefined,
+                cwd: normalizeOptionalString(opts.cwd),
+                timeoutSeconds:
+                  timeoutSeconds && Number.isFinite(timeoutSeconds) ? timeoutSeconds : undefined,
+              };
             }
             const timeoutSeconds = parsePositiveIntOrUndefined(opts.timeoutSeconds);
             return {
@@ -177,7 +202,7 @@ export function registerCronAddCommand(cron: Command) {
               : () => undefined;
           const sessionSource = optionSource("session");
           const sessionTargetRaw = normalizeOptionalString(opts.session) ?? "";
-          const inferredSessionTarget = payload.kind === "agentTurn" ? "isolated" : "main";
+          const inferredSessionTarget = payload.kind === "systemEvent" ? "main" : "isolated";
           const sessionTarget =
             sessionSource === "cli"
               ? normalizeCronSessionTargetOption(sessionTargetRaw) || ""
@@ -198,14 +223,23 @@ export function registerCronAddCommand(cron: Command) {
           if (sessionTarget === "main" && payload.kind !== "systemEvent") {
             throw new Error("Main jobs require --system-event (systemEvent).");
           }
-          if (isIsolatedLikeSessionTarget && payload.kind !== "agentTurn") {
-            throw new Error("Isolated/current/custom-session jobs require --message (agentTurn).");
+          if (
+            isIsolatedLikeSessionTarget &&
+            payload.kind !== "agentTurn" &&
+            payload.kind !== "script"
+          ) {
+            throw new Error(
+              "Isolated/current/custom-session jobs require --message (agentTurn) or --script.",
+            );
           }
           if (
             (opts.announce || typeof opts.deliver === "boolean") &&
-            (!isIsolatedLikeSessionTarget || payload.kind !== "agentTurn")
+            (!isIsolatedLikeSessionTarget ||
+              (payload.kind !== "agentTurn" && payload.kind !== "script"))
           ) {
-            throw new Error("--announce/--no-deliver require a non-main agentTurn session target.");
+            throw new Error(
+              "--announce/--no-deliver require a non-main agentTurn or script session target.",
+            );
           }
 
           const accountId = normalizeOptionalString(opts.account);
@@ -214,15 +248,17 @@ export function registerCronAddCommand(cron: Command) {
 
           if (
             (accountId || hasThreadId) &&
-            (!isIsolatedLikeSessionTarget || payload.kind !== "agentTurn")
+            (!isIsolatedLikeSessionTarget ||
+              (payload.kind !== "agentTurn" && payload.kind !== "script"))
           ) {
             throw new Error(
-              "--account and --thread-id require a non-main agentTurn job with delivery.",
+              "--account and --thread-id require a non-main agentTurn or script job with delivery.",
             );
           }
 
           const deliveryMode =
-            isIsolatedLikeSessionTarget && payload.kind === "agentTurn"
+            isIsolatedLikeSessionTarget &&
+            (payload.kind === "agentTurn" || payload.kind === "script")
               ? hasAnnounce
                 ? "announce"
                 : hasNoDeliver

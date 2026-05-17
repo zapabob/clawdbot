@@ -405,6 +405,36 @@ describe("normalizeCronJobCreate", () => {
     expect(typeof normalized.name).toBe("string");
   });
 
+  it("normalizes script-only payloads without agent fields", () => {
+    const normalized = normalizeCronJobCreate({
+      name: "script watchdog",
+      schedule: { kind: "every", everyMs: 60_000 },
+      payload: {
+        kind: "no_agent",
+        command: " node ",
+        args: [" --version "],
+        cwd: " . ",
+        timeoutSeconds: 5,
+        maxOutputChars: 123,
+        model: "gpt-5.5",
+        toolsAllow: ["exec"],
+      },
+    }) as unknown as Record<string, unknown>;
+
+    const payload = normalized.payload as Record<string, unknown>;
+    expect(normalized.sessionTarget).toBe("isolated");
+    expect(normalized.delivery).toEqual({ mode: "announce" });
+    expect(payload).toEqual({
+      kind: "script",
+      command: "node",
+      args: ["--version"],
+      cwd: ".",
+      timeoutSeconds: 5,
+      maxOutputChars: 123,
+    });
+    expect(validateCronAddParams(normalized)).toBe(true);
+  });
+
   it("normalizes flat legacy cron job rows", () => {
     const normalized = normalizeCronJobCreate({
       id: "dbus-watchdog-001",
@@ -878,6 +908,27 @@ describe("normalizeCronJobPatch", () => {
     expect(payload.toolsAllow).toBeNull();
     expect(validateCronUpdateParams({ id: "job-1", patch: normalized })).toBe(true);
   });
+
+  it("normalizes script payload patches and allows args to be cleared", () => {
+    const normalized = normalizeCronJobPatch({
+      payload: {
+        kind: "script",
+        command: " node ",
+        args: null,
+        cwd: " . ",
+      },
+    }) as unknown as Record<string, unknown>;
+
+    const payload = normalized.payload as Record<string, unknown>;
+    expect(payload).toEqual({
+      kind: "script",
+      command: "node",
+      args: null,
+      cwd: ".",
+    });
+    expect(validateCronUpdateParams({ id: "job-1", patch: normalized })).toBe(true);
+  });
+
   it("does not infer agentTurn kind for delivery-only legacy hints", () => {
     const normalized = normalizeCronJobPatch({
       payload: {

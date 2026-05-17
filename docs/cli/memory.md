@@ -1,5 +1,5 @@
 ---
-summary: "CLI reference for `openclaw memory` (status/index/search/promote/promote-explain/rem-harness)"
+summary: "CLI reference for `openclaw memory` (status/index/search/report/promote/promote-explain/rem-harness)"
 read_when:
   - You want to index or search semantic memory
   - You're debugging memory availability or indexing
@@ -28,6 +28,8 @@ openclaw memory status --fix
 openclaw memory index --force
 openclaw memory search "meeting notes"
 openclaw memory search --query "deployment" --max-results 20
+openclaw memory report
+openclaw memory report --json
 openclaw memory promote --limit 10 --min-score 0.75
 openclaw memory promote --apply
 openclaw memory promote --json --min-recall-count 0 --min-unique-queries 0
@@ -71,6 +73,25 @@ If `memory status` shows `Dreaming status: blocked`, the managed dreaming cron i
 - `--max-results <n>`: limit the number of results returned.
 - `--min-score <n>`: filter out low-score matches.
 - `--json`: print JSON results.
+
+`memory report`:
+
+Dry-run memory hygiene report. This command reads existing memory surfaces and
+returns recommendations only; it never deletes, edits, promotes, or rewrites
+memory.
+
+```bash
+openclaw memory report [--agent <id>] [--json]
+```
+
+- Checks `MEMORY.md`, `USER.md`, and indexed `memory/*.md` files.
+- Flags root memory near its character budget, exact duplicate entries,
+  key/value conflict candidates, old daily notes, and sparse source markers in
+  root memory.
+- `--stale-days <n>`: age threshold for daily-memory review (default: 180).
+- `--max-root-chars <n>`: root `MEMORY.md` budget used for dry-run capacity
+  recommendations.
+- `--json`: print JSON output for dashboards or cron watchdogs.
 
 `memory promote`:
 

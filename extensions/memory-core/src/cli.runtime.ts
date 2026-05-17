@@ -32,6 +32,7 @@ import type {
   MemoryCommandOptions,
   MemoryPromoteCommandOptions,
   MemoryPromoteExplainOptions,
+  MemoryReportCommandOptions,
   MemoryRemBackfillOptions,
   MemoryRemHarnessOptions,
   MemorySearchCommandOptions,
@@ -46,6 +47,7 @@ import {
 } from "./dreaming-repair.js";
 import { asRecord } from "./dreaming-shared.js";
 import { resolveShortTermPromotionDreamingConfig } from "./dreaming.js";
+import { buildMemoryDryRunReport, type MemoryDryRunReport } from "./memory-report.js";
 import { previewGroundedRemMarkdown } from "./rem-evidence.js";
 import { previewRemHarness } from "./rem-harness.js";
 import {
@@ -1534,6 +1536,88 @@ export async function runMemoryPromoteExplain(
       defaultRuntime.log(lines.join("\n"));
     },
   });
+}
+
+function formatMemoryReportSummary(report: MemoryDryRunReport): string {
+  return `${report.summary.files} files ﾂｷ ${report.summary.totalChars} chars ﾂｷ ${report.summary.recommendations} recommendations`;
+}
+
+export async function runMemoryReport(opts: MemoryReportCommandOptions) {
+  const { config: cfg, diagnostics } = await loadMemoryCommandConfig("memory report");
+  emitMemorySecretResolveDiagnostics(diagnostics, { json: Boolean(opts.json) });
+  const agentIds = resolveAgentIds(cfg, opts.agent);
+  const allReports: Array<{ agentId: string; report?: MemoryDryRunReport; error?: string }> = [];
+
+  for (const agentId of agentIds) {
+    await withMemoryManagerForAgent({
+      cfg,
+      agentId,
+      purpose: "status",
+      run: async (manager) => {
+        const status = manager.status();
+        const workspaceDir = status.workspaceDir?.trim();
+        if (!workspaceDir) {
+          allReports.push({
+            agentId,
+            error: "memory report requires a resolvable workspace directory",
+          });
+          return;
+        }
+        const report = await buildMemoryDryRunReport({
+          workspaceDir,
+          extraPaths: status.extraPaths,
+          staleDailyMemoryDays: opts.staleDays,
+          maxRootMemoryChars: opts.maxRootChars,
+        });
+        allReports.push({ agentId, report });
+      },
+    });
+  }
+
+  if (opts.json) {
+    defaultRuntime.writeJson(allReports);
+    return;
+  }
+
+  const rich = isRich();
+  const lines: string[] = [];
+  for (const entry of allReports) {
+    lines.push(
+      `${colorize(rich, theme.heading, "Memory Report")} ${colorize(
+        rich,
+        theme.muted,
+        `(${entry.agentId}, dry-run)`,
+      )}`,
+    );
+    if (!entry.report) {
+      lines.push(colorize(rich, theme.warn, entry.error ?? "memory report unavailable"));
+      lines.push("");
+      continue;
+    }
+    lines.push(
+      colorize(rich, theme.muted, `Workspace: ${shortenHomePath(entry.report.workspaceDir)}`),
+    );
+    lines.push(colorize(rich, theme.muted, `Summary: ${formatMemoryReportSummary(entry.report)}`));
+    if (entry.report.recommendations.length === 0) {
+      lines.push(colorize(rich, theme.success, "No dry-run recommendations."));
+      lines.push("");
+      continue;
+    }
+    lines.push(colorize(rich, theme.warn, "Recommendations:"));
+    for (const recommendation of entry.report.recommendations) {
+      const target =
+        recommendation.paths?.join(", ") ??
+        (recommendation.path
+          ? `${recommendation.path}${recommendation.line ? `:${recommendation.line}` : ""}`
+          : "");
+      const sample = recommendation.sample ? ` (${recommendation.sample})` : "";
+      lines.push(
+        `- ${recommendation.kind}: ${recommendation.reason}${target ? ` [${target}]` : ""}${sample}`,
+      );
+    }
+    lines.push("");
+  }
+  defaultRuntime.log(lines.join("\n").trimEnd());
 }
 
 export async function runMemoryRemHarness(opts: MemoryRemHarnessOptions) {

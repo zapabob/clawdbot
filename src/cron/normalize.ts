@@ -45,6 +45,16 @@ function hasAgentTurnPayloadHint(payload: UnknownRecord) {
   );
 }
 
+function hasScriptPayloadHint(payload: UnknownRecord) {
+  return (
+    hasTrimmedStringValue(payload.command) ||
+    normalizeTrimmedStringArray(payload.args, { allowNull: true }) !== undefined ||
+    hasTrimmedStringValue(payload.cwd) ||
+    hasTrimmedStringValue(payload.input) ||
+    typeof payload.maxOutputChars === "number"
+  );
+}
+
 function normalizeTrimmedStringArray(
   value: unknown,
   options?: { allowNull?: boolean },
@@ -166,14 +176,20 @@ function coercePayload(payload: UnknownRecord) {
     next.kind = "agentTurn";
   } else if (kindRaw === "systemevent") {
     next.kind = "systemEvent";
+  } else if (kindRaw === "script" || kindRaw === "no_agent" || kindRaw === "noagent") {
+    next.kind = "script";
   } else if (kindRaw) {
     next.kind = kindRaw;
   }
   if (!next.kind) {
     const message = normalizeOptionalString(next.message);
     const text = normalizeOptionalString(next.text);
+    const command = normalizeOptionalString(next.command);
+    const hasScriptHint = hasScriptPayloadHint(next);
     const hasAgentTurnHint = hasAgentTurnPayloadHint(next);
-    if (message) {
+    if (command || hasScriptHint) {
+      next.kind = "script";
+    } else if (message) {
       next.kind = "agentTurn";
     } else if (text && hasAgentTurnHint) {
       next.kind = "agentTurn";
@@ -237,6 +253,40 @@ function coercePayload(payload: UnknownRecord) {
       delete next.toolsAllow;
     }
   }
+  if ("command" in next) {
+    const command = parseOptionalField(TrimmedNonEmptyStringFieldSchema, next.command);
+    if (command !== undefined) {
+      next.command = command;
+    } else {
+      delete next.command;
+    }
+  }
+  if ("args" in next) {
+    const args = normalizeTrimmedStringArray(next.args, { allowNull: true });
+    if (args !== undefined) {
+      next.args = args;
+    } else {
+      delete next.args;
+    }
+  }
+  if ("cwd" in next) {
+    const cwd = parseOptionalField(TrimmedNonEmptyStringFieldSchema, next.cwd);
+    if (cwd !== undefined) {
+      next.cwd = cwd;
+    } else {
+      delete next.cwd;
+    }
+  }
+  if ("input" in next && typeof next.input !== "string") {
+    delete next.input;
+  }
+  if ("maxOutputChars" in next) {
+    if (typeof next.maxOutputChars === "number" && Number.isFinite(next.maxOutputChars)) {
+      next.maxOutputChars = Math.max(1, Math.floor(next.maxOutputChars));
+    } else {
+      delete next.maxOutputChars;
+    }
+  }
   if (
     "allowUnsafeExternalContent" in next &&
     typeof next.allowUnsafeExternalContent !== "boolean"
@@ -252,8 +302,27 @@ function coercePayload(payload: UnknownRecord) {
     delete next.lightContext;
     delete next.allowUnsafeExternalContent;
     delete next.toolsAllow;
+    delete next.command;
+    delete next.args;
+    delete next.cwd;
+    delete next.input;
+    delete next.maxOutputChars;
   } else if (next.kind === "agentTurn") {
     delete next.text;
+    delete next.command;
+    delete next.args;
+    delete next.cwd;
+    delete next.input;
+    delete next.maxOutputChars;
+  } else if (next.kind === "script") {
+    delete next.text;
+    delete next.message;
+    delete next.model;
+    delete next.fallbacks;
+    delete next.thinking;
+    delete next.lightContext;
+    delete next.allowUnsafeExternalContent;
+    delete next.toolsAllow;
   }
   if ("deliver" in next) {
     delete next.deliver;
@@ -311,6 +380,11 @@ function inferTopLevelPayload(next: UnknownRecord) {
   const message = normalizeOptionalString(next.message) ?? "";
   if (message) {
     return { kind: "agentTurn", message } satisfies UnknownRecord;
+  }
+
+  const command = normalizeOptionalString(next.command) ?? "";
+  if (command || hasScriptPayloadHint(next)) {
+    return { kind: "script", command } satisfies UnknownRecord;
   }
 
   const text = normalizeOptionalString(next.text) ?? "";
@@ -407,6 +481,36 @@ function copyTopLevelAgentTurnFields(next: UnknownRecord, payload: UnknownRecord
   }
 }
 
+function copyTopLevelScriptFields(next: UnknownRecord, payload: UnknownRecord) {
+  if (!normalizeOptionalString(payload.command)) {
+    const command = normalizeOptionalString(next.command);
+    if (command) {
+      payload.command = command;
+    }
+  }
+  if (!Array.isArray(payload.args)) {
+    const args = normalizeTrimmedStringArray(next.args, { allowNull: true });
+    if (args !== undefined) {
+      payload.args = args;
+    }
+  }
+  if (!normalizeOptionalString(payload.cwd)) {
+    const cwd = normalizeOptionalString(next.cwd);
+    if (cwd) {
+      payload.cwd = cwd;
+    }
+  }
+  if (typeof payload.input !== "string" && typeof next.input === "string") {
+    payload.input = next.input;
+  }
+  if (typeof payload.timeoutSeconds !== "number" && typeof next.timeoutSeconds === "number") {
+    payload.timeoutSeconds = next.timeoutSeconds;
+  }
+  if (typeof payload.maxOutputChars !== "number" && typeof next.maxOutputChars === "number") {
+    payload.maxOutputChars = Math.max(1, Math.floor(next.maxOutputChars));
+  }
+}
+
 function stripLegacyTopLevelFields(next: UnknownRecord) {
   delete next.model;
   delete next.thinking;
@@ -434,6 +538,11 @@ function stripLegacyTopLevelFields(next: UnknownRecord) {
   delete next.threadId;
   delete next.bestEffortDeliver;
   delete next.provider;
+  delete next.command;
+  delete next.args;
+  delete next.cwd;
+  delete next.input;
+  delete next.maxOutputChars;
 }
 
 export function normalizeCronJobInput(
@@ -543,6 +652,8 @@ export function normalizeCronJobInput(
   const payload = isRecord(next.payload) ? next.payload : null;
   if (payload && payload.kind === "agentTurn") {
     copyTopLevelAgentTurnFields(next, payload);
+  } else if (payload && payload.kind === "script") {
+    copyTopLevelScriptFields(next, payload);
   }
   stripLegacyTopLevelFields(next);
 
@@ -576,7 +687,7 @@ export function normalizeCronJobInput(
       // Users must explicitly specify "current" or "session:xxx" for custom session binding
       if (kind === "systemEvent") {
         next.sessionTarget = "main";
-      } else if (kind === "agentTurn") {
+      } else if (kind === "agentTurn" || kind === "script") {
         next.sessionTarget = "isolated";
       }
     }
@@ -629,13 +740,17 @@ export function normalizeCronJobInput(
     const payloadKind = payload && typeof payload.kind === "string" ? payload.kind : "";
     const sessionTarget = typeof next.sessionTarget === "string" ? next.sessionTarget : "";
     // Support "isolated", custom session IDs (session:xxx), and resolved "current" as isolated-like targets
-    const isIsolatedAgentTurn =
+    const isIsolatedDetached =
       sessionTarget === "isolated" ||
       sessionTarget === "current" ||
       sessionTarget.startsWith("session:") ||
-      (sessionTarget === "" && payloadKind === "agentTurn");
+      (sessionTarget === "" && (payloadKind === "agentTurn" || payloadKind === "script"));
     const hasDelivery = "delivery" in next && next.delivery !== undefined;
-    if (!hasDelivery && isIsolatedAgentTurn && payloadKind === "agentTurn") {
+    if (
+      !hasDelivery &&
+      isIsolatedDetached &&
+      (payloadKind === "agentTurn" || payloadKind === "script")
+    ) {
       next.delivery = { mode: "announce" };
     }
   }

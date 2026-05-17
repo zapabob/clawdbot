@@ -16,6 +16,12 @@ export type SkillChange =
       kind: "replace";
       oldText: string;
       newText: string;
+    }
+  | {
+      kind: "write_file";
+      relativePath: string;
+      body: string;
+      description?: string;
     };
 
 export type SkillProposal = {

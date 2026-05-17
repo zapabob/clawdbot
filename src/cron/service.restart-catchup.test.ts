@@ -25,6 +25,7 @@ describe("CronService restart catch-up", () => {
     onEvent?: ReturnType<typeof vi.fn>;
     nowMs?: () => number;
     runIsolatedAgentJob?: ReturnType<typeof vi.fn>;
+    runScriptJob?: ReturnType<typeof vi.fn>;
     startupDeferredMissedAgentJobDelayMs?: number;
   }) {
     return new CronService({
@@ -37,6 +38,7 @@ describe("CronService restart catch-up", () => {
       runIsolatedAgentJob:
         (params.runIsolatedAgentJob as never) ??
         (vi.fn(async () => ({ status: "ok" as const })) as never),
+      ...(params.runScriptJob ? { runScriptJob: params.runScriptJob as never } : {}),
       onEvent: params.onEvent as ((evt: CronEvent) => void) | undefined,
       ...(params.startupDeferredMissedAgentJobDelayMs !== undefined
         ? { startupDeferredMissedAgentJobDelayMs: params.startupDeferredMissedAgentJobDelayMs }
@@ -213,6 +215,55 @@ describe("CronService restart catch-up", () => {
     }
   });
 
+  it("defers overdue script-only jobs during gateway startup", async () => {
+    const store = await makeStorePath();
+    const startNow = Date.parse("2025-12-13T17:00:00.000Z");
+    const runScriptJob = vi.fn(async () => ({ status: "ok" as const, summary: "ok" }));
+    const enqueueSystemEvent = vi.fn();
+    const requestHeartbeat = vi.fn();
+
+    await writeStoreJobs(store.storePath, [
+      {
+        id: "startup-script",
+        name: "startup script",
+        enabled: true,
+        createdAtMs: startNow - 120_000,
+        updatedAtMs: startNow - 120_000,
+        schedule: { kind: "every", everyMs: 60_000, anchorMs: startNow - 120_000 },
+        sessionTarget: "isolated",
+        wakeMode: "next-heartbeat",
+        payload: { kind: "script", command: "node", args: ["--version"] },
+        state: { nextRunAtMs: startNow - 60_000 },
+      },
+    ]);
+
+    const cron = createRestartCronService({
+      storePath: store.storePath,
+      enqueueSystemEvent,
+      requestHeartbeat,
+      runScriptJob,
+      nowMs: () => startNow,
+      startupDeferredMissedAgentJobDelayMs: 120_000,
+    });
+
+    try {
+      await cron.start();
+
+      expect(runScriptJob).not.toHaveBeenCalled();
+      expect(enqueueSystemEvent).not.toHaveBeenCalled();
+      expect(requestHeartbeat).not.toHaveBeenCalled();
+
+      const listedJobs = await cron.list({ includeDisabled: true });
+      const updated = listedJobs.find((job) => job.id === "startup-script");
+      expect(updated?.state.lastStatus).toBeUndefined();
+      expect(updated?.state.runningAtMs).toBeUndefined();
+      expect(updated?.state.nextRunAtMs).toBe(startNow + 120_000);
+    } finally {
+      cron.stop();
+      await store.cleanup();
+    }
+  });
+
   it("marks interrupted recurring jobs failed instead of replaying them on startup", async () => {
     const dueAt = Date.parse("2025-12-13T16:00:00.000Z");
     const staleRunningAt = Date.parse("2025-12-13T16:30:00.000Z");
@@ -262,6 +313,66 @@ describe("CronService restart catch-up", () => {
         });
       },
     );
+  });
+
+  it("marks interrupted script-only jobs failed instead of replaying them on startup", async () => {
+    const store = await makeStorePath();
+    const dueAt = Date.parse("2025-12-13T16:00:00.000Z");
+    const staleRunningAt = Date.parse("2025-12-13T16:30:00.000Z");
+    const runScriptJob = vi.fn(async () => ({ status: "ok" as const, summary: "ok" }));
+    const enqueueSystemEvent = vi.fn();
+    const requestHeartbeat = vi.fn();
+    const onEvent = vi.fn();
+
+    await writeStoreJobs(store.storePath, [
+      {
+        id: "restart-stale-script",
+        name: "stale script marker",
+        enabled: true,
+        createdAtMs: Date.parse("2025-12-10T12:00:00.000Z"),
+        updatedAtMs: Date.parse("2025-12-13T16:30:00.000Z"),
+        schedule: { kind: "cron", expr: "0 16 * * *", tz: "UTC" },
+        sessionTarget: "isolated",
+        wakeMode: "next-heartbeat",
+        payload: { kind: "script", command: "node", args: ["--version"] },
+        state: {
+          nextRunAtMs: dueAt,
+          runningAtMs: staleRunningAt,
+        },
+      },
+    ]);
+
+    const cron = createRestartCronService({
+      storePath: store.storePath,
+      enqueueSystemEvent,
+      requestHeartbeat,
+      runScriptJob,
+      onEvent,
+    });
+
+    try {
+      await cron.start();
+
+      expect(runScriptJob).not.toHaveBeenCalled();
+      expect(enqueueSystemEvent).not.toHaveBeenCalled();
+      expect(requestHeartbeat).not.toHaveBeenCalled();
+
+      const listedJobs = await cron.list({ includeDisabled: true });
+      const updated = listedJobs.find((job) => job.id === "restart-stale-script");
+      expect(updated?.state.runningAtMs).toBeUndefined();
+      expect(updated?.state.lastStatus).toBe("error");
+      expect(updated?.state.lastRunStatus).toBe("error");
+      expect(updated?.state.lastRunAtMs).toBe(staleRunningAt);
+      expect(updated?.state.lastError).toBe("cron: job interrupted by gateway restart");
+      expect(updated?.state.nextRunAtMs).toBeGreaterThan(Date.parse("2025-12-13T17:00:00.000Z"));
+      expectInterruptedJobEvent(onEvent, {
+        jobId: "restart-stale-script",
+        runAtMs: staleRunningAt,
+      });
+    } finally {
+      cron.stop();
+      await store.cleanup();
+    }
   });
   it("replays the most recent missed cron slot after restart when nextRunAtMs already advanced", async () => {
     vi.setSystemTime(new Date("2025-12-13T04:02:00.000Z"));

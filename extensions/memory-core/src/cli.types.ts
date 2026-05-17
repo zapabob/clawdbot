@@ -39,3 +39,8 @@ export type MemoryRemBackfillOptions = MemoryCommandOptions & {
   stageShortTerm?: boolean;
   rollbackShortTerm?: boolean;
 };
+
+export type MemoryReportCommandOptions = MemoryCommandOptions & {
+  staleDays?: number;
+  maxRootChars?: number;
+};

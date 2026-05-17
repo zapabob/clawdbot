@@ -174,9 +174,15 @@ export type CronFailureAlert = {
   accountId?: string;
 };
 
-export type CronPayload = { kind: "systemEvent"; text: string } | CronAgentTurnPayload;
+export type CronPayload =
+  | { kind: "systemEvent"; text: string }
+  | CronAgentTurnPayload
+  | CronScriptPayload;
 
-export type CronPayloadPatch = { kind: "systemEvent"; text?: string } | CronAgentTurnPayloadPatch;
+export type CronPayloadPatch =
+  | { kind: "systemEvent"; text?: string }
+  | CronAgentTurnPayloadPatch
+  | CronScriptPayloadPatch;
 
 type CronAgentTurnPayloadFields = {
   message: string;
@@ -203,6 +209,31 @@ type CronAgentTurnPayloadPatch = {
   kind: "agentTurn";
 } & Partial<Omit<CronAgentTurnPayloadFields, "toolsAllow">> & {
     toolsAllow?: string[] | null;
+  };
+
+type CronScriptPayloadFields = {
+  /** Command argv[0]. Runs without a shell; pass shell wrappers explicitly when needed. */
+  command: string;
+  /** Optional argv after command. */
+  args?: string[];
+  /** Optional working directory for the command. */
+  cwd?: string;
+  /** Optional stdin sent to the process. */
+  input?: string;
+  /** Optional command timeout. Defaults to the cron non-agent safety timeout. */
+  timeoutSeconds?: number;
+  /** Maximum stdout characters copied into the run summary. */
+  maxOutputChars?: number;
+};
+
+type CronScriptPayload = {
+  kind: "script";
+} & CronScriptPayloadFields;
+
+type CronScriptPayloadPatch = {
+  kind: "script";
+} & Partial<Omit<CronScriptPayloadFields, "args">> & {
+    args?: string[] | null;
   };
 export type CronJobState = {
   nextRunAtMs?: number;

@@ -164,6 +164,44 @@ describe("skill-workshop", () => {
     expect(skillText).toContain("Verify GIF content type");
   });
 
+  it("applies support file proposals under allowed skill subdirectories", async () => {
+    const workspaceDir = await makeTempDir();
+    const proposal = createProposal(workspaceDir, {
+      skillName: "release-workflow",
+      change: {
+        kind: "write_file",
+        relativePath: "references/checklist.md",
+        description: "Release checklist reference.",
+        body: "# Release Checklist\n\n- Verify changelog.\n- Run release docs.",
+      },
+    });
+
+    const result = await applyProposalToWorkspace({ proposal, maxSkillBytes: 40_000 });
+    const supportText = await fs.readFile(result.skillPath, "utf8");
+
+    expect(
+      result.skillPath.endsWith(path.join("release-workflow", "references", "checklist.md")),
+    ).toBe(true);
+    expect(result.created).toBe(true);
+    expect(supportText).toContain("Verify changelog");
+  });
+
+  it("blocks support file proposals outside allowed subdirectories", async () => {
+    const workspaceDir = await makeTempDir();
+    const proposal = createProposal(workspaceDir, {
+      skillName: "release-workflow",
+      change: {
+        kind: "write_file",
+        relativePath: "../escape.md",
+        body: "# Escape",
+      },
+    });
+
+    await expect(applyProposalToWorkspace({ proposal, maxSkillBytes: 40_000 })).rejects.toThrow(
+      "support file path must start with",
+    );
+  });
+
   it("blocks prompt-injection-like skill content", async () => {
     const workspaceDir = await makeTempDir();
     const proposal = createProposal(workspaceDir, {
@@ -652,6 +690,75 @@ describe("skill-workshop", () => {
     expect(await store.list("pending")).toHaveLength(1);
   });
 
+  it("returns a curator dry-run report without changing skills or proposals", async () => {
+    const workspaceDir = await makeTempDir();
+    const stateDir = await makeTempDir();
+    await fs.mkdir(path.join(workspaceDir, "skills", "release-workflow", "references"), {
+      recursive: true,
+    });
+    await fs.writeFile(
+      path.join(workspaceDir, "skills", "release-workflow", "SKILL.md"),
+      "# Release Workflow\n\n## Workflow\n\n- Verify release notes.",
+      "utf8",
+    );
+    await fs.writeFile(
+      path.join(workspaceDir, "skills", "release-workflow", "references", "checklist.md"),
+      "# Checklist\n\n- Run focused tests.",
+      "utf8",
+    );
+    const store = new SkillWorkshopStore({ stateDir, workspaceDir });
+    await store.add(
+      createProposal(workspaceDir, {
+        id: "old-proposal",
+        skillName: "release-workflow",
+        createdAt: Date.now() - 40 * 86_400_000,
+        updatedAt: Date.now() - 40 * 86_400_000,
+      }),
+      50,
+    );
+    await store.add(
+      createProposal(workspaceDir, {
+        id: "quarantined-proposal",
+        skillName: "unsafe-workflow",
+        status: "quarantined",
+        quarantineReason: "unsafe content",
+      }),
+      50,
+    );
+    let tool: AnyAgentTool | undefined;
+    const api = createTestPluginApi({
+      runtime: {
+        agent: {
+          resolveAgentWorkspaceDir: () => workspaceDir,
+        },
+        state: {
+          resolveStateDir: () => stateDir,
+        },
+      } as never,
+      registerTool(registered) {
+        const resolved =
+          typeof registered === "function" ? registered({ workspaceDir }) : registered;
+        tool = Array.isArray(resolved) ? resolved[0] : (resolved ?? undefined);
+      },
+    });
+
+    plugin.register(api);
+    const result = await tool?.execute?.("call-1", { action: "curator_report" });
+    const report = detailRecord(result);
+
+    expect(report.dryRun).toBe(true);
+    expect((report.summary as { skills?: number }).skills).toBe(1);
+    expect((report.summary as { supportFiles?: number }).supportFiles).toBe(1);
+    expect((report.recommendations as Array<{ kind: string }>).map((item) => item.kind)).toEqual(
+      expect.arrayContaining(["review_pending_proposal", "inspect_quarantined_proposal"]),
+    );
+    expect(await store.list("pending")).toHaveLength(1);
+    expect(await store.list("quarantined")).toHaveLength(1);
+    await expect(
+      fs.readFile(path.join(workspaceDir, "skills", "release-workflow", "SKILL.md"), "utf8"),
+    ).resolves.toContain("Verify release notes");
+  });
+
   it("queues apply true suggestions in pending mode before explicit apply", async () => {
     const workspaceDir = await makeTempDir();
     const stateDir = await makeTempDir();
@@ -782,6 +889,68 @@ describe("skill-workshop", () => {
     expect(reviewerRequest.toolsAllow).toEqual([]);
     expect(reviewerRequest.provider).toBe("openai");
     expect(reviewerRequest.model).toBe("gpt-5.4");
+  });
+
+  it("uses the reviewer to propose support files for existing skills", async () => {
+    const workspaceDir = await makeTempDir();
+    const stateDir = await makeTempDir();
+    await fs.mkdir(path.join(workspaceDir, "skills", "qa-scenario-workflow"), { recursive: true });
+    await fs.writeFile(
+      path.join(workspaceDir, "skills", "qa-scenario-workflow", "SKILL.md"),
+      "---\nname: qa-scenario-workflow\ndescription: QA notes.\n---\n\n## Workflow\n\n- Run smoke tests.\n",
+    );
+    const runEmbeddedPiAgent = vi.fn(async () => ({
+      payloads: [
+        {
+          text: JSON.stringify({
+            action: "write_file",
+            skillName: "qa-scenario-workflow",
+            title: "QA Scenario Checklist",
+            reason: "Detailed checklist belongs outside the compact skill prompt",
+            description: "QA scenario checklist reference.",
+            relativePath: "references/media-checklist.md",
+            body: "# Media Checklist\n\n- Verify frame count.\n- Record attribution.",
+          }),
+        },
+      ],
+      meta: {},
+    }));
+    const api = createTestPluginApi({
+      runtime: {
+        agent: {
+          defaults: { provider: "openai", model: "gpt-5.4" },
+          resolveAgentDir: () => path.join(workspaceDir, ".agent"),
+          runEmbeddedPiAgent,
+        },
+        state: {
+          resolveStateDir: () => stateDir,
+        },
+      } as never,
+    });
+
+    const proposal = await reviewTranscriptForProposal({
+      api,
+      config: {
+        enabled: true,
+        autoCapture: true,
+        approvalPolicy: "pending",
+        reviewMode: "llm",
+        reviewInterval: 1,
+        reviewMinToolCalls: 1,
+        reviewTimeoutMs: 5_000,
+        maxPending: 50,
+        maxSkillBytes: 40_000,
+      },
+      ctx: { agentId: "main", workspaceDir },
+      messages: [{ role: "user", content: "Build a QA checklist for animated media." }],
+    });
+
+    expect(proposal?.source).toBe("reviewer");
+    expect(proposal?.skillName).toBe("qa-scenario-workflow");
+    expect(proposal?.change.kind).toBe("write_file");
+    expect(proposal?.change.kind === "write_file" ? proposal.change.relativePath : undefined).toBe(
+      "references/media-checklist.md",
+    );
   });
 
   it("uses the configured agent default for reviewer fallback", async () => {

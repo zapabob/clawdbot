@@ -17,6 +17,7 @@ import {
   resolveCronRunLogPath,
   resolveCronRunLogPruneOptions,
 } from "../cron/run-log.js";
+import { runCronScriptJob } from "../cron/script-job.js";
 import type { CronServiceContract } from "../cron/service-contract.js";
 import { CronService } from "../cron/service.js";
 import { resolveCronSessionTargetSessionKey } from "../cron/session-target.js";
@@ -358,6 +359,7 @@ export function buildGatewayCronService(params: {
         });
       }
     },
+    runScriptJob: runCronScriptJob,
     cleanupTimedOutAgentRun: async ({ job, execution }) => {
       if (!execution?.sessionId) {
         return;

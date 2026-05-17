@@ -53,6 +53,7 @@ function createCronEventHarness() {
 
 type CronHarnessOptions = {
   runIsolatedAgentJob?: CronServiceDeps["runIsolatedAgentJob"];
+  runScriptJob?: CronServiceDeps["runScriptJob"];
   runHeartbeatOnce?: NonNullable<CronServiceDeps["runHeartbeatOnce"]>;
   nowMs?: () => number;
   wakeNowHeartbeatBusyMaxWaitMs?: number;
@@ -85,6 +86,7 @@ async function createCronHarness(options: CronHarnessOptions = {}) {
       (vi.fn(async (_params: { job: unknown; message: string }) => ({
         status: "ok",
       })) as unknown as CronServiceDeps["runIsolatedAgentJob"]),
+    ...(options.runScriptJob ? { runScriptJob: options.runScriptJob } : {}),
     ...(events ? { onEvent: events.onEvent } : {}),
   });
   await cron.start();
@@ -514,6 +516,78 @@ describe("CronService", () => {
 
     expect(enqueueSystemEvent).not.toHaveBeenCalled();
     expect(requestHeartbeat).not.toHaveBeenCalled();
+    await stopCronAndCleanup(cron, store);
+  });
+
+  it("runs script-only jobs without invoking the isolated agent runner", async () => {
+    const runIsolatedAgentJob = vi.fn(async () => ({ status: "ok" as const }));
+    const runScriptJob = vi.fn(async () => ({
+      status: "ok" as const,
+      summary: "watchdog ok",
+    }));
+    const { store, cron, enqueueSystemEvent, requestHeartbeat, events } = await createCronHarness({
+      runIsolatedAgentJob,
+      runScriptJob,
+    });
+    if (!events) {
+      throw new Error("missing event harness");
+    }
+    const runAt = new Date("2025-12-13T00:00:03.000Z");
+    const job = await cron.add({
+      enabled: true,
+      name: "script watchdog",
+      schedule: { kind: "at", at: runAt.toISOString() },
+      sessionTarget: "isolated",
+      wakeMode: "now",
+      payload: { kind: "script", command: "node", args: ["--version"] },
+      delivery: { mode: "announce" },
+    });
+
+    vi.setSystemTime(runAt);
+    await vi.runOnlyPendingTimersAsync();
+    const finished = await events.waitFor(
+      (evt) => evt.jobId === job.id && evt.action === "finished",
+    );
+
+    expect(finished.status).toBe("ok");
+    expect(finished.summary).toBe("watchdog ok");
+    expect(runScriptJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        command: "node",
+        args: ["--version"],
+      }),
+    );
+    expect(runIsolatedAgentJob).not.toHaveBeenCalled();
+    expect(enqueueSystemEvent).not.toHaveBeenCalled();
+    expect(requestHeartbeat).not.toHaveBeenCalled();
+    await stopCronAndCleanup(cron, store);
+  });
+
+  it("keeps empty script stdout silent", async () => {
+    const runScriptJob = vi.fn(async () => ({ status: "ok" as const }));
+    const { store, cron, events } = await createCronHarness({ runScriptJob });
+    if (!events) {
+      throw new Error("missing event harness");
+    }
+    const runAt = new Date("2025-12-13T00:00:04.000Z");
+    const job = await cron.add({
+      enabled: true,
+      name: "silent script",
+      schedule: { kind: "at", at: runAt.toISOString() },
+      sessionTarget: "isolated",
+      wakeMode: "now",
+      payload: { kind: "script", command: "node", args: ["--version"] },
+      delivery: { mode: "announce" },
+    });
+
+    vi.setSystemTime(runAt);
+    await vi.runOnlyPendingTimersAsync();
+    const finished = await events.waitFor(
+      (evt) => evt.jobId === job.id && evt.action === "finished",
+    );
+
+    expect(finished.status).toBe("ok");
+    expect(finished.summary).toBeUndefined();
     await stopCronAndCleanup(cron, store);
   });
 

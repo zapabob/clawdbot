@@ -46,7 +46,7 @@ Cron is the Gateway's built-in scheduler. It persists jobs, wakes the agent at t
 - After the split, older OpenClaw versions can read `jobs.json` but may treat jobs as fresh because runtime fields now live in `jobs-state.json`.
 - When `jobs.json` is edited while the Gateway is running or stopped, OpenClaw compares the changed schedule fields with pending runtime slot metadata and clears stale `nextRunAtMs` values. Pure formatting or key-order-only rewrites preserve the pending slot.
 - All cron executions create [background task](/automation/tasks) records.
-- On Gateway startup, overdue isolated agent-turn jobs are rescheduled out of the channel-connect window instead of replaying immediately, so Discord/Telegram startup and native-command setup stay responsive after restarts.
+- On Gateway startup, overdue isolated agent-turn and script-only jobs are rescheduled out of the channel-connect window instead of replaying immediately, so Discord/Telegram startup and native-command setup stay responsive after restarts.
 - One-shot jobs (`--at`) auto-delete after success by default.
 - Isolated cron runs best-effort close tracked browser tabs/processes for their `cron:<jobId>` session when the run completes, so detached browser automation does not leave orphaned processes behind.
 - Isolated cron runs that receive the narrow cron self-cleanup grant can still read scheduler status, a self-filtered list of their current job, and that job's run history, so status/heartbeat checks can inspect their own schedule without gaining broader cron mutation access.
@@ -92,6 +92,7 @@ This fires ~5–6 times per month instead of 0–1 times per month. OpenClaw use
 | --------------- | ------------------- | ------------------------ | ------------------------------- |
 | Main session    | `main`              | Next heartbeat turn      | Reminders, system events        |
 | Isolated        | `isolated`          | Dedicated `cron:<jobId>` | Reports, background chores      |
+| Script-only     | `isolated`          | Gateway subprocess       | Health checks, sync scripts     |
 | Current session | `current`           | Bound at creation time   | Context-aware recurring work    |
 | Custom session  | `session:custom-id` | Persistent named session | Workflows that build on history |
 
@@ -115,6 +116,31 @@ This fires ~5–6 times per month instead of 0–1 times per month. OpenClaw use
 
   </Accordion>
 </AccordionGroup>
+
+### Payload options for script-only jobs
+
+Use `--script` when cron should run a command without starting a model or isolated agent turn. Script jobs still use the cron scheduler, run log, timeout, and failure-notification surfaces, but they execute argv directly without a shell.
+
+<ParamField path="--script" type="string" required>
+  Command argv[0]. Pass an explicit shell wrapper when shell behavior is required.
+</ParamField>
+<ParamField path="--script-arg" type="string">
+  Repeatable argument appended after `--script`.
+</ParamField>
+<ParamField path="--cwd" type="string">
+  Optional working directory for the command.
+</ParamField>
+
+Empty stdout is silent. Non-empty stdout becomes the run summary and can be delivered with `announce` or `webhook`; non-zero exits are recorded as cron errors and follow the same failure-alert path as other jobs.
+
+```bash
+openclaw cron add \
+  --name "Disk watchdog" \
+  --cron "*/15 * * * *" \
+  --script node \
+  --script-arg scripts/check-disk.mjs \
+  --no-deliver
+```
 
 ### Payload options for isolated jobs
 
@@ -214,6 +240,16 @@ Failure notifications follow a separate destination path:
       --model "opus" \
       --thinking high \
       --announce
+    ```
+  </Tab>
+  <Tab title="Script-only watchdog">
+    ```bash
+    openclaw cron add \
+      --name "Local watchdog" \
+      --every "15m" \
+      --script node \
+      --script-arg scripts/watchdog.mjs \
+      --no-deliver
     ```
   </Tab>
 </Tabs>
@@ -464,6 +500,7 @@ openclaw doctor
   <Accordion title="Cron fired but no delivery">
     - Delivery mode `none` means no runner fallback send is expected. The agent can still send directly with the `message` tool when a chat route is available.
     - Delivery target missing/invalid (`channel`/`to`) means outbound was skipped.
+    - Script-only jobs deliver only non-empty stdout. Empty stdout records a successful silent run.
     - For Matrix, copied or legacy jobs with lowercased `delivery.to` room IDs can fail because Matrix room IDs are case-sensitive. Edit the job to the exact `!room:server` or `room:!room:server` value from Matrix.
     - Channel auth errors (`unauthorized`, `Forbidden`) mean delivery was blocked by credentials.
     - If the isolated run returns only the silent token (`NO_REPLY` / `no_reply`), OpenClaw suppresses direct outbound delivery and also suppresses the fallback queued summary path, so nothing is posted back to chat.
