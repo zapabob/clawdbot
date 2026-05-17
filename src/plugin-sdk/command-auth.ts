@@ -1,5 +1,5 @@
 /**
- * @deprecated Public SDK subpath has no bundled extension production imports.
+ * @deprecated Public SDK subpath has no bundled plugin production imports.
  * Use channel ingress/runtime authorization helpers or command-status helpers
  * instead of this broad compatibility surface.
  */

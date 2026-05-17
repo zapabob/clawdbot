@@ -955,7 +955,7 @@ describe("run-node script", () => {
     });
   });
 
-  it("reruns runtime postbuild for dirty extension package metadata in watch mode", async () => {
+  it("reruns runtime postbuild for dirty plugin package metadata in watch mode", async () => {
     await withTempDir({ prefix: "openclaw-run-node-" }, async (tmp) => {
       await setupTrackedProject(tmp, {
         files: {
@@ -1389,7 +1389,7 @@ describe("run-node script", () => {
     });
   });
 
-  it("skips rebuilding when extension package metadata is newer than the build stamp", async () => {
+  it("skips rebuilding when plugin package metadata is newer than the build stamp", async () => {
     await withTempDir({ prefix: "openclaw-run-node-" }, async (tmp) => {
       await setupTrackedProject(tmp, {
         files: {

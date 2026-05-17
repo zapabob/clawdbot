@@ -7,7 +7,7 @@ read_when:
   - You are deciding between internal hooks and plugin hooks
 ---
 
-Plugin hooks are in-process extension points for OpenClaw plugins. Use them
+Plugin hooks are in-process hook points for OpenClaw plugins. Use them
 when a plugin needs to inspect or change agent runs, tool calls, message flow,
 session lifecycle, subagent routing, installs, or Gateway startup.
 
@@ -342,7 +342,7 @@ with `plugins.entries.<id>.hooks.allowPromptInjection=false`.
 
 Workflow plugins can persist small JSON-compatible session state with
 `api.registerSessionExtension(...)` and update it through the Gateway
-`sessions.pluginPatch` method. Session rows project registered extension state
+`sessions.pluginPatch` method. Session rows project registered plugin state
 through `pluginExtensions`, letting Control UI and other clients render
 plugin-owned status without learning plugin internals.
 

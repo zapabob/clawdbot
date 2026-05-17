@@ -144,6 +144,8 @@ function formatOAuthRefreshFailureReason(reason: OAuthRefreshFailureReason | nul
       return "sign in again";
     case "invalid_refresh_token":
       return "invalid refresh token";
+    case "token_invalidated":
+      return "token invalidated";
     case "revoked":
       return "revoked";
     default:

@@ -46,7 +46,7 @@ export type PluginSlotsConfig = {
 };
 
 export type PluginsLoadConfig = {
-  /** Additional plugin/extension paths to load. */
+  /** Additional plugin paths to load. */
   paths?: string[];
 };
 

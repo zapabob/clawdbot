@@ -1,4 +1,4 @@
-import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/text-runtime";
+import { normalizeLowercaseStringOrEmpty } from "openclaw/plugin-sdk/string-coerce-runtime";
 import { createBlueBubblesClient } from "./client.js";
 import { getCachedBlueBubblesPrivateApiStatus } from "./probe.js";
 import type { OpenClawConfig } from "./runtime-api.js";

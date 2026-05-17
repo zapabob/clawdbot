@@ -5,16 +5,16 @@ import {
   resolveExecApprovalCommandDisplay,
 } from "openclaw/plugin-sdk/approval-reply-runtime";
 import {
-  listMessageReceiptPlatformIds,
-  resolveMessageReceiptPrimaryId,
-} from "openclaw/plugin-sdk/channel-message";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-runtime";
-import {
   createChannelNativeApprovalRuntime,
   type ExecApprovalChannelRuntime,
   type ExecApprovalRequest,
   type ExecApprovalResolved,
-} from "openclaw/plugin-sdk/infra-runtime";
+} from "openclaw/plugin-sdk/approval-runtime";
+import {
+  listMessageReceiptPlatformIds,
+  resolveMessageReceiptPrimaryId,
+} from "openclaw/plugin-sdk/channel-message";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { matrixApprovalCapability } from "./approval-native.js";
 import {
   buildMatrixApprovalReactionHint,

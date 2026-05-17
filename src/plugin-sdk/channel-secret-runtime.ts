@@ -1,5 +1,5 @@
 /**
- * @deprecated Public SDK subpath has no bundled extension production imports.
+ * @deprecated Public SDK subpath has no bundled plugin production imports.
  * Prefer focused channel secret subpaths such as channel-secret-basic-runtime
  * and channel-secret-tts-runtime.
  */

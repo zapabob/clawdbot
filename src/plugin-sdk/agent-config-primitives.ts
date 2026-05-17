@@ -1,5 +1,5 @@
 /**
- * @deprecated Public SDK subpath has no bundled extension production imports.
+ * @deprecated Public SDK subpath has no bundled plugin production imports.
  * Import the needed schema primitives from a maintained plugin-owned surface.
  */
 export { ReplyRuntimeConfigSchemaShape } from "../config/zod-schema.core.js";

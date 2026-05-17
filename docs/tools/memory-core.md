@@ -5,7 +5,7 @@ description: File-backed persistent memory search and retrieval tools
 
 # Memory (Core)
 
-The `memory-core` extension provides file-backed persistent memory tools that allow the agent to store and retrieve information across sessions.
+The `memory-core` plugin provides file-backed persistent memory tools that allow the agent to store and retrieve information across sessions.
 
 ## Tools
 

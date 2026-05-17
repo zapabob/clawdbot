@@ -387,9 +387,9 @@ if (fallbackConfigured && isFailoverErrorMessage(errorText)) {
 }
 ```
 
-## Pi extensions
+## Pi hooks
 
-OpenClaw loads custom pi extensions for specialized behavior:
+OpenClaw loads custom Pi hooks for specialized behavior:
 
 ### Compaction safeguard
 
@@ -532,7 +532,7 @@ This provides the interactive terminal experience similar to pi's native mode.
 | System prompt   | AGENTS.md + prompts     | Dynamic per-channel/context                                                                    |
 | Session storage | `~/.pi/agent/sessions/` | `~/.openclaw/agents/<agentId>/sessions/` (or `$OPENCLAW_STATE_DIR/agents/<agentId>/sessions/`) |
 | Auth            | Single credential       | Multi-profile with rotation                                                                    |
-| Extensions      | Loaded from disk        | Programmatic + disk paths                                                                      |
+| Hooks           | Loaded from disk        | Programmatic + disk paths                                                                      |
 | Event handling  | TUI rendering           | Callback-based (onBlockReply, etc.)                                                            |
 
 ## Future considerations
@@ -541,7 +541,7 @@ Areas for potential rework:
 
 1. **Tool signature alignment**: Currently adapting between pi-agent-core and pi-coding-agent signatures
 2. **Session manager wrapping**: `guardSessionManager` adds safety but increases complexity
-3. **Extension loading**: Could use pi's `ResourceLoader` more directly
+3. **Hook loading**: Could use pi's `ResourceLoader` more directly
 4. **Streaming handler complexity**: `subscribeEmbeddedPiSession` has grown large
 5. **Provider quirks**: Many provider-specific codepaths that pi could potentially handle
 

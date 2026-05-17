@@ -38,7 +38,7 @@ export type ExtensionNestedPolicyConfig = {
 };
 
 /**
- * Base type for extension channel config sections.
+ * Base type for plugin-provided channel config sections.
  * Extensions can use this as a starting point for their channel config.
  */
 export type ExtensionChannelConfig = {

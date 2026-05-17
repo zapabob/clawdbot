@@ -827,6 +827,12 @@ describe("config help copy quality", () => {
     expect(pluginHookTimeouts.includes("before_prompt_build")).toBe(true);
     expect(pluginHookTimeouts.includes("agent_end")).toBe(true);
     expect(pluginConversationPolicy.includes("agent_end")).toBe(true);
+
+    const pluginHelpText = Object.entries(FIELD_HELP)
+      .filter(([key]) => key === "plugins" || key.startsWith("plugins."))
+      .map(([, value]) => value)
+      .join("\n");
+    expect(pluginHelpText).not.toMatch(/\bextensions?\b/i);
   });
 
   it("documents auth/model root semantics and provider secret handling", () => {

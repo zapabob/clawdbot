@@ -34,7 +34,7 @@ export const deprecatedBarrelPluginSdkEntrypoints = pluginSdkSubpaths.filter((en
 );
 
 // Transitional compatibility/helper surfaces owned by their matching bundled plugin.
-// Cross-owner extension imports are blocked by the package contract guardrails.
+// Cross-owner plugin imports are blocked by the package contract guardrails.
 export const reservedBundledPluginSdkEntrypoints = [
   "codex-mcp-projection",
   "codex-native-task-runtime",
@@ -44,8 +44,10 @@ export const reservedBundledPluginSdkEntrypoints = [
 // until they move to generic, plugin-neutral contracts.
 export const supportedBundledFacadeSdkEntrypoints = [
   "discord",
+  "live2d-companion",
   "lmstudio",
   "lmstudio-runtime",
+  "local-voice",
   "matrix",
   "mattermost",
   "memory-core-engine-runtime",

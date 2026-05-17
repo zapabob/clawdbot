@@ -1446,6 +1446,7 @@ describe("classifyProviderRuntimeFailureKind", () => {
       "OAuth token refresh failed for openai-codex: invalid_grant. Please try again or re-authenticate.",
       "Your access token could not be refreshed because you have since logged out or signed in to another account. Please sign in again.",
       "Your authentication session could not be refreshed automatically. Please log out and sign in again.",
+      "unexpected status 401 Unauthorized: Your authentication token has been invalidated. Please try signing in again., url: https://chatgpt.com/backend-api/codex/responses, auth error: 401, auth error code: token_invalidated",
     ];
     for (const message of refreshFailures) {
       expect(classifyProviderRuntimeFailureKind(message)).toBe("auth_refresh");

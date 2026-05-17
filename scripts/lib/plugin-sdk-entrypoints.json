@@ -232,7 +232,6 @@
   "keyed-async-queue",
   "live2d-companion",
   "local-voice",
-  "ollama",
   "qa-runner-runtime",
   "memory-core",
   "memory-core-engine-runtime",

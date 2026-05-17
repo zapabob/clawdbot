@@ -310,7 +310,7 @@ export const SECTION_META: Record<string, { label: string; description: string }
   discovery: { label: "Discovery", description: "Service discovery and networking" },
   canvasHost: { label: "Canvas Host", description: "Canvas rendering and display" },
   talk: { label: "Talk", description: "Voice and speech settings" },
-  plugins: { label: "Plugins", description: "Plugin management and extensions" },
+  plugins: { label: "Plugins", description: "Plugin management and policy" },
   diagnostics: {
     label: "Diagnostics",
     description: "Instrumentation, OpenTelemetry, and cache-trace settings",

@@ -1031,7 +1031,7 @@ describe("host-hook fixture plugin contract", () => {
     ]);
   });
 
-  it("requires explicit unset to remove plugin session extension state", async () => {
+  it("requires explicit unset to remove plugin session state", async () => {
     const { config, registry } = createPluginRegistryFixture();
     registerTestPlugin({
       registry,

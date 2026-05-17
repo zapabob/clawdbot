@@ -1,5 +1,5 @@
 /**
- * @deprecated Public SDK subpath has no bundled extension production imports.
+ * @deprecated Public SDK subpath has no bundled plugin production imports.
  * Use plugin-local Telegram command config handling for new plugin code.
  */
 

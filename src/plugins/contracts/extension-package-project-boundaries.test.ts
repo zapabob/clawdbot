@@ -18,6 +18,7 @@ const EXTENSION_PACKAGE_BOUNDARY_PATHS_CONFIG =
   "extensions/tsconfig.package-boundary.paths.json" as const;
 const EXTENSION_PACKAGE_BOUNDARY_BASE_CONFIG =
   "extensions/tsconfig.package-boundary.base.json" as const;
+const NON_PACKAGE_BOUNDARY_EXTENSION_TSCONFIGS = ["live2d-companion", "vrchat-relay"] as const;
 
 type TsConfigJson = {
   extends?: unknown;
@@ -104,7 +105,7 @@ function collectOpenClawRuntimeDirectImportFiles(relativeDir: string): string[] 
   });
 }
 
-describe("opt-in extension package boundaries", () => {
+describe("opt-in plugin package boundaries", () => {
   it("keeps path aliases in a dedicated shared config", () => {
     const pathsConfig = readJsonFile<TsConfigJson>(EXTENSION_PACKAGE_BOUNDARY_PATHS_CONFIG);
     expect(pathsConfig.extends).toBe("../tsconfig.json");
@@ -121,7 +122,9 @@ describe("opt-in extension package boundaries", () => {
     const extensionsWithTsconfig = collectExtensionsWithTsconfig(REPO_ROOT);
     const optInExtensions = collectOptInExtensionPackageBoundaries(REPO_ROOT);
 
-    expect(extensionsWithTsconfig).toEqual(optInExtensions);
+    expect(extensionsWithTsconfig).toEqual(
+      [...optInExtensions, ...NON_PACKAGE_BOUNDARY_EXTENSION_TSCONFIGS].toSorted(),
+    );
 
     for (const extensionName of optInExtensions) {
       const tsconfig = readExtensionPackageBoundaryTsconfig(extensionName, REPO_ROOT);

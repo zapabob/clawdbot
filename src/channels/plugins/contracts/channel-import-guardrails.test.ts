@@ -457,7 +457,7 @@ function expectOnlyApprovedExtensionSeams(file: string, imports: string[]): void
     const basename = resolved.split("/").at(-1) ?? "";
     expect(
       ALLOWED_EXTENSION_PUBLIC_SURFACES.has(basename),
-      `${file} should only import approved extension surfaces, got ${specifier}`,
+      `${file} should only import approved plugin surfaces, got ${specifier}`,
     ).toBe(true);
   }
 }
@@ -558,7 +558,7 @@ describe("channel import guardrails", () => {
     }
   });
 
-  it("keeps bundled extension source files off root and compat plugin-sdk imports", () => {
+  it("keeps bundled plugin source files off root and compat plugin-sdk imports", () => {
     for (const file of collectExtensionSourceFiles()) {
       const text = readSource(file);
       expect(text, `${file} should not import openclaw/plugin-sdk root`).not.toMatch(
@@ -570,7 +570,7 @@ describe("channel import guardrails", () => {
     }
   });
 
-  it("keeps bundled extension source files off legacy core send-deps src imports", () => {
+  it("keeps bundled plugin source files off legacy core send-deps src imports", () => {
     const legacyCoreSendDepsImport = /["'][^"']*src\/infra\/outbound\/send-deps\.[cm]?[jt]s["']/;
     for (const file of collectExtensionSourceFiles()) {
       const text = readSource(file);
@@ -589,19 +589,19 @@ describe("channel import guardrails", () => {
     }
   });
 
-  it("keeps extension production files off other extensions' private src imports", () => {
+  it("keeps plugin production files off other plugins' private src imports", () => {
     for (const file of collectExtensionSourceFiles()) {
       expectNoSiblingExtensionPrivateSrcImports(file, getSourceAnalysis(file).importSpecifiers);
     }
   });
 
-  it("keeps extension production files off other bundled plugin sdk facades", () => {
+  it("keeps plugin production files off other bundled plugin sdk facades", () => {
     for (const file of collectExtensionSourceFiles()) {
       expectNoCrossPluginSdkFacadeImports(file, getSourceAnalysis(file).importSpecifiers);
     }
   });
 
-  it("keeps core extension imports limited to approved public surfaces", () => {
+  it("keeps core plugin imports limited to approved public surfaces", () => {
     for (const file of collectCoreSourceFiles()) {
       expectOnlyApprovedExtensionSeams(file, getSourceAnalysis(file).extensionImports);
     }
@@ -616,13 +616,13 @@ describe("channel import guardrails", () => {
     }
   });
 
-  it("keeps extension-to-extension imports limited to approved public surfaces", () => {
+  it("keeps plugin-to-plugin imports limited to approved public surfaces", () => {
     for (const file of collectExtensionSourceFiles()) {
       expectOnlyApprovedExtensionSeams(file, getSourceAnalysis(file).extensionImports);
     }
   });
 
-  it("keeps internalized extension helper surfaces behind local api barrels", () => {
+  it("keeps internalized plugin helper surfaces behind local api barrels", () => {
     for (const extensionId of LOCAL_EXTENSION_API_BARREL_GUARDS) {
       for (const file of collectExtensionFiles(extensionId)) {
         const normalized = file.replaceAll("\\", "/");

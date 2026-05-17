@@ -52,6 +52,7 @@ export {
   isChannelExecApprovalTargetRecipient,
 } from "./approval-client-helpers.js";
 export { createChannelNativeApprovalRuntime } from "../infra/approval-native-runtime.js";
+export type { ExecApprovalChannelRuntime } from "../infra/exec-approval-channel-runtime.js";
 export {
   createApproverRestrictedNativeApprovalAdapter,
   createApproverRestrictedNativeApprovalCapability,

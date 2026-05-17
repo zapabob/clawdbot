@@ -515,7 +515,7 @@ describe("removePluginFromConfig", () => {
 
   it.each([
     {
-      name: "removes channel config for installed extension plugin",
+      name: "removes channel config for installed plugin",
       config: createPluginConfig({
         entries: {
           timbot: { enabled: true },

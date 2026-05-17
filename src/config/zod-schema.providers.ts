@@ -65,7 +65,7 @@ export const ChannelsSchema: z.ZodType<ChannelsConfig | undefined> = z
       .optional(),
     modelByChannel: ChannelModelByChannelSchema,
   })
-  .passthrough() // Allow extension channel configs (nostr, matrix, zalo, etc.)
+  .passthrough() // Allow plugin-provided channel configs (nostr, matrix, zalo, etc.)
   .superRefine((value, ctx) => {
     addLegacyChannelAcpBindingIssues(value, ctx);
   })

@@ -9,7 +9,7 @@ import {
 import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalString,
-} from "openclaw/plugin-sdk/text-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
 
 type BlueBubblesService = "imessage" | "sms" | "auto";
 

@@ -68,7 +68,7 @@ non-durable policy.
   semantics.
 - A small plugin SDK surface that third-party plugins can learn and maintain.
 - Compatibility for existing `channel.turn` callers during migration.
-- Clear extension points for new channel capabilities.
+- Clear plugin hook points for new channel capabilities.
 - No platform-specific branches in core.
 - No token-delta channel messages. Channel streaming remains message preview,
   edit, append, or completed block delivery.

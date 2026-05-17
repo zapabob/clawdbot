@@ -210,8 +210,8 @@ The file is JSONL:
 Notable entry types:
 
 - `message`: user/assistant/toolResult messages
-- `custom_message`: extension-injected messages that _do_ enter model context (can be hidden from UI)
-- `custom`: extension state that does _not_ enter model context
+- `custom_message`: plugin-injected messages that _do_ enter model context (can be hidden from UI)
+- `custom`: plugin state that does _not_ enter model context
 - `compaction`: persisted compaction summary with `firstKeptEntryId` and `tokensBefore`
 - `branch_summary`: persisted summary when navigating a tree branch
 
@@ -435,7 +435,7 @@ Notes:
 - The flush is skipped when the session workspace is read-only (`workspaceAccess: "ro"` or `"none"`).
 - See [Memory](/concepts/memory) for the workspace file layout and write patterns.
 
-Pi also exposes a `session_before_compact` hook in the extension API, but OpenClaw's
+Pi also exposes a `session_before_compact` hook through its plugin API, but OpenClaw's
 flush logic lives on the Gateway side today.
 
 ---

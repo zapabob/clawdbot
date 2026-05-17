@@ -155,7 +155,7 @@ export async function validatePackageExtensionEntriesForInstall(params: {
     const sourceEntry = await validatePackageExtensionEntry({
       packageDir: params.packageDir,
       entry,
-      label: "extension entry",
+      label: "plugin entry",
       requireExisting: false,
     });
     if (!sourceEntry.ok) {
@@ -167,7 +167,7 @@ export async function validatePackageExtensionEntriesForInstall(params: {
       const runtimeResult = await validatePackageExtensionEntry({
         packageDir: params.packageDir,
         entry: runtimeEntry,
-        label: "runtime extension entry",
+        label: "runtime plugin entry",
         requireExisting: true,
       });
       if (!runtimeResult.ok) {
@@ -182,7 +182,7 @@ export async function validatePackageExtensionEntriesForInstall(params: {
       const builtResult = await validatePackageExtensionEntry({
         packageDir: params.packageDir,
         entry: builtEntry,
-        label: "inferred runtime extension entry",
+        label: "inferred runtime plugin entry",
         requireExisting: false,
       });
       if (!builtResult.ok) {
@@ -224,7 +224,7 @@ export async function validatePackageExtensionEntriesForInstall(params: {
       };
     }
 
-    return { ok: false, error: `extension entry not found: ${entry}` };
+    return { ok: false, error: `plugin entry not found: ${entry}` };
   }
 
   const packageManifest = getPackageManifestMetadata(params.manifest);
@@ -343,7 +343,7 @@ function resolvePackageEntrySource(params: {
           params.diagnostics.push({
             level: "warn",
             ...(params.pluginIdHint ? { pluginId: params.pluginIdHint } : {}),
-            message: `extension entry unreadable (I/O error): ${params.entryPath}`,
+            message: `plugin entry unreadable (I/O error): ${params.entryPath}`,
             source: params.sourceLabel,
           });
           return null;
@@ -352,7 +352,7 @@ function resolvePackageEntrySource(params: {
           params.diagnostics.push({
             level: "error",
             ...(params.pluginIdHint ? { pluginId: params.pluginIdHint } : {}),
-            message: `extension entry escapes package directory: ${params.entryPath}`,
+            message: `plugin entry escapes package directory: ${params.entryPath}`,
             source: params.sourceLabel,
           });
           return null;
@@ -432,7 +432,7 @@ function resolveSafePackageEntry(params: {
     params.diagnostics.push({
       level: "error",
       ...(params.pluginIdHint ? { pluginId: params.pluginIdHint } : {}),
-      message: `extension entry escapes package directory: ${params.entryPath}`,
+      message: `plugin entry escapes package directory: ${params.entryPath}`,
       source: params.sourceLabel,
     });
     return null;
@@ -574,7 +574,7 @@ function resolvePackageRuntimeEntrySource(params: {
   params.diagnostics.push({
     level: "error",
     ...(params.pluginIdHint ? { pluginId: params.pluginIdHint } : {}),
-    message: `${params.sourceEntryLabel ?? "extension entry"} not found: ${safeEntry.relativePath}`,
+    message: `${params.sourceEntryLabel ?? "plugin entry"} not found: ${safeEntry.relativePath}`,
     source: params.sourceLabel,
   });
   return null;
@@ -648,9 +648,9 @@ export function resolvePackageRuntimeExtensionSources(params: {
         ? { packageRootRealPath: params.packageRootRealPath }
         : {}),
       entryPath,
-      sourceEntryLabel: "extension entry",
+      sourceEntryLabel: "plugin entry",
       runtimeEntryPath: runtimeResolution.runtimeExtensions[index],
-      runtimeEntryLabel: "runtime extension entry",
+      runtimeEntryLabel: "runtime plugin entry",
       pluginIdHint: params.pluginIdHint,
       origin: params.origin,
       ...(params.requireBuiltRuntimeEntry !== undefined

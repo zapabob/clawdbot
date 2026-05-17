@@ -11,19 +11,30 @@ const tsFilesCache = new Map<string, string[]>();
 const BUNDLED_TYPED_HOOK_REGISTRATION_FILES = [
   "extensions/acpx/index.ts",
   "extensions/active-memory/index.ts",
+  "extensions/auto-agent/index.ts",
   "extensions/codex/index.ts",
   "extensions/diffs/src/plugin.ts",
   "extensions/discord/subagent-hooks-api.ts",
   "extensions/feishu/subagent-hooks-api.ts",
+  "extensions/hypura-harness/index.ts",
+  "extensions/live2d-companion/index.ts",
+  "extensions/llm-task/index.ts",
+  "extensions/lobster/index.ts",
   "extensions/matrix/subagent-hooks-api.ts",
+  "extensions/memory-core/index.ts",
   "extensions/memory-core/src/dreaming.ts",
+  "extensions/memory-evolution/index.ts",
   "extensions/memory-lancedb/index.ts",
+  "extensions/python-exec/index.ts",
+  "extensions/python-sandbox/index.ts",
   "extensions/skill-workshop/index.ts",
   "extensions/thread-ownership/index.ts",
+  "extensions/vrchat-relay/index.ts",
 ] as const;
 const BUNDLED_TYPED_HOOK_REGISTRATION_GUARDS = {
   "extensions/acpx/index.ts": ["reply_dispatch"],
   "extensions/active-memory/index.ts": ["before_prompt_build"],
+  "extensions/auto-agent/index.ts": ["gateway_start", "gateway_stop", "message_received"],
   "extensions/codex/index.ts": ["inbound_claim"],
   "extensions/diffs/src/plugin.ts": ["before_prompt_build"],
   "extensions/discord/subagent-hooks-api.ts": [
@@ -36,15 +47,30 @@ const BUNDLED_TYPED_HOOK_REGISTRATION_GUARDS = {
     "subagent_ended",
     "subagent_spawning",
   ],
+  "extensions/hypura-harness/index.ts": ["before_prompt_build"],
+  "extensions/live2d-companion/index.ts": ["before_prompt_build", "llm_output"],
+  "extensions/llm-task/index.ts": ["before_prompt_build"],
+  "extensions/lobster/index.ts": ["before_prompt_build"],
   "extensions/matrix/subagent-hooks-api.ts": [
     "subagent_delivery_target",
     "subagent_ended",
     "subagent_spawning",
   ],
+  "extensions/memory-core/index.ts": ["before_prompt_build"],
   "extensions/memory-core/src/dreaming.ts": ["before_agent_reply", "gateway_start", "gateway_stop"],
+  "extensions/memory-evolution/index.ts": ["before_prompt_build"],
   "extensions/memory-lancedb/index.ts": ["agent_end", "before_prompt_build", "session_end"],
+  "extensions/python-exec/index.ts": ["before_prompt_build"],
+  "extensions/python-sandbox/index.ts": ["before_prompt_build"],
   "extensions/skill-workshop/index.ts": ["agent_end", "before_prompt_build"],
   "extensions/thread-ownership/index.ts": ["message_received", "message_sending"],
+  "extensions/vrchat-relay/index.ts": [
+    "after_tool_call",
+    "before_prompt_build",
+    "before_tool_call",
+    "llm_input",
+    "llm_output",
+  ],
 } as const satisfies Record<
   (typeof BUNDLED_TYPED_HOOK_REGISTRATION_FILES)[number],
   readonly string[]
@@ -244,7 +270,7 @@ describe("plugin contract boundary invariants", () => {
     expect(offenders).toStrictEqual([]);
   });
 
-  it("keeps core tests off bundled extension deep imports", () => {
+  it("keeps core tests off bundled plugin deep imports", () => {
     const files = listTsFiles("src", { testOnly: true });
     const offenders = files.filter((file) => {
       return collectBundledExtensionImports(readRepoSource(file)).some(
@@ -279,7 +305,7 @@ describe("plugin contract boundary invariants", () => {
     expect(offenders).toStrictEqual([]);
   });
 
-  it("keeps contract loaders off hand-built bundled extension paths", () => {
+  it("keeps contract loaders off hand-built bundled plugin paths", () => {
     const files = [
       ...listTsFiles("src/plugins", { excludeTests: true }),
       ...listTsFiles("src/channels", { excludeTests: true }),

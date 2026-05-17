@@ -128,10 +128,10 @@ describe("buildOfficialChannelCatalog", () => {
               label: "WeCom",
             }),
             install: {
-              npmSpec: "@wecom/wecom-openclaw-plugin@2026.4.23",
+              npmSpec: "@wecom/wecom-openclaw-plugin@2026.5.7",
               defaultChoice: "npm",
               expectedIntegrity:
-                "sha512-bnzfdIEEu1/LFvcdyjaTkyxt27w6c7dqhkPezU62OWaqmcdFsUGR3T55USK/O9pIKsNcnL1Tnu1pqKYCWHFgWQ==",
+                "sha512-TCkP9as00WfEhgFWG8YL/rcmaWGIshAki2HQh83nTRccGfVBCoGjrEboTTqq3yDmK9koWTV11zi8u8A4dNtvug==",
             },
           }),
         }),
@@ -141,16 +141,12 @@ describe("buildOfficialChannelCatalog", () => {
             channel: expect.objectContaining({
               id: "yuanbao",
               label: "Yuanbao",
-            },
-            channel: expect.objectContaining({
-              id: "yuanbao",
-              label: "Yuanbao",
             }),
             install: {
-              npmSpec: "openclaw-plugin-yuanbao@2.11.0",
+              npmSpec: "openclaw-plugin-yuanbao@2.13.1",
               defaultChoice: "npm",
               expectedIntegrity:
-                "sha512-lYmBrU71ox3v7dzRqaltvzTXPcMjjgYrNqpBj5HIBkXgEFkXRRG8wplXg9Fub41/FjsSPn3WAbYpdTc+k+jsHg==",
+                "sha512-lH2I9/nsmrg7l0YJJSQhOSpWMEFBAa6FwKbZcRLDFHDT2+mOZkHa44XE+8KYN4VmorlUdAxHzpZQmVr7C98IuA==",
             },
           }),
         }),
@@ -167,8 +163,9 @@ describe("buildOfficialChannelCatalog", () => {
               docsPath: "/channels/whatsapp",
             }),
             install: expect.objectContaining({
+              clawhubSpec: "clawhub:@openclaw/whatsapp",
               npmSpec: "@openclaw/whatsapp",
-              defaultChoice: "npm",
+              defaultChoice: "clawhub",
             }),
           }),
         }),

@@ -746,7 +746,7 @@ describe("subagent announce formatting", () => {
     expect(msg).not.toContain("✅ Subagent");
   });
 
-  it("keeps completion delivery enabled for extension channels captured from requester origin", async () => {
+  it("keeps completion delivery enabled for plugin-provided channels captured from requester origin", async () => {
     const didAnnounce = await runSubagentAnnounceFlow({
       childSessionKey: "agent:main:subagent:test",
       childRunId: "run-direct-completion-imessage",
@@ -1652,7 +1652,7 @@ describe("subagent announce formatting", () => {
     }
   });
 
-  it("uses hook-provided extension channel targets for completion delivery", async () => {
+  it("uses hook-provided plugin channel targets for completion delivery", async () => {
     hasSubagentDeliveryTargetHook = true;
     subagentDeliveryTargetHookMock.mockResolvedValueOnce({
       origin: {
@@ -2182,7 +2182,7 @@ describe("subagent announce formatting", () => {
     expect(call?.expectFinal).toBe(true);
   });
 
-  it("keeps direct announce delivery enabled for extension channels", async () => {
+  it("keeps direct announce delivery enabled for plugin-provided channels", async () => {
     embeddedRunMock.isEmbeddedPiRunActive.mockReturnValue(false);
     embeddedRunMock.isEmbeddedPiRunStreaming.mockReturnValue(false);
 

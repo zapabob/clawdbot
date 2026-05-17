@@ -179,7 +179,7 @@ function normalizePluginIdSet(entries: string[]): Set<string> {
   );
 }
 
-function resolveEnabledExtensionPluginIds(params: {
+function resolveEnabledInstalledPluginIds(params: {
   cfg: OpenClawConfig;
   pluginDirs: string[];
 }): string[] {
@@ -354,23 +354,23 @@ export async function collectPluginsTrustFindings(params: {
       findings.push({
         checkId: "plugins.extensions_no_allowlist",
         severity: skillCommandsLikelyExposed ? "critical" : "warn",
-        title: "Extensions exist but plugins.allow is not set",
+        title: "Plugins are installed but plugins.allow is not set",
         detail:
-          `Found ${pluginDirs.length} extension(s) under ${extensionsDir}. Without plugins.allow, any discovered plugin id may load (depending on config and plugin behavior).` +
+          `Found ${pluginDirs.length} plugin(s) under ${extensionsDir}. Without plugins.allow, any discovered plugin id may load (depending on config and plugin behavior).` +
           (skillCommandsLikelyExposed
-            ? "\nNative skill commands are enabled on at least one configured chat surface; treat unpinned/unallowlisted extensions as high risk."
+            ? "\nNative skill commands are enabled on at least one configured chat surface; treat unpinned/unallowlisted plugins as high risk."
             : ""),
         remediation: "Set plugins.allow to an explicit list of plugin ids you trust.",
       });
     }
 
-    const enabledExtensionPluginIds = resolveEnabledExtensionPluginIds({
+    const enabledInstalledPluginIds = resolveEnabledInstalledPluginIds({
       cfg: params.cfg,
       pluginDirs,
     });
-    if (enabledExtensionPluginIds.length > 0) {
+    if (enabledInstalledPluginIds.length > 0) {
       const deps = await loadPluginTrustPolicyDeps();
-      const enabledPluginSet = new Set(enabledExtensionPluginIds);
+      const enabledPluginSet = new Set(enabledInstalledPluginIds);
       const contexts: Array<{
         label: string;
         agentId?: string;
@@ -428,9 +428,9 @@ export async function collectPluginsTrustFindings(params: {
         findings.push({
           checkId: "plugins.tools_reachable_permissive_policy",
           severity: "warn",
-          title: "Extension plugin tools may be reachable under permissive tool policy",
+          title: "Plugin tools may be reachable under permissive tool policy",
           detail:
-            `Enabled extension plugins: ${enabledExtensionPluginIds.join(", ")}.\n` +
+            `Enabled plugins: ${enabledInstalledPluginIds.join(", ")}.\n` +
             `Permissive tool policy contexts:\n${permissiveContexts.map((entry) => `- ${entry}`).join("\n")}`,
           remediation:
             "Use restrictive profiles (`minimal`/`coding`) or explicit tool allowlists that exclude plugin tools for agents handling untrusted input.",

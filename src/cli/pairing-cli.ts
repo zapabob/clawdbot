@@ -23,7 +23,7 @@ import { getTerminalTableWidth, renderTable } from "../terminal/table.js";
 import { theme } from "../terminal/theme.js";
 import { formatCliCommand } from "./command-format.js";
 
-/** Parse channel, allowing extension channels not in core registry. */
+/** Parse channel, allowing plugin-provided channels not in core registry. */
 function parseChannel(raw: unknown, channels: PairingChannel[]): PairingChannel {
   const value = normalizeLowercaseStringOrEmpty(normalizeStringifiedOptionalString(raw) ?? "");
   if (!value) {
@@ -42,7 +42,7 @@ function parseChannel(raw: unknown, channels: PairingChannel[]): PairingChannel 
     return normalized;
   }
 
-  // Allow extension channels: validate format but don't require registry
+  // Allow plugin-provided channels: validate format but don't require registry.
   if (/^[a-z][a-z0-9_-]{0,63}$/.test(value)) {
     return value as PairingChannel;
   }

@@ -1466,7 +1466,7 @@ describe("plugin sdk alias helpers", () => {
     );
   });
 
-  it("detects bundled plugin extension paths across source and dist roots", () => {
+  it("detects bundled plugin paths across source and dist roots", () => {
     expect(
       isBundledPluginExtensionPath({
         modulePath: "/repo/extensions/demo/api.js",

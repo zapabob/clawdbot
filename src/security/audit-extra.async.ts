@@ -178,7 +178,7 @@ async function readPluginManifestExtensions(pluginPath: string): Promise<string[
   } catch (err) {
     // Re-throw so callers can surface a security finding for malformed manifests.
     // A malicious plugin could use a malformed package.json to hide declared
-    // extension entrypoints from deep scan — callers must not silently drop them.
+    // plugin entrypoints from deep scan — callers must not silently drop them.
     throw new Error(`Failed to parse plugin manifest at ${manifestPath}: ${String(err)}`, {
       cause: err,
     });
@@ -731,16 +731,16 @@ export async function collectPluginsCodeSafetyFindings(params: {
     } catch (manifestErr) {
       // Malformed package.json — surface a warning so the user investigates.
       // A plugin could deliberately corrupt its manifest to hide declared
-      // extension entrypoints from the deep code scanner.
+      // plugin entrypoints from the deep code scanner.
       findings.push({
         checkId: "plugins.code_safety.manifest_parse_error",
         severity: "warn",
         title: `Plugin "${pluginName}" has a malformed package.json`,
         detail:
           `Could not parse plugin manifest: ${String(manifestErr)}.\n` +
-          "The extension entrypoint list is unavailable. Deep scan will cover the plugin directory but may miss entries declared via `openclaw.extensions`.",
+          "The plugin entrypoint list is unavailable. Deep scan will cover the plugin directory but may miss entries declared via `openclaw.extensions`.",
         remediation:
-          "Inspect the plugin package.json for syntax errors. If the plugin is untrusted, remove it from your OpenClaw extensions state directory.",
+          "Inspect the plugin package.json for syntax errors. If the plugin is untrusted, remove it from your OpenClaw plugin state directory.",
       });
       // Continue — getCodeSafetySummary below still scans the plugin directory
     }
@@ -758,8 +758,8 @@ export async function collectPluginsCodeSafetyFindings(params: {
           checkId: "plugins.code_safety.entry_path",
           severity: "warn",
           title: `Plugin "${pluginName}" entry path is hidden or node_modules`,
-          detail: `Extension entry "${entry}" points to a hidden or node_modules path. Deep code scan will cover this entry explicitly, but review this path choice carefully.`,
-          remediation: "Prefer extension entrypoints under normal source paths like dist/ or src/.",
+          detail: `Plugin entry "${entry}" points to a hidden or node_modules path. Deep code scan will cover this entry explicitly, but review this path choice carefully.`,
+          remediation: "Prefer plugin entrypoints under normal source paths like dist/ or src/.",
         });
       }
       forcedScanEntries.push(resolvedEntry);
@@ -769,8 +769,8 @@ export async function collectPluginsCodeSafetyFindings(params: {
       findings.push({
         checkId: "plugins.code_safety.entry_escape",
         severity: "critical",
-        title: `Plugin "${pluginName}" has extension entry path traversal`,
-        detail: `Found extension entries that escape the plugin directory:\n${escapedEntries.map((entry) => `  - ${entry}`).join("\n")}`,
+        title: `Plugin "${pluginName}" has plugin entry path traversal`,
+        detail: `Found plugin entries that escape the plugin directory:\n${escapedEntries.map((entry) => `  - ${entry}`).join("\n")}`,
         remediation:
           "Update the plugin manifest so all openclaw.extensions entries stay inside the plugin directory.",
       });

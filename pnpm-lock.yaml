@@ -368,7 +368,11 @@ importers:
         specifier: workspace:*
         version: link:../../packages/plugin-sdk
 
-  extensions/auto-agent: {}
+  extensions/auto-agent:
+    dependencies:
+      croner:
+        specifier: 10.0.1
+        version: 10.0.1
 
   extensions/azure-speech:
     devDependencies:
@@ -815,9 +819,9 @@ importers:
 
   extensions/hypura-harness:
     dependencies:
-      '@sinclair/typebox':
-        specifier: 0.34.48
-        version: 0.34.48
+      typebox:
+        specifier: 1.1.38
+        version: 1.1.38
     devDependencies:
       openclaw:
         specifier: workspace:*
@@ -893,9 +897,18 @@ importers:
 
   extensions/live2d-companion:
     dependencies:
+      '@sinclair/typebox':
+        specifier: 0.34.48
+        version: 0.34.48
       '@pixiv/three-vrm':
         specifier: ^2.1.0
         version: 2.1.3(@types/three@0.164.1)(three@0.163.0)
+      electron:
+        specifier: ^28.0.0
+        version: 28.3.3
+      jiti:
+        specifier: 2.7.0
+        version: 2.7.0
       pixi-live2d-display:
         specifier: ^0.4.0
         version: 0.4.0(@pixi/core@7.4.3)(@pixi/display@7.4.3(@pixi/core@7.4.3))(@pixi/loaders@6.5.10(@pixi/constants@6.5.10)(@pixi/core@7.4.3)(@pixi/utils@7.4.3))(@pixi/math@7.4.3)(@pixi/sprite@7.4.3(@pixi/core@7.4.3)(@pixi/display@7.4.3(@pixi/core@7.4.3)))(@pixi/utils@7.4.3)
@@ -912,9 +925,6 @@ importers:
       '@types/three':
         specifier: ^0.164.0
         version: 0.164.1
-      electron:
-        specifier: ^28.0.0
-        version: 28.3.3
       openclaw:
         specifier: workspace:*
         version: link:../..
@@ -1681,6 +1691,9 @@ importers:
 
   extensions/vrchat-relay:
     dependencies:
+      '@sinclair/typebox':
+        specifier: 0.34.48
+        version: 0.34.48
       keytar:
         specifier: ^7.9.0
         version: 7.9.0

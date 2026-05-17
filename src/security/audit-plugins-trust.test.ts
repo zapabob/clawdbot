@@ -397,13 +397,13 @@ describe("security audit install metadata findings", () => {
     const findings = await runInstallMetadataAudit({}, stateDir);
 
     const noAllowlist = requireInstallFinding(findings, "plugins.extensions_no_allowlist");
-    expect(noAllowlist.detail).toContain("Found 1 extension(s)");
+    expect(noAllowlist.detail).toContain("Found 1 plugin(s)");
 
     const toolsReachable = requireInstallFinding(
       findings,
       "plugins.tools_reachable_permissive_policy",
     );
-    expect(toolsReachable.detail).toContain("Enabled extension plugins: live-plugin.");
+    expect(toolsReachable.detail).toContain("Enabled plugins: live-plugin.");
     expect(findings.map((finding) => finding.detail).join("\n")).not.toContain(
       ".openclaw-install-backups",
     );
@@ -439,7 +439,7 @@ describe("security audit install metadata findings", () => {
   });
 });
 
-describe("security audit extension tool reachability findings", () => {
+describe("security audit plugin tool reachability findings", () => {
   let fixtureRoot = "";
   let sharedExtensionsStateDir = "";
   let isolatedHome = "";
@@ -504,10 +504,10 @@ describe("security audit extension tool reachability findings", () => {
     }
   });
 
-  it("evaluates extension tool reachability findings", async () => {
+  it("evaluates plugin tool reachability findings", async () => {
     const cases = [
       {
-        name: "flags extensions without plugins.allow",
+        name: "flags plugins without plugins.allow",
         cfg: {} satisfies OpenClawConfig,
         assert: (findings: Awaited<ReturnType<typeof runSharedExtensionsAudit>>) => {
           expect(
@@ -520,7 +520,7 @@ describe("security audit extension tool reachability findings", () => {
         },
       },
       {
-        name: "flags enabled extensions when tool policy can expose plugin tools",
+        name: "flags enabled plugins when tool policy can expose plugin tools",
         cfg: {
           plugins: { allow: ["some-plugin"] },
         } satisfies OpenClawConfig,
@@ -549,7 +549,7 @@ describe("security audit extension tool reachability findings", () => {
         },
       },
       {
-        name: "flags unallowlisted extensions as warn-level findings when extension inventory exists",
+        name: "flags unallowlisted plugins as warn-level findings when plugin inventory exists",
         cfg: {
           channels: {
             discord: { enabled: true, token: "t" },
@@ -566,7 +566,7 @@ describe("security audit extension tool reachability findings", () => {
         },
       },
       {
-        name: "treats SecretRef channel credentials as configured for extension allowlist severity",
+        name: "treats SecretRef channel credentials as configured for plugin allowlist severity",
         cfg: {
           channels: {
             discord: {

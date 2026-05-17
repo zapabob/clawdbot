@@ -1,7 +1,7 @@
 /**
- * @deprecated Public SDK subpath has no bundled extension production imports.
+ * @deprecated Public SDK subpath has no bundled plugin production imports.
  * Prefer plugin-owned music provider surfaces until a current shared contract
- * is needed by bundled extensions.
+ * is needed by bundled plugins.
  */
 
 export type { AuthProfileStore } from "../agents/auth-profiles/types.js";

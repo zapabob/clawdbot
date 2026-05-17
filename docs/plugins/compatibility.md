@@ -82,7 +82,7 @@ pnpm crabbox:run -- --provider blacksmith-testbox --timing-json --shell -- "npm 
 Keep this lane opt-in for maintainers because it installs an external npm
 package and may inspect plugin packages cloned outside the repo. The local repo
 guards cover the SDK export map, compatibility registry metadata, deprecated
-SDK-import burn-down, and bundled extension import boundaries; Testbox inspector
+SDK-import burn-down, and bundled plugin import boundaries; Testbox inspector
 proof covers the package as external plugin authors consume it.
 
 ## Deprecation policy

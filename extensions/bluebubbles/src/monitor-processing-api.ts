@@ -9,7 +9,7 @@ export {
   readStoreAllowFromForDmPolicy,
   resolveDmGroupAccessWithLists,
 } from "openclaw/plugin-sdk/channel-policy";
-export { resolveControlCommandGate } from "openclaw/plugin-sdk/command-auth";
+export { resolveControlCommandGate } from "openclaw/plugin-sdk/command-gating";
 export { resolveChannelContextVisibilityMode } from "openclaw/plugin-sdk/context-visibility-runtime";
 export {
   evictOldHistoryKeys,
@@ -17,4 +17,4 @@ export {
   type HistoryEntry,
 } from "openclaw/plugin-sdk/reply-history";
 export { evaluateSupplementalContextVisibility } from "openclaw/plugin-sdk/security-runtime";
-export { stripMarkdown } from "openclaw/plugin-sdk/text-runtime";
+export { stripMarkdown } from "openclaw/plugin-sdk/text-chunking";

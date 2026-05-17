@@ -240,7 +240,7 @@ describe("config-only channels status output", () => {
     expectResolvedTokenStatusSummary(joined, { includeUnavailableTokenLine: false });
   });
 
-  it("does not resolve raw source config for extension channels without inspectAccount", async () => {
+  it("does not resolve raw source config for plugin-provided channels without inspectAccount", async () => {
     registerSingleTestPlugin("token-only", makeResolvedTokenPluginWithoutInspectAccount());
 
     const joined = await formatLocalStatusSummary(

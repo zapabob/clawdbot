@@ -2,6 +2,9 @@
   "id": "python-sandbox",
   "name": "Python Sandbox",
   "description": "Allows the AI to execute Python scripts via 'py -3' and capture output.",
+  "contracts": {
+    "tools": ["execute_python"]
+  },
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

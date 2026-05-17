@@ -226,7 +226,7 @@ Provider plugins have three layers:
   the full list under [Hook order and usage](#hook-order-and-usage).
 
 OpenClaw still owns the generic agent loop, failover, transcript handling, and
-tool policy. These hooks are the extension surface for provider-specific
+tool policy. These hooks are the plugin surface for provider-specific
 behavior without needing a whole custom inference transport.
 
 Use manifest `setup.providers[].envVars` when the provider has env-based

@@ -633,7 +633,7 @@ releases.
   | `plugin-sdk/allowlist-config-edit` | Allowlist config helpers | Allowlist config edit/read helpers |
   | `plugin-sdk/group-access` | Group access helpers | Shared group-access decision helpers |
   | `plugin-sdk/direct-dm` | Direct-DM helpers | Shared direct-DM auth/guard helpers |
-  | `plugin-sdk/extension-shared` | Shared extension helpers | Passive-channel/status and ambient proxy helper primitives |
+  | `plugin-sdk/extension-shared` | Shared plugin helpers | Passive-channel/status and ambient proxy helper primitives |
   | `plugin-sdk/webhook-targets` | Webhook target helpers | Webhook target registry and route-install helpers |
   | `plugin-sdk/webhook-path` | Deprecated webhook path alias | Use `plugin-sdk/webhook-ingress` |
   | `plugin-sdk/web-media` | Shared web media helpers | Remote/local media loading helpers |
@@ -888,7 +888,7 @@ canonical replacement.
 </AccordionGroup>
 
 <Note>
-Extension-level deprecations (inside bundled channel/provider plugins under
+Plugin-level deprecations (inside bundled channel/provider plugins under
 `extensions/`) are tracked inside their own `api.ts` and `runtime-api.ts`
 barrels. They do not affect third-party plugin contracts and are not listed
 here. If you consume a bundled plugin's local barrel directly, read the

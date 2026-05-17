@@ -77,7 +77,7 @@ The compiler entrypoint inventory lives in
 the public subset after subtracting repo-local test/internal subpaths listed in
 `scripts/lib/plugin-sdk-private-local-only-subpaths.json`. Run
 `pnpm plugin-sdk:surface` to audit the public export count. Deprecated public
-subpaths that are old enough and unused by bundled extension production code are
+subpaths that are old enough and unused by bundled plugin production code are
 tracked in `scripts/lib/plugin-sdk-deprecated-public-subpaths.json`; broad
 deprecated re-export barrels are tracked in
 `scripts/lib/plugin-sdk-deprecated-barrel-subpaths.json`.
@@ -447,7 +447,7 @@ subpath yet. Bundled examples:
   plus onboarding/config helpers.
 
 <Warning>
-  Extension production code should also avoid `openclaw/plugin-sdk/<other-plugin>`
+  Plugin production code should also avoid `openclaw/plugin-sdk/<other-plugin>`
   imports. If a helper is truly shared, promote it to a neutral SDK subpath
   such as `openclaw/plugin-sdk/speech`, `.../provider-model-shared`, or another
   capability-oriented surface instead of coupling two plugins together.

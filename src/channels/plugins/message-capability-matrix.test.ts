@@ -19,7 +19,7 @@ const discordPlugin: Pick<ChannelPlugin, "actions"> = {
   },
 };
 
-// Keep this matrix focused on capability wiring. The extension packages already
+// Keep this matrix focused on capability wiring. The plugin packages already
 // cover their own full channel/plugin boot paths, so local stubs are enough here.
 const slackPlugin: Pick<ChannelPlugin, "actions"> = {
   actions: {

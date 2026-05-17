@@ -83,8 +83,8 @@ const RUNTIME_PLUGIN_INSTALL_CANDIDATES: readonly DownloadableInstallCandidate[]
 
 const MISSING_CHANNEL_CONFIG_DESCRIPTOR_DIAGNOSTIC = "without channelConfigs metadata";
 const REPAIRABLE_PACKAGE_ENTRY_DIAGNOSTIC_MARKERS = [
-  "extension entry escapes package directory",
-  "extension entry unreadable",
+  "plugin entry escapes package directory",
+  "plugin entry unreadable",
 ] as const;
 
 function shouldFallbackClawHubToNpm(result: { ok: false; code?: string }): boolean {

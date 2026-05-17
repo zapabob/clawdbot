@@ -1,5 +1,5 @@
 /**
- * @deprecated Public SDK subpath has no bundled extension production imports.
+ * @deprecated Public SDK subpath has no bundled plugin production imports.
  * Prefer provider-setup or plugin-owned setup helpers for new provider code.
  */
 export type {

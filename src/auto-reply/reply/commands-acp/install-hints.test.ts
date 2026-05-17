@@ -19,7 +19,7 @@ describe("ACP install hints", () => {
     expect(resolveAcpInstallCommandHint(cfg)).toBe("pnpm openclaw plugins install acpx");
   });
 
-  it("uses local acpx extension path when present", () => {
+  it("uses local acpx plugin path when present", () => {
     const repoRoot = process.cwd();
     const cfg = withAcpConfig({ backend: "acpx" });
     const hint = resolveAcpInstallCommandHint(cfg);

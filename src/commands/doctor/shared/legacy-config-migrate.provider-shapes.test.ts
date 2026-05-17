@@ -348,7 +348,7 @@ describe("legacy migrate provider-shaped config", () => {
     expect(res.config).toBeNull();
   });
 
-  it("does not migrate extension-owned talk legacy fields during config-load migration", () => {
+  it("does not migrate plugin-owned talk legacy fields during config-load migration", () => {
     const res = migrateLegacyConfig({
       talk: {
         voiceId: "voice-1",

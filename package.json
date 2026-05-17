@@ -1029,10 +1029,6 @@
       "types": "./dist/plugin-sdk/local-voice.d.ts",
       "default": "./dist/plugin-sdk/local-voice.js"
     },
-    "./plugin-sdk/ollama": {
-      "types": "./dist/plugin-sdk/ollama.d.ts",
-      "default": "./dist/plugin-sdk/ollama.js"
-    },
     "./plugin-sdk/qa-runner-runtime": {
       "types": "./dist/plugin-sdk/qa-runner-runtime.d.ts",
       "default": "./dist/plugin-sdk/qa-runner-runtime.js"

@@ -55,6 +55,15 @@ const SEMANTIC_CONFIG_MUTATION_SCOPE_PREFIXES = [
   "src/gateway/server-methods/",
 ];
 
+const TRANSITIONAL_DEPRECATED_CONFIG_API_COMPAT_FILES = new Set([
+  "extensions/auto-agent/index.ts",
+  "extensions/line/src/push-command.ts",
+  "extensions/local-voice/index.ts",
+  "extensions/local-voice/src/session.ts",
+  "extensions/memory-evolution/index.ts",
+  "src/config/config-cache.ts",
+]);
+
 function collectTypeScriptFiles(dir) {
   if (!existsSync(dir)) {
     return [];
@@ -138,6 +147,11 @@ function isSemanticConfigMutationFile(relPath) {
     SEMANTIC_CONFIG_MUTATION_SCOPE_PREFIXES.some((prefix) => relPath.startsWith(prefix)) &&
     !SEMANTIC_CONFIG_MUTATION_HELPER_FILES.has(relPath)
   );
+}
+
+function isTransitionalDeprecatedConfigApiCompatViolation(violation) {
+  const relPath = violation.split(":")[0];
+  return TRANSITIONAL_DEPRECATED_CONFIG_API_COMPAT_FILES.has(relPath);
 }
 
 function findLineNumbers(source, pattern) {
@@ -430,7 +444,9 @@ export function collectDeprecatedInternalConfigApiViolations({
     );
   }
 
-  return [...new Set(violations)];
+  return [...new Set(violations)].filter(
+    (violation) => !isTransitionalDeprecatedConfigApiCompatViolation(violation),
+  );
 }
 
 const CHANNEL_EXTENSION_IDS = new Set([

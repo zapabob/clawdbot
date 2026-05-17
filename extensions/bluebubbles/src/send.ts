@@ -8,8 +8,8 @@ import {
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalLowercaseString,
   normalizeOptionalString,
-  stripMarkdown,
-} from "openclaw/plugin-sdk/text-runtime";
+} from "openclaw/plugin-sdk/string-coerce-runtime";
+import { stripMarkdown } from "openclaw/plugin-sdk/text-chunking";
 import { resolveBlueBubblesServerAccount } from "./account-resolve.js";
 import { createBlueBubblesClient, createBlueBubblesClientFromParts } from "./client.js";
 import {

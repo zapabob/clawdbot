@@ -136,7 +136,7 @@ restrictions, sandbox rules, owner-only gating, or plugin availability.
 
 ## Extend capabilities
 
-Choose the extension path by the job you need OpenClaw to do:
+Choose the plugin path by the job you need OpenClaw to do:
 
 - Install or manage an existing plugin with [Plugins](/tools/plugin).
 - Build a new integration, provider, channel, tool, or hook with

@@ -441,7 +441,7 @@ async function expectRejectedPackageExtensionEntry(params: {
   if (params.expectedDiagnostic === "not_found") {
     expect(
       result.diagnostics.some(
-        (entry) => entry.level === "error" && entry.message.includes("extension entry not found"),
+        (entry) => entry.level === "error" && entry.message.includes("plugin entry not found"),
       ),
     ).toBe(true);
     return;
@@ -1036,7 +1036,7 @@ describe("discoverOpenClawPlugins", () => {
     });
   });
 
-  it("keeps explicit runtime extension entries strict for untracked global packages", async () => {
+  it("keeps explicit runtime plugin entries strict for untracked global packages", async () => {
     const stateDir = makeTempDir();
     const pluginDir = path.join(stateDir, "extensions", "missing-runtime-pack");
     mkdirSafe(pluginDir);
@@ -1057,7 +1057,7 @@ describe("discoverOpenClawPlugins", () => {
       diagnostics: result.diagnostics,
       level: "error",
       source: pluginDir,
-      messageIncludes: "runtime extension entry not found: ./dist/index.js",
+      messageIncludes: "runtime plugin entry not found: ./dist/index.js",
     });
   });
 
@@ -1180,7 +1180,7 @@ describe("discoverOpenClawPlugins", () => {
     },
   );
 
-  it("uses explicit runtime extension entries for installed package plugins", async () => {
+  it("uses explicit runtime plugin entries for installed package plugins", async () => {
     const stateDir = makeTempDir();
     const pluginDir = path.join(stateDir, "extensions", "runtime-pack");
     mkdirSafe(path.join(pluginDir, "src"));
@@ -1264,7 +1264,7 @@ describe("discoverOpenClawPlugins", () => {
     });
   });
 
-  it("rejects package runtimeExtensions that do not match extension entries", async () => {
+  it("rejects package runtimeExtensions that do not match plugin entries", async () => {
     const stateDir = makeTempDir();
     const pluginDir = path.join(stateDir, "extensions", "runtime-mismatch-pack");
     mkdirSafe(path.join(pluginDir, "src"));
@@ -1758,7 +1758,7 @@ describe("discoverOpenClawPlugins", () => {
 
   it.each([
     {
-      name: "blocks extension entries that escape package directory",
+      name: "blocks plugin entries that escape package directory",
       expectedDiagnostic: "escapes" as const,
       setup: (stateDir: string) => {
         const globalExt = path.join(stateDir, "extensions", "escape-pack");
@@ -1816,7 +1816,7 @@ describe("discoverOpenClawPlugins", () => {
       },
     },
     {
-      name: "rejects package extension entries that escape via symlink",
+      name: "rejects package plugin entries that escape via symlink",
       expectedDiagnostic: "escapes" as const,
       expectedId: "pack",
       setup: (stateDir: string) => {
@@ -1840,7 +1840,7 @@ describe("discoverOpenClawPlugins", () => {
       },
     },
     {
-      name: "rejects package extension entries that are hardlinked aliases",
+      name: "rejects package plugin entries that are hardlinked aliases",
       expectedDiagnostic: "escapes" as const,
       expectedId: "pack",
       expectedDiagnosticPluginId: "pack",

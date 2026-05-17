@@ -416,15 +416,26 @@ describe("plugin session attachments", () => {
         error: "attachment files exceed 5 bytes total",
       });
       const symlinkPath = path.join(stateDir, "linked.txt");
-      await fs.symlink(first, symlinkPath);
-      await expect(
-        sendBundledSessionAttachment({
-          files: [{ path: symlinkPath }],
-        }),
-      ).resolves.toEqual({
-        ok: false,
-        error: `attachment file symlinks are not allowed: ${symlinkPath}`,
-      });
+      let symlinkCreated = true;
+      try {
+        await fs.symlink(first, symlinkPath);
+      } catch (error) {
+        const code = (error as NodeJS.ErrnoException).code;
+        if (code !== "EPERM" && code !== "EACCES") {
+          throw error;
+        }
+        symlinkCreated = false;
+      }
+      if (symlinkCreated) {
+        await expect(
+          sendBundledSessionAttachment({
+            files: [{ path: symlinkPath }],
+          }),
+        ).resolves.toEqual({
+          ok: false,
+          error: `attachment file symlinks are not allowed: ${symlinkPath}`,
+        });
+      }
       await expect(
         sendBundledSessionAttachment({
           files: [{ path: filePath }],
@@ -449,30 +460,33 @@ describe("plugin session attachments", () => {
     });
   });
 
-  it("returns validation errors for unreadable attachment MIME probes", async () => {
-    await withSessionStore(async ({ storePath, stateDir }) => {
-      const unreadablePath = path.join(stateDir, "unreadable.pdf");
-      await fs.writeFile(unreadablePath, "%PDF-1.7\n", "utf8");
-      await fs.chmod(unreadablePath, 0o000);
-      await writeSessionEntry(storePath);
+  it.skipIf(process.platform === "win32")(
+    "returns validation errors for unreadable attachment MIME probes",
+    async () => {
+      await withSessionStore(async ({ storePath, stateDir }) => {
+        const unreadablePath = path.join(stateDir, "unreadable.pdf");
+        await fs.writeFile(unreadablePath, "%PDF-1.7\n", "utf8");
+        await fs.chmod(unreadablePath, 0o000);
+        await writeSessionEntry(storePath);
 
-      try {
-        const result = await sendBundledSessionAttachment({
-          files: [{ path: unreadablePath }],
-          channelHints: { telegram: { forceDocumentMime: "application/pdf" } },
-        });
+        try {
+          const result = await sendBundledSessionAttachment({
+            files: [{ path: unreadablePath }],
+            channelHints: { telegram: { forceDocumentMime: "application/pdf" } },
+          });
 
-        expect(result.ok).toBe(false);
-        if (result.ok) {
-          throw new Error("expected unreadable attachment MIME probe to fail");
+          expect(result.ok).toBe(false);
+          if (result.ok) {
+            throw new Error("expected unreadable attachment MIME probe to fail");
+          }
+          expect(result.error).toContain(`attachment file MIME read failed for ${unreadablePath}`);
+        } finally {
+          await fs.chmod(unreadablePath, 0o600).catch(() => undefined);
         }
-        expect(result.error).toContain(`attachment file MIME read failed for ${unreadablePath}`);
-      } finally {
-        await fs.chmod(unreadablePath, 0o600).catch(() => undefined);
-      }
-      expect(workflowMocks.sendMessage).not.toHaveBeenCalled();
-    });
-  });
+        expect(workflowMocks.sendMessage).not.toHaveBeenCalled();
+      });
+    },
+  );
 
   it("validates force-document MIME using only the configured sniff window", async () => {
     await withSessionStore(async ({ storePath, stateDir }) => {

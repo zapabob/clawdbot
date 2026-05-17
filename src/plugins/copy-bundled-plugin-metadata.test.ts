@@ -86,7 +86,7 @@ afterEach(() => {
 });
 
 describe("rewritePackageExtensions", () => {
-  it("rewrites TypeScript extension entries to built JS paths", () => {
+  it("rewrites TypeScript plugin entries to built JS paths", () => {
     expect(rewritePackageExtensions(["./index.ts", "./nested/entry.mts"])).toEqual([
       "./index.js",
       "./nested/entry.js",

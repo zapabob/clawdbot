@@ -1106,7 +1106,7 @@ describe("installPluginFromArchive", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.code).toBe(PLUGIN_INSTALL_ERROR_CODE.INVALID_OPENCLAW_EXTENSIONS);
-      expect(result.error).toContain("extension entry escapes plugin directory");
+      expect(result.error).toContain("plugin entry escapes plugin directory");
     }
   });
 
@@ -1129,7 +1129,7 @@ describe("installPluginFromArchive", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.code).toBe(PLUGIN_INSTALL_ERROR_CODE.INVALID_OPENCLAW_EXTENSIONS);
-      expect(result.error).toContain("extension entry not found");
+      expect(result.error).toContain("plugin entry not found");
     }
   });
 
@@ -1157,7 +1157,7 @@ describe("installPluginFromArchive", () => {
     }
   });
 
-  it("rejects package installs when a TypeScript extension entry has no compiled runtime output", async () => {
+  it("rejects package installs when a TypeScript plugin entry has no compiled runtime output", async () => {
     const { pluginDir, extensionsDir } = setupPluginInstallDirs();
     fs.mkdirSync(path.join(pluginDir, "src"), { recursive: true });
     fs.writeFileSync(
@@ -1277,7 +1277,7 @@ describe("installPluginFromArchive", () => {
     }
   });
 
-  it("rejects package installs when an extension entry is a symlink escape", async () => {
+  it("rejects package installs when a plugin entry is a symlink escape", async () => {
     const { pluginDir, extensionsDir } = setupPluginInstallDirs();
     const outsideDir = path.join(path.dirname(pluginDir), "outside-symlink");
     const outsideEntry = path.join(outsideDir, "escape.js");
@@ -1306,11 +1306,11 @@ describe("installPluginFromArchive", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.code).toBe(PLUGIN_INSTALL_ERROR_CODE.INVALID_OPENCLAW_EXTENSIONS);
-      expect(result.error).toContain("extension entry");
+      expect(result.error).toContain("plugin entry");
     }
   });
 
-  it("rejects package installs when an extension entry is a hardlinked alias", async () => {
+  it("rejects package installs when a plugin entry is a hardlinked alias", async () => {
     if (process.platform === "win32") {
       return;
     }
@@ -2835,7 +2835,7 @@ describe("installPluginFromArchive", () => {
     expectHookRequest(requireHookPayload(handler), { kind: "plugin-dir", mode: "update" });
   });
 
-  it("scans extension entry files in hidden directories", async () => {
+  it("scans plugin entry files in hidden directories", async () => {
     const { pluginDir, extensionsDir } = setupPluginInstallDirs();
     fs.mkdirSync(path.join(pluginDir, ".hidden"), { recursive: true });
 
@@ -2859,7 +2859,7 @@ describe("installPluginFromArchive", () => {
     expectWarningIncludes(warnings, "dangerous code pattern");
   });
 
-  it("scans runtime extension entry files in hidden directories", async () => {
+  it("scans runtime plugin entry files in hidden directories", async () => {
     const { pluginDir, extensionsDir } = setupPluginInstallDirs();
     fs.mkdirSync(path.join(pluginDir, ".hidden"), { recursive: true });
 

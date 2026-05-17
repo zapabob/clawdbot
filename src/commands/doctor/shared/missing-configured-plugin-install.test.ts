@@ -1783,7 +1783,7 @@ describe("repairMissingConfiguredPluginInstalls", () => {
         {
           level: "error",
           pluginId: "demo",
-          message: "extension entry escapes package directory: ./index.ts",
+          message: "plugin entry escapes package directory: ./index.ts",
         },
       ],
     });

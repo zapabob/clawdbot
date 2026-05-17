@@ -147,7 +147,7 @@ import { mockNodeBuiltinModule } from "openclaw/plugin-sdk/test-node-mocks";
 Bundled-plugin contract suites also use SDK testing subpaths for test-only
 registry, manifest, public-artifact, and runtime fixture helpers. Core-only
 suites that depend on bundled OpenClaw inventory stay under `src/plugins/contracts`.
-Keep new extension tests on a documented focused SDK subpath such as
+Keep new plugin tests on a documented focused SDK subpath such as
 `plugin-sdk/plugin-test-api`, `plugin-sdk/channel-contract-testing`,
 `plugin-sdk/agent-runtime-test-contracts`, `plugin-sdk/channel-test-helpers`,
 `plugin-sdk/plugin-test-contracts`, `plugin-sdk/plugin-test-runtime`,

@@ -39,7 +39,7 @@ Options:
 Notes:
 
 - If multiple pairing-capable channels are configured, you must provide a channel either positionally or with `--channel`.
-- Extension channels are allowed as long as the channel id is valid.
+- Plugin-provided channels are allowed as long as the channel id is valid.
 
 ## `pairing approve`
 

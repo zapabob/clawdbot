@@ -11,7 +11,7 @@ export {
   evictOldHistoryKeys,
   recordPendingHistoryEntryIfEnabled,
 } from "openclaw/plugin-sdk/reply-history";
-export { resolveControlCommandGate } from "openclaw/plugin-sdk/command-auth";
+export { resolveControlCommandGate } from "openclaw/plugin-sdk/command-gating";
 export { logAckFailure, logTypingFailure } from "openclaw/plugin-sdk/channel-feedback";
 export { logInboundDrop } from "openclaw/plugin-sdk/channel-inbound";
 export { BLUEBUBBLES_ACTION_NAMES, BLUEBUBBLES_ACTIONS } from "./actions-contract.js";
@@ -42,7 +42,7 @@ export { createChannelPairingController } from "openclaw/plugin-sdk/channel-pair
 export { createChannelMessageReplyPipeline } from "openclaw/plugin-sdk/channel-message";
 export { resolveRequestUrl } from "openclaw/plugin-sdk/request-url";
 export { buildProbeChannelStatusSummary } from "openclaw/plugin-sdk/channel-status";
-export { stripMarkdown } from "openclaw/plugin-sdk/text-runtime";
+export { stripMarkdown } from "openclaw/plugin-sdk/text-chunking";
 export { extractToolSend } from "openclaw/plugin-sdk/tool-send";
 export {
   WEBHOOK_RATE_LIMIT_DEFAULTS,

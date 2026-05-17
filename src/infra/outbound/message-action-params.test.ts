@@ -47,7 +47,7 @@ describe("message action media helpers", () => {
     expect(resolveChannelMessageToolMediaSourceParamKeysMock).not.toHaveBeenCalled();
   });
 
-  it("discovers plugin media params when args include an extension-owned field", () => {
+  it("discovers plugin media params when args include a plugin-owned field", () => {
     expect(
       resolveExtraActionMediaSourceParamKeys({
         cfg,

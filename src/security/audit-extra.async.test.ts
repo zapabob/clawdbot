@@ -147,7 +147,7 @@ description: test skill
     expect(skillFinding.detail).toMatch(/runner\.js:\d+/);
   });
 
-  it("flags plugin extension entry path traversal in deep audit", async () => {
+  it("flags plugin entry path traversal in deep audit", async () => {
     const tmpDir = await makeTmpDir("audit-scanner-escape");
     const pluginDir = path.join(tmpDir, "extensions", "escape-plugin");
     await fs.mkdir(pluginDir, { recursive: true });
@@ -224,7 +224,7 @@ description: test skill
     const pluginDir = path.join(tmpDir, "extensions", "broken-plugin");
     await fs.mkdir(pluginDir, { recursive: true });
     // Deliberately malformed JSON — simulates a plugin corrupting its manifest
-    // to hide declared extension entrypoints from the deep code scanner.
+    // to hide declared plugin entrypoints from the deep code scanner.
     await fs.writeFile(path.join(pluginDir, "package.json"), "{ not valid json !!!", "utf-8");
 
     const findings = await collectPluginsCodeSafetyFindings({ stateDir: tmpDir });

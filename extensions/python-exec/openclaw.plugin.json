@@ -2,6 +2,9 @@
   "id": "python-exec",
   "name": "Python Exec",
   "description": "Execute Python code via uv (Python 3.14 by default).",
+  "contracts": {
+    "tools": ["python_exec"]
+  },
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

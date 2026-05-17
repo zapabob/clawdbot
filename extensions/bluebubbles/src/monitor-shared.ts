@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-types";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import type { ResolvedBlueBubblesAccount } from "./accounts.js";
 import { getBlueBubblesRuntime } from "./runtime.js";
 export {

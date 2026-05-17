@@ -76,7 +76,7 @@ wired end-to-end.
 OpenClaw has two hook systems:
 
 - **Internal hooks** (Gateway hooks): event-driven scripts for commands and lifecycle events.
-- **Plugin hooks**: extension points inside the agent/tool lifecycle and gateway pipeline.
+- **Plugin hooks**: hook points inside the agent/tool lifecycle and gateway pipeline.
 
 ### Internal hooks (Gateway hooks)
 

@@ -4,6 +4,14 @@
   "description": "Strict-local desktop companion overlay with VRM or FBX avatars, local whisper STT, VOICEVOX speech, and opt-in browser follow.",
   "version": "2026.4.17",
   "skills": ["./skills"],
+  "contracts": {
+    "tools": [
+      "companion_camera_capture",
+      "get_companion_input",
+      "voicevox_speak",
+      "voicevox_speak_direct"
+    ]
+  },
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

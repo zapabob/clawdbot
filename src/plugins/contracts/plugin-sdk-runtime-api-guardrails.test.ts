@@ -13,6 +13,7 @@ function runtimeApiPluginFile(pluginId: string): string {
 
 const UNGUARDED_RUNTIME_API_PLUGIN_IDS = [
   "acpx",
+  "bluebubbles",
   "browser",
   "canvas",
   "clickclack",
@@ -21,7 +22,9 @@ const UNGUARDED_RUNTIME_API_PLUGIN_IDS = [
   "feishu",
   "google",
   "line",
+  "live2d-companion",
   "lmstudio",
+  "local-voice",
   "lobster",
   "mattermost",
   "memory-core",

@@ -1,5 +1,5 @@
 /**
- * @deprecated Public SDK subpath has no bundled extension production imports.
+ * @deprecated Public SDK subpath has no bundled plugin production imports.
  * Prefer vendor-neutral memory-host SDK subpaths for new plugin code.
  */
 import type { OpenClawConfig } from "../config/types.js";

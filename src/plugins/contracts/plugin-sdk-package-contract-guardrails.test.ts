@@ -700,7 +700,7 @@ describe("plugin-sdk package contract guardrails", () => {
     expect(failures).toStrictEqual([]);
   });
 
-  it("keeps deprecated public SDK subpaths unused by extension production code", () => {
+  it("keeps deprecated public SDK subpaths unused by plugin production code", () => {
     const publicEntrypoints = new Set(publicPluginSdkEntrypoints);
     const unknownDeprecated = deprecatedPublicPluginSdkEntrypoints.filter(
       (entrypoint) => !publicEntrypoints.has(entrypoint),
@@ -749,7 +749,7 @@ describe("plugin-sdk package contract guardrails", () => {
     expect(collectExtensionCoreImportLeaks()).toStrictEqual([]);
   });
 
-  it("keeps extension production sources off repo test helpers", () => {
+  it("keeps plugin production sources off repo test helpers", () => {
     expect(collectExtensionTestHelperImportLeaks()).toStrictEqual([]);
   });
 
@@ -766,7 +766,7 @@ describe("plugin-sdk package contract guardrails", () => {
   });
 
   it(
-    "keeps extension test-api exports consumed",
+    "keeps plugin test-api exports consumed",
     () => {
       expect(collectUnusedExtensionTestApiExports()).toStrictEqual([]);
     },

@@ -11,7 +11,7 @@ export type PluginPayloadSmokeFailureReason =
   | "missing-package-json"
   | "invalid-package-json"
   | "missing-main-entry"
-  | "missing-extension-entry";
+  | "missing-plugin-entry";
 
 export type PluginPayloadSmokeFailure = {
   pluginId: string;
@@ -111,8 +111,8 @@ export async function runPluginPayloadSmokeCheck(params: {
         failures.push({
           pluginId,
           installPath,
-          reason: "missing-extension-entry",
-          detail: `Plugin extension entry validation failed: ${extensionValidation.error}`,
+          reason: "missing-plugin-entry",
+          detail: `Plugin entry validation failed: ${extensionValidation.error}`,
         });
       }
     }

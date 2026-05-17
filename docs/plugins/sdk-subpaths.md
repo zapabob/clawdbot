@@ -45,13 +45,13 @@ but new code should not add imports from them: `agent-runtime-test-contracts`,
 
 These subpaths are plugin-owned compatibility surfaces reserved for their owning
 bundled plugin, not general SDK APIs: `plugin-sdk/codex-mcp-projection` and
-`plugin-sdk/codex-native-task-runtime`. Cross-owner extension imports are blocked
+`plugin-sdk/codex-native-task-runtime`. Cross-owner plugin imports are blocked
 by package contract guardrails.
 
 ### Deprecated unused public subpaths
 
 These public subpaths existed for at least one month and currently have no
-bundled extension production imports. They remain importable for compatibility,
+bundled plugin production imports. They remain importable for compatibility,
 but new plugin code should use focused, actively consumed SDK subpaths instead:
 `agent-config-primitives`, `channel-config-schema-legacy`,
 `channel-reply-pipeline`, `channel-runtime`, `channel-secret-runtime`,
@@ -222,6 +222,8 @@ focused channel/runtime subpaths, `config-contracts`, `string-coerce-runtime`,
     | `plugin-sdk/runtime` | Broad runtime/logging/backup/plugin-install helpers |
     | `plugin-sdk/runtime-env` | Narrow runtime env, logger, timeout, retry, and backoff helpers |
     | `plugin-sdk/browser-config` | Supported browser config facade for normalized profile/defaults, CDP URL parsing, and browser-control auth helpers |
+    | `plugin-sdk/live2d-companion` | Supported bundled companion facade for local companion state, profile, asset, permission, capture, and avatar-command helpers |
+    | `plugin-sdk/local-voice` | Supported bundled local-voice facade for companion STT/TTS defaults and local Whisper microphone sessions |
     | `plugin-sdk/codex-mcp-projection` | Reserved bundled Codex helper for projecting user MCP server config into Codex thread config; not for third-party plugins |
     | `plugin-sdk/codex-native-task-runtime` | Reserved bundled Codex helper for native task mirror/runtime wiring; not for third-party plugins |
     | `plugin-sdk/channel-runtime-context` | Generic channel runtime-context registration and lookup helpers |

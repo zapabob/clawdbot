@@ -1294,17 +1294,17 @@ export const FIELD_HELP: Record<string, string> = {
   "ui.assistant.avatar":
     "Assistant avatar image source used in UI surfaces (URL, path, or data URI depending on runtime support). Use trusted assets and consistent branding dimensions for clean rendering.",
   plugins:
-    "Plugin system controls for enabling extensions, constraining load scope, configuring entries, and tracking installs. Keep plugin policy explicit and least-privilege in production environments.",
+    "Plugin system controls for enabling plugins, constraining load scope, configuring entries, and tracking installs. Keep plugin policy explicit and least-privilege in production environments.",
   "plugins.enabled":
-    "Enable or disable plugin/extension loading globally during startup and config reload (default: true). Keep enabled only when extension capabilities are required by your deployment.",
+    "Enable or disable plugin loading globally during startup and config reload (default: true). Keep enabled only when plugin capabilities are required by your deployment.",
   "plugins.allow":
-    "Optional allowlist of plugin IDs; when set, only listed plugins are eligible to load. Configured bundled chat channels can still activate their bundled plugin when the channel is explicitly enabled in config. Use this to enforce approved extension inventories in controlled environments.",
+    "Optional allowlist of plugin IDs; when set, only listed plugins are eligible to load. Configured bundled chat channels can still activate their bundled plugin when the channel is explicitly enabled in config. Use this to enforce approved plugin inventories in controlled environments.",
   "plugins.deny":
     "Optional denylist of plugin IDs that are blocked even if allowlists or paths include them. Use deny rules for emergency rollback and hard blocks on risky plugins.",
   "plugins.load":
-    "Plugin loader configuration group for specifying filesystem paths where plugins are discovered. Keep load paths explicit and reviewed to avoid accidental untrusted extension loading.",
+    "Plugin loader configuration group for specifying filesystem paths where plugins are discovered. Keep load paths explicit and reviewed to avoid accidental untrusted plugin loading.",
   "plugins.load.paths":
-    "Additional plugin files or directories scanned by the loader beyond built-in defaults. Use dedicated extension directories and avoid broad paths with unrelated executable content.",
+    "Additional plugin files or directories scanned by the loader beyond built-in defaults. Use dedicated plugin directories and avoid broad paths with unrelated executable content.",
   "plugins.slots":
     "Selects which plugins own exclusive runtime slots such as memory so only one plugin provides that capability. Use explicit slot ownership to avoid overlapping providers with conflicting behavior.",
   "plugins.slots.memory":

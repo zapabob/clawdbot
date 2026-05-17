@@ -629,7 +629,7 @@ describe("test-projects args", () => {
     ]);
   });
 
-  it("widens extension helper targets to sibling extension tests", () => {
+  it("widens plugin helper targets to sibling plugin tests", () => {
     expect(
       buildVitestRunPlans(["extensions/memory-core/src/memory/test-runtime-mocks.ts"]),
     ).toEqual([
@@ -642,7 +642,7 @@ describe("test-projects args", () => {
     ]);
   });
 
-  it("routes msteams extension tests to the msteams config", () => {
+  it("routes msteams plugin tests to the msteams config", () => {
     expect(buildVitestRunPlans(["extensions/msteams/src/config.test.ts"])).toEqual([
       {
         config: "test/vitest/vitest.extension-msteams.config.ts",
@@ -653,7 +653,7 @@ describe("test-projects args", () => {
     ]);
   });
 
-  it("routes telegram extension tests to the telegram config", () => {
+  it("routes telegram plugin tests to the telegram config", () => {
     expect(buildVitestRunPlans(["extensions/telegram/src/fetch.test.ts"])).toEqual([
       {
         config: "test/vitest/vitest.extension-telegram.config.ts",
@@ -664,7 +664,7 @@ describe("test-projects args", () => {
     ]);
   });
 
-  it("routes whatsapp extension tests to the whatsapp config", () => {
+  it("routes whatsapp plugin tests to the whatsapp config", () => {
     expect(buildVitestRunPlans(["extensions/whatsapp/src/send.test.ts"])).toEqual([
       {
         config: "test/vitest/vitest.extension-whatsapp.config.ts",
@@ -675,7 +675,7 @@ describe("test-projects args", () => {
     ]);
   });
 
-  it("routes voice-call extension tests to the voice-call config", () => {
+  it("routes voice-call plugin tests to the voice-call config", () => {
     expect(buildVitestRunPlans(["extensions/voice-call/src/runtime.test.ts"])).toEqual([
       {
         config: "test/vitest/vitest.extension-voice-call.config.ts",
@@ -686,7 +686,7 @@ describe("test-projects args", () => {
     ]);
   });
 
-  it("routes mattermost extension tests to the mattermost config", () => {
+  it("routes mattermost plugin tests to the mattermost config", () => {
     expect(buildVitestRunPlans(["extensions/mattermost/src/channel.test.ts"])).toEqual([
       {
         config: "test/vitest/vitest.extension-mattermost.config.ts",
@@ -697,7 +697,7 @@ describe("test-projects args", () => {
     ]);
   });
 
-  it("routes zalo extension tests to the zalo config", () => {
+  it("routes zalo plugin tests to the zalo config", () => {
     expect(buildVitestRunPlans(["extensions/zalo/src/channel.test.ts"])).toEqual([
       {
         config: "test/vitest/vitest.extension-zalo.config.ts",
@@ -708,7 +708,7 @@ describe("test-projects args", () => {
     ]);
   });
 
-  it("routes matrix extension tests to the matrix config", () => {
+  it("routes matrix plugin tests to the matrix config", () => {
     expect(buildVitestRunPlans(["extensions/matrix/src/channel.test.ts"])).toEqual([
       {
         config: "test/vitest/vitest.extension-matrix.config.ts",
@@ -719,7 +719,7 @@ describe("test-projects args", () => {
     ]);
   });
 
-  it("routes feishu extension tests to the feishu config", () => {
+  it("routes feishu plugin tests to the feishu config", () => {
     expect(buildVitestRunPlans(["extensions/feishu/src/channel.test.ts"])).toEqual([
       {
         config: "test/vitest/vitest.extension-feishu.config.ts",
@@ -730,7 +730,7 @@ describe("test-projects args", () => {
     ]);
   });
 
-  it("routes irc extension tests to the irc config", () => {
+  it("routes irc plugin tests to the irc config", () => {
     expect(buildVitestRunPlans(["extensions/irc/src/channel.test.ts"])).toEqual([
       {
         config: "test/vitest/vitest.extension-irc.config.ts",
@@ -741,7 +741,7 @@ describe("test-projects args", () => {
     ]);
   });
 
-  it("routes acpx extension tests to the acpx config", () => {
+  it("routes acpx plugin tests to the acpx config", () => {
     expect(buildVitestRunPlans(["extensions/acpx/src/runtime.test.ts"])).toEqual([
       {
         config: "test/vitest/vitest.extension-acpx.config.ts",
@@ -752,7 +752,7 @@ describe("test-projects args", () => {
     ]);
   });
 
-  it("routes diffs extension tests to the diffs config", () => {
+  it("routes diffs plugin tests to the diffs config", () => {
     expect(buildVitestRunPlans(["extensions/diffs/src/render.test.ts"])).toEqual([
       {
         config: "test/vitest/vitest.extension-diffs.config.ts",
@@ -905,7 +905,7 @@ describe("test-projects args", () => {
     ]);
   });
 
-  it("routes extension-facing core contract changes and supports broad extension opt-in", () => {
+  it("routes plugin-facing core contract changes and supports broad plugin opt-in", () => {
     const changedPaths = ["src/plugin-sdk/core.ts"];
     const plans = buildVitestRunPlans(["--changed=origin/main"], process.cwd(), () => changedPaths);
     const targetArgs = resolveChangedTargetArgs(
@@ -929,7 +929,7 @@ describe("test-projects args", () => {
     expect(plans).toHaveLength(1);
   });
 
-  it("keeps extension production changes on the owning extension lane", () => {
+  it("keeps plugin production changes on the owning plugin lane", () => {
     const changedPaths = ["extensions/discord/src/monitor/message-handler.ts"];
 
     expect(

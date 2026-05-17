@@ -39,6 +39,19 @@ describe("resolveUnusableProfileHint", () => {
     );
   });
 
+  it("formats Codex token invalidation as reauth-required", () => {
+    expect(
+      formatOAuthRefreshFailureDoctorLine({
+        profileId: "openai-codex:default",
+        provider: "openai-codex",
+        message:
+          "unexpected status 401 Unauthorized: Your authentication token has been invalidated. Please try signing in again., url: https://chatgpt.com/backend-api/codex/responses, auth error: 401, auth error code: token_invalidated",
+      }),
+    ).toBe(
+      "- openai-codex:default: re-auth required [token invalidated] — Run `openclaw models auth login --provider openai-codex`.",
+    );
+  });
+
   it("formats non-permanent OAuth refresh failures as retry-then-reauth guidance", () => {
     expect(
       formatOAuthRefreshFailureDoctorLine({

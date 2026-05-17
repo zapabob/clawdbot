@@ -811,9 +811,9 @@ describe("update-cli", () => {
             warnings: [
               {
                 pluginId: "demo",
-                reason: "missing-extension-entry: ./dist/index.js",
+                reason: "missing-plugin-entry: ./dist/index.js",
                 message:
-                  'Plugin "demo" failed post-core payload smoke check (missing-extension-entry): ./dist/index.js',
+                  'Plugin "demo" failed post-core payload smoke check (missing-plugin-entry): ./dist/index.js',
                 guidance: ["Run openclaw doctor --fix to attempt automatic repair."],
               },
             ],
@@ -830,7 +830,7 @@ describe("update-cli", () => {
                 {
                   pluginId: "demo",
                   status: "error",
-                  message: "Plugin extension entry missing",
+                  message: "Plugin entry missing",
                 },
               ],
             },

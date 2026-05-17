@@ -3240,6 +3240,46 @@ describe("runAgentTurnWithFallback", () => {
     }
   });
 
+  it("surfaces gateway reauth guidance for Codex token_invalidated errors", async () => {
+    state.runEmbeddedPiAgentMock.mockRejectedValueOnce(
+      new Error(
+        "unexpected status 401 Unauthorized: Your authentication token has been invalidated. Please try signing in again., url: https://chatgpt.com/backend-api/codex/responses, auth error: 401, auth error code: token_invalidated",
+      ),
+    );
+
+    const runAgentTurnWithFallback = await getRunAgentTurnWithFallback();
+    const result = await runAgentTurnWithFallback({
+      commandBody: "hello",
+      followupRun: createFollowupRun(),
+      sessionCtx: {
+        Provider: "whatsapp",
+        MessageSid: "msg",
+      } as unknown as TemplateContext,
+      opts: {},
+      typingSignals: createMockTypingSignaler(),
+      blockReplyPipeline: null,
+      blockStreamingEnabled: false,
+      resolvedBlockStreamingBreak: "message_end",
+      applyReplyToMode: (payload) => payload,
+      shouldEmitToolResult: () => true,
+      shouldEmitToolOutput: () => false,
+      pendingToolTasks: new Set(),
+      resetSessionAfterCompactionFailure: async () => false,
+      resetSessionAfterRoleOrderingConflict: async () => false,
+      isHeartbeat: false,
+      sessionKey: "main",
+      getActiveSessionEntry: () => undefined,
+      resolvedVerboseLevel: "off",
+    });
+
+    expect(result.kind).toBe("final");
+    if (result.kind === "final") {
+      expect(result.payload.text).toBe(
+        "⚠️ Model login expired on the gateway for openai-codex. Re-auth with `openclaw models auth login --provider openai-codex`, then try again.",
+      );
+    }
+  });
+
   it("surfaces direct provider auth guidance for missing API keys", async () => {
     state.runEmbeddedPiAgentMock.mockRejectedValueOnce(
       new Error(

@@ -534,7 +534,7 @@ describe("plugin session extension SessionEntry projection", () => {
     }
   });
 
-  it("clears stale promoted SessionEntry slots on plugin restart without deleting extension state", async () => {
+  it("clears stale promoted SessionEntry slots on plugin restart without deleting plugin state", async () => {
     const previousFixture = createPluginRegistryFixture();
     registerTestPlugin({
       registry: previousFixture.registry,

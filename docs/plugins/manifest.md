@@ -637,7 +637,7 @@ Each list is optional:
 
 | Field                            | Type       | What it means                                                         |
 | -------------------------------- | ---------- | --------------------------------------------------------------------- |
-| `embeddedExtensionFactories`     | `string[]` | Codex app-server extension factory ids, currently `codex-app-server`. |
+| `embeddedExtensionFactories`     | `string[]` | Codex app-server plugin factory ids, currently `codex-app-server`.    |
 | `agentToolResultMiddleware`      | `string[]` | Runtime ids a bundled plugin may register tool-result middleware for. |
 | `externalAuthProviders`          | `string[]` | Provider ids whose external auth profile hook this plugin owns.       |
 | `speechProviders`                | `string[]` | Speech provider ids this plugin owns.                                 |
@@ -653,7 +653,7 @@ Each list is optional:
 | `tools`                          | `string[]` | Agent tool names this plugin owns.                                    |
 
 `contracts.embeddedExtensionFactories` is retained for bundled Codex
-app-server-only extension factories. Bundled tool-result transforms should
+app-server-only plugin factories. Bundled tool-result transforms should
 declare `contracts.agentToolResultMiddleware` and register with
 `api.registerAgentToolResultMiddleware(...)` instead. External plugins cannot
 register tool-result middleware because the seam can rewrite high-trust tool
@@ -1205,7 +1205,7 @@ Channel plugins should provide `openclaw.setupEntry` when status, channel list,
 or SecretRef scans need to identify configured accounts without loading the full
 runtime. The setup entry should expose channel metadata plus setup-safe config,
 status, and secrets adapters; keep network clients, gateway listeners, and
-transport runtimes in the main extension entrypoint.
+transport runtimes in the main plugin entrypoint.
 
 Runtime entrypoint fields do not override package-boundary checks for source
 entrypoint fields. For example, `openclaw.runtimeExtensions` cannot make an

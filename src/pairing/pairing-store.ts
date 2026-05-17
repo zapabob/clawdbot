@@ -541,7 +541,7 @@ export async function upsertChannelPairingRequest(params: {
   accountId: string;
   meta?: Record<string, string | undefined | null>;
   env?: NodeJS.ProcessEnv;
-  /** Extension channels can pass their adapter directly to bypass registry lookup. */
+  /** Plugin-provided channels can pass their adapter directly to bypass registry lookup. */
   pairingAdapter?: ChannelPairingAdapter;
 }): Promise<{ code: string; created: boolean }> {
   const env = params.env ?? process.env;

@@ -7,6 +7,7 @@ export type OAuthRefreshFailureReason =
   | "invalid_grant"
   | "sign_in_again"
   | "invalid_refresh_token"
+  | "token_invalidated"
   | "revoked";
 
 const OAUTH_REFRESH_FAILURE_PROVIDER_RE = /OAuth token refresh failed for ([^:]+):/i;
@@ -17,13 +18,22 @@ function isOAuthRefreshFailureMessage(message: string): boolean {
   return (
     lower.includes("oauth token refresh failed") ||
     lower.includes("access token could not be refreshed") ||
-    lower.includes("authentication session could not be refreshed automatically")
+    lower.includes("authentication session could not be refreshed automatically") ||
+    lower.includes("auth error code: token_invalidated") ||
+    lower.includes("authentication token has been invalidated")
   );
 }
 
 function extractOAuthRefreshFailureProvider(message: string): string | null {
   const provider = message.match(OAUTH_REFRESH_FAILURE_PROVIDER_RE)?.[1]?.trim();
-  return provider && provider.length > 0 ? provider : null;
+  if (provider && provider.length > 0) {
+    return provider;
+  }
+  const lower = message.toLowerCase();
+  if (lower.includes("openai-codex") || lower.includes("backend-api/codex")) {
+    return "openai-codex";
+  }
+  return null;
 }
 
 function sanitizeOAuthRefreshFailureProvider(provider: string | null | undefined): string | null {
@@ -41,6 +51,12 @@ export function classifyOAuthRefreshFailureReason(
   }
   if (lower.includes("invalid_grant")) {
     return "invalid_grant";
+  }
+  if (
+    lower.includes("token_invalidated") ||
+    lower.includes("authentication token has been invalidated")
+  ) {
+    return "token_invalidated";
   }
   if (lower.includes("signing in again") || lower.includes("sign in again")) {
     return "sign_in_again";

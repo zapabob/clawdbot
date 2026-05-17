@@ -175,9 +175,9 @@ failure without the dev-only repair pass.
 The managed tmux pane also defaults to colored Gateway logs for readability;
 set `FORCE_COLOR=0` when starting `pnpm gateway:watch` to disable ANSI output.
 
-The watcher restarts on build-relevant files under `src/`, extension source files,
-extension `package.json` and `openclaw.plugin.json` metadata, `tsconfig.json`,
-`package.json`, and `tsdown.config.ts`. Extension metadata changes restart the
+The watcher restarts on build-relevant files under `src/`, bundled plugin source files,
+plugin `package.json` and `openclaw.plugin.json` metadata, `tsconfig.json`,
+`package.json`, and `tsdown.config.ts`. Plugin metadata changes restart the
 gateway without forcing a `tsdown` rebuild; source and config changes still
 rebuild `dist` first.
 

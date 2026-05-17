@@ -29,7 +29,7 @@ export async function notifyPairingApproved(params: {
   id: string;
   cfg: OpenClawConfig;
   runtime?: RuntimeEnv;
-  /** Extension channels can pass their adapter directly to bypass registry lookup. */
+  /** Plugin-provided channels can pass their adapter directly to bypass registry lookup. */
   pairingAdapter?: ChannelPairingAdapter;
 }): Promise<void> {
   // Extensions may provide adapter directly to bypass ESM module isolation

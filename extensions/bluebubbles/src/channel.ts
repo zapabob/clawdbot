@@ -16,13 +16,13 @@ import {
   projectAccountWarningCollector,
 } from "openclaw/plugin-sdk/channel-policy";
 import { buildProbeChannelStatusSummary } from "openclaw/plugin-sdk/channel-status";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-types";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import { createLazyRuntimeNamedExport } from "openclaw/plugin-sdk/lazy-runtime";
 import {
   createComputedAccountStatusAdapter,
   createDefaultChannelRuntimeState,
 } from "openclaw/plugin-sdk/status-helpers";
-import { normalizeOptionalString } from "openclaw/plugin-sdk/text-runtime";
+import { normalizeOptionalString } from "openclaw/plugin-sdk/string-coerce-runtime";
 import {
   type ResolvedBlueBubblesAccount,
   resolveBlueBubblesEffectiveAllowPrivateNetwork,

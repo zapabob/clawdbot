@@ -296,8 +296,8 @@ Validation` or from the `main`/release workflow ref so workflow logic and
 - `pnpm test:install:smoke` also enforces the npm pack `unpackedSize` budget on
   the candidate update tarball, so installer e2e catches accidental pack bloat
   before the release publish path
-- If the release work touched CI planning, extension timing manifests, or
-  extension test matrices, regenerate and review the planner-owned
+- If the release work touched CI planning, plugin timing manifests, or
+  plugin test matrices, regenerate and review the planner-owned
   `plugin-prerelease-extension-shard` matrix outputs from
   `.github/workflows/plugin-prerelease.yml` before approval so release notes do
   not describe a stale CI layout

@@ -181,7 +181,7 @@ describe("llama-cpp provider", () => {
     discoverOpenAICompatibleSelfHostedProviderMock.mockResolvedValue("discover-result");
     const provider = registerProvider();
 
-    const result = await provider.discovery.run({
+    const result = await provider.catalog.run({
       config: {},
       agentDir: undefined,
       workspaceDir: undefined,

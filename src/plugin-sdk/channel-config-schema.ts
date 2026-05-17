@@ -1,4 +1,5 @@
 /** Shared config-schema primitives for channel plugins with DM/group policy knobs. */
+export { z } from "zod";
 export {
   AllowFromListSchema,
   buildChannelConfigSchema,

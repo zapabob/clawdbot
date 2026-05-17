@@ -2,6 +2,9 @@
   "id": "memory-evolution",
   "name": "Memory Evolution",
   "description": "Implements Ebbinghaus forgetting curve and memory distillation for permanent AI awareness.",
+  "contracts": {
+    "tools": ["distill_memory", "recall_resonant_memory"]
+  },
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

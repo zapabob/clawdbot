@@ -73,7 +73,7 @@ export default definePluginEntry({
           },
         },
       ],
-      discovery: {
+      catalog: {
         order: "late",
         run: async (ctx: ProviderDiscoveryContext) => {
           const explicit = ctx.config.models?.providers?.hypura;

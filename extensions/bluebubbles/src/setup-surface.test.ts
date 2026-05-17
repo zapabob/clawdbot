@@ -1,5 +1,5 @@
 import { adaptScopedAccountAccessor } from "openclaw/plugin-sdk/channel-config-helpers";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/config-types";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/config-contracts";
 import {
   createSetupWizardAdapter,
   createTestWizardPrompter,

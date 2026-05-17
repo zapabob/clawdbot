@@ -205,7 +205,7 @@ describe("pairing cli", () => {
     expect(listChannelPairingRequests).toHaveBeenCalledWith("imessage");
   });
 
-  it("accepts extension channels outside the registry", async () => {
+  it("accepts plugin-provided channels outside the registry", async () => {
     listChannelPairingRequests.mockResolvedValueOnce([]);
 
     await runPairing(["pairing", "list", "zalo"]);

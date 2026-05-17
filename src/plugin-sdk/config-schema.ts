@@ -1,5 +1,5 @@
 /**
- * @deprecated Public SDK subpath has no bundled extension production imports.
+ * @deprecated Public SDK subpath has no bundled plugin production imports.
  * Plugin authors should define plugin-local schemas instead of depending on the
  * full root OpenClaw config schema.
  */

@@ -130,7 +130,7 @@ describe("runPluginPayloadSmokeCheck", () => {
     expect(result.failures).toEqual([]);
   });
 
-  it("accepts a packaged TypeScript extension entry when compiled runtime output exists", async () => {
+  it("accepts a packaged TypeScript plugin entry when compiled runtime output exists", async () => {
     const dir = path.join(tmpRoot, "codex");
     await writePackage(dir, {
       name: "@openclaw/codex",
@@ -159,9 +159,8 @@ describe("runPluginPayloadSmokeCheck", () => {
       {
         pluginId: "brave",
         installPath: dir,
-        reason: "missing-extension-entry",
-        detail:
-          "Plugin extension entry validation failed: extension entry not found: ./dist/index.js",
+        reason: "missing-plugin-entry",
+        detail: "Plugin entry validation failed: plugin entry not found: ./dist/index.js",
       },
     ]);
   });

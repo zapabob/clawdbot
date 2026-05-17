@@ -111,7 +111,7 @@ describe("bundled plugin naming guardrails", () => {
   it.each([
     {
       name: "keeps bundled workspace package names anchored to the plugin id",
-      message: `Bundled extension package names must stay anchored to the manifest id via @openclaw/<id> or an approved suffix (${ALLOWED_PACKAGE_SUFFIXES.join(", ")}). Update the plugin naming docs and this invariant before adding a new naming form.`,
+      message: `Bundled plugin package names must stay anchored to the manifest id via @openclaw/<id> or an approved suffix (${ALLOWED_PACKAGE_SUFFIXES.join(", ")}). Update the plugin naming docs and this invariant before adding a new naming form.`,
       collectMismatches: (records: BundledPluginRecord[]) =>
         records
           .filter(
@@ -126,7 +126,7 @@ describe("bundled plugin naming guardrails", () => {
     {
       name: "keeps bundled workspace directories aligned with the plugin id unless explicitly allowlisted",
       message:
-        "Bundled extension directory names should match openclaw.plugin.json:id. If a legacy exception is unavoidable, add it to DIR_ID_EXCEPTIONS with a comment.",
+        "Bundled plugin directory names should match openclaw.plugin.json:id. If a legacy exception is unavoidable, add it to DIR_ID_EXCEPTIONS with a comment.",
       collectMismatches: (records: BundledPluginRecord[]) =>
         records
           .filter(

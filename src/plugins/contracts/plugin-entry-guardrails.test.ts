@@ -240,7 +240,7 @@ function findForbiddenContractModuleGraphPaths(params: {
 }
 
 describe("plugin entry guardrails", () => {
-  it("keeps bundled extension entry modules off direct definePluginEntry imports from core", () => {
+  it("keeps bundled plugin entry modules off direct definePluginEntry imports from core", () => {
     const failures: string[] = [];
 
     for (const plugin of listBundledPluginRoots()) {
