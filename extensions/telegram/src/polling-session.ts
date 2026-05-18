@@ -261,6 +261,27 @@ export class TelegramPollingSession {
     }
   }
 
+  async #ensureManualUpdateBotInitialized(bot: TelegramBot): Promise<"ready" | "retry" | "exit"> {
+    if (this.opts.botInfo) {
+      return "ready";
+    }
+    try {
+      const initSignal = this.opts.abortSignal as Parameters<typeof bot.init>[0];
+      await withTelegramApiErrorLogging({
+        operation: "getMe",
+        runtime: this.opts.runtime,
+        fn: () => bot.init(initSignal),
+      });
+      return "ready";
+    } catch (err) {
+      const shouldRetry = await this.#waitBeforeRetryOnRecoverableSetupError(
+        err,
+        "Telegram bot initialization failed",
+      );
+      return shouldRetry ? "retry" : "exit";
+    }
+  }
+
   async #handleSpooledUpdate(params: {
     bot: TelegramBot;
     update: TelegramSpooledUpdate;
@@ -314,6 +335,13 @@ export class TelegramPollingSession {
     const ingress = this.opts.isolatedIngress;
     if (!ingress?.enabled) {
       return this.#runPollingCycle(bot);
+    }
+    const initState = await this.#ensureManualUpdateBotInitialized(bot);
+    if (initState === "retry") {
+      return "continue";
+    }
+    if (initState === "exit") {
+      return "exit";
     }
     const spoolDir =
       ingress.spoolDir ?? resolveTelegramIngressSpoolDir({ accountId: this.opts.accountId });

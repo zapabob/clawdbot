@@ -110,6 +110,25 @@ USER.md
 *.log.txt
 log.txt
 
+# Local personal notes and text captures
+/*.txt
+/*.local.md
+/*.private.md
+/*.personal.md
+*.local.txt
+*.private.txt
+*.personal.txt
+*.secret.txt
+*.secrets.txt
+*.token.txt
+*.tokens.txt
+*.credential.txt
+*.credentials.txt
+/personal/
+/private/
+/secrets/
+/.secrets/
+
 .idea
 .vscode/
 

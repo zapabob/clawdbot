@@ -6,6 +6,8 @@ Docs: https://docs.openclaw.ai
 
 ### Changes
 
+- Heartbeat: expand the workspace heartbeat into Telegram SITREP, VRChat readiness, and schedule/business review tasks with privacy guardrails.
+- Hypura Harness: emit Companion3D speech lifecycle events and optional monitor playback for companion speech when local output devices are configured.
 - Dependencies: route root ambient Node proxy agents through `@openclaw/proxyline` and drop root `proxy-agent`, `https-proxy-agent`, and `minimatch` dependencies.
 - Control UI/i18n: add a `pnpm ui:i18n:report` baseline report for hardcoded-copy focus areas and locale fallback metadata. (#81320) Thanks @samzong.
 - Maintainer tooling: add a repo-local `codex-review` skill for Codex closeout reviews, including local dirty-work and PR-branch review helpers that rerun until no accepted/actionable findings remain and avoid unsupported inline prompts with `--base`.
@@ -32,6 +34,8 @@ Docs: https://docs.openclaw.ai
 
 ### Fixes
 
+- Telegram: initialize the manual-update bot before draining isolated ingress spools, avoiding `Bot not initialized` retries after provider restarts.
+- Hypura: keep the bundled provider on its own Ollama-compatible base URL normalizer instead of importing a nonexistent plugin-sdk subpath, avoiding Hypura plugin load failures from source and dist builds.
 - Codex app-server: fall back to a still-valid cached ChatGPT token when forced OAuth refresh misses the app-server deadline, preventing channel replies from failing on slow auth refreshes.
 - OAuth profiles: reuse a still-valid cached access token when a forced refresh reports `refresh_token_reused`, avoiding failed turns when another process already exchanged the refresh token.
 - Windows services: start gateway and node services with Node's system CA store enabled so Telegram/LINE probes work on machines that trust their network CA through Windows.

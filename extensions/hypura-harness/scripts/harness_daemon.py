@@ -321,6 +321,23 @@ def _resolve_voice_output_devices(
     return None
 
 
+async def _play_companion_monitor_speech(
+    text: str,
+    emotion: str,
+    speaker: int = 8,
+) -> dict[str, Any] | None:
+    output_devices = _resolve_voice_output_devices(None, None)
+    if not output_devices:
+        return None
+    wav_bytes = await voicevox_seq.synthesize(text, emotion=emotion, speaker=speaker)
+    await asyncio.to_thread(
+        voicevox_seq.play_wav_bytes,
+        wav_bytes,
+        output_devices=output_devices,
+    )
+    return {"ok": True, "output_devices": output_devices}
+
+
 def _current_avatar_id_or_error(avatar_id: str | None = None) -> str:
     resolved = avatar_id or vrchat_registry.current_avatar_id
     if not resolved:
@@ -1005,12 +1022,53 @@ async def voice_companion_turn(req: CompanionVoiceTurnRequest) -> dict[str, Any]
             reply = str(result["reply"])
             emotion = str(result.get("emotion") or "neutral")
             if req.animate:
+                companion3d_events.add_event(
+                    "emotion",
+                    {"emotion": emotion, "source": "voice_companion_turn"},
+                )
                 animation_result = await companion_bridge.forward_emotion(emotion)
                 result["companion_animation"] = animation_result
                 if not _companion_bridge_ok(animation_result):
                     result["success"] = False
             if req.speak:
-                speech_result = await companion_bridge.forward_speak(reply, emotion)
+                if req.animate:
+                    companion3d_events.add_event(
+                        "speak_start",
+                        {
+                            "emotion": emotion,
+                            "textLength": len(reply),
+                            "source": "voice_companion_turn",
+                        },
+                    )
+                    companion3d_events.add_event(
+                        "state",
+                        {
+                            "speaking": True,
+                            "lipSync": True,
+                            "emotion": emotion,
+                            "source": "voice_companion_turn",
+                        },
+                    )
+                try:
+                    speech_result = await companion_bridge.forward_speak(reply, emotion)
+                    monitor_result = await _play_companion_monitor_speech(reply, emotion)
+                    if monitor_result is not None:
+                        result["companion_monitor_speech"] = monitor_result
+                finally:
+                    if req.animate:
+                        companion3d_events.add_event(
+                            "speak_end",
+                            {"emotion": emotion, "source": "voice_companion_turn"},
+                        )
+                        companion3d_events.add_event(
+                            "state",
+                            {
+                                "speaking": False,
+                                "lipSync": False,
+                                "emotion": emotion,
+                                "source": "voice_companion_turn",
+                            },
+                        )
                 result["companion_speech"] = speech_result
                 if not _companion_bridge_ok(speech_result):
                     result["success"] = False
@@ -1047,7 +1105,14 @@ async def companion_control(req: CompanionControlRequest) -> dict[str, Any]:
                 req.emotion or "neutral",
                 req.tts_provider,
             )
-            return _companion_bridge_response(req.action, result)
+            response = _companion_bridge_response(req.action, result)
+            monitor_result = await _play_companion_monitor_speech(
+                req.value,
+                req.emotion or "neutral",
+            )
+            if monitor_result is not None:
+                response["monitorSpeech"] = monitor_result
+            return response
         elif req.action == "emotion":
             if not req.value:
                 raise HTTPException(status_code=400, detail="value required for emotion")

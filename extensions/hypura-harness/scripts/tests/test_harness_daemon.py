@@ -371,10 +371,14 @@ def test_companion_control_mic_reports_nested_bridge_denial() -> None:
 def test_companion_control_speak_reports_bridge_failure() -> None:
     from harness_daemon import app
 
-    with patch("harness_daemon.companion_bridge") as mock_bridge:
+    with patch("harness_daemon.companion_bridge") as mock_bridge, patch(
+        "harness_daemon.voicevox_seq"
+    ) as mock_voicevox:
         mock_bridge.forward_speak = AsyncMock(
             return_value={"ok": False, "error": "Desktop companion IPC unavailable"}
         )
+        mock_voicevox.synthesize = AsyncMock(return_value=b"wav")
+        mock_voicevox.play_wav_bytes = Mock()
         client = TestClient(app)
         resp = client.post(
             "/companion/control",
@@ -412,27 +416,50 @@ def test_voice_companion_mic_reports_nested_bridge_denial() -> None:
 
 
 def test_voice_companion_turn_reports_companion_speech_failure() -> None:
-    from harness_daemon import app
+    import harness_daemon as hd
 
     with patch(
         "harness_daemon.run_companion_transcript_turn",
         return_value={"success": True, "reply": "reply", "emotion": "happy"},
-    ), patch("harness_daemon.companion_bridge") as mock_bridge:
+    ), patch("harness_daemon.companion_bridge") as mock_bridge, patch(
+        "harness_daemon.voicevox_seq"
+    ) as mock_voicevox:
         mock_bridge.forward_emotion = AsyncMock(return_value={"ok": True})
         mock_bridge.forward_speak = AsyncMock(
             return_value={"ok": False, "error": "Desktop companion IPC unavailable"}
         )
-        client = TestClient(app)
-        resp = client.post(
-            "/voice/companion-turn",
-            json={"transcript": "hi", "speak": True, "animate": True},
-        )
+        mock_voicevox.synthesize = AsyncMock(return_value=b"wav")
+        mock_voicevox.play_wav_bytes = Mock()
+        old_config = hd.config
+        hd.config = {**old_config, "voice": {"output_devices": [4]}}
+        hd.companion3d_events.events.clear()
+        hd.companion3d_events.last_state.clear()
+        try:
+            client = TestClient(hd.app)
+            resp = client.post(
+                "/voice/companion-turn",
+                json={"transcript": "hi", "speak": True, "animate": True},
+            )
 
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["success"] is False
-        assert data["companion_animation"]["ok"] is True
-        assert data["companion_speech"]["error"] == "Desktop companion IPC unavailable"
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["success"] is False
+            assert data["companion_animation"]["ok"] is True
+            assert data["companion_speech"]["error"] == "Desktop companion IPC unavailable"
+            assert data["companion_monitor_speech"]["output_devices"] == [4]
+            assert [event["type"] for event in hd.companion3d_events.events[-5:]] == [
+                "emotion",
+                "speak_start",
+                "state",
+                "speak_end",
+                "state",
+            ]
+            assert hd.companion3d_events.last_state["state"]["speaking"] is False
+            assert hd.companion3d_events.last_state["state"]["lipSync"] is False
+            mock_voicevox.synthesize.assert_awaited_once_with("reply", emotion="happy", speaker=8)
+            mock_voicevox.play_wav_bytes.assert_called_once_with(b"wav", output_devices=[4])
+        finally:
+            hd.config = old_config
 
 
 def test_companion_control_look_at_endpoint() -> None:
@@ -460,13 +487,13 @@ def test_companion_control_load_model_resolves_repo_relative_path() -> None:
             "/companion/control",
             json={
                 "action": "load_model",
-                "model_path": "assets/NFD/Hakua/FBX/FBX/Hakua.fbx",
+                "model_path": "assets/NFD/SampleAvatar/FBX/SampleAvatar.fbx",
             },
         )
         assert resp.status_code == 200
         assert resp.json()["success"] is True
         forwarded_path = mock_bridge.forward_load_model.await_args.args[0]
-        assert forwarded_path.endswith("assets\\NFD\\Hakua\\FBX\\FBX\\Hakua.fbx")
+        assert forwarded_path.endswith("assets\\NFD\\SampleAvatar\\FBX\\SampleAvatar.fbx")
 
 
 def test_submodule_run_proxies_to_gateway_tool_surface() -> None:
