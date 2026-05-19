@@ -748,7 +748,7 @@ if (-not $SkipCompanion) {
 
 # --- Browser: launch asynchronously (poll in background) with same env as Gateway/TUI/ngrok ---
 if (-not $SkipBrowser) {
-    $browserUrl = $localGatewayUrl
+    $browserUrl = "$localGatewayUrl/#token=$token"
     $browserScript = Join-Path $PSScriptRoot "..\browser-wait-and-open.ps1"
     Start-StackProcess -Title "OpenClaw Browser" `
         -WorkingDirectory $ProjectDir `
