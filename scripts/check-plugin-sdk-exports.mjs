@@ -51,6 +51,8 @@ const requiredSubpathExports = {
     "normalizeSecretInputString",
     "resolveSecretInputString",
   ],
+  setup: ["createSetupTranslator"],
+  "setup-runtime": ["createSetupTranslator"],
 };
 
 // The root plugin-sdk entry intentionally stays tiny. Keep this list aligned

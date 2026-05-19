@@ -1226,6 +1226,7 @@ describe("plugin-sdk subpath exports", () => {
       "DEFAULT_ACCOUNT_ID",
       "createAllowFromSection",
       "createDelegatedSetupWizardProxy",
+      "createSetupTranslator",
       "createTopLevelChannelDmPolicy",
       "mergeAllowFromEntries",
     ]);
