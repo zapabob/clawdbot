@@ -1,17 +1,19 @@
 import { vi } from "vitest";
 import { ensureBundledChannelPluginsLoaded } from "../src/channels/plugins/bundled.js";
 
-declare global {
-  // Optional per-test delegate for the shared OAuth mock.
-  var __OPENCLAW_TEST_REFRESH_OPENAI_CODEX_TOKEN__: ((...args: unknown[]) => unknown) | undefined;
-}
+const openAiCodexTokenRefreshTestHook = "__OPENCLAW_TEST_REFRESH_OPENAI_CODEX_TOKEN__";
+type GlobalWithOpenAiCodexTokenRefreshTestHook = typeof globalThis & {
+  [openAiCodexTokenRefreshTestHook]?: ((...args: unknown[]) => unknown) | undefined;
+};
 
 vi.mock("@earendil-works/pi-ai/oauth", () => ({
   getOAuthApiKey: () => undefined,
   getOAuthProviders: () => [],
   loginOpenAICodex: vi.fn(),
   refreshOpenAICodexToken: vi.fn((...args: unknown[]) =>
-    globalThis.__OPENCLAW_TEST_REFRESH_OPENAI_CODEX_TOKEN__?.(...args),
+    (globalThis as GlobalWithOpenAiCodexTokenRefreshTestHook)[openAiCodexTokenRefreshTestHook]?.(
+      ...args,
+    ),
   ),
 }));
 

@@ -3,12 +3,14 @@ import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   applyExtraParamsToAgentMock,
+  buildEmbeddedSystemPromptMock,
   contextEngineCompactMock,
   createOpenClawCodingToolsMock,
   ensureRuntimePluginsLoaded,
   estimateTokensMock,
   getMemorySearchManagerMock,
   hookRunner,
+  listRegisteredPluginAgentPromptGuidanceMock,
   loadCompactHooksHarness,
   maybeCompactAgentHarnessSessionMock,
   registerProviderStreamForModelMock,
@@ -30,7 +32,7 @@ import {
 
 let compactEmbeddedPiSessionDirect: typeof import("./compact.js").compactEmbeddedPiSessionDirect;
 let compactEmbeddedPiSession: typeof import("./compact.queued.js").compactEmbeddedPiSession;
-let compactTesting: typeof import("./compact.js").__testing;
+let compactTesting: typeof import("./compact.js").testing;
 let onSessionTranscriptUpdate: typeof import("../../sessions/transcript-events.js").onSessionTranscriptUpdate;
 
 const TEST_SESSION_ID = "session-1";
@@ -173,7 +175,7 @@ beforeAll(async () => {
   const loaded = await loadCompactHooksHarness();
   compactEmbeddedPiSessionDirect = loaded.compactEmbeddedPiSessionDirect;
   compactEmbeddedPiSession = loaded.compactEmbeddedPiSession;
-  compactTesting = loaded.__testing;
+  compactTesting = loaded.testing;
   onSessionTranscriptUpdate = loaded.onSessionTranscriptUpdate;
 });
 

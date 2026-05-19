@@ -160,15 +160,21 @@ function hasInlineOAuthTokenMaterial(credential: OAuthCredential): boolean {
 export function readExternalCliBootstrapCredential(params: {
   profileId: string;
   credential: OAuthCredential;
+  allowInlineOAuthTokenMaterial?: boolean;
+  allowKeychainPrompt?: boolean;
 }): OAuthCredential | null {
   const provider = resolveExternalCliSyncProvider(params);
   if (!provider) {
     return null;
   }
-  if (provider.bootstrapOnly && hasInlineOAuthTokenMaterial(params.credential)) {
+  if (
+    provider.bootstrapOnly &&
+    !params.allowInlineOAuthTokenMaterial &&
+    hasInlineOAuthTokenMaterial(params.credential)
+  ) {
     return null;
   }
-  return provider.readCredentials();
+  return provider.readCredentials({ allowKeychainPrompt: params.allowKeychainPrompt });
 }
 
 export function readManagedExternalCliCredential(params: {
@@ -218,6 +224,20 @@ export function readManagedExternalCliCredential(params: {
     return null;
   }
   return imported;
+}
+
+export function readExternalCliFallbackCredential(params: {
+  profileId: string;
+  credential: OAuthCredential;
+  allowKeychainPrompt?: boolean;
+}): OAuthCredential | null {
+  const provider =
+    resolveExternalCliSyncProvider(params) ??
+    EXTERNAL_CLI_SYNC_PROVIDERS.find((entry) => entry.provider === params.credential.provider);
+  if (!provider) {
+    return null;
+  }
+  return provider.readCredentials({ allowKeychainPrompt: params.allowKeychainPrompt });
 }
 
 function normalizeProviderScope(values: Iterable<string> | undefined): Set<string> | undefined {

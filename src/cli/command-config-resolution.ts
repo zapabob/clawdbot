@@ -31,7 +31,7 @@ export async function resolveCommandConfigWithSecrets<TConfig extends OpenClawCo
   });
   if (params.runtime) {
     for (const entry of diagnostics) {
-      params.runtime.log(`[secrets] ${entry}`);
+      params.runtime.error(`[secrets] ${entry}`);
     }
   }
   const effectiveConfig = params.autoEnable

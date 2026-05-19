@@ -1,7 +1,9 @@
-import { definePluginEntry, type AnyAgentTool, type OpenClawPluginApi } from "./api.js";
-import { createLlmTaskTool } from "./src/llm-task-tool.js";
+import { defineToolPlugin } from "openclaw/plugin-sdk/tool-plugin";
+import { Type } from "typebox";
+import type { AnyAgentTool } from "./api.js";
+import { createLlmTaskTool, llmTaskToolDefinition } from "./src/llm-task-tool.js";
 
-export default definePluginEntry({
+export default defineToolPlugin({
   id: "llm-task",
   name: "LLM Task",
   description: "Optional tool for structured subtask execution",

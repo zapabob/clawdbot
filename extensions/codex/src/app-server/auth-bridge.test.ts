@@ -652,7 +652,7 @@ describe("bridgeCodexAppServerStartOptions", () => {
     }
   });
 
-  it("selects an oauthRef-backed Codex profile for app-server login", () => {
+  it("does not select Codex profiles without inline OAuth credential material", () => {
     expect(
       resolveCodexAppServerAuthProfileId({
         store: {
@@ -664,16 +664,11 @@ describe("bridgeCodexAppServerStartOptions", () => {
               access: "",
               refresh: "",
               expires: Date.now() + 60_000,
-              oauthRef: {
-                source: "openclaw-credentials",
-                provider: "openai-codex",
-                id: "0123456789abcdef0123456789abcdef",
-              },
             },
           },
         },
       }),
-    ).toBe("openai-codex:default");
+    ).toBeUndefined();
   });
 
   it("answers refresh requests from a fresh default oauthRef-backed Codex profile without forcing a refresh", async () => {

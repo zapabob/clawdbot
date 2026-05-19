@@ -67,6 +67,9 @@ describe("gateway config mutation guard coverage", () => {
     expect(ALLOWED_GATEWAY_CONFIG_PATHS_FOR_TEST).toContain("channels.*.requireMention");
     expect(ALLOWED_GATEWAY_CONFIG_PATHS_FOR_TEST).toContain("messages.visibleReplies");
     expect(ALLOWED_GATEWAY_CONFIG_PATHS_FOR_TEST).toContain("messages.groupChat.visibleReplies");
+    expect(ALLOWED_GATEWAY_CONFIG_PATHS_FOR_TEST).toContain(
+      "messages.groupChat.unmentionedInbound",
+    );
   });
 
   it("allows visible reply delivery mode edits via config.patch", () => {

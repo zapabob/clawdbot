@@ -1,7 +1,13 @@
 import { normalizeChatType } from "../../channels/chat-type.js";
+import type { InboundEventKind } from "../../channels/inbound-event/kind.js";
 import type { OpenClawConfig } from "../../config/types.openclaw.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import type { SessionSendPolicyDecision } from "../../sessions/send-policy.js";
+import {
+  isExplicitCommandTurn,
+  resolveCommandTurnContext,
+  type CommandTurnContext,
+} from "../command-turn-context.js";
 import type { SourceReplyDeliveryMode } from "../get-reply-options.types.js";
 
 const log = createSubsystemLogger("auto-reply");
@@ -12,9 +18,11 @@ type SourceReplyVisibleRepliesDefault = "automatic" | "message_tool";
 
 export type SourceReplyDeliveryModeContext = {
   ChatType?: string;
+  InboundEventKind?: InboundEventKind;
   CommandAuthorized?: boolean;
   CommandBody?: string;
   CommandSource?: "text" | "native";
+  CommandTurn?: CommandTurnContext;
 };
 
 /** @internal Test-only reset for the process-level one-shot warning. */
@@ -92,6 +100,7 @@ export function resolveSourceReplyVisibilityPolicy(params: {
   cfg: OpenClawConfig;
   ctx: SourceReplyDeliveryModeContext;
   requested?: SourceReplyDeliveryMode;
+  strictMessageToolOnly?: boolean;
   sendPolicy: SessionSendPolicyDecision;
   suppressAcpChildUserDelivery?: boolean;
   explicitSuppressTyping?: boolean;

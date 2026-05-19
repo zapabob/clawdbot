@@ -932,7 +932,7 @@ for ($attempt = 1; $attempt -le 2; $attempt++) {
     '--message',
     'Reply with exact ASCII text OK only.',
     '--thinking',
-    'minimal',
+    'off',
     '--timeout',
     '${resolveParallelsModelTimeoutSeconds("windows")}',
     '--json'
