@@ -185,7 +185,7 @@ class UpstreamMergePolicyTests(unittest.TestCase):
         )
         self.assertEqual(
             strategy.pinned_upstream_sha,
-            "6f1d321aababd96e7b67e4b8dc7fdd5d9c1a554b",
+            "87aa31956840c5909aba7fd2af798d478e2aa610",
         )
         kept, ignored = policy.filter_noise_paths(
             [

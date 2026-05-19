@@ -400,6 +400,18 @@ def main() -> int:
             print(f"Post-merge blockers found. See report: {path}")
             return 2
 
+        unresolved_before_commit = run_git(["diff", "--name-only", "--diff-filter=U"], check=False).stdout
+        if unresolved_before_commit.strip():
+            raise RuntimeError(
+                "merge still has unresolved conflicts before commit:\n" + unresolved_before_commit
+            )
+        staged_paths = run_git(["diff", "--cached", "--name-only"], check=False).stdout
+        if not staged_paths.strip():
+            raise RuntimeError(
+                "merge index is empty before commit; reset the working tree and rerun from a clean tree"
+            )
+        report["steps"].append(f"merge index ready ({len(staged_paths.splitlines())} staged paths)")
+
         commit_cmd = ["commit", "-m", args.commit_message]
         if args.no_verify:
             commit_cmd.insert(1, "--no-verify")
